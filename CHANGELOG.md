@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `list_dir` tool for efficient directory listing
   - Uses `os.scandir` for better performance than shell commands
   - Supports pagination with configurable max entries (default 200)
-  - Shows file type indicators (/, *, @, ?)
+  - Shows file type indicators (/, \*, @, ?)
   - Sorts results with directories first, then files alphabetically
   - Optional hidden file display with `show_hidden` parameter
   - Graceful permission error handling
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed model behavior from "TOOLS FIRST, ALWAYS" to "UNDERSTAND CONTEXT" for better interpretation
 - Fixed "string indices must be integers" error in fallback responses
   - Improved AgentRunWrapper attribute resolution to properly handle result attribute conflicts
-  - Used __getattribute__ instead of __getattr__ to ensure correct attribute precedence
+  - Used **getattribute** instead of **getattr** to ensure correct attribute precedence
   - Prevents errors when agent reaches max iterations and generates fallback response
 
 ## [0.0.29] - 2025-12-06

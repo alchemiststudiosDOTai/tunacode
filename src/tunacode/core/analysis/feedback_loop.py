@@ -330,3 +330,78 @@ class FeedbackLoop:
 
         # Last resort: limit to start of line or after whitespace
         return f"(^|\\s){broad_pattern}"
+
+    async def summarize_results(
+        self,
+        original_request: str,
+        completed_tasks: List[Dict[str, Any]],
+        outputs: List[str],
+        model: ModelName,
+        primary_request_info: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Summarize the results of all completed tasks."""
+        from ..agents.main import get_agent_tool
+
+        Agent, _ = get_agent_tool()
+
+        # Build context for summarization
+        context_parts = [
+            f"Original Request: {original_request}",
+            f"\nCompleted {len(completed_tasks)} tasks.",
+        ]
+        
+        # If we have primary request info, emphasize primary outputs
+        if primary_request_info and primary_request_info.get("primary_outputs"):
+            context_parts.append("\nPrimary Task Results (MOST IMPORTANT - directly answer the original request):")
+            for i, primary_output in enumerate(primary_request_info["primary_outputs"]):
+                task_desc = primary_output["task"]["description"]
+                output = primary_output["output"]
+                if len(output) > 2000:
+                    output = output[:2000] + "... (truncated)"
+                context_parts.append(f"\n{task_desc}:\n{output}")
+            
+            # Add follow-up outputs separately if any
+            if len(outputs) > len(primary_request_info["primary_outputs"]):
+                context_parts.append("\n\nAdditional Context from Follow-up Tasks:")
+                # Add only non-primary outputs
+                for i, output in enumerate(outputs):
+                    if output and output not in [p["output"] for p in primary_request_info["primary_outputs"]]:
+                        if len(output) > 500:
+                            output = output[:500] + "... (truncated)"
+                        context_parts.append(f"\nFollow-up Output:\n{output}")
+        else:
+            # Fall back to original behavior if no primary info
+            context_parts.append("\nTask Outputs:")
+            for i, output in enumerate(outputs):
+                if output:
+                    if len(output) > 1000:
+                        output = output[:1000] + "... (truncated)"
+                    context_parts.append(f"\nOutput {i + 1}:\n{output}")
+
+        context = "\n".join(context_parts)
+
+        # Create summarizer agent with improved prompt
+        system_prompt = """You are summarizing the results of task execution.
+
+CRITICAL: Your PRIMARY goal is to answer the original request. Focus on the primary task results that directly address what the user asked for.
+
+Instructions:
+1. First and foremost, answer the original request using the primary task results
+2. If the user asked to see a specific file, show its contents from the primary output
+3. Only mention follow-up/additional findings if they add important context
+4. Do NOT let follow-up task outputs overshadow the main answer
+5. Be concise but complete in answering the original request"""
+        
+        summarizer = Agent(
+            model=model,
+            system_prompt=system_prompt,
+            result_type=str,
+            retries=1,
+        )
+
+        try:
+            result = await summarizer.run(context)
+            return result.data.strip()
+        except Exception:
+            # Fallback summary
+            return f"Completed {len(completed_tasks)} tasks successfully."

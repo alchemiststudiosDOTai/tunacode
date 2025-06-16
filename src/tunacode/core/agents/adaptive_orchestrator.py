@@ -6,9 +6,11 @@ parallel execution, and feedback loops.
 """
 
 import asyncio
+import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ...types import AgentRun, ModelName, ResponseState
@@ -16,6 +18,9 @@ from ..analysis import ConstrainedPlanner, FeedbackDecision, FeedbackLoop
 from ..analysis.hybrid_request_analyzer import HybridRequestAnalyzer
 from ..state import StateManager
 from . import main as agent_main
+from .context_provider import ContextProvider
+from .directory_indexer import DirectoryIndexer
+from .parallel_executor import ParallelExecutor
 from .readonly import ReadOnlyAgent
 
 
@@ -43,6 +48,12 @@ class AdaptiveOrchestrator:
         self.task_timeout = 30  # 30s per task
         self.total_timeout = 120  # 2min total
 
+        # Initialize context provider and directory indexer
+        project_root = Path.cwd()  # Or get from state_manager if available
+        self.context_provider = ContextProvider(project_root)
+        self.directory_indexer = DirectoryIndexer(self.context_provider)
+        self.parallel_executor = ParallelExecutor(self.context_provider)
+
     async def run(self, request: str, model: ModelName | None = None) -> List[AgentRun]:
         """Execute a request with adaptive planning and feedback loops.
 
@@ -57,13 +68,27 @@ class AdaptiveOrchestrator:
         console = Console()
 
         model = model or self.state.session.current_model
-        start_time = time.time()
+        overall_start_time = time.time()
+        start_time = overall_start_time
 
         console.print("\n[cyan]Adaptive Orchestrator: Framing context...[/cyan]")
 
         try:
-            # Step 1: FRAME - Establish context
+            # Step 1: FRAME - Establish context with optimized scanning
+            frame_start_time = time.time()
+
+            # Build initial index with shallow scanning
+            await self.directory_indexer.build_index(max_depth=2)
+
+            # Prefetch modified files for faster access
+            modified_files = await self.context_provider.get_modified_files()
+            if modified_files:
+                console.print(f"[dim]Found {len(modified_files)} modified files[/dim]")
+
             project_context = self.analyzer.project_context.detect_context()
+            frame_duration = time.time() - frame_start_time
+            console.print(f"[bold yellow]FRAME duration: {frame_duration:.4f}s[/bold yellow]")
+
             sources = (
                 ", ".join(project_context.source_dirs[:2])
                 if project_context.source_dirs
@@ -75,7 +100,11 @@ class AdaptiveOrchestrator:
             )
 
             # Step 2: THINK - Get tasks from LLM planner
-            tasks = await self._get_initial_tasks(request, None, model)
+            think_start_time = time.time()
+            tasks = await self._get_initial_tasks(request, model)
+            think_duration = time.time() - think_start_time
+            console.print(f"[bold yellow]THINK duration: {think_duration:.4f}s[/bold yellow]")
+
             if not tasks:
                 console.print("[yellow]No tasks generated. Falling back to regular mode.[/yellow]")
                 return []
@@ -83,7 +112,27 @@ class AdaptiveOrchestrator:
             console.print(f"\n[cyan]Executing plan with {len(tasks)} initial tasks...[/cyan]")
 
             # Step 3 & 4: ACT & LOOP - Execute with feedback loop
-            return await self._execute_with_feedback(request, tasks, model, start_time)
+            act_loop_start_time = time.time()
+            result = await self._execute_with_feedback(request, tasks, model, start_time)
+            act_loop_duration = time.time() - act_loop_start_time
+            console.print(
+                f"[bold yellow]ACT & LOOP duration: {act_loop_duration:.4f}s[/bold yellow]"
+            )
+            overall_duration = time.time() - overall_start_time
+            console.print(
+                f"[bold green]Overall Orchestrator duration: {overall_duration:.4f}s[/bold green]"
+            )
+
+            # Log performance stats
+            stats = self.get_performance_stats()
+            console.print(
+                f"[dim]Cache hits: {stats['cache']['cache_hits']}, misses: {stats['cache']['cache_misses']}[/dim]"
+            )
+            console.print(
+                f"[dim]Files read: {stats['cache']['files_read']}, dirs scanned: {stats['cache']['dirs_scanned']}[/dim]"
+            )
+
+            return result
 
         except asyncio.TimeoutError:
             console.print("[red]Orchestrator timeout. Falling back to regular mode.[/red]")
@@ -93,7 +142,7 @@ class AdaptiveOrchestrator:
             return []
 
     async def _get_initial_tasks(
-        self, request: str, intent: Any, model: ModelName
+        self, request: str, model: ModelName
     ) -> Optional[List[Dict[str, Any]]]:
         """Get tasks from LLM planner."""
         from rich.console import Console
@@ -106,6 +155,28 @@ class AdaptiveOrchestrator:
             # Build context from session state
             context_parts = []
 
+            # Add recent conversation history to help resolve references like "that file"
+            if self.state.session.messages:
+                # Get last 3 message pairs (user + assistant)
+                recent_messages = []
+                for msg in self.state.session.messages[-6:]:  # Get last 6 messages (3 exchanges)
+                    if msg.role == "user":
+                        recent_messages.append(f"User: {msg.content[:100]}...")
+                    elif msg.role == "assistant" and hasattr(msg, "content") and msg.content:
+                        # Extract key information from assistant responses
+                        content_str = str(msg.content)
+                        # Look for file paths mentioned in responses
+                        import re
+                        file_paths = re.findall(r'src/[\w/]+\.py|[\w/]+\.py|[\w/]+\.md', content_str)
+                        if file_paths:
+                            recent_messages.append(f"Assistant found files: {', '.join(set(file_paths[:3]))}")
+                        elif len(content_str) > 100:
+                            recent_messages.append(f"Assistant: {content_str[:100]}...")
+                
+                if recent_messages:
+                    context_parts.append("Recent conversation:")
+                    context_parts.extend(recent_messages)
+
             # Add files in context
             if self.state.session.files_in_context:
                 files_list = list(self.state.session.files_in_context)
@@ -117,8 +188,18 @@ class AdaptiveOrchestrator:
                 context_parts.append(f"Recent operations: {', '.join(recent_tools)}")
 
             context = "\n".join(context_parts) if context_parts else None
+            
+            # Debug logging to see the context being passed
+            if context:
+                console.print(f"[yellow][DEBUG][/yellow] Context being passed to planner:")
+                console.print(f"[yellow][DEBUG][/yellow] {context[:500]}...")
 
+            plan_start_time = time.time()
             task_objects = await self.planner.plan(request, model, context=context)
+            plan_duration = time.time() - plan_start_time
+            console.print(
+                f"[bold yellow]  --> Planner.plan duration: {plan_duration:.4f}s[/bold yellow]"
+            )
             # Convert Task objects to dicts
             return [
                 {
@@ -146,16 +227,25 @@ class AdaptiveOrchestrator:
         completed_tasks = []
         remaining_tasks = initial_tasks
         iteration = 0
+        iteration_start_time = time.time()
 
-        # Track aggregated output from all tasks
+        # Track aggregated output from all tasks with metadata
         aggregated_outputs = []
         has_any_output = False
+        
+        # Track primary request info
+        primary_request_info = {
+            "original_request": request,
+            "primary_task_ids": [t["id"] for t in initial_tasks],  # Track which tasks are primary
+            "primary_outputs": [],  # Store outputs from primary tasks separately
+        }
 
         # Track findings for adaptive task generation
         findings = {
             "interesting_files": [],
             "directories_found": [],
             "patterns_detected": [],
+            "explored_directories": set(),  # Track directories we've already explored
         }
 
         response_state = ResponseState()
@@ -171,7 +261,12 @@ class AdaptiveOrchestrator:
             )
 
             # Execute current batch
+            batch_start_time = time.time()
             batch_results = await self._execute_task_batch(remaining_tasks, model)
+            batch_duration = time.time() - batch_start_time
+            console.print(
+                f"[bold magenta]  --> Batch execution duration: {batch_duration:.4f}s[/bold magenta]"
+            )
 
             # Convert ExecutionResults to AgentRuns and collect
             for exec_result in batch_results:
@@ -189,9 +284,24 @@ class AdaptiveOrchestrator:
                         hasattr(exec_result.result.result, "output")
                         and exec_result.result.result.output
                     ):
-                        aggregated_outputs.append(exec_result.result.result.output)
+                        output = exec_result.result.result.output
+                        aggregated_outputs.append(output)
                         has_any_output = True
                         response_state.has_user_response = True
+                        
+                        # Track primary task outputs separately
+                        task_id = exec_result.task.get("id")
+                        if task_id in primary_request_info["primary_task_ids"]:
+                            primary_request_info["primary_outputs"].append({
+                                "task": exec_result.task,
+                                "output": output
+                            })
+                        # Also track if this is the first iteration (all first iteration tasks are primary)
+                        elif iteration == 0:
+                            primary_request_info["primary_outputs"].append({
+                                "task": exec_result.task,
+                                "output": output
+                            })
 
                 completed_tasks.append(exec_result.task)
 
@@ -199,11 +309,17 @@ class AdaptiveOrchestrator:
                 if exec_result.result and not exec_result.error:
                     self._extract_findings(exec_result, findings)
 
-                    # Track files created/modified for context
+                    # Track files created/modified/read for context
                     tool = exec_result.task.get("tool")
-                    if tool in ["write_file", "update_file"]:
+                    if tool in ["write_file", "update_file", "read_file"]:
                         file_path = exec_result.task.get("args", {}).get("file_path")
                         if file_path:
+                            # Ensure files_in_context is a set (fix for deserialization issues)
+                            if not hasattr(self.state.session.files_in_context, 'add'):
+                                # Convert to set if it's not already
+                                self.state.session.files_in_context = set(
+                                    self.state.session.files_in_context or []
+                                )
                             self.state.session.files_in_context.add(file_path)
 
             # THINK phase of the loop - analyze and adapt
@@ -212,8 +328,16 @@ class AdaptiveOrchestrator:
 
             # Generate adaptive follow-up tasks based on findings
             if iteration < self.feedback_loop.max_iterations - 1:  # Not last iteration
+                followup_start_time = time.time()
+                # Add original request to findings for context-aware follow-ups
+                findings["original_request"] = request
+                findings["primary_task_descriptions"] = [t["description"] for t in initial_tasks[:3]]
                 followup_tasks = self.analyzer.task_generator.generate_followup_tasks(
                     findings, project_context
+                )
+                followup_duration = time.time() - followup_start_time
+                console.print(
+                    f"[bold magenta]  --> Follow-up task generation duration: {followup_duration:.4f}s[/bold magenta]"
                 )
 
                 if followup_tasks:
@@ -227,8 +351,13 @@ class AdaptiveOrchestrator:
                         remaining_tasks = new_tasks
                     else:
                         # Use original feedback mechanism
+                        feedback_start_time = time.time()
                         feedback = await self.feedback_loop.analyze_results(
                             request, completed_tasks, batch_results, iteration + 1, model
+                        )
+                        feedback_duration = time.time() - feedback_start_time
+                        console.print(
+                            f"[bold magenta]  --> Feedback analysis duration: {feedback_duration:.4f}s[/bold magenta]"
                         )
 
                         console.print(
@@ -249,18 +378,30 @@ class AdaptiveOrchestrator:
                 else:
                     break
             else:
-                break
+                remaining_tasks = []  # No more iterations
 
             iteration += 1
+            iteration_duration = time.time() - iteration_start_time
+            console.print(
+                f"[bold cyan]Iteration {iteration} duration: {iteration_duration:.4f}s[/bold cyan]"
+            )
+            iteration_start_time = time.time()
 
         console.print(
             f"\n[green]Adaptive execution completed after {iteration + 1} iterations[/green]"
         )
 
-        # Create a single consolidated response
+        # If we have any output, consolidate and return it
         if has_any_output:
-            # Combine all outputs into one response
-            combined_output = "\n\n".join(aggregated_outputs)
+            summary_start_time = time.time()
+            # Pass primary request info for better summarization
+            final_summary = await self.feedback_loop.summarize_results(
+                request, completed_tasks, aggregated_outputs, model, primary_request_info
+            )
+            summary_duration = time.time() - summary_start_time
+            console.print(
+                f"[bold yellow]  --> Final summary generation duration: {summary_duration:.4f}s[/bold yellow]"
+            )
 
             class ConsolidatedResult:
                 def __init__(self, output: str):
@@ -271,7 +412,7 @@ class AdaptiveOrchestrator:
                     self.result = ConsolidatedResult(output)
                     self.response_state = response_state
 
-            return [ConsolidatedRun(combined_output)]
+            return [ConsolidatedRun(final_summary)]
         elif completed_tasks:
             # No output from tasks, create a summary
             summary_parts = [f"Completed {len(completed_tasks)} tasks:"]
@@ -301,99 +442,184 @@ class AdaptiveOrchestrator:
 
         console = Console()
 
+        # Optimize tasks before execution
+        optimized_tasks = []
+        for task in tasks:
+            optimized = await self._optimize_task_for_context(task)
+            if optimized:  # Skip None (ignored) tasks
+                optimized_tasks.append(optimized)
+
+        if not optimized_tasks:
+            return []
+
         # Separate read and write tasks
-        read_tasks = [t for t in tasks if not t.get("mutate", False)]
-        write_tasks = [t for t in tasks if t.get("mutate", False)]
+        read_tasks = [t for t in optimized_tasks if not t.get("mutate", False)]
+        write_tasks = [t for t in optimized_tasks if t.get("mutate", False)]
 
         results = []
 
-        # Execute read tasks in parallel
+        # Execute read tasks using the parallel executor for maximum efficiency
         if read_tasks:
             if len(read_tasks) > 1:
                 console.print(f"[dim]Executing {len(read_tasks)} read tasks in parallel...[/dim]")
 
-            read_coros = [self._execute_single_task(task, model) for task in read_tasks]
-            read_results = await asyncio.gather(*read_coros, return_exceptions=True)
+            # Use parallel executor for batch operations
+            console.print(f"[yellow][DEBUG][/yellow] Executing {len(read_tasks)} read tasks in parallel")
+            console.print(f"[yellow][DEBUG][/yellow] Read tasks: {[t['description'] for t in read_tasks]}")
+            parallel_results = await self.parallel_executor.execute_batch(read_tasks)
+            console.print(f"[yellow][DEBUG][/yellow] Got {len(parallel_results)} parallel results")
 
-            for task, result in zip(read_tasks, read_results):
-                if isinstance(result, Exception):
+            # Convert ParallelTaskResult to ExecutionResult
+            for i, (task, parallel_result) in enumerate(zip(read_tasks, parallel_results)):
+                console.print(f"[yellow][DEBUG][/yellow] Processing read task #{i+1}: {task['description']}")
+                
+                if parallel_result.success:
+                    console.print(f"[yellow][DEBUG][/yellow] Read task succeeded")
+                    # Log the actual result structure
+                    console.print(f"[yellow][DEBUG][/yellow] Parallel result: {str(parallel_result.result)[:200]}...")
+                    
+                    # Create a mock AgentRun-like object
+                    class MockResult:
+                        def __init__(self, output):
+                            self.output = output
+
+                    class MockAgentRun:
+                        def __init__(self, result):
+                            self.result = result
+
+                    output_content = parallel_result.result.get("output", "")
+                    console.print(f"[yellow][DEBUG][/yellow] Extracted output length: {len(output_content)}")
+                    
+                    agent_run = MockAgentRun(MockResult(output_content))
                     results.append(
-                        ExecutionResult(task=task, result=None, duration=0, error=result)
+                        ExecutionResult(
+                            task=task,
+                            result=agent_run,
+                            duration=parallel_result.duration,
+                            error=None,
+                        )
                     )
                 else:
-                    results.append(result)
+                    console.print(f"[red][DEBUG][/red] Read task failed: {parallel_result.error}")
+                    results.append(
+                        ExecutionResult(
+                            task=task,
+                            result=None,
+                            duration=parallel_result.duration,
+                            error=Exception(parallel_result.error),
+                        )
+                    )
 
         # Execute write tasks sequentially
         for task in write_tasks:
             console.print(f"[dim]Executing write task: {task['description']}[/dim]")
             try:
                 result = await self._execute_single_task(task, model)
+                console.print(f"[yellow][DEBUG][/yellow] Write task result: {'success' if result.error is None else 'error'}")
                 results.append(result)
             except Exception as e:
+                console.print(f"[red][DEBUG][/red] Write task error: {str(e)}")
                 results.append(ExecutionResult(task=task, result=None, duration=0, error=e))
 
+        # Remove this line since we don't have a start_time for the batch
+        console.print(f"[bold green]  --> _execute_task_batch completed[/bold green]")
         return results
 
     async def _execute_single_task(self, task: Dict[str, Any], model: ModelName) -> ExecutionResult:
-        """Execute a single task."""
+        """Run a single task and capture its result."""
         start_time = time.time()
-
+        error = None
+        agent_run = None
         try:
-            # Execute with timeout
-            result = await asyncio.wait_for(self._run_task(task, model), timeout=self.task_timeout)
-
-            duration = time.time() - start_time
-            return ExecutionResult(task=task, result=result, duration=duration)
-
-        except asyncio.TimeoutError:
-            duration = time.time() - start_time
-            return ExecutionResult(
-                task=task,
-                result=None,
-                duration=duration,
-                error=Exception(f"Task timed out after {self.task_timeout}s"),
-            )
+            agent_run = await self._run_task(task, model)
         except Exception as e:
+            error = e
+        finally:
             duration = time.time() - start_time
-            return ExecutionResult(task=task, result=None, duration=duration, error=e)
+            # The timer for the individual task is printed in _run_task,
+            # but we capture duration here for the ExecutionResult.
+            return ExecutionResult(task=task, result=agent_run, duration=duration, error=error)
 
     async def _run_task(self, task: Dict[str, Any], model: ModelName) -> AgentRun:
-        """Run a task using the appropriate agent."""
+        """Runs a single task using the appropriate agent."""
         from rich.console import Console
 
         console = Console()
 
-        # Show task execution
-        task_type = "WRITE" if task.get("mutate", False) else "READ"
-        console.print(f"\n[dim][Task {task['id']}] {task_type}[/dim]")
-        console.print(f"[dim]  → {task['description']}[/dim]")
+        task_description = self._format_tool_request(task)
+        console.print(f"[cyan]› {task_description}[/cyan]")
+        start_time = time.time()
 
-        # If task has specific tool and args, format the request
-        if task.get("tool") and task.get("args"):
-            # This is a specific tool call
-            tool_request = self._format_tool_request(task)
-        else:
-            # This is a general request
-            # Add context about recent operations
-            context_info = ""
-            if self.state.session.files_in_context:
-                files_list = list(self.state.session.files_in_context)
-                context_info = f" (context: working with {', '.join(files_list)})"
-            tool_request = task["description"] + context_info
-
-        # Execute using appropriate agent
-        if task.get("mutate", False):
-            agent_main.get_or_create_agent(model, self.state)
-            result = await agent_main.process_request(model, tool_request, self.state)
-        else:
+        # Use ReadOnlyAgent for read-only tasks
+        if not task.get("mutate"):
             agent = ReadOnlyAgent(model, self.state)
-            result = await agent.process_request(tool_request)
+            agent_run = await agent.process_request(task_description)
+        else:
+            # For mutating tasks, use the main agent
+            # Format the request as a tool call
+            tool_args_str = json.dumps(task["args"], indent=2)
+            tool_request = f'Please use the {task["tool"]} tool with these arguments:\n{tool_args_str}'
+            
+            agent_run = await agent_main.process_request(
+                model=model,
+                message=tool_request,
+                state_manager=self.state,
+            )
 
-        console.print(f"[dim][Task {task['id']}] Complete[/dim]")
-        return result
+        duration = time.time() - start_time
+        console.print(
+            f"[bold blue]    --> Task '{task_description}' duration: {duration:.4f}s[/bold blue]"
+        )
+        return agent_run
+
+    async def _optimize_task_for_context(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """Optimize a task based on context and ignore patterns."""
+        tool = task.get("tool")
+        args = task.get("args", {})
+
+        # Optimize list_dir tasks to use cached snapshots
+        if tool == "list_dir":
+            directory = args.get("directory", ".")
+            dir_path = Path(directory).resolve()
+
+            # Check if this directory should be ignored
+            if self.context_provider.ignore_patterns.should_ignore(dir_path):
+                # Skip this task entirely
+                return None
+
+            # Use shallow snapshot instead of full directory listing
+            snapshot = await self.context_provider.get_shallow_snapshot(dir_path)
+
+            # Update task to use cached information
+            task["cached_snapshot"] = snapshot
+
+        # Optimize grep tasks to skip ignored paths
+        elif tool == "grep":
+            directory = args.get("directory", ".")
+            dir_path = Path(directory).resolve()
+
+            # Get relevant files from index
+            query = args.get("pattern", "")
+            relevant_files = await self.directory_indexer.get_relevant_files(query)
+
+            # Limit search scope
+            if relevant_files:
+                task["search_scope"] = [str(f.path) for f in relevant_files[:20]]
+
+        # Optimize read_file tasks
+        elif tool == "read_file":
+            file_path = args.get("file_path", "")
+            if file_path:
+                path = Path(file_path).resolve()
+
+                # Check if file should be ignored
+                if self.context_provider.ignore_patterns.should_ignore(path):
+                    return None
+
+        return task
 
     def _format_tool_request(self, task: Dict[str, Any]) -> str:
-        """Format a specific tool request."""
+        """Format a tool request for display."""
         tool = task.get("tool")
         args = task.get("args", {})
 
@@ -452,7 +678,7 @@ class AdaptiveOrchestrator:
         else:
             return task["description"]
 
-    def _extract_findings(self, exec_result: ExecutionResult, findings: Dict[str, List]) -> None:
+    def _extract_findings(self, exec_result: ExecutionResult, findings: Dict[str, any]) -> None:
         """Extract interesting findings from task execution results."""
         task = exec_result.task
         tool = task.get("tool")
@@ -469,6 +695,9 @@ class AdaptiveOrchestrator:
 
         # Extract findings based on tool type
         if tool == "list_dir":
+            # Mark this directory as explored
+            directory = task.get("args", {}).get("directory", ".")
+            findings["explored_directories"].add(directory)
             # Look for interesting files and directories
             lines = output_text.split("\n")
             for line in lines:
@@ -520,4 +749,21 @@ class AdaptiveOrchestrator:
 
         # Limit findings to avoid explosion
         for key in findings:
+            if key == "explored_directories":
+                # Keep explored_directories as a set
+                continue
             findings[key] = list(set(findings[key]))[:10]
+
+    def get_performance_stats(self) -> Dict[str, any]:
+        """Get performance statistics."""
+        cache_stats = self.context_provider.get_cache_stats()
+        index_stats = self.directory_indexer.get_statistics()
+
+        return {
+            "cache": cache_stats,
+            "index": index_stats,
+            "context_provider": {
+                "project_root": str(self.context_provider.project_root),
+                "ignored_patterns": len(self.context_provider.ignore_patterns.patterns),
+            },
+        }

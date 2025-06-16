@@ -43,6 +43,9 @@ class StateManager:
 
     @property
     def session(self) -> SessionState:
+        # Ensure files_in_context is always a set (fix for deserialization issues)
+        if isinstance(self._session.files_in_context, list):
+            self._session.files_in_context = set(self._session.files_in_context)
         return self._session
 
     def reset_session(self):

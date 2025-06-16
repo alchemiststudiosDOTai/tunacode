@@ -72,6 +72,39 @@ class AdaptiveTaskGenerator:
             List of follow-up tasks
         """
         tasks = []
+        
+        # Check if this is a focused request (e.g., showing a specific file)
+        original_request = findings.get("original_request", "").lower()
+        primary_descriptions = findings.get("primary_task_descriptions", [])
+        
+        # Detect if user is asking about a specific file or focused topic
+        is_focused_request = any([
+            "@" in original_request,  # File reference
+            "show" in original_request and ("file" in original_request or ".py" in original_request),
+            "read" in original_request,
+            "contents of" in original_request,
+            any("read" in desc.lower() or "file" in desc.lower() for desc in primary_descriptions)
+        ])
+        
+        # For focused requests, limit follow-up tasks to directly related items
+        if is_focused_request:
+            # Only generate minimal, directly related follow-up tasks
+            interesting_files = findings.get("interesting_files", [])
+            # Limit to files that seem directly related to the primary request
+            for file_name in interesting_files[:1]:  # Max 1 related file
+                if file_name not in str(findings):
+                    tasks.append(
+                        self._create_task(
+                            f"Read related file {file_name}",
+                            mutate=False,
+                            tool="read_file",
+                            args={"file_path": file_name},
+                        )
+                    )
+            return tasks  # Return early for focused requests
+
+        # Get already explored directories
+        explored_dirs = findings.get("explored_directories", set())
 
         # Analyze findings and generate targeted follow-ups
         # This is where the "think" part of the loop happens
@@ -88,16 +121,51 @@ class AdaptiveTaskGenerator:
             )
 
         # Example: If we found test directories, check test structure
+        # But only if we haven't already explored this directory
+        explored_dirs = findings.get("explored_directories", set())
         if context.has_tests and not self._already_explored_tests(findings):
             test_dir = context.test_dirs[0] if context.test_dirs else "tests"
-            tasks.append(
-                self._create_task(
-                    f"Examine test structure in {test_dir}",
-                    mutate=False,
-                    tool="list_dir",
-                    args={"directory": test_dir, "max_entries": 30},
+            # Check if we've already explored this directory
+            if test_dir not in explored_dirs:
+                tasks.append(
+                    self._create_task(
+                        f"Examine test structure in {test_dir}",
+                        mutate=False,
+                        tool="list_dir",
+                        args={"directory": test_dir, "max_entries": 30},
+                    )
                 )
-            )
+
+        # Only explore new directories found
+        new_dirs = findings.get("directories_found", [])
+        for dir_name in new_dirs[:2]:  # Limit to 2 new directories
+            if dir_name not in explored_dirs and not dir_name.startswith("."):
+                # Skip test directories if we're not specifically looking for tests
+                if any(test_name in dir_name.lower() for test_name in ["test", "spec", "__test"]):
+                    continue
+
+                tasks.append(
+                    self._create_task(
+                        f"Explore {dir_name} directory",
+                        mutate=False,
+                        tool="list_dir",
+                        args={"directory": dir_name, "max_entries": 30},
+                    )
+                )
+
+        # Explore interesting files found
+        interesting_files = findings.get("interesting_files", [])
+        for file_name in interesting_files[:3]:  # Limit to 3 files
+            # Only read files we haven't seen before
+            if file_name not in str(findings):
+                tasks.append(
+                    self._create_task(
+                        f"Read {file_name}",
+                        mutate=False,
+                        tool="read_file",
+                        args={"file_path": file_name},
+                    )
+                )
 
         return tasks
 

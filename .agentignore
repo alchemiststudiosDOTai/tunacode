@@ -1,0 +1,79 @@
+# Agent ignore patterns for TunaCode architect mode
+# This file controls which files and directories are excluded from analysis
+# to improve performance and reduce unnecessary scanning.
+
+# Test directories
+tests/**
+**/test_*
+**/*_test.py
+**/test/**
+**/tests/**
+__tests__/**
+spec/**
+
+# Build and cache directories  
+build/**
+dist/**
+*.egg-info/**
+__pycache__/**
+*.pyc
+.pytest_cache/**
+.coverage
+htmlcov/**
+coverage/**
+
+# Version control
+.git/**
+.svn/**
+.hg/**
+
+# IDE and editor files
+.vscode/**
+.idea/**
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+node_modules/**
+venv/**
+env/**
+.env/**
+virtualenv/**
+site-packages/**
+
+# Documentation builds
+_build/**
+site/**
+docs/_build/**
+
+# Binary and compiled files
+*.so
+*.dylib
+*.dll
+*.exe
+*.o
+*.a
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+
+# Large data files
+*.db
+*.sqlite
+*.h5
+*.pkl
+*.pickle
+
+# Media files (unless specifically needed)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.avi
+*.mov

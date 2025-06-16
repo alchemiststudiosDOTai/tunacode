@@ -171,13 +171,36 @@ class ParallelGrep(BaseTool):
             # 1️⃣ Fast-glob prefilter to find candidate files
             include_pattern = include_files or "*"
             exclude_pattern = exclude_files
+            original_include_pattern = include_pattern  # Save for error messages
 
-            candidates = await asyncio.get_event_loop().run_in_executor(
-                self._executor, fast_glob, Path(directory), include_pattern, exclude_pattern
-            )
+            # Convert comma-separated patterns to brace format for fast_glob
+            if include_pattern and "," in include_pattern and not ("{" in include_pattern and "}" in include_pattern):
+                # Convert "*.py,*.js,*.ts" to "*.{py,js,ts}"
+                patterns = [p.strip() for p in include_pattern.split(",")]
+                # Check if all patterns have the same prefix (e.g., all start with "*.")
+                if all(p.startswith("*.") for p in patterns):
+                    # Extract extensions
+                    extensions = [p[2:] for p in patterns]  # Remove "*." prefix
+                    include_pattern = f"*.{{{','.join(extensions)}}}"
+                    candidates = await asyncio.get_event_loop().run_in_executor(
+                        self._executor, fast_glob, Path(directory), include_pattern, exclude_pattern
+                    )
+                else:
+                    # Handle mixed patterns by running fast_glob for each pattern and merging results
+                    all_candidates = set()
+                    for pattern in patterns:
+                        pattern_candidates = await asyncio.get_event_loop().run_in_executor(
+                            self._executor, fast_glob, Path(directory), pattern, exclude_pattern
+                        )
+                        all_candidates.update(pattern_candidates)
+                    candidates = list(all_candidates)
+            else:
+                candidates = await asyncio.get_event_loop().run_in_executor(
+                    self._executor, fast_glob, Path(directory), include_pattern, exclude_pattern
+                )
 
             if not candidates:
-                return f"No files found matching pattern: {include_pattern}"
+                return f"No files found matching pattern: {original_include_pattern}"
 
             # 2️⃣ Smart strategy selection based on candidate count
             original_search_type = search_type
