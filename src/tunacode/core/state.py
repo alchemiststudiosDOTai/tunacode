@@ -35,6 +35,7 @@ class SessionState:
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     iteration_count: int = 0
     current_iteration: int = 0
+    last_mentioned_file: Optional[str] = None  # Track the last primary file mentioned
 
 
 class StateManager:

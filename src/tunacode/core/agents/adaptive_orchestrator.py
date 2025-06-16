@@ -169,6 +169,22 @@ class AdaptiveOrchestrator:
                         import re
                         file_paths = re.findall(r'src/[\w/]+\.py|[\w/]+\.py|[\w/]+\.md', content_str)
                         if file_paths:
+                            # Extract the most likely primary file (often mentioned first or in a key position)
+                            primary_file = None
+                            # Check for specific patterns that indicate the main file
+                            for pattern in [r'file:\s*([\w/]+\.\w+)', r'located in.*?([\w/]+\.\w+)', r'primarily.*?([\w/]+\.\w+)']:
+                                match = re.search(pattern, content_str, re.IGNORECASE)
+                                if match:
+                                    primary_file = match.group(1)
+                                    break
+                            
+                            if not primary_file and file_paths:
+                                primary_file = file_paths[0]
+                                
+                            if primary_file:
+                                recent_messages.append(f"Assistant found primary file: {primary_file}")
+                                # Store the last mentioned file for "that file" references
+                                self.state.session.last_mentioned_file = primary_file
                             recent_messages.append(f"Assistant found files: {', '.join(set(file_paths[:3]))}")
                         elif len(content_str) > 100:
                             recent_messages.append(f"Assistant: {content_str[:100]}...")
@@ -181,6 +197,16 @@ class AdaptiveOrchestrator:
             if self.state.session.files_in_context:
                 files_list = list(self.state.session.files_in_context)
                 context_parts.append(f"Files currently in context: {', '.join(files_list)}")
+            
+            # Add last mentioned file for "that file" references
+            if hasattr(self.state.session, 'last_mentioned_file') and self.state.session.last_mentioned_file:
+                context_parts.append(f"Last mentioned file: {self.state.session.last_mentioned_file}")
+                
+                # If request contains "that file" or similar, add explicit instruction
+                request_lower = request.lower()
+                if any(phrase in request_lower for phrase in ["that file", "the file", "this file"]):
+                    context_parts.append(f"NOTE: 'that file' refers to {self.state.session.last_mentioned_file}")
+            
 
             # Add recent tool calls if any
             if self.state.session.tool_calls:
@@ -200,17 +226,42 @@ class AdaptiveOrchestrator:
             console.print(
                 f"[bold yellow]  --> Planner.plan duration: {plan_duration:.4f}s[/bold yellow]"
             )
-            # Convert Task objects to dicts
-            return [
-                {
+            # Convert Task objects to dicts and validate
+            tasks = []
+            for t in task_objects:
+                task_dict = {
                     "id": t.id,
                     "description": t.description,
                     "mutate": t.mutate,
                     "tool": t.tool,
                     "args": t.args,
                 }
-                for t in task_objects
-            ]
+                
+                # Validate that task has a tool
+                if not task_dict.get("tool"):
+                    console.print(f"[red]Warning: Task '{task_dict['description']}' has no tool specified![/red]")
+                    # Try to infer tool from description
+                    desc_lower = task_dict["description"].lower()
+                    if "search" in desc_lower or "find" in desc_lower or "grep" in desc_lower:
+                        task_dict["tool"] = "grep"
+                        task_dict["args"] = {"pattern": "TODO", "directory": "."}
+                        console.print(f"[yellow]Auto-assigned 'grep' tool to task[/yellow]")
+                    elif "read" in desc_lower or "explain" in desc_lower or "summarize" in desc_lower:
+                        task_dict["tool"] = "read_file"
+                        task_dict["args"] = {"file_path": "TODO.txt"}
+                        console.print(f"[yellow]Auto-assigned 'read_file' tool to task[/yellow]")
+                    elif "list" in desc_lower:
+                        task_dict["tool"] = "bash"
+                        task_dict["args"] = {"command": "ls -la"}
+                        console.print(f"[yellow]Auto-assigned 'bash' tool to task[/yellow]")
+                    else:
+                        # Skip this task entirely
+                        console.print(f"[red]Skipping task without tool: {task_dict['description']}[/red]")
+                        continue
+                
+                tasks.append(task_dict)
+            
+            return tasks
         except Exception as e:
             console.print(f"[yellow]Planning failed: {str(e)}[/yellow]")
             return None
@@ -289,6 +340,19 @@ class AdaptiveOrchestrator:
                         has_any_output = True
                         response_state.has_user_response = True
                         
+                        # Extract primary file from grep results
+                        tool = exec_result.task.get("tool")
+                        if tool == "grep" and output:
+                            # Look for file paths in grep output
+                            import re
+                            # Match lines like "📁 src/tunacode/cli/repl.py:123"
+                            file_matches = re.findall(r'📁\s+([\w/]+\.\w+):\d+', output)
+                            if file_matches:
+                                # The first file mentioned is likely the most relevant
+                                primary_file = file_matches[0]
+                                self.state.session.last_mentioned_file = primary_file
+                                console.print(f"[dim]Primary file found: {primary_file}[/dim]")
+                        
                         # Track primary task outputs separately
                         task_id = exec_result.task.get("id")
                         if task_id in primary_request_info["primary_task_ids"]:
@@ -321,6 +385,9 @@ class AdaptiveOrchestrator:
                                     self.state.session.files_in_context or []
                                 )
                             self.state.session.files_in_context.add(file_path)
+                            # Update last mentioned file
+                            if tool == "read_file":
+                                self.state.session.last_mentioned_file = file_path
 
             # THINK phase of the loop - analyze and adapt
             # Get project context for smarter decisions
@@ -452,11 +519,20 @@ class AdaptiveOrchestrator:
         if not optimized_tasks:
             return []
 
-        # Separate read and write tasks
-        read_tasks = [t for t in optimized_tasks if not t.get("mutate", False)]
-        write_tasks = [t for t in optimized_tasks if t.get("mutate", False)]
+        # Separate read and write tasks, filtering out any without tools
+        read_tasks = [t for t in optimized_tasks if not t.get("mutate", False) and t.get("tool")]
+        write_tasks = [t for t in optimized_tasks if t.get("mutate", False) and t.get("tool")]
+        
+        # Log any tasks that were filtered out
+        filtered_tasks = [t for t in optimized_tasks if not t.get("tool")]
+        if filtered_tasks:
+            console.print(f"[red]Filtered out {len(filtered_tasks)} tasks without tools:[/red]")
+            for t in filtered_tasks:
+                console.print(f"[red]  - {t.get('description', 'No description')}[/red]")
 
         results = []
+        total_context_chars = 0
+        MAX_TOTAL_CONTEXT_CHARS = 50000  # Approximately 12,500 tokens total
 
         # Execute read tasks using the parallel executor for maximum efficiency
         if read_tasks:
@@ -489,6 +565,25 @@ class AdaptiveOrchestrator:
 
                     output_content = parallel_result.result.get("output", "")
                     console.print(f"[yellow][DEBUG][/yellow] Extracted output length: {len(output_content)}")
+                    
+                    # Check if adding this output would exceed total context limit
+                    if total_context_chars + len(output_content) > MAX_TOTAL_CONTEXT_CHARS:
+                        remaining_chars = MAX_TOTAL_CONTEXT_CHARS - total_context_chars
+                        if remaining_chars > 1000:  # Only add if we have reasonable space left
+                            output_content = output_content[:remaining_chars] + "\n\n[... Output truncated due to total context limit ...]"
+                            console.print(f"[yellow][DEBUG][/yellow] Truncated to fit within total context limit")
+                        else:
+                            output_content = "[... Skipped due to context limit - too many files processed ...]"
+                            console.print(f"[yellow][DEBUG][/yellow] Skipped task output due to total context limit")
+                    else:
+                        # Also apply per-task limit
+                        MAX_OUTPUT_CHARS = 5000  # Approximately 1250 tokens per task
+                        if len(output_content) > MAX_OUTPUT_CHARS:
+                            output_content = output_content[:MAX_OUTPUT_CHARS] + "\n\n[... Output truncated to prevent token overflow ...]"
+                            console.print(f"[yellow][DEBUG][/yellow] Truncated output to {MAX_OUTPUT_CHARS} chars")
+                    
+                    total_context_chars += len(output_content)
+                    console.print(f"[yellow][DEBUG][/yellow] Total context: {total_context_chars} chars")
                     
                     agent_run = MockAgentRun(MockResult(output_content))
                     results.append(
@@ -555,16 +650,73 @@ class AdaptiveOrchestrator:
             agent = ReadOnlyAgent(model, self.state)
             agent_run = await agent.process_request(task_description)
         else:
-            # For mutating tasks, use the main agent
-            # Format the request as a tool call
-            tool_args_str = json.dumps(task["args"], indent=2)
-            tool_request = f'Please use the {task["tool"]} tool with these arguments:\n{tool_args_str}'
-            
-            agent_run = await agent_main.process_request(
-                model=model,
-                message=tool_request,
-                state_manager=self.state,
-            )
+            # For simple write operations, execute directly
+            tool_name = task.get("tool")
+            if tool_name in ["write_file", "update_file"]:
+                console.print(f"[yellow][DEBUG][/yellow] Executing {tool_name} directly")
+                
+                try:
+                    # Import tool classes to execute with proper UI
+                    from ...tools.write_file import WriteFileTool
+                    from ...tools.update_file import UpdateFileTool
+                    from ...ui import console as ui
+                    
+                    # Execute the tool directly with UI for logging
+                    if tool_name == "write_file":
+                        tool = WriteFileTool(ui)
+                        result = await tool.execute(
+                            filepath=task["args"]["file_path"],
+                            content=task["args"]["content"]
+                        )
+                    else:  # update_file
+                        tool = UpdateFileTool(ui)
+                        result = await tool.execute(
+                            filepath=task["args"]["file_path"],
+                            old_str=task["args"]["old_str"],
+                            new_str=task["args"]["new_str"]
+                        )
+                    
+                    console.print(f"[green]✓ {tool_name} executed successfully[/green]")
+                    
+                    # Create a mock agent run with the result
+                    class MockResult:
+                        def __init__(self, output):
+                            self.output = output
+                            
+                    class MockAgentRun:
+                        def __init__(self, result):
+                            self.result = result
+                            self.response_state = ResponseState()
+                            self.response_state.has_user_response = True
+                    
+                    # result is a string from the tool
+                    agent_run = MockAgentRun(MockResult(result))
+                    
+                except Exception as e:
+                    console.print(f"[red]Error executing {tool_name}: {str(e)}[/red]")
+                    raise
+            else:
+                # For other mutating tasks, use the main agent
+                # Format the request as a tool call in JSON format for better parsing
+                tool_call = {
+                    "tool": task["tool"],
+                    "args": task["args"]
+                }
+                tool_request = f'Execute this tool call:\n```json\n{json.dumps(tool_call, indent=2)}\n```'
+                
+                console.print(f"[yellow][DEBUG][/yellow] Sending write request: {tool_request[:200]}...")
+                
+                agent_run = await agent_main.process_request(
+                    model=model,
+                    message=tool_request,
+                    state_manager=self.state,
+                )
+                
+                # Check if the agent run has any result
+                if hasattr(agent_run, 'result'):
+                    console.print(f"[yellow][DEBUG][/yellow] Agent run has result: {bool(agent_run.result)}")
+                else:
+                    console.print(f"[yellow][DEBUG][/yellow] Agent run has no result attribute")
 
         duration = time.time() - start_time
         console.print(

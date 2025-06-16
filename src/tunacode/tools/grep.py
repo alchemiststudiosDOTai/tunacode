@@ -62,14 +62,58 @@ EXCLUDE_DIRS = {  # Common directories to skip
     "__pycache__",
     ".venv",
     "venv",
+    "env",
+    "test_env",
+    "virtualenv",
+    ".env",
     "dist",
     "build",
     ".pytest_cache",
     ".mypy_cache",
     ".tox",
     "target",
-    "node_modules",
+    "site-packages",
+    ".idea",
+    ".vscode",
+    "coverage",
+    ".coverage",
+    "htmlcov",
 }
+
+# Smart default patterns for common languages
+DEFAULT_CODE_PATTERNS = [
+    "*.py",     # Python
+    "*.js",     # JavaScript
+    "*.ts",     # TypeScript
+    "*.tsx",    # TypeScript React
+    "*.jsx",    # JavaScript React
+    "*.java",   # Java
+    "*.cpp",    # C++
+    "*.c",      # C
+    "*.h",      # Headers
+    "*.hpp",    # C++ Headers
+    "*.cs",     # C#
+    "*.go",     # Go
+    "*.rs",     # Rust
+    "*.rb",     # Ruby
+    "*.php",    # PHP
+    "*.swift",  # Swift
+    "*.kt",     # Kotlin
+    "*.scala",  # Scala
+    "*.sh",     # Shell
+    "*.bash",   # Bash
+    "*.zsh",    # Zsh
+    "*.md",     # Markdown
+    "*.yml",    # YAML
+    "*.yaml",   # YAML
+    "*.json",   # JSON
+    "*.xml",    # XML
+    "*.html",   # HTML
+    "*.css",    # CSS
+    "*.scss",   # SCSS
+    "*.sass",   # Sass
+    "*.less",   # Less
+]
 
 
 def fast_glob(root: Path, include: str, exclude: str = None) -> List[Path]:
@@ -78,13 +122,24 @@ def fast_glob(root: Path, include: str, exclude: str = None) -> List[Path]:
 
     Args:
         root: Directory to search
-        include: Include pattern (e.g., "*.py", "*.{js,ts}")
+        include: Include pattern (e.g., "*.py", "*.{js,ts}", or comma-separated list)
         exclude: Exclude pattern (optional)
 
     Returns:
         List of matching file paths (bounded by MAX_GLOB)
     """
     matches, stack = [], [root]
+    
+    # Handle comma-separated patterns
+    if "," in include and not ("{" in include and "}" in include):
+        # Split comma-separated patterns and process individually
+        patterns = [p.strip() for p in include.split(",")]
+        include_regexes = [
+            re.compile(fnmatch.translate(pat), re.IGNORECASE) for pat in patterns
+        ]
+    else:
+        # Process single pattern or brace expansion
+        matches, stack = [], [root]
 
     # Handle multiple extensions in include pattern like "*.{py,js,ts}"
     if "{" in include and "}" in include:
@@ -169,7 +224,12 @@ class ParallelGrep(BaseTool):
         """
         try:
             # 1️⃣ Fast-glob prefilter to find candidate files
-            include_pattern = include_files or "*"
+            # Smart default: search all common code files when no pattern specified
+            if not include_files or include_files == "*":
+                # Use intelligent defaults for code search
+                include_pattern = ",".join(DEFAULT_CODE_PATTERNS)
+            else:
+                include_pattern = include_files
             exclude_pattern = exclude_files
             original_include_pattern = include_pattern  # Save for error messages
 
@@ -204,16 +264,22 @@ class ParallelGrep(BaseTool):
 
             # 2️⃣ Smart strategy selection based on candidate count
             original_search_type = search_type
+            file_count = len(candidates)
+            
             if search_type == "smart":
-                if len(candidates) <= 50:
+                if file_count <= 50:
                     # Small set - Python strategy more efficient (low startup cost)
                     search_type = "python"
-                elif len(candidates) <= 1000:
+                elif file_count <= 1000:
                     # Medium set - Ripgrep optimal for this range
                     search_type = "ripgrep"
                 else:
                     # Large set - Hybrid for best coverage and redundancy
                     search_type = "hybrid"
+                    
+            # Log strategy selection for debugging
+            if hasattr(self, 'ui_logger') and self.ui_logger:
+                self.ui_logger.info(f"Search strategy: {search_type} (was {original_search_type}), Files: {file_count}")
 
             # 3️⃣ Create search configuration
             # Note: include_patterns/exclude_patterns now only used for legacy compatibility
