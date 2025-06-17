@@ -1,57 +1,35 @@
-"""
-Tool handling business logic, separated from UI concerns.
-"""
+from __future__ import annotations
 
-from tunacode.core.state import StateManager
-from tunacode.types import ToolArgs, ToolConfirmationRequest, ToolConfirmationResponse, ToolName
+from typing import Any, Dict, Callable
+
+from .agents.planner_schema import Task
+from ..tools.read_file import read_file
+from ..tools.grep import grep
+from ..tools.write_file import write_file
+from ..tools.update_file import update_file
+from ..tools.run_command import run_command
+from ..tools.bash import bash
+from ..tools.list_dir import list_dir
 
 
 class ToolHandler:
-    """Handles tool confirmation logic separate from UI."""
+    """Dispatch tasks to the appropriate tool functions."""
 
-    def __init__(self, state_manager: StateManager):
+    def __init__(self, state_manager: Any):
         self.state = state_manager
+        self._tools: Dict[str, Callable[..., Any]] = {
+            "read_file": read_file,
+            "grep": grep,
+            "write_file": write_file,
+            "update_file": update_file,
+            "run_command": run_command,
+            "bash": bash,
+            "list_dir": list_dir,
+        }
 
-    def should_confirm(self, tool_name: ToolName) -> bool:
-        """
-        Determine if a tool requires confirmation.
-
-        Args:
-            tool_name: Name of the tool to check.
-
-        Returns:
-            bool: True if confirmation is required, False otherwise.
-        """
-        return not (self.state.session.yolo or tool_name in self.state.session.tool_ignore)
-
-    def process_confirmation(self, response: ToolConfirmationResponse, tool_name: ToolName) -> bool:
-        """
-        Process the confirmation response.
-
-        Args:
-            response: The confirmation response from the user.
-            tool_name: Name of the tool being confirmed.
-
-        Returns:
-            bool: True if tool should proceed, False if aborted.
-        """
-        if response.skip_future:
-            self.state.session.tool_ignore.append(tool_name)
-
-        return response.approved and not response.abort
-
-    def create_confirmation_request(
-        self, tool_name: ToolName, args: ToolArgs
-    ) -> ToolConfirmationRequest:
-        """
-        Create a confirmation request from tool information.
-
-        Args:
-            tool_name: Name of the tool.
-            args: Tool arguments.
-
-        Returns:
-            ToolConfirmationRequest: The confirmation request.
-        """
-        filepath = args.get("filepath")
-        return ToolConfirmationRequest(tool_name=tool_name, args=args, filepath=filepath)
+    async def execute(self, task: Task) -> Any:
+        tool_name = task.tool
+        func = self._tools.get(tool_name)
+        if not func:
+            raise ValueError(f"Unknown tool: {tool_name}")
+        return await func(**task.args)

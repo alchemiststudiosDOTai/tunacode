@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 
@@ -7,3 +9,8 @@ class Task(BaseModel):
     id: int = Field(..., description="1-based task index in execution order")
     description: str = Field(..., description="What the sub-agent must do")
     mutate: bool = Field(..., description="True if the task changes code")
+    tool: str = Field(..., description="Tool name to execute for this task")
+    args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments for the specified tool",
+    )
