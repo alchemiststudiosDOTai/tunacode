@@ -1,6 +1,8 @@
 import subprocess
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
+
+from tunacode.ui.decorators import create_sync_wrapper
 
 from tunacode.utils.ripgrep import ripgrep
 from tunacode.utils.system import list_cwd
@@ -45,8 +47,16 @@ async def get_directory_structure(max_depth: int = 3) -> str:
     return "\n".join(lines)
 
 
+_code_style_cache: Optional[str] = None
+
+
+@create_sync_wrapper
 async def get_code_style() -> str:
     """Concatenate contents of all TUNACODE.md files up the directory tree."""
+    global _code_style_cache
+    if _code_style_cache is not None:
+        return _code_style_cache
+
     parts: List[str] = []
     current = Path.cwd()
     while True:
@@ -59,7 +69,9 @@ async def get_code_style() -> str:
         if current == current.parent:
             break
         current = current.parent
-    return "\n".join(parts)
+
+    _code_style_cache = "\n".join(parts)
+    return _code_style_cache
 
 
 async def get_claude_files() -> List[str]:

@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from tunacode.context import get_code_style
+
 from tunacode.core.state import StateManager
 from tunacode.services.mcp import get_mcp_servers
 from tunacode.tools.bash import bash
@@ -213,6 +215,14 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 # Use a default system prompt if neither file exists
                 system_prompt = "You are a helpful AI assistant for software development tasks."
 
+        # Append project context from TUNACODE.md files
+        try:
+            code_style = get_code_style.sync()  # type: ignore[attr-defined]
+            if code_style:
+                system_prompt += f"\n\n# Project Context (from TUNACODE.md)\n{code_style}"
+        except Exception:
+            pass
+
         state_manager.session.agents[model] = Agent(
             model=model,
             system_prompt=system_prompt,
@@ -411,6 +421,14 @@ async def process_request(
 ) -> AgentRun:
     agent = get_or_create_agent(model, state_manager)
     mh = state_manager.session.messages.copy()
+
+    # Inject project context from TUNACODE.md files
+    try:
+        code_style = await get_code_style()
+        if code_style:
+            message = f"Project context:\n{code_style}\n\nUser request: {message}"
+    except Exception:
+        pass
     # Get max iterations from config (default: 20)
     max_iterations = state_manager.session.user_config.get("settings", {}).get("max_iterations", 20)
     fallback_enabled = state_manager.session.user_config.get("settings", {}).get(
