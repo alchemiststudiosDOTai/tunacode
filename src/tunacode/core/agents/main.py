@@ -39,6 +39,8 @@ from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
+from tunacode.llm.api_response_parser import ApiResponseParser
+from tunacode.pricing.cost_calculator import CostCalculator
 from tunacode.types import (
     AgentRun,
     ErrorMessage,
@@ -214,9 +216,11 @@ async def _process_node(
     state_manager: StateManager,
     tool_buffer: Optional[ToolBuffer] = None,
     streaming_callback: Optional[callable] = None,
+    parser: Optional[ApiResponseParser] = None,
+    calculator: Optional[CostCalculator] = None,
 ):
     from tunacode.ui import console as ui
-    from tunacode.utils.token_counter import estimate_tokens
+    
 
     # Use the original callback directly - parallel execution will be handled differently
     buffering_callback = tool_callback
@@ -322,7 +326,7 @@ async def _process_node(
                     for thought in multiline_matches:
                         if thought not in [m for m in matches]:  # Avoid duplicates
                             # Clean up escaped characters
-                            cleaned_thought = thought.replace('\\"', '"').replace("\\n", " ")
+                            cleaned_thought = thought.replace('\"', '"').replace("\\n", " ")
                             await ui.muted(f"REASONING: {cleaned_thought}")
 
         # Check for tool calls and collect them for potential parallel execution

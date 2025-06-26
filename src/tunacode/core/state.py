@@ -46,6 +46,8 @@ class SessionState:
     is_streaming_active: bool = False
     # Track streaming panel reference for tool handler access
     streaming_panel: Optional[Any] = None
+    last_call_usage: dict = field(default_factory=lambda: {"prompt": 0, "completion": 0, "cost": 0.0})
+    session_total_usage: dict = field(default_factory=lambda: {"prompt": 0, "completion": 0, "cost": 0.0})
 
 
 class StateManager:
