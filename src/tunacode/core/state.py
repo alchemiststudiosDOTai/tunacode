@@ -42,6 +42,8 @@ class SessionState:
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     iteration_count: int = 0
     current_iteration: int = 0
+    last_call_usage: dict = field(default_factory=lambda: {"prompt": 0, "completion": 0, "cost": 0.0})
+    session_total_usage: dict = field(default_factory=lambda: {"prompt": 0, "completion": 0, "cost": 0.0})
 
 
 class StateManager:
