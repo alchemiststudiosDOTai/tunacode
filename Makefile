@@ -21,7 +21,7 @@ lint-check:
 	ruff format --check .
 
 test:
-	venv/bin/python -m pytest -q tests/characterization tests/test_security.py tests/test_agent_output_formatting.py tests/test_prompt_changes_validation.py
+	venv/bin/python -m pytest -q tests/characterization tests/utility tests/test_security.py tests/test_agent_output_formatting.py tests/test_prompt_changes_validation.py
 
 coverage:
 	pytest --cov=src/tunacode --cov-report=term

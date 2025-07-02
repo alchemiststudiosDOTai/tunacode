@@ -75,6 +75,16 @@ pip install -e ".[dev]" --quiet
 echo -e "${BLUE}Installing additional test dependencies...${NC}"
 pip install pytest-asyncio --quiet
 
+# Install pre-commit hooks
+echo -e "${BLUE}Setting up pre-commit hooks...${NC}"
+if command -v pre-commit &> /dev/null; then
+    pre-commit install
+    echo -e "${GREEN}✓${NC} Pre-commit hooks installed"
+else
+    echo -e "${YELLOW}Warning: pre-commit not found in PATH${NC}"
+    echo -e "Run 'pre-commit install' manually after activation"
+fi
+
 # Verify installation
 echo -e "\n${GREEN}✨ Development environment setup complete!${NC}"
 echo -e "\nInstalled packages:"

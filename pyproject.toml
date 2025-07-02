@@ -43,6 +43,7 @@ dev = [
     "pytest-cov",
     "pytest-asyncio",
     "textual-dev",
+    "pre-commit",
 ]
 
 [project.urls]

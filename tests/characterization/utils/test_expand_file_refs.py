@@ -127,7 +127,7 @@ def test_error_path_not_found(setup_test_environment):
     text = "Here is a @nonexistent/file.py"
     with pytest.raises(ValueError) as excinfo:
         expand_file_refs(text)
-    assert "Error: Path not found" in str(excinfo.value)
+    assert "Error: File not found" in str(excinfo.value)
     assert "nonexistent/file.py" in str(excinfo.value)
 
 

@@ -178,6 +178,12 @@ def expand_file_refs(text: str) -> Tuple[str, List[str]]:
             content, _ = _read_and_format_file(base_path, expanded_files)
             return content
 
+        # Check if it's a directory without trailing slash
+        if os.path.isdir(base_path):
+            raise ValueError(
+                f"Path '{base_path}' is a directory. Use '{base_path}/' for non-recursive or '{base_path}/**' for recursive expansion."
+            )
+
         raise ValueError(f"Path '{base_path}' is not a valid file or directory specification.")
 
     expanded_text = pattern.sub(replacer, text)
@@ -186,6 +192,8 @@ def expand_file_refs(text: str) -> Tuple[str, List[str]]:
 
 def _read_and_format_file(file_path: str, expanded_files_tracker: List[str]) -> Tuple[str, int]:
     """Reads a single file, formats it, and checks size limits."""
+    import os
+
     from tunacode.constants import MAX_FILE_SIZE
 
     if os.path.getsize(file_path) > MAX_FILE_SIZE:

@@ -1,0 +1,18 @@
+repos:
+  - repo: local
+    hooks:
+      - id: make-lint
+        name: Run make lint
+        entry: make lint-check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+      
+      - id: make-test
+        name: Run make test
+        entry: make test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
