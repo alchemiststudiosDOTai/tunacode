@@ -18,6 +18,9 @@ CONFIG_FILE_NAME = "tunacode.json"
 # Default limits
 MAX_FILE_SIZE = 100 * 1024  # 100KB
 MAX_COMMAND_OUTPUT = 5000  # 5000 chars
+MAX_FILES_IN_DIR = 50
+MAX_TOTAL_DIR_SIZE = 2 * 1024 * 1024  # 2 MB
+
 
 # Command output processing
 COMMAND_OUTPUT_THRESHOLD = 3500  # Length threshold for truncation
@@ -114,6 +117,15 @@ ERROR_FILE_DECODE_DETAILS = "It might be a binary file or use a different encodi
 ERROR_COMMAND_NOT_FOUND = "Error: Command not found or failed to execute:"
 ERROR_COMMAND_EXECUTION = (
     "Error: Command not found or failed to execute: {command}. Details: {error}"
+)
+# Directory expansion errors
+ERROR_FILE_NOT_FOUND = "Error: Path not found at '{filepath}'."
+ERROR_FILE_TOO_LARGE = "Error: File '{filepath}' is too large."
+ERROR_DIR_TOO_LARGE = (
+    "Error: Directory '{path}' expansion aborted. Total size exceeds {limit_mb:.1f} MB limit."
+)
+ERROR_DIR_TOO_MANY_FILES = (
+    "Error: Directory '{path}' expansion aborted. Exceeds limit of {limit} files."
 )
 
 # Command output messages

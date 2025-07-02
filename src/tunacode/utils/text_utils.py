@@ -51,50 +51,156 @@ def ext_to_lang(path: str) -> str:
 
 
 def expand_file_refs(text: str) -> Tuple[str, List[str]]:
-    """Expand @file references with file contents wrapped in code fences.
+    """
+    Expands @-references with file or directory contents wrapped in code fences.
+    - @path/to/file.ext: Reads a single file.
+    - @path/to/dir/: Reads all files in a directory (non-recursive).
+    - @path/to/dir/**: Reads all files in a directory and its subdirectories.
 
     Args:
-        text: The input text potentially containing @file references.
+        text: The input text potentially containing @-references.
 
     Returns:
-        Tuple[str, List[str]]: A tuple containing:
-            - Text with any @file references replaced by the file's contents
-            - List of absolute paths of files that were successfully expanded
+        A tuple containing:
+            - Text with references replaced by file/directory contents.
+            - List of absolute paths of files that were successfully expanded.
 
     Raises:
-        ValueError: If a referenced file does not exist or is too large.
+        ValueError: If a referenced path does not exist.
     """
     import os
     import re
 
     from tunacode.constants import (
+        ERROR_DIR_TOO_LARGE,
+        ERROR_DIR_TOO_MANY_FILES,
         ERROR_FILE_NOT_FOUND,
-        ERROR_FILE_TOO_LARGE,
-        MAX_FILE_SIZE,
-        MSG_FILE_SIZE_LIMIT,
+        MAX_FILES_IN_DIR,
+        MAX_TOTAL_DIR_SIZE,
     )
 
-    pattern = re.compile(r"@([\w./_-]+)")
+    # Regex now includes trailing / and ** to capture directory intentions
+    pattern = re.compile(r"@([\w./\-_*]+)")
     expanded_files = []
 
     def replacer(match: re.Match) -> str:
-        path = match.group(1)
-        if not os.path.exists(path):
-            raise ValueError(ERROR_FILE_NOT_FOUND.format(filepath=path))
+        path_spec = match.group(1)
 
-        if os.path.getsize(path) > MAX_FILE_SIZE:
-            raise ValueError(ERROR_FILE_TOO_LARGE.format(filepath=path) + MSG_FILE_SIZE_LIMIT)
+        is_recursive = path_spec.endswith("/**")
+        is_dir = path_spec.endswith("/")
 
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
+        # Determine the actual path to check on the filesystem
+        if is_recursive:
+            base_path = path_spec[:-3]
+        elif is_dir:
+            base_path = path_spec[:-1]
+        else:
+            base_path = path_spec
 
-        # Track the absolute path of the file
-        abs_path = os.path.abspath(path)
-        expanded_files.append(abs_path)
+        if not os.path.exists(base_path):
+            raise ValueError(ERROR_FILE_NOT_FOUND.format(filepath=base_path))
 
-        lang = ext_to_lang(path)
-        # Add clear headers to indicate this is a file reference, not code to write
-        return f"\n=== FILE REFERENCE: {path} ===\n```{lang}\n{content}\n```\n=== END FILE REFERENCE: {path} ===\n"
+        # For Recursive Directory Expansion ---
+        if is_recursive:
+            if not os.path.isdir(base_path):
+                raise ValueError(
+                    f"Error: Path '{base_path}' for recursive expansion is not a directory."
+                )
+
+            all_contents = [f"\n=== START RECURSIVE EXPANSION: {path_spec} ===\n"]
+            total_size, file_count = 0, 0
+
+            for root, _, filenames in os.walk(base_path):
+                for filename in filenames:
+                    if file_count >= MAX_FILES_IN_DIR:
+                        all_contents.append(
+                            ERROR_DIR_TOO_MANY_FILES.format(path=base_path, limit=MAX_FILES_IN_DIR)
+                        )
+                        break
+
+                    file_path = os.path.join(root, filename)
+                    content, size = _read_and_format_file(file_path, expanded_files)
+
+                    if total_size + size > MAX_TOTAL_DIR_SIZE:
+                        all_contents.append(
+                            ERROR_DIR_TOO_LARGE.format(
+                                path=base_path, limit_mb=MAX_TOTAL_DIR_SIZE / (1024 * 1024)
+                            )
+                        )
+                        break
+
+                    all_contents.append(content)
+                    total_size += size
+                    file_count += 1
+                if file_count >= MAX_FILES_IN_DIR or total_size > MAX_TOTAL_DIR_SIZE:
+                    break
+
+            all_contents.append(f"\n=== END RECURSIVE EXPANSION: {path_spec} ===\n")
+            return "".join(all_contents)
+
+        # For Non-Recursive Directory Expansion
+        if is_dir:
+            if not os.path.isdir(base_path):
+                raise ValueError(
+                    f"Error: Path '{base_path}' for directory expansion is not a directory."
+                )
+
+            all_contents = [f"\n=== START DIRECTORY EXPANSION: {path_spec} ===\n"]
+            total_size, file_count = 0, 0
+
+            for item_name in sorted(os.listdir(base_path)):
+                item_path = os.path.join(base_path, item_name)
+                if os.path.isfile(item_path):
+                    if file_count >= MAX_FILES_IN_DIR:
+                        all_contents.append(
+                            ERROR_DIR_TOO_MANY_FILES.format(path=base_path, limit=MAX_FILES_IN_DIR)
+                        )
+                        break
+
+                    content, size = _read_and_format_file(item_path, expanded_files)
+                    if total_size + size > MAX_TOTAL_DIR_SIZE:
+                        all_contents.append(
+                            ERROR_DIR_TOO_LARGE.format(
+                                path=base_path, limit_mb=MAX_TOTAL_DIR_SIZE / (1024 * 1024)
+                            )
+                        )
+                        break
+
+                    all_contents.append(content)
+                    total_size += size
+                    file_count += 1
+
+            all_contents.append(f"\n=== END DIRECTORY EXPANSION: {path_spec} ===\n")
+            return "".join(all_contents)
+
+        # For Single File Expansion
+        if os.path.isfile(base_path):
+            content, _ = _read_and_format_file(base_path, expanded_files)
+            return content
+
+        raise ValueError(f"Path '{base_path}' is not a valid file or directory specification.")
 
     expanded_text = pattern.sub(replacer, text)
-    return expanded_text, expanded_files
+    return expanded_text, list(set(expanded_files))
+
+
+def _read_and_format_file(file_path: str, expanded_files_tracker: List[str]) -> Tuple[str, int]:
+    """Reads a single file, formats it, and checks size limits."""
+    from tunacode.constants import MAX_FILE_SIZE
+
+    if os.path.getsize(file_path) > MAX_FILE_SIZE:
+        # Instead of raising an error, we'll just note it and skip or process gets terminated.
+        return f"\n--- SKIPPED (too large): {file_path} ---\n", 0
+
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+
+    abs_path = os.path.abspath(file_path)
+    expanded_files_tracker.append(abs_path)
+
+    lang = ext_to_lang(file_path)
+    header = f"=== FILE REFERENCE: {file_path} ==="
+    footer = f"=== END FILE REFERENCE: {file_path} ==="
+
+    formatted_content = f"\n{header}\n```{lang}\n{content}\n```\n{footer}\n"
+    return formatted_content, len(content.encode("utf-8"))
