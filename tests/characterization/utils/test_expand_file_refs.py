@@ -165,9 +165,9 @@ def test_limit_total_dir_size(tmp_path):
     os.chdir(tmp_path)
 
     try:
-        file_size = MAX_TOTAL_DIR_SIZE - 1000
+        file_size = MAX_TOTAL_DIR_SIZE // 2 + 1000
         (size_test_dir / "file1.txt").write_text("b" * file_size)
-        (size_test_dir / "file2.txt").write_text("c" * 20000000)
+        (size_test_dir / "file2.txt").write_text("c" * file_size)
         (size_test_dir / "file3.txt").write_text("d" * 10000)
         text = "Check this large content dir: @size_test_dir/"
         expanded_text, file_list = expand_file_refs(text)

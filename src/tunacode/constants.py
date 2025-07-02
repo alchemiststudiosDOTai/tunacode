@@ -119,8 +119,6 @@ ERROR_COMMAND_EXECUTION = (
     "Error: Command not found or failed to execute: {command}. Details: {error}"
 )
 # Directory expansion errors
-ERROR_FILE_NOT_FOUND = "Error: Path not found at '{filepath}'."
-ERROR_FILE_TOO_LARGE = "Error: File '{filepath}' is too large."
 ERROR_DIR_TOO_LARGE = (
     "Error: Directory '{path}' expansion aborted. Total size exceeds {limit_mb:.1f} MB limit."
 )
