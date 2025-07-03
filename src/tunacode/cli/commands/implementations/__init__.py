@@ -2,6 +2,7 @@
 
 # Import all command classes for easy access
 from .conversation import CompactCommand
+from .continue_cmd import ContinueCommand
 from .debug import (
     DumpCommand,
     FixCommand,
@@ -31,6 +32,7 @@ __all__ = [
     # Development commands
     "BranchCommand",
     "InitCommand",
+    "ContinueCommand",
     # Model commands
     "ModelCommand",
     # Conversation commands

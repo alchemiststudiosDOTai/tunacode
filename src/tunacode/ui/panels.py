@@ -83,10 +83,14 @@ class StreamingAgentPanel:
         self.title = f"[bold {colors.primary}]●[/bold {colors.primary}] {APP_NAME}"
         self.content = ""
         self.live = None
+        self.interrupted = False
 
     def _create_panel(self) -> Panel:
         """Create a Rich panel with current content."""
-        markdown_content = Markdown(self.content or "Thinking...")
+        display_content = self.content or "Thinking..."
+        if self.interrupted:
+            display_content += "\n\n*[Interrupted - Press Enter to submit new request]*"
+        markdown_content = Markdown(display_content)
         panel_obj = Panel(
             Padding(markdown_content, (0, 1, 0, 1)),
             title=f"[bold]{self.title}[/bold]",
@@ -124,8 +128,12 @@ class StreamingAgentPanel:
         if self.live:
             self.live.update(self._create_panel())
 
-    async def stop(self):
+    async def stop(self, interrupted: bool = False):
         """Stop the live streaming display."""
+        self.interrupted = interrupted
+        if interrupted and self.live:
+            # Update display to show interruption
+            self.live.update(self._create_panel())
         if self.live:
             self.live.stop()
             self.live = None

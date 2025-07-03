@@ -34,11 +34,11 @@ _tool_ui = ToolUI()
 MSG_OPERATION_ABORTED = "Operation aborted."
 MSG_OPERATION_ABORTED_BY_USER = "Operation aborted by user."
 MSG_TOOL_INTERRUPTED = "Tool execution was interrupted"
-MSG_REQUEST_CANCELLED = "Request cancelled"
+MSG_REQUEST_CANCELLED = "Request cancelled. Type '/continue' to retry."
 MSG_REQUEST_COMPLETED = "Request completed"
 MSG_JSON_RECOVERY = "Recovered using JSON tool parsing"
 MSG_SESSION_ENDED = "Session ended. Happy coding!"
-MSG_AGENT_BUSY = "Agent is busy, press Ctrl+C to interrupt."
+MSG_AGENT_BUSY = "Agent is busy. Press Ctrl+C to cancel current operation, or wait for completion."
 MSG_HIT_CTRL_C = "Hit Ctrl+C again to exit"
 
 # Shell constants
@@ -264,7 +264,9 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                     streaming_callback=streaming_callback,
                 )
             finally:
-                await streaming_panel.stop()
+                # Check if operation was cancelled
+                is_cancelled = state_manager.session.current_task and state_manager.session.current_task.cancelled() if hasattr(state_manager.session, 'current_task') else False
+                await streaming_panel.stop(interrupted=is_cancelled)
                 # Clear streaming panel reference
                 state_manager.session.streaming_panel = None
                 # Mark streaming as inactive
@@ -308,7 +310,9 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
                 await ui.muted(f"\nFiles in context: {', '.join(filenames)}")
     except CancelledError:
-        await ui.muted(MSG_REQUEST_CANCELLED)
+        await ui.warning("Operation cancelled. Type '/continue' to retry the request.")
+        # Store the request for potential resume
+        state_manager.session.last_cancelled_request = text
     except UserAbortError:
         await ui.muted(MSG_OPERATION_ABORTED)
     except UnexpectedModelBehavior as e:
@@ -370,6 +374,13 @@ async def repl(state_manager: StateManager):
             try:
                 line = await ui.multiline_input(state_manager, _command_registry)
             except UserAbortError:
+                # Cancel any running task
+                if state_manager.session.current_task and not state_manager.session.current_task.done():
+                    state_manager.session.current_task.cancel()
+                    await ui.warning("Cancelled current operation. Enter a new request or wait for agent to finish cleanup.")
+                    ctrl_c_pressed = False
+                    continue
+                
                 if ctrl_c_pressed:
                     break
                 ctrl_c_pressed = True
@@ -427,7 +438,11 @@ async def repl(state_manager: StateManager):
 
             # Check if another task is already running
             if state_manager.session.current_task and not state_manager.session.current_task.done():
-                await ui.muted(MSG_AGENT_BUSY)
+                await ui.warning(MSG_AGENT_BUSY)
+                # Store the pending request for potential later use
+                if not hasattr(state_manager.session, 'pending_request'):
+                    state_manager.session.pending_request = []
+                state_manager.session.pending_request.append(line)
                 continue
 
             state_manager.session.current_task = get_app().create_background_task(

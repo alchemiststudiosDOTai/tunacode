@@ -22,4 +22,13 @@ def create_key_bindings() -> KeyBindings:
         """Insert a newline when escape then enter is pressed."""
         event.current_buffer.insert_text("\n")
 
+    # Add single Escape key handler for interruption
+    @kb.add("escape")
+    def _escape_interrupt(event):
+        """Handle escape key for potential interruption."""
+        # Store that escape was pressed in the app's custom data
+        if hasattr(event.app, 'custom_data'):
+            event.app.custom_data = {'escape_pressed': True}
+        # Don't consume the event - let other handlers process it too
+
     return kb
