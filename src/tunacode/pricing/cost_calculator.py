@@ -23,7 +23,10 @@ class CostCalculator:
         self._registry = registry
 
     def calculate_cost(
-        self, model_name: ModelName, prompt_tokens: TokenCount, completion_tokens: TokenCount
+        self,
+        model_name: ModelName,
+        prompt_tokens: TokenCount,
+        completion_tokens: TokenCount,
     ) -> CostAmount:
         """
         Calculates the total cost for a given model and token usage.

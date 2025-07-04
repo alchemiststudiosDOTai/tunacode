@@ -240,43 +240,73 @@ async def _process_node(
         # Extract Token Use and Calculate Cost
         if parser and calculator:
             try:
-                model_name = state_manager.session.current_model
-                usage_data = parser.parse(
-                    model=model_name, response=node.model_response
+                # The requested model is used as a fallback by the parser
+                requested_model = state_manager.session.current_model
+
+                # Pass the object directly to the parser.
+                # The parser now returns a dict with usage AND the actual model name.
+                parsed_data = parser.parse(
+                    model=requested_model, response_obj=node.model_response
                 )
-                if usage_data:
+
+                if parsed_data:
+                    # Get the model name as returned by the API
+                    api_model_name = parsed_data.get("model_name")
+
+                    # --- FIX: Preserve the provider prefix ---
+                    final_model_name = api_model_name
+                    # Check if the original request had a provider prefix
+                    if ":" in requested_model:
+                        provider_prefix = requested_model.split(":", 1)[0]
+                        # If the API model name doesn't already have the prefix, add it
+                        if not api_model_name.startswith(provider_prefix + ":"):
+                            final_model_name = f"{provider_prefix}:{api_model_name}"
+
+                    # Update the session state with the full, correct model name
+                    state_manager.session.current_model = final_model_name
+
                     cost = calculator.calculate_cost(
-                        prompt_tokens=usage_data.get("prompt_tokens"),
-                        completion_tokens=usage_data.get("completion_tokens"),
-                        model_name=model_name,
+                        prompt_tokens=parsed_data.get("prompt_tokens"),
+                        completion_tokens=parsed_data.get("completion_tokens"),
+                        model_name=final_model_name,  # Use the full, corrected model name
                     )
+
                     session = state_manager.session
 
                     # 1. Update the 'last_call_usage' dictionary
-                    session.last_call_usage["prompt_tokens"] = usage_data.get(
+                    session.last_call_usage["prompt_tokens"] = parsed_data.get(
                         "prompt_tokens"
                     )
-                    session.last_call_usage["completion_tokens"] = usage_data.get(
+                    session.last_call_usage["completion_tokens"] = parsed_data.get(
                         "completion_tokens"
                     )
                     session.last_call_usage["cost"] = cost
 
                     # 2. Accumulate totals for the session
-                    session.session_total_usage["prompt_tokens"] += usage_data.get(
+                    session.session_total_usage["prompt_tokens"] += parsed_data.get(
                         "prompt_tokens"
                     )
-                    session.session_total_usage["completion_tokens"] += usage_data.get(
+                    session.session_total_usage["completion_tokens"] += parsed_data.get(
                         "completion_tokens"
                     )
                     session.session_total_usage["cost"] += cost
-                    session.session_total_usage
 
                     if session.show_thoughts:
                         # Use the updated session values for the UI
-                        total_cost = session.session_total_usage["cost"]
-                        await ui.muted(
-                            f"\nCOST: Last call: ${cost:.6f} | Session total: ${total_cost:.6f}"
+                        prompt = session.last_call_usage["prompt_tokens"]
+                        completion = session.last_call_usage["completion_tokens"]
+                        total_tokens = prompt + completion
+                        last_cost = session.last_call_usage["cost"]
+                        session_cost = session.session_total_usage["cost"]
+
+                        # Format the string directly here
+                        usage_summary = (
+                            f"[ Tokens: {total_tokens:,} (P: {prompt:,}, C: {completion:,}) | "
+                            f"Cost: ${last_cost:.4f} | "
+                            f"Session Total: ${session_cost:.4f} ]"
                         )
+                        # Use the existing ui object to print
+                        await ui.muted(usage_summary)
 
             except Exception as e:
                 if state_manager.session.show_thoughts:
@@ -768,7 +798,11 @@ async def process_request(
     fallback_enabled = state_manager.session.user_config.get("settings", {}).get(
         "fallback_response", True
     )
+    from tunacode.configuration.models import ModelRegistry
 
+    parser = ApiResponseParser()
+    registry = ModelRegistry()
+    calculator = CostCalculator(registry)
     response_state = ResponseState()
 
     # Reset iteration tracking for this request
@@ -812,7 +846,7 @@ async def process_request(
                             if event.delta.content_delta:
                                 await streaming_callback(event.delta.content_delta)
 
-            await _process_node(node, tool_callback, state_manager, tool_buffer, streaming_callback)
+            await _process_node(node, tool_callback, state_manager, tool_buffer, streaming_callback, parser, calculator)
             if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
                 if node.result.output:
                     response_state.has_user_response = True

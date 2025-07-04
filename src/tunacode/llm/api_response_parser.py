@@ -9,55 +9,35 @@ from tunacode.types import ModelName
 
 class ApiResponseParser:
     """
-    Parses LLM API responses from different providers to extract token usage.
+    Parses LLM API response objects to extract token usage and the actual model name used.
+    This version works directly with the pydantic-ai ModelResponse object.
     """
 
-    def parse(self, model: ModelName, response: Dict[str, Any]) -> Dict[str, int]:
+    def parse(self, model: ModelName, response_obj: Any) -> Dict[str, Any]:
         """
-        Parses the API response based on the provider.
+        Parses the standardized API response object.
 
         Args:
-            provider (str): The name of the API provider (e.g., "openai", "anthropic").
-            response (Dict[str, Any]): The raw dictionary response from the API.
+            model (ModelName): The model name that was requested. Used as a fallback.
+            response_obj (Any): The raw ModelResponse object from the agent.
 
         Returns:
-            Dict[str, int]: A standardized dictionary with 'prompt_tokens' and
-                            'completion_tokens'.
+            Dict[str, Any]: A standardized dictionary with 'prompt_tokens',
+                            'completion_tokens', and 'model_name'.
         """
+        # --- FIX: Access attributes directly from the object ---
+        # Default to an empty object if usage is None
+        usage = getattr(response_obj, "usage", None) or {}
 
-        provider = model.split(":")[0]
-        if provider == "openai":
-            # print(self._parse_openai(response))
-            return self._parse_openai(response)
-        elif provider == "anthropic":
-            return self._parse_anthropic(response)
-        elif provider == "google-gla":
-            return self._parse_google_gla(response)
-        elif provider == "openrouter":
-            return self._parse_openai(response)
-        else:
-            return {"prompt_tokens": 0, "completion_tokens": 0}
+        # Extract the actual model name, falling back to the requested model.
+        actual_model_name = getattr(response_obj, "model_name", model)
 
-    def _parse_openai(self, response: Dict[str, Any]) -> Dict[str, int]:
-        """Handles responses from OpenAI and compatible providers."""
-        usage = response.get("usage", {})
-        return {
-            "prompt_tokens": usage.get("prompt_tokens", 0),
-            "completion_tokens": usage.get("completion_tokens", 0),
+        # The pydantic-ai Usage object standardizes keys to 'request_tokens'
+        # and 'response_tokens'. We access them as attributes.
+        parsed_data = {
+            "prompt_tokens": getattr(usage, "request_tokens", 0),
+            "completion_tokens": getattr(usage, "response_tokens", 0),
+            "model_name": actual_model_name,
         }
 
-    def _parse_anthropic(self, response: Dict[str, Any]) -> Dict[str, int]:
-        """Handles responses from Anthropic's API."""
-        usage = response.get("usage", {})
-        return {
-            "prompt_tokens": usage.get("input_tokens", 0),
-            "completion_tokens": usage.get("output_tokens", 0),
-        }
-
-    def _parse_google_gla(self, response: Dict[str, Any]) -> Dict[str, int]:
-        """Handles responses from Google's GLA (Gemini) API."""
-        usage = response.get("usageMetadata", {})
-        return {
-            "prompt_tokens": usage.get("promptTokenCount", 0),
-            "completion_tokens": usage.get("candidatesTokenCount", 0),
-        }
+        return parsed_data
