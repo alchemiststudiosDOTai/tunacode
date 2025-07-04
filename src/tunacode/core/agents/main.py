@@ -237,6 +237,51 @@ async def _process_node(
     if hasattr(node, "model_response"):
         state_manager.session.messages.append(node.model_response)
 
+        # Extract Token Use and Calculate Cost
+        if parser and calculator:
+            try:
+                model_name = state_manager.session.current_model
+                usage_data = parser.parse(
+                    model=model_name, response=node.model_response
+                )
+                if usage_data:
+                    cost = calculator.calculate_cost(
+                        prompt_tokens=usage_data.get("prompt_tokens"),
+                        completion_tokens=usage_data.get("completion_tokens"),
+                        model_name=model_name,
+                    )
+                    session = state_manager.session
+
+                    # 1. Update the 'last_call_usage' dictionary
+                    session.last_call_usage["prompt_tokens"] = usage_data.get(
+                        "prompt_tokens"
+                    )
+                    session.last_call_usage["completion_tokens"] = usage_data.get(
+                        "completion_tokens"
+                    )
+                    session.last_call_usage["cost"] = cost
+
+                    # 2. Accumulate totals for the session
+                    session.session_total_usage["prompt_tokens"] += usage_data.get(
+                        "prompt_tokens"
+                    )
+                    session.session_total_usage["completion_tokens"] += usage_data.get(
+                        "completion_tokens"
+                    )
+                    session.session_total_usage["cost"] += cost
+                    session.session_total_usage
+
+                    if session.show_thoughts:
+                        # Use the updated session values for the UI
+                        total_cost = session.session_total_usage["cost"]
+                        await ui.muted(
+                            f"\nCOST: Last call: ${cost:.6f} | Session total: ${total_cost:.6f}"
+                        )
+
+            except Exception as e:
+                if state_manager.session.show_thoughts:
+                    await ui.error(f"Error during cost calculation: {e}")
+
         # Stream content to callback if provided
         # Use this as fallback when true token streaming is not available
         if streaming_callback and not STREAMING_AVAILABLE:
