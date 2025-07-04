@@ -1,56 +1,61 @@
-"""
-Integration test for usage tracking.
-"""
-import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
-from tunacode.core.agents.main import process_request
-from tunacode.core.state import StateManager, SessionState
+# Your actual, implemented components
+from tunacode.core.agents.main import _process_node
+from tunacode.core.state import StateManager
 from tunacode.llm.api_response_parser import ApiResponseParser
 from tunacode.pricing.cost_calculator import CostCalculator
-from tunacode.types import ModelName
-
+from tunacode.configuration.models import ModelRegistry
 
 @pytest.mark.asyncio
-async def test_usage_tracking_integration(monkeypatch):
+async def test_node_processing_updates_usage_state():
     """
-    Test that usage tracking is correctly integrated into the agent loop.
+    Tests that _process_node correctly integrates the parser, calculator,
+    and state manager to track usage and cost after a model response.
     """
-    # 1. Create a mock StateManager instance
-    mock_state_manager = MagicMock(spec=StateManager)
-    mock_state_manager.session = SessionState()
+    # 1. ARRANGE: Set up the real components and a realistic state.
+    # Since the parser and calculator are unit-tested, we can use them directly.
+    model_name = "openai:gpt-4o"
+    registry = ModelRegistry().get_model(name=model_name)
+    calculator = CostCalculator(registry)
+    parser = ApiResponseParser()
+    state_manager = StateManager()
+    state_manager.session.current_model = model_name
 
-    # 2. Mock the ApiResponseParser and CostCalculator
-    mock_parser = MagicMock(spec=ApiResponseParser)
-    mock_parser.parse.return_value = {"prompt_tokens": 100, "completion_tokens": 50}
+    # This is our only mock: a simplified "node" from the agent loop.
+    # It just needs to hold the raw API response.
+    mock_response_object = MagicMock()
+    mock_response_object.usage = {"prompt_tokens": 1000, "completion_tokens": 2000}
+    mock_response_object.parts = []
 
-    mock_calculator = MagicMock(spec=CostCalculator)
-    mock_calculator.calculate_cost.return_value = 0.0015
+    mock_node = MagicMock()
+    mock_node.model_response = mock_response_object
+    mock_node.request = None
+    mock_node.thought = None
 
-    monkeypatch.setattr("tunacode.core.agents.main.ApiResponseParser", lambda: mock_parser)
-    monkeypatch.setattr("tunacode.core.agents.main.CostCalculator", lambda: mock_calculator)
-
-    # 3. Simulate a full agent processing cycle
-    mock_agent = MagicMock()
-    mock_agent.iter.return_value = AsyncMock()
-    mock_agent.iter.return_value.__aenter__.return_value = AsyncMock()
-    mock_agent.iter.return_value.__aenter__.return_value.__aiter__.return_value = [
-        MagicMock(model_response={"usage": {"prompt_tokens": 100, "completion_tokens": 50}})
-    ]
-
-    async def mock_get_agent(*args, **kwargs):
-        return mock_agent
-
-    monkeypatch.setattr("tunacode.core.agents.main.get_or_create_agent", mock_get_agent)
-
-    # Run the process_request function
-    await process_request(
-        model=ModelName("openai:gpt-4o"),
-        message="test message",
-        state_manager=mock_state_manager,
+    # 2. ACT: Call the specific function containing your integration logic.
+    await _process_node(
+        node=mock_node,
+        tool_callback=None,
+        state_manager=state_manager,
+        parser=parser,
+        calculator=calculator,
     )
 
-    # 4. Assert that the session object contains the correct, updated values
-    assert mock_state_manager.session.last_call_usage == {"prompt": 100, "completion": 50, "cost": 0.0015}
-    assert mock_state_manager.session.session_total_usage == {"prompt": 100, "completion": 50, "cost": 0.0015}
+    # 3. ASSERT: Check that the state was updated correctly.
+    # Based on gpt-4o pricing of $5/M input and $15/M output:
+    # Cost = (1000/1M * $2.50) + (2000/1M * $10.00) = $0.0025 + $0.02 = $0.0225
+    expected_cost = 0.0225
+
+    # Check the last call's data
+    last_call = state_manager.session.last_call_usage
+    assert last_call["prompt_tokens"] == 1000
+    assert last_call["completion_tokens"] == 2000
+    assert last_call["cost"] == pytest.approx(expected_cost)
+
+    # Check the session total (which is just the first call)
+    session_total = state_manager.session.session_total_usage
+    assert session_total["prompt_tokens"] == 1000
+    assert session_total["completion_tokens"] == 2000
+    assert session_total["cost"] == pytest.approx(expected_cost)

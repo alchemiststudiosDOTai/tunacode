@@ -220,7 +220,7 @@ async def _process_node(
     calculator: Optional[CostCalculator] = None,
 ):
     from tunacode.ui import console as ui
-    
+    from tunacode.utils.token_counter import estimate_tokens
 
     # Use the original callback directly - parallel execution will be handled differently
     buffering_callback = tool_callback
@@ -326,7 +326,7 @@ async def _process_node(
                     for thought in multiline_matches:
                         if thought not in [m for m in matches]:  # Avoid duplicates
                             # Clean up escaped characters
-                            cleaned_thought = thought.replace('\"', '"').replace("\\n", " ")
+                            cleaned_thought = thought.replace('\\"', '"').replace("\\n", " ")
                             await ui.muted(f"REASONING: {cleaned_thought}")
 
         # Check for tool calls and collect them for potential parallel execution
