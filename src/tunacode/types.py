@@ -287,3 +287,9 @@ class CostBreakdown:
     cached_cost: float
     output_cost: float
     total_cost: float
+
+
+class UsageTrackerProtocol(Protocol):
+    """Protocol for a class that tracks and displays token usage and cost."""
+
+    async def track_and_display(self, response_obj: Any) -> None: ...

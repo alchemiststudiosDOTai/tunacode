@@ -50,6 +50,7 @@ from tunacode.types import (
     ResponseState,
     SimpleResult,
     ToolCallback,
+    UsageTrackerProtocol,
     ToolCallId,
     ToolName,
 )
@@ -216,7 +217,7 @@ async def _process_node(
     state_manager: StateManager,
     tool_buffer: Optional[ToolBuffer] = None,
     streaming_callback: Optional[callable] = None,
-    usage_tracker: Optional["UsageTracker"] = None,
+    usage_tracker: Optional[UsageTrackerProtocol] = None,
 ):
     from tunacode.ui import console as ui
     from tunacode.utils.token_counter import estimate_tokens
