@@ -39,6 +39,8 @@ from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
+from tunacode.core.token_usage.api_response_parser import ApiResponseParser
+from tunacode.core.token_usage.cost_calculator import CostCalculator
 from tunacode.types import (
     AgentRun,
     ErrorMessage,
@@ -48,6 +50,7 @@ from tunacode.types import (
     ResponseState,
     SimpleResult,
     ToolCallback,
+    UsageTrackerProtocol,
     ToolCallId,
     ToolName,
 )
@@ -214,6 +217,7 @@ async def _process_node(
     state_manager: StateManager,
     tool_buffer: Optional[ToolBuffer] = None,
     streaming_callback: Optional[callable] = None,
+    usage_tracker: Optional[UsageTrackerProtocol] = None,
 ):
     from tunacode.ui import console as ui
     from tunacode.utils.token_counter import estimate_tokens
@@ -232,6 +236,9 @@ async def _process_node(
 
     if hasattr(node, "model_response"):
         state_manager.session.messages.append(node.model_response)
+
+        if usage_tracker:
+            await usage_tracker.track_and_display(node.model_response)
 
         # Stream content to callback if provided
         # Use this as fallback when true token streaming is not available
@@ -719,7 +726,13 @@ async def process_request(
     fallback_enabled = state_manager.session.user_config.get("settings", {}).get(
         "fallback_response", True
     )
+    from tunacode.configuration.models import ModelRegistry
+    from tunacode.core.token_usage.usage_tracker import UsageTracker
 
+    parser = ApiResponseParser()
+    registry = ModelRegistry()
+    calculator = CostCalculator(registry)
+    usage_tracker = UsageTracker(parser, calculator, state_manager)
     response_state = ResponseState()
 
     # Reset iteration tracking for this request
@@ -763,8 +776,19 @@ async def process_request(
                             if event.delta.content_delta:
                                 await streaming_callback(event.delta.content_delta)
 
-            await _process_node(node, tool_callback, state_manager, tool_buffer, streaming_callback)
-            if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
+            await _process_node(
+                node,
+                tool_callback,
+                state_manager,
+                tool_buffer,
+                streaming_callback,
+                usage_tracker,
+            )
+            if (
+                hasattr(node, "result")
+                and node.result
+                and hasattr(node.result, "output")
+            ):
                 if node.result.output:
                     response_state.has_user_response = True
             i += 1

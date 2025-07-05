@@ -24,6 +24,9 @@ class ModelRegistry:
             "anthropic:claude-3-7-sonnet-latest": ModelConfig(
                 pricing=ModelPricing(input=3.00, cached_input=1.50, output=15.00)
             ),
+            "google/gemini-2.5-flash-lite-preview-06-17": ModelConfig(
+                pricing=ModelPricing(input=0.10, cached_input=0.025, output=0.40)
+            ),
             "google-gla:gemini-2.0-flash": ModelConfig(
                 pricing=ModelPricing(input=0.10, cached_input=0.025, output=0.40)
             ),
@@ -74,6 +77,9 @@ class ModelRegistry:
             ),
             "openrouter:openai/gpt-4.1-nano": ModelConfig(
                 pricing=ModelPricing(input=0.10, cached_input=0.05, output=0.40)
+            ),
+            "openrouter:google/gemini-2.5-flash-lite-preview-06-17": ModelConfig(
+                pricing=ModelPricing(input=0.10, cached_input=0.025, output=0.40)
             ),
         }
 
