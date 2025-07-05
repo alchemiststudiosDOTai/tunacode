@@ -1,124 +1,83 @@
 """
 Test suite for the ApiResponseParser.
 """
+
+from types import SimpleNamespace
 from tunacode.llm.api_response_parser import ApiResponseParser
 
 # --- Arrange ---
 
-# Mock API response for an OpenAI model
-openai_model_name = "openai:gpt-4o"
-openai_response = {
-    "usage": {
-        "prompt_tokens": 100,
-        "completion_tokens": 200
-    }
-}
-
-# Mock API response for an Anthropic model
-anthropic_model_name = "anthropic:claude-3-7-sonnet-latest"
-anthropic_response = {
-    "usage": {
-        "input_tokens": 150,
-        "output_tokens": 250
-    }
-}
-
-# Mock API response for an OpenRouter model
-openrouter_model_name = "openrouter:openai/gpt-4.1"
-openrouter_response = {
-    "usage": {
-        "prompt_tokens": 120,
-        "completion_tokens": 220
-    }
-}
-
-# Mock API response for a Google GLA model
-google_gla_model_name = "google-gla:gemini-2.0-flash"
-google_gla_response = {
-    "usageMetadata": {
-        "promptTokenCount": 180,
-        "candidatesTokenCount": 280
-    }
-}
+# Mock a standardized response object that the parser expects.
+# This simulates the output from pydantic-ai, regardless of the original provider.
+mock_usage = SimpleNamespace(request_tokens=100, response_tokens=200)
+mock_response_obj = SimpleNamespace(
+    usage=mock_usage, model_name="provider:some-model-v1"
+)
 
 
 # --- Test Cases ---
 
-def get_provider_from_model_name(model_name: str) -> str:
-    """Helper function to extract the provider from the model name string."""
-    return model_name.split(':')[0]
 
-
-def test_parse_openai_response():
+def test_parse_successful_response():
     """
-    Verifies that the parser correctly handles the OpenAI response format.
-    """
-    # Arrange
-    parser = ApiResponseParser()
-    provider = get_provider_from_model_name(openai_model_name)
-
-    # Act
-    result = parser.parse(provider, openai_response)
-
-    # Assert
-    assert result == {'prompt_tokens': 100, 'completion_tokens': 200}
-
-
-def test_parse_anthropic_response():
-    """
-    Verifies that the parser correctly handles the Anthropic response format
-    """
-    # Arrange
-    parser = ApiResponseParser()
-    provider = get_provider_from_model_name(anthropic_model_name)
-
-    # Act
-    result = parser.parse(provider, anthropic_response)
-
-    # Assert
-    assert result == {'prompt_tokens': 150, 'completion_tokens': 250}
-
-
-def test_parse_openrouter_response():
-    """
-    Verifies that the parser correctly handles the OpenRouter response format.
-    """
-    # Arrange
-    parser = ApiResponseParser()
-    provider = get_provider_from_model_name(openrouter_model_name)
-
-    # Act
-    result = parser.parse(provider, openrouter_response)
-
-    # Assert
-    assert result == {'prompt_tokens': 120, 'completion_tokens': 220}
-
-
-def test_parse_google_gla_response():
-    """
-    Verifies that the parser correctly handles the Google GLA response format.
-    """
-    # Arrange
-    parser = ApiResponseParser()
-    provider = get_provider_from_model_name(google_gla_model_name)
-
-    # Act
-    result = parser.parse(provider, google_gla_response)
-
-    # Assert
-    assert result == {'prompt_tokens': 180, 'completion_tokens': 280}
-
-
-def test_parse_unknown_provider_response():
-    """
-    Verifies that the parser returns a default, zeroed-out dictionary for
-    any provider it doesn't recognize. This is important for graceful failure.
+    Verifies that the parser correctly handles a standardized response object
+    with all the expected usage and model name attributes.
     """
     # Arrange
     parser = ApiResponseParser()
 
     # Act
-    result = parser.parse("unknown_provider", {})
+    # Pass the mock object to the parser
+    result = parser.parse(mock_response_obj.model_name, mock_response_obj)
 
     # Assert
-    assert result == {'prompt_tokens': 0, 'completion_tokens': 0}
+    # Check that the result includes the model_name and the correctly mapped tokens
+    assert result == {
+        "prompt_tokens": 100,
+        "completion_tokens": 200,
+        "model_name": "provider:some-model-v1",
+    }
+
+
+def test_parse_response_with_no_usage_data():
+    """
+    Verifies that the parser returns a default, zeroed-out dictionary for tokens
+    when the response object is missing the 'usage' attribute. This is important
+    for graceful failure.
+    """
+    # Arrange
+    parser = ApiResponseParser()
+    # Create a mock object that is missing the .usage attribute
+    mock_response_no_usage = SimpleNamespace(model_name="provider:model-without-usage")
+
+    # Act
+    result = parser.parse(mock_response_no_usage.model_name, mock_response_no_usage)
+
+    # Assert
+    assert result == {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "model_name": "provider:model-without-usage",
+    }
+
+
+def test_parse_response_with_no_model_name():
+    """
+    Verifies that the parser falls back to the requested model name if the
+    response object doesn't contain an explicit model name.
+    """
+    # Arrange
+    parser = ApiResponseParser()
+    requested_model_name = "requested:fallback-model"
+    # Create a mock object that has usage but is missing the .model_name attribute
+    mock_usage_only = SimpleNamespace(usage=mock_usage)
+
+    # Act
+    result = parser.parse(requested_model_name, mock_usage_only)
+
+    # Assert
+    assert result == {
+        "prompt_tokens": 100,
+        "completion_tokens": 200,
+        "model_name": requested_model_name,  # Should be the fallback name
+    }
