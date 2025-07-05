@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -47,8 +48,10 @@ async def test_repl_input_validation(inputs, expected_process_calls):
             patch("tunacode.cli.repl.get_app") as get_app,
         ):
             # Mock background task creation
-            bg_task = MagicMock()
-            bg_task.done.return_value = True
+            # Mock a task-like object that is awaitable and has a .done() method
+            bg_task = asyncio.create_task(asyncio.sleep(0))
+            # bg_task.done = MagicMock(return_value=True)
+
             get_app.return_value.create_background_task = MagicMock(return_value=bg_task)
 
             await repl_mod.repl(state_manager)

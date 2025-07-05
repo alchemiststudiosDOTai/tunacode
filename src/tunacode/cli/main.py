@@ -23,13 +23,20 @@ state_manager = StateManager()
 
 @app.command()
 def main(
-    version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
+    version: bool = typer.Option(
+        False, "--version", "-v", help="Show version and exit."
+    ),
     run_setup: bool = typer.Option(False, "--setup", help="Run setup process."),
     baseurl: str = typer.Option(
         None, "--baseurl", help="API base URL (e.g., https://openrouter.ai/api/v1)"
     ),
-    model: str = typer.Option(None, "--model", help="Default model to use (e.g., openai/gpt-4)"),
+    model: str = typer.Option(
+        None, "--model", help="Default model to use (e.g., openai/gpt-4)"
+    ),
     key: str = typer.Option(None, "--key", help="API key for the provider"),
+    context: int = typer.Option(
+        None, "--context", help="Maximum context window size for custom models"
+    ),
 ):
     """Start TunaCode - Your AI-powered development assistant"""
 
@@ -43,9 +50,13 @@ def main(
         # Start update check in background
         update_task = asyncio.create_task(asyncio.to_thread(check_for_updates))
 
-        cli_config = {}
-        if baseurl or model or key:
-            cli_config = {"baseurl": baseurl, "model": model, "key": key}
+        cli_config = {
+            "baseurl": baseurl,
+            "model": model,
+            "key": key,
+            "custom_context_window": context,
+        }
+        cli_config = {k: v for k, v in cli_config.items() if v is not None}
 
         try:
             await setup(run_setup, state_manager, cli_config)

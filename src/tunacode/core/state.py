@@ -17,6 +17,8 @@ from tunacode.types import (
     ToolName,
     UserConfig,
 )
+from tunacode.utils.message_utils import get_message_content
+from tunacode.utils.token_counter import estimate_tokens
 
 
 @dataclass
@@ -46,6 +48,16 @@ class SessionState:
     is_streaming_active: bool = False
     # Track streaming panel reference for tool handler access
     streaming_panel: Optional[Any] = None
+    # Context window tracking
+    total_tokens: int = 0
+    max_tokens: int = 0
+
+    def update_token_count(self):
+        """Calculates the total token count from messages and files in context."""
+        message_contents = [get_message_content(msg) for msg in self.messages]
+        message_content = " ".join(c for c in message_contents if c)
+        file_content = " ".join(self.files_in_context)
+        self.total_tokens = estimate_tokens(message_content + file_content)
 
 
 class StateManager:

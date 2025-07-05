@@ -442,8 +442,9 @@ async def _process_node(
         # Handle tool returns
         for part in node.model_response.parts:
             if part.part_kind == "tool-return":
-                obs_msg = f"OBSERVATION[{part.tool_name}]: {part.content[:2_000]}"
-                state_manager.session.messages.append(obs_msg)
+                state_manager.session.messages.append(
+                    f"OBSERVATION[{part.tool_name}]: {part.content}"
+                )
 
                 # Display tool return when thoughts are enabled
                 if state_manager.session.show_thoughts:
