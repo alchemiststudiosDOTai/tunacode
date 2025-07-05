@@ -39,8 +39,8 @@ from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
-from tunacode.llm.api_response_parser import ApiResponseParser
-from tunacode.pricing.cost_calculator import CostCalculator
+from tunacode.core.token_usage.api_response_parser import ApiResponseParser
+from tunacode.core.token_usage.cost_calculator import CostCalculator
 from tunacode.types import (
     AgentRun,
     ErrorMessage,
@@ -216,8 +216,7 @@ async def _process_node(
     state_manager: StateManager,
     tool_buffer: Optional[ToolBuffer] = None,
     streaming_callback: Optional[callable] = None,
-    parser: Optional[ApiResponseParser] = None,
-    calculator: Optional[CostCalculator] = None,
+    usage_tracker: Optional["UsageTracker"] = None,
 ):
     from tunacode.ui import console as ui
     from tunacode.utils.token_counter import estimate_tokens
@@ -237,77 +236,8 @@ async def _process_node(
     if hasattr(node, "model_response"):
         state_manager.session.messages.append(node.model_response)
 
-        # Extract Token Use and Calculate Cost
-        if parser and calculator:
-            try:
-                # The requested model is used as a fallback by the parser
-                requested_model = state_manager.session.current_model
-
-                # Pass the object directly to the parser.
-                # The parser now returns a dict with usage AND the actual model name.
-                parsed_data = parser.parse(
-                    model=requested_model, response_obj=node.model_response
-                )
-
-                if parsed_data:
-                    # Get the model name as returned by the API
-                    api_model_name = parsed_data.get("model_name")
-
-                    # --- FIX: Preserve the provider prefix ---
-                    final_model_name = api_model_name
-                    # Check if the original request had a provider prefix
-                    if ":" in requested_model:
-                        provider_prefix = requested_model.split(":", 1)[0]
-                        # If the API model name doesn't already have the prefix, add it
-                        if not api_model_name.startswith(provider_prefix + ":"):
-                            final_model_name = f"{provider_prefix}:{api_model_name}"
-
-                    cost = calculator.calculate_cost(
-                        prompt_tokens=parsed_data.get("prompt_tokens"),
-                        completion_tokens=parsed_data.get("completion_tokens"),
-                        model_name=final_model_name,
-                    )
-
-                    session = state_manager.session
-
-                    # 1. Update the 'last_call_usage' dictionary
-                    session.last_call_usage["prompt_tokens"] = parsed_data.get(
-                        "prompt_tokens"
-                    )
-                    session.last_call_usage["completion_tokens"] = parsed_data.get(
-                        "completion_tokens"
-                    )
-                    session.last_call_usage["cost"] = cost
-
-                    # 2. Accumulate totals for the session
-                    session.session_total_usage["prompt_tokens"] += parsed_data.get(
-                        "prompt_tokens"
-                    )
-                    session.session_total_usage["completion_tokens"] += parsed_data.get(
-                        "completion_tokens"
-                    )
-                    session.session_total_usage["cost"] += cost
-
-                    if session.show_thoughts:
-                        # Use the updated session values for the UI
-                        prompt = session.last_call_usage["prompt_tokens"]
-                        completion = session.last_call_usage["completion_tokens"]
-                        total_tokens = prompt + completion
-                        last_cost = session.last_call_usage["cost"]
-                        session_cost = session.session_total_usage["cost"]
-
-                        # Format the string directly here
-                        usage_summary = (
-                            f"[ Tokens: {total_tokens:,} (P: {prompt:,}, C: {completion:,}) | "
-                            f"Cost: ${last_cost:.4f} | "
-                            f"Session Total: ${session_cost:.4f} ]"
-                        )
-                        # Use the existing ui object to print
-                        await ui.muted(usage_summary)
-
-            except Exception as e:
-                if state_manager.session.show_thoughts:
-                    await ui.error(f"Error during cost calculation: {e}")
+        if usage_tracker:
+            await usage_tracker.track_and_display(node.model_response)
 
         # Stream content to callback if provided
         # Use this as fallback when true token streaming is not available
@@ -796,10 +726,12 @@ async def process_request(
         "fallback_response", True
     )
     from tunacode.configuration.models import ModelRegistry
+    from tunacode.core.token_usage.usage_tracker import UsageTracker
 
     parser = ApiResponseParser()
     registry = ModelRegistry()
     calculator = CostCalculator(registry)
+    usage_tracker = UsageTracker(parser, calculator, state_manager)
     response_state = ResponseState()
 
     # Reset iteration tracking for this request
@@ -843,8 +775,19 @@ async def process_request(
                             if event.delta.content_delta:
                                 await streaming_callback(event.delta.content_delta)
 
-            await _process_node(node, tool_callback, state_manager, tool_buffer, streaming_callback, parser, calculator)
-            if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
+            await _process_node(
+                node,
+                tool_callback,
+                state_manager,
+                tool_buffer,
+                streaming_callback,
+                usage_tracker,
+            )
+            if (
+                hasattr(node, "result")
+                and node.result
+                and hasattr(node.result, "output")
+            ):
                 if node.result.output:
                     response_state.has_user_response = True
             i += 1

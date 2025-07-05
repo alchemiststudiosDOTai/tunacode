@@ -1,5 +1,5 @@
 from tunacode.configuration.models import ModelRegistry
-from tunacode.pricing.cost_calculator import CostCalculator
+from tunacode.core.token_usage.cost_calculator import CostCalculator
 
 
 def test_calculate_cost_using_existing_registry():

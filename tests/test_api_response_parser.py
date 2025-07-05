@@ -3,7 +3,7 @@ Test suite for the ApiResponseParser.
 """
 
 from types import SimpleNamespace
-from tunacode.llm.api_response_parser import ApiResponseParser
+from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 
 # --- Arrange ---
 
