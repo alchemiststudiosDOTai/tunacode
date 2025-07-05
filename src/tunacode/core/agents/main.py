@@ -262,13 +262,10 @@ async def _process_node(
                         if not api_model_name.startswith(provider_prefix + ":"):
                             final_model_name = f"{provider_prefix}:{api_model_name}"
 
-                    # Update the session state with the full, correct model name
-                    state_manager.session.current_model = final_model_name
-
                     cost = calculator.calculate_cost(
                         prompt_tokens=parsed_data.get("prompt_tokens"),
                         completion_tokens=parsed_data.get("completion_tokens"),
-                        model_name=final_model_name,  # Use the full, corrected model name
+                        model_name=final_model_name,
                     )
 
                     session = state_manager.session
