@@ -23,16 +23,12 @@ state_manager = StateManager()
 
 @app.command()
 def main(
-    version: bool = typer.Option(
-        False, "--version", "-v", help="Show version and exit."
-    ),
+    version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
     run_setup: bool = typer.Option(False, "--setup", help="Run setup process."),
     baseurl: str = typer.Option(
         None, "--baseurl", help="API base URL (e.g., https://openrouter.ai/api/v1)"
     ),
-    model: str = typer.Option(
-        None, "--model", help="Default model to use (e.g., openai/gpt-4)"
-    ),
+    model: str = typer.Option(None, "--model", help="Default model to use (e.g., openai/gpt-4)"),
     key: str = typer.Option(None, "--key", help="API key for the provider"),
     context: int = typer.Option(
         None, "--context", help="Maximum context window size for custom models"

@@ -129,6 +129,7 @@ async def spinner(show: bool = True, spinner_obj=None, state_manager: StateManag
 
     return spinner_obj
 
+
 def get_context_window_display(total_tokens: int, max_tokens: int) -> str:
     """
     Create a color-coded display for the context window status.
@@ -155,6 +156,7 @@ def get_context_window_display(total_tokens: int, max_tokens: int) -> str:
         f"{format_token_count(total_tokens)}/{format_token_count(max_tokens)} "
         f"({int(percentage)}%)[/]"
     )
+
 
 # Auto-generated sync version
 sync_print = print.sync  # type: ignore
