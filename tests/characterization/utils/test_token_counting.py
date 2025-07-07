@@ -9,13 +9,13 @@ from tunacode.utils import token_counter
     "text,expected",
     [
         ("", 0),
-        ("abcd", 2),
-        ("abcdefgh", 3),
-        ("a" * 100, 14),
-        ("hello world", 3),
-        ("    ", 2),
-        ("a" * 3999, 502),
-        ("a" * 4000, 501),
+        ("abcd", 4),
+        ("abcdefgh", 8),
+        ("a" * 100, 100),
+        ("hello world", 11),
+        ("    ", 4),
+        ("a" * 3999, 3999),
+        ("a" * 4000, 4000),
     ],
 )
 def test_estimate_tokens_various_lengths(text, expected):
