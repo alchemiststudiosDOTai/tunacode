@@ -19,11 +19,14 @@ from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.application.current import get_app
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
+from tunacode.configuration.settings import ApplicationSettings
+from tunacode.constants import DEFAULT_CONTEXT_WINDOW
 from tunacode.core.agents import main as agent
 from tunacode.core.agents.main import patch_tool_messages
 from tunacode.core.tool_handler import ToolHandler
 from tunacode.exceptions import AgentError, UserAbortError, ValidationError
 from tunacode.ui import console as ui
+from tunacode.ui.output import get_context_window_display
 from tunacode.ui.tool_ui import ToolUI
 from tunacode.utils.security import CommandSecurityError, safe_subprocess_run
 
@@ -314,8 +317,30 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                     if isinstance(msg, dict) and "thought" in msg:
                         await ui.muted(f"THOUGHT: {msg['thought']}")
 
-            await _display_agent_output(res, enable_streaming)
+            # Only display result if not streaming (streaming already showed content)
+            if enable_streaming:
+                pass  # Guard: streaming already showed content
+            elif (
+                not hasattr(res, "result")
+                or res.result is None
+                or not hasattr(res.result, "output")
+            ):
+                # Fallback: show that the request was processed
+                await ui.muted(MSG_REQUEST_COMPLETED)
+            else:
+                output = res.result.output
+                # Extract complex conditions into explaining variables
+                is_string_output = isinstance(output, str)
+                is_json_thought = (
+                    output.strip().startswith('{"thought"') if is_string_output else False
+                )
+                has_tool_uses = '"tool_uses"' in output if is_string_output else False
+                is_displayable = is_string_output and not (is_json_thought or has_tool_uses)
 
+                if is_displayable:
+                    await ui.agent(output)
+
+            # Always show files in context after agent response
             if state_manager.session.files_in_context:
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
                 await ui.muted(f"\nFiles in context: {', '.join(filenames)}")
@@ -356,7 +381,15 @@ async def repl(state_manager: StateManager):
     action = None
     ctrl_c_pressed = False
 
-    await ui.muted(f"• Model: {state_manager.session.current_model}")
+    model_name = state_manager.session.current_model
+    max_tokens = (
+        state_manager.session.user_config.get("context_window_size") or DEFAULT_CONTEXT_WINDOW
+    )
+    state_manager.session.max_tokens = max_tokens
+
+    state_manager.session.update_token_count()
+    context_display = get_context_window_display(state_manager.session.total_tokens, max_tokens)
+    await ui.muted(f"• Model: {model_name} • {context_display}")
     await ui.success("Ready to assist")
     await ui.line()
 
@@ -426,9 +459,15 @@ async def repl(state_manager: StateManager):
             state_manager.session.current_task = get_app().create_background_task(
                 process_request(line, state_manager)
             )
+            await state_manager.session.current_task
 
-    # --- SESSION TERMINATION ---
-    if action == "restart":
-        await repl(state_manager)
-    else:
-        await ui.info(MSG_SESSION_ENDED)
+            state_manager.session.update_token_count()
+            context_display = get_context_window_display(
+                state_manager.session.total_tokens, state_manager.session.max_tokens
+            )
+            await ui.muted(f"• Model: {state_manager.session.current_model} • {context_display}")
+
+        if action == "restart":
+            await repl(state_manager)
+        else:
+            await ui.info(MSG_SESSION_ENDED)

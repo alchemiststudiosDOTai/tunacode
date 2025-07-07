@@ -40,9 +40,10 @@ async def test_repl_multiline_input_handling():
             patch.object(repl_mod.ui, "multiline_input", new=fake_multiline_input),
             patch("tunacode.cli.repl.get_app") as get_app,
         ):
-            bg_task = MagicMock()
-            bg_task.done.return_value = True
-            get_app.return_value.create_background_task = MagicMock(return_value=bg_task)
+            bg_task = AsyncMock()
+            bg_task.done.return_value = AsyncMock(return_value=True)
+
+            get_app.return_value.create_background_task = AsyncMock(return_value=bg_task)
 
             await repl_mod.repl(state_manager)
 

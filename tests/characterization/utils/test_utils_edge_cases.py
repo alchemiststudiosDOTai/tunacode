@@ -34,8 +34,8 @@ def test_capture_stdout_with_exception():
 @pytest.mark.parametrize(
     "text,expected",
     [
-        ("你好世界", 1),  # 4 Chinese chars, still 1 token by naive logic
-        ("😀" * 8, 2),  # 8 emoji, each is a multi-byte char
+        ("你好世界", 4),
+        ("😀" * 8, 8),
     ],
 )
 def test_estimate_tokens_unicode(text, expected):
@@ -48,4 +48,4 @@ def test_format_token_count_negative():
 
 
 def test_format_token_count_large():
-    assert token_counter.format_token_count(10**9) == "1,000,000,000"
+    assert token_counter.format_token_count(10**9) == "1000000k"

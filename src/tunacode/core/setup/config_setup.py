@@ -318,6 +318,11 @@ class ConfigSetup(BaseSetup):
 
             self.state_manager.session.user_config["default_model"] = model
 
+        if self.cli_config.get("custom_context_window"):
+            self.state_manager.session.user_config["context_window_size"] = self.cli_config[
+                "custom_context_window"
+            ]
+
         # Set current model
         self.state_manager.session.current_model = self.state_manager.session.user_config[
             "default_model"

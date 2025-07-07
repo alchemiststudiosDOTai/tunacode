@@ -13,6 +13,8 @@ async def test_repl_agent_busy_message():
     state_manager.session.current_model = "gpt-test"
     state_manager.session.input_sessions = {}
     state_manager.session.show_thoughts = False
+    state_manager.session.total_tokens = 100
+    state_manager.session.user_config = {"context_window_size": 200000}
 
     # Simulate a running background task
     busy_task = MagicMock()
@@ -63,6 +65,8 @@ async def test_repl_session_restart_and_end():
     state_manager.session.current_model = "gpt-test"
     state_manager.session.input_sessions = {}
     state_manager.session.show_thoughts = False
+    state_manager.session.total_tokens = 100
+    state_manager.session.user_config = {"context_window_size": 200000}
 
     with (
         patch("tunacode.ui.console.muted", new=AsyncMock()),

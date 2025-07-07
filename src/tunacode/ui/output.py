@@ -14,6 +14,7 @@ from tunacode.constants import (
 )
 from tunacode.core.state import StateManager
 from tunacode.utils.file_utils import DotDict
+from tunacode.utils.token_counter import format_token_count
 
 from .constants import SPINNER_TYPE
 from .decorators import create_sync_wrapper
@@ -127,6 +128,34 @@ async def spinner(show: bool = True, spinner_obj=None, state_manager: StateManag
         spinner_obj.stop()
 
     return spinner_obj
+
+
+def get_context_window_display(total_tokens: int, max_tokens: int) -> str:
+    """
+    Create a color-coded display for the context window status.
+
+    Args:
+        total_tokens: The current number of tokens in the context.
+        max_tokens: The maximum number of tokens for the model.
+
+    Returns:
+        A formatted string for display.
+    """
+    if max_tokens == 0:
+        return ""
+
+    percentage = (float(total_tokens) / float(max_tokens)) * 100 if max_tokens else 0
+    color = "success"
+    if percentage > 80:
+        color = "error"
+    elif percentage > 50:
+        color = "warning"
+
+    return (
+        f"[b]Context:[/] [{colors[color]}]"
+        f"{format_token_count(total_tokens)}/{format_token_count(max_tokens)} "
+        f"({int(percentage)}%)[/]"
+    )
 
 
 # Auto-generated sync version
