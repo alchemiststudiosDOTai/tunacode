@@ -19,7 +19,6 @@ from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.application.current import get_app
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
-from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import DEFAULT_CONTEXT_WINDOW
 from tunacode.core.agents import main as agent
 from tunacode.core.agents.main import patch_tool_messages
