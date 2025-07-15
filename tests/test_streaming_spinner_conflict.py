@@ -27,31 +27,25 @@ async def test_streaming_prevents_spinner_operations():
     state_manager.session.is_streaming_active = True
 
     # Import after setting up mocks
-    from tunacode.cli.repl import _tool_confirm
-    from tunacode.core.tool_handler import ToolHandler
-    from tunacode.types import ToolConfirmationResponse
+    from tunacode.cli.repl import _tool_handler
 
-    # Mock tool call
-    mock_tool_call = MagicMock()
-    mock_tool_call.tool_name = "write_file"
-    mock_tool_call.args = '{"file_path": "test.txt", "content": "test"}'
+    # Mock tool call part (as expected by _tool_handler)
+    mock_tool_part = MagicMock()
+    mock_tool_part.tool_name = "write_file"
+    mock_tool_part.args = '{"file_path": "test.txt", "content": "test"}'
 
     # Mock tool handler to say confirmation is needed
-    with patch.object(ToolHandler, "should_confirm", return_value=True):
-        with patch.object(ToolHandler, "create_confirmation_request"):
-            with patch("tunacode.cli.repl._tool_ui") as mock_tool_ui:
-                # Return proper ToolConfirmationResponse object
-                mock_response = ToolConfirmationResponse(
-                    approved=True, skip_future=False, abort=False
-                )
-                mock_tool_ui.show_confirmation = AsyncMock(return_value=mock_response)
+    with patch("tunacode.cli.repl.ui.info"):
+        with patch("tunacode.cli.repl.run_in_terminal", new_callable=AsyncMock) as mock_terminal:
+            # Mock run_in_terminal to return False (user approves, no abort)
+            mock_terminal.return_value = False
 
-                # Call tool confirm
-                await _tool_confirm(mock_tool_call, None, state_manager)
+            # Call tool handler
+            await _tool_handler(mock_tool_part, state_manager)
 
-                # Verify spinner was NOT manipulated when streaming is active
-                mock_spinner.stop.assert_not_called()
-                mock_spinner.start.assert_not_called()
+            # Verify spinner was NOT manipulated when streaming is active
+            mock_spinner.stop.assert_not_called()
+            mock_spinner.start.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -69,31 +63,25 @@ async def test_spinner_works_when_not_streaming():
     state_manager.session.is_streaming_active = False
 
     # Import after setting up mocks
-    from tunacode.cli.repl import _tool_confirm
-    from tunacode.core.tool_handler import ToolHandler
-    from tunacode.types import ToolConfirmationResponse
+    from tunacode.cli.repl import _tool_handler
 
-    # Mock tool call
-    mock_tool_call = MagicMock()
-    mock_tool_call.tool_name = "write_file"
-    mock_tool_call.args = '{"file_path": "test.txt", "content": "test"}'
+    # Mock tool call part (as expected by _tool_handler)
+    mock_tool_part = MagicMock()
+    mock_tool_part.tool_name = "write_file"
+    mock_tool_part.args = '{"file_path": "test.txt", "content": "test"}'
 
     # Mock tool handler
-    with patch.object(ToolHandler, "should_confirm", return_value=True):
-        with patch.object(ToolHandler, "create_confirmation_request"):
-            with patch("tunacode.cli.repl._tool_ui") as mock_tool_ui:
-                # Return proper ToolConfirmationResponse object
-                mock_response = ToolConfirmationResponse(
-                    approved=True, skip_future=False, abort=False
-                )
-                mock_tool_ui.show_confirmation = AsyncMock(return_value=mock_response)
+    with patch("tunacode.cli.repl.ui.info"):
+        with patch("tunacode.cli.repl.run_in_terminal", new_callable=AsyncMock) as mock_terminal:
+            # Mock run_in_terminal to return False (user approves, no abort)
+            mock_terminal.return_value = False
 
-                # Call tool confirm
-                await _tool_confirm(mock_tool_call, None, state_manager)
+            # Call tool handler
+            await _tool_handler(mock_tool_part, state_manager)
 
-                # Verify spinner WAS manipulated when streaming is inactive
-                mock_spinner.stop.assert_called_once()
-                mock_spinner.start.assert_called_once()
+            # Verify spinner WAS manipulated when streaming is inactive
+            mock_spinner.stop.assert_called_once()
+            mock_spinner.start.assert_called_once()
 
 
 @pytest.mark.asyncio

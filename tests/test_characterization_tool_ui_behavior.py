@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from tunacode.cli.repl import _tool_confirm, _tool_handler
+from tunacode.cli.repl import _tool_handler
 from tunacode.constants import (
     TOOL_BASH,
     TOOL_GLOB,
@@ -46,10 +46,8 @@ pytestmark = pytest.mark.asyncio
 # 3. Yolo mode (skip all confirmations)
 # 4. Tool ignore list (selective confirmation skipping)
 # 5. Unknown/custom tools (default to safe behavior)
-# 6. Direct _tool_confirm function behavior
-# 7. MCP tool logging (external tool transparency)
-# 8. User abort handling (clean error propagation)
-# 9. Spinner lifecycle (UI responsiveness)
+# 6. User abort handling (clean error propagation)
+# 7. Spinner lifecycle (UI responsiveness)
 #
 # These tests use mocking extensively to isolate UI behavior from actual tool
 # execution, making them fast and reliable.
@@ -116,10 +114,8 @@ class TestToolUICharacterization:
                     part = Mock()
                     part.tool_name = tool_name
                     part.args = "{}"  # Empty args for simplicity
-                    node = Mock()
-
                     # Act: Execute the tool handler
-                    await _tool_handler(part, node, self.state_manager)
+                    await _tool_handler(part, self.state_manager)
 
                     # Assert - Golden master behavior:
                     # No info message should be shown for read-only tools
@@ -163,10 +159,8 @@ class TestToolUICharacterization:
                     part = Mock()
                     part.tool_name = tool_name
                     part.args = '{"filepath": "test.txt", "content": "test"}'
-                    node = Mock()
-
                     # Act: Execute the tool handler
-                    await _tool_handler(part, node, self.state_manager)
+                    await _tool_handler(part, self.state_manager)
 
                     # Assert - Golden master behavior:
                     # Info message SHOULD be shown for write/execute tools
@@ -204,10 +198,8 @@ class TestToolUICharacterization:
                 part = Mock()
                 part.tool_name = TOOL_WRITE_FILE
                 part.args = '{"filepath": "test.txt", "content": "test"}'
-                node = Mock()
-
                 # Act
-                await _tool_handler(part, node, self.state_manager)
+                await _tool_handler(part, self.state_manager)
 
                 # Assert - Golden master
                 # In yolo mode, write tools don't show info message
@@ -227,10 +219,8 @@ class TestToolUICharacterization:
                 part = Mock()
                 part.tool_name = TOOL_READ_FILE
                 part.args = '{"file_path": "test.txt"}'
-                node = Mock()
-
                 # Act
-                await _tool_handler(part, node, self.state_manager)
+                await _tool_handler(part, self.state_manager)
 
                 # Assert - Golden master
                 # Read-only tools still don't show info message even in yolo
@@ -266,10 +256,8 @@ class TestToolUICharacterization:
                 part = Mock()
                 part.tool_name = TOOL_WRITE_FILE
                 part.args = '{"filepath": "test.txt", "content": "test"}'
-                node = Mock()
-
                 # Act
-                await _tool_handler(part, node, self.state_manager)
+                await _tool_handler(part, self.state_manager)
 
                 # Assert - Golden master
                 # Tool in ignore list doesn't show info message
@@ -302,89 +290,14 @@ class TestToolUICharacterization:
                 part = Mock()
                 part.tool_name = "unknown_custom_tool"
                 part.args = '{"param": "value"}'
-                node = Mock()
-
                 # Act
-                await _tool_handler(part, node, self.state_manager)
+                await _tool_handler(part, self.state_manager)
 
                 # Assert - Golden master
                 # Unknown tools show info message
                 mock_info.assert_called_once_with("Tool(unknown_custom_tool)")
                 # And require confirmation
                 mock_terminal.assert_called_once()
-
-    async def test_tool_confirm_skip_for_read_only(self):
-        """Capture behavior: _tool_confirm also skips for read-only tools.
-
-        This tests the _tool_confirm function directly (as opposed to _tool_handler).
-        The _tool_confirm function is an alternative entry point that:
-        1. Checks if tool needs confirmation
-        2. If yes, shows the confirmation UI
-        3. If no (read-only tools), returns immediately
-
-        For read-only tools:
-        - No confirmation UI is shown
-        - Spinner is not manipulated (no stop/start)
-        - Function returns without any user interaction
-
-        Note: MCP tools might still get logged even when skipping confirmation.
-        """
-        with patch("tunacode.cli.repl._tool_ui") as mock_tool_ui:
-            # Arrange
-            tool_call = Mock()
-            tool_call.tool_name = TOOL_READ_FILE
-            tool_call.args = '{"file_path": "test.txt"}'
-            node = Mock()
-
-            # Act
-            await _tool_confirm(tool_call, node, self.state_manager)
-
-            # Assert - Golden master
-            # For read-only tools, no confirmation UI is shown
-            mock_tool_ui.show_confirmation.assert_not_called()
-            # But MCP logging might still happen (for external tools)
-            # Spinner is not manipulated since confirmation was skipped
-            self.state_manager.session.spinner.stop.assert_not_called()
-
-    async def test_mcp_tool_logging_behavior(self):
-        """Capture behavior: MCP tools might get logged even when skipping confirmation.
-
-        MCP (Model Context Protocol) tools are external tools that aren't built into
-        TunaCode. Even when they're read-only and skip confirmation, they still get
-        logged so users can see what external tools are being used.
-
-        This test simulates:
-        1. Making read_file appear as an MCP tool (not in internal_tools list)
-        2. Verifying that even though confirmation is skipped (read-only)
-        3. The MCP tool still gets logged via log_mcp
-
-        This provides transparency about external tool usage while maintaining
-        the streamlined UI for read-only operations.
-        """
-        # Mock ApplicationSettings to make read_file appear as MCP (external) tool
-        with patch("tunacode.cli.repl.ApplicationSettings") as mock_settings:
-            mock_settings.return_value.internal_tools = [
-                TOOL_WRITE_FILE,
-                TOOL_UPDATE_FILE,
-            ]  # Exclude read_file
-
-            with patch("tunacode.cli.repl._tool_ui") as mock_tool_ui:
-                # Make log_mcp async
-                mock_tool_ui.log_mcp = AsyncMock()
-
-                # Arrange
-                tool_call = Mock()
-                tool_call.tool_name = TOOL_READ_FILE  # This will appear as MCP tool
-                tool_call.args = '{"file_path": "test.txt"}'
-                node = Mock()
-
-                # Act
-                await _tool_confirm(tool_call, node, self.state_manager)
-
-                # Assert - Golden master
-                # MCP read-only tools get logged
-                mock_tool_ui._get_tool_title.assert_called_once_with(TOOL_READ_FILE)
-                mock_tool_ui.log_mcp.assert_called_once()
 
     async def test_confirmation_abort_behavior(self):
         """Capture behavior: user abort during confirmation.
@@ -414,11 +327,9 @@ class TestToolUICharacterization:
                     part = Mock()
                     part.tool_name = TOOL_WRITE_FILE
                     part.args = '{"filepath": "test.txt", "content": "test"}'
-                    node = Mock()
-
                     # Act & Assert
                     with pytest.raises(UserAbortError):
-                        await _tool_handler(part, node, self.state_manager)
+                        await _tool_handler(part, self.state_manager)
 
                     # Info message was shown before abort
                     mock_info.assert_called_once_with(f"Tool({TOOL_WRITE_FILE})")
@@ -457,10 +368,8 @@ class TestToolUICharacterization:
                 part = Mock()
                 part.tool_name = TOOL_WRITE_FILE
                 part.args = '{"filepath": "test.txt", "content": "test"}'
-                node = Mock()
-
                 # Act
-                await _tool_handler(part, node, self.state_manager)
+                await _tool_handler(part, self.state_manager)
 
                 # Assert - Golden master
                 # Spinner lifecycle: stop before interaction, start after

@@ -44,7 +44,7 @@ async def test_streaming_panel_stops_for_tool_confirmation():
                     mock_terminal.return_value = False
 
                     # Call tool handler
-                    await _tool_handler(mock_tool_call, None, state_manager)
+                    await _tool_handler(mock_tool_call, state_manager)
 
                     # Verify streaming panel was stopped before confirmation
                     mock_streaming_panel.stop.assert_called_once()
@@ -94,7 +94,7 @@ async def test_streaming_panel_not_affected_for_read_only_tools():
             mock_terminal.return_value = False
 
             # Call tool handler
-            await _tool_handler(mock_tool_call, None, state_manager)
+            await _tool_handler(mock_tool_call, state_manager)
 
             # Verify streaming panel was NOT stopped for read-only tools
             mock_streaming_panel.stop.assert_not_called()
@@ -129,7 +129,7 @@ async def test_streaming_panel_handled_when_none():
                     mock_terminal.return_value = False
 
                     # Should not raise any errors
-                    await _tool_handler(mock_tool_call, None, state_manager)
+                    await _tool_handler(mock_tool_call, state_manager)
 
 
 @pytest.mark.asyncio

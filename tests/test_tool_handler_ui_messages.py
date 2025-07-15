@@ -43,9 +43,7 @@ class TestToolHandlerUIMessages:
                     part.tool_name = tool_name
                     part.args = "{}"
 
-                    node = Mock()
-
-                    await _tool_handler(part, node, state_manager)
+                    await _tool_handler(part, state_manager)
 
                     # Should NOT have called ui.info for read-only tools
                     mock_info.assert_not_called()
@@ -77,9 +75,7 @@ class TestToolHandlerUIMessages:
                 part.tool_name = TOOL_WRITE_FILE
                 part.args = '{"filepath": "test.txt", "content": "test"}'
 
-                node = Mock()
-
-                await _tool_handler(part, node, state_manager)
+                await _tool_handler(part, state_manager)
 
                 # Should have called ui.info for write tools
                 mock_info.assert_called_once_with(f"Tool({TOOL_WRITE_FILE})")
@@ -111,9 +107,7 @@ class TestToolHandlerUIMessages:
                 part.tool_name = TOOL_READ_FILE
                 part.args = '{"filepath": "test.txt"}'
 
-                node = Mock()
-
-                await _tool_handler(part, node, state_manager)
+                await _tool_handler(part, state_manager)
 
                 # Should NOT have called ui.info even in yolo mode for read-only tools
                 mock_info.assert_not_called()

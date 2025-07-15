@@ -170,7 +170,7 @@ class ParseToolsCommand(SimpleCommand):
                         from tunacode.cli.repl import _tool_handler
 
                         def tool_callback_with_state(part, node):
-                            return _tool_handler(part, node, context.state_manager)
+                            return _tool_handler(part, context.state_manager)
 
                         try:
                             await extract_and_execute_tool_calls(
