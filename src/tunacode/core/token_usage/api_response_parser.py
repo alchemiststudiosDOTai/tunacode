@@ -3,7 +3,8 @@ Module: tunacode.llm.api_response_parser
 Provides a parser to standardize token usage information from various LLM API responses.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from tunacode.types import ModelName
 
 

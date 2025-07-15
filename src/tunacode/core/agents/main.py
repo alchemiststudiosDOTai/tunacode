@@ -30,6 +30,8 @@ except ImportError:
 
 from tunacode.constants import READ_ONLY_TOOLS
 from tunacode.core.state import StateManager
+from tunacode.core.token_usage.api_response_parser import ApiResponseParser
+from tunacode.core.token_usage.cost_calculator import CostCalculator
 from tunacode.services.mcp import get_mcp_servers
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
@@ -39,8 +41,6 @@ from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
-from tunacode.core.token_usage.api_response_parser import ApiResponseParser
-from tunacode.core.token_usage.cost_calculator import CostCalculator
 from tunacode.types import (
     AgentRun,
     ErrorMessage,
@@ -50,9 +50,9 @@ from tunacode.types import (
     ResponseState,
     SimpleResult,
     ToolCallback,
-    UsageTrackerProtocol,
     ToolCallId,
     ToolName,
+    UsageTrackerProtocol,
 )
 
 
@@ -784,11 +784,7 @@ async def process_request(
                 streaming_callback,
                 usage_tracker,
             )
-            if (
-                hasattr(node, "result")
-                and node.result
-                and hasattr(node.result, "output")
-            ):
+            if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
                 if node.result.output:
                     response_state.has_user_response = True
             i += 1

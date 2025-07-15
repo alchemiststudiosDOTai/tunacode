@@ -1,4 +1,3 @@
-import asyncio
 from tunacode.core.state import StateManager
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 from tunacode.core.token_usage.cost_calculator import CostCalculator
@@ -27,9 +26,7 @@ class UsageTracker:
         try:
             # 1. Parse the response to get token data
             requested_model = self.state_manager.session.current_model
-            parsed_data = self.parser.parse(
-                model=requested_model, response_obj=response_obj
-            )
+            parsed_data = self.parser.parse(model=requested_model, response_obj=response_obj)
 
             if not parsed_data:
                 return

@@ -3,6 +3,7 @@ Test suite for the ApiResponseParser.
 """
 
 from types import SimpleNamespace
+
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 
 # --- Arrange ---
@@ -10,9 +11,7 @@ from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 # Mock a standardized response object that the parser expects.
 # This simulates the output from pydantic-ai, regardless of the original provider.
 mock_usage = SimpleNamespace(request_tokens=100, response_tokens=200)
-mock_response_obj = SimpleNamespace(
-    usage=mock_usage, model_name="provider:some-model-v1"
-)
+mock_response_obj = SimpleNamespace(usage=mock_usage, model_name="provider:some-model-v1")
 
 
 # --- Test Cases ---

@@ -164,10 +164,7 @@ async def _tool_handler(part, node, state_manager: StateManager):
             await streaming_panel.start()
 
         # Restart spinner only if not streaming
-        if (
-            not state_manager.session.is_streaming_active
-            and state_manager.session.spinner
-        ):
+        if not state_manager.session.is_streaming_active and state_manager.session.spinner:
             state_manager.session.spinner.start()
 
 
@@ -188,9 +185,7 @@ async def _handle_command(command: str, state_manager: StateManager) -> CommandR
         Command result (varies by command).
     """
     # Create command context
-    context = CommandContext(
-        state_manager=state_manager, process_request=process_request
-    )
+    context = CommandContext(state_manager=state_manager, process_request=process_request)
 
     try:
         # Set the process_request callback for commands that need it
@@ -305,14 +300,10 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                 # Extract complex conditions into explaining variables
                 is_string_output = isinstance(output, str)
                 is_json_thought = (
-                    output.strip().startswith('{"thought"')
-                    if is_string_output
-                    else False
+                    output.strip().startswith('{"thought"') if is_string_output else False
                 )
                 has_tool_uses = '"tool_uses"' in output if is_string_output else False
-                is_displayable = is_string_output and not (
-                    is_json_thought or has_tool_uses
-                )
+                is_displayable = is_string_output and not (is_json_thought or has_tool_uses)
 
                 if is_displayable:
                     await ui.agent(output)
@@ -320,9 +311,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
             # Always show files in context after agent response
             if state_manager.session.files_in_context:
                 # Extract just filenames from full paths for readability
-                filenames = [
-                    Path(f).name for f in sorted(state_manager.session.files_in_context)
-                ]
+                filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
                 await ui.muted(f"\nFiles in context: {', '.join(filenames)}")
     except CancelledError:
         await ui.muted(MSG_REQUEST_CANCELLED)
@@ -335,9 +324,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
     except Exception as e:
         # Check if this might be a tool calling failure that we can recover from
         error_str = str(e).lower()
-        if any(
-            keyword in error_str for keyword in ["tool", "function", "call", "schema"]
-        ):
+        if any(keyword in error_str for keyword in ["tool", "function", "call", "schema"]):
             # Try to extract and execute tool calls from the last response
             if state_manager.session.messages:
                 last_msg = state_manager.session.messages[-1]
@@ -374,9 +361,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
         # Force refresh of the multiline input prompt to restore placeholder
         if "multiline" in state_manager.session.input_sessions:
             await run_in_terminal(
-                lambda: state_manager.session.input_sessions[
-                    "multiline"
-                ].app.invalidate()
+                lambda: state_manager.session.input_sessions["multiline"].app.invalidate()
             )
 
 
@@ -388,9 +373,7 @@ async def repl(state_manager: StateManager):
     await ui.success("Ready to assist")
     await ui.line()
 
-    instance = agent.get_or_create_agent(
-        state_manager.session.current_model, state_manager
-    )
+    instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 
     async with instance.run_mcp_servers():
         while True:
@@ -422,9 +405,7 @@ async def repl(state_manager: StateManager):
 
                 # Show tool-style header for bash commands
                 cmd_display = command if command else "Interactive shell"
-                await ui.panel(
-                    "Tool(bash)", f"Command: {cmd_display}", border_style="yellow"
-                )
+                await ui.panel("Tool(bash)", f"Command: {cmd_display}", border_style="yellow")
 
                 def run_shell():
                     try:
@@ -440,14 +421,10 @@ async def repl(state_manager: StateManager):
                                     capture_output=False,
                                 )
                                 if result.returncode != 0:
-                                    print(
-                                        f"\nCommand exited with code {result.returncode}"
-                                    )
+                                    print(f"\nCommand exited with code {result.returncode}")
                             except CommandSecurityError as e:
                                 print(f"\nSecurity validation failed: {str(e)}")
-                                print(
-                                    "If you need to run this command, please ensure it's safe."
-                                )
+                                print("If you need to run this command, please ensure it's safe.")
                         else:
                             shell = os.environ.get(SHELL_ENV_VAR, DEFAULT_SHELL)
                             subprocess.run(shell)  # Interactive shell is safe
@@ -459,10 +436,7 @@ async def repl(state_manager: StateManager):
                 continue
 
             # Check if another task is already running
-            if (
-                state_manager.session.current_task
-                and not state_manager.session.current_task.done()
-            ):
+            if state_manager.session.current_task and not state_manager.session.current_task.done():
                 await ui.muted(MSG_AGENT_BUSY)
                 continue
 
