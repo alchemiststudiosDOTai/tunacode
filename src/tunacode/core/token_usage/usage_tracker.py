@@ -1,10 +1,13 @@
+from typing import Any
+
 from tunacode.core.state import StateManager
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 from tunacode.core.token_usage.cost_calculator import CostCalculator
+from tunacode.types import UsageTrackerProtocol
 from tunacode.ui import console as ui  # Import the ui console directly
 
 
-class UsageTracker:
+class UsageTracker(UsageTrackerProtocol):
     """
     Handles parsing, calculating, storing, and displaying token usage and cost.
     """
@@ -19,7 +22,7 @@ class UsageTracker:
         self.calculator = calculator
         self.state_manager = state_manager
 
-    async def track_and_display(self, response_obj: any):
+    async def track_and_display(self, response_obj: Any):
         """
         Main method to process a model response for usage tracking.
         """
