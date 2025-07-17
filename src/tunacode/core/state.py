@@ -14,9 +14,12 @@ from tunacode.types import (
     MessageHistory,
     ModelName,
     SessionId,
+    TodoItem,
     ToolName,
     UserConfig,
 )
+from tunacode.utils.message_utils import get_message_content
+from tunacode.utils.token_counter import estimate_tokens
 
 
 @dataclass
@@ -37,6 +40,7 @@ class SessionState:
     device_id: Optional[DeviceId] = None
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Optional[Any] = None
+    todos: list[TodoItem] = field(default_factory=list)
     # Enhanced tracking for thoughts display
     files_in_context: set[str] = field(default_factory=set)
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
@@ -46,6 +50,10 @@ class SessionState:
     is_streaming_active: bool = False
     # Track streaming panel reference for tool handler access
     streaming_panel: Optional[Any] = None
+    # Context window tracking (estimation based)
+    total_tokens: int = 0
+    max_tokens: int = 0
+    # API usage tracking (actual from providers)
     last_call_usage: dict = field(
         default_factory=lambda: {
             "prompt_tokens": 0,
@@ -61,6 +69,13 @@ class SessionState:
         }
     )
 
+    def update_token_count(self):
+        """Calculates the total token count from messages and files in context."""
+        message_contents = [get_message_content(msg) for msg in self.messages]
+        message_content = " ".join(c for c in message_contents if c)
+        file_content = " ".join(self.files_in_context)
+        self.total_tokens = estimate_tokens(message_content + file_content, self.current_model)
+
 
 class StateManager:
     def __init__(self):
@@ -72,3 +87,16 @@ class StateManager:
 
     def reset_session(self):
         self._session = SessionState()
+
+    def add_todo(self, todo: TodoItem) -> None:
+        self._session.todos.append(todo)
+
+    def update_todo(self, todo_id: str, status: str) -> None:
+        from datetime import datetime
+
+        for todo in self._session.todos:
+            if todo.id == todo_id:
+                todo.status = status
+                if status == "completed":
+                    todo.completed_at = datetime.now()
+                break

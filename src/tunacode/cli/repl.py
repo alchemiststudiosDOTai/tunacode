@@ -24,6 +24,7 @@ from tunacode.core.agents.main import patch_tool_messages
 from tunacode.core.tool_handler import ToolHandler
 from tunacode.exceptions import AgentError, UserAbortError, ValidationError
 from tunacode.ui import console as ui
+from tunacode.ui.output import get_context_window_display
 from tunacode.ui.tool_ui import ToolUI
 from tunacode.utils.security import CommandSecurityError, safe_subprocess_run
 
@@ -325,20 +326,8 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                 # Fallback: show that the request was processed
                 await ui.muted(MSG_REQUEST_COMPLETED)
             else:
-                output = res.result.output
-                # Extract complex conditions into explaining variables
-                is_string_output = isinstance(output, str)
-                is_json_thought = (
-                    output.strip().startswith('{"thought"') if is_string_output else False
-                )
-                has_tool_uses = '"tool_uses"' in output if is_string_output else False
-                is_displayable = is_string_output and not (is_json_thought or has_tool_uses)
-
-                if is_displayable:
-                    await ui.agent(output)
-
-            # Always show files in context after agent response
-            await _display_agent_output(res, enable_streaming)
+                # Use the dedicated function for displaying agent output
+                await _display_agent_output(res, enable_streaming)
 
             if state_manager.session.files_in_context:
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
@@ -480,6 +469,20 @@ async def repl(state_manager: StateManager):
             state_manager.session.current_task = get_app().create_background_task(
                 process_request(line, state_manager)
             )
+            # Only await if it's an actual task (not a mock in tests)
+            if hasattr(state_manager.session.current_task, '__await__'):
+                await state_manager.session.current_task
+
+            # Update token count and display context window after each request
+            if hasattr(state_manager.session, 'update_token_count'):
+                state_manager.session.update_token_count()
+            
+            # Show context window if we have the token counts
+            if hasattr(state_manager.session, 'total_tokens') and hasattr(state_manager.session, 'max_tokens'):
+                context_display = get_context_window_display(
+                    state_manager.session.total_tokens, state_manager.session.max_tokens
+                )
+                await ui.muted(f"• Model: {state_manager.session.current_model} • {context_display}")
 
     # --- SESSION TERMINATION ---
     if action == "restart":
@@ -487,18 +490,24 @@ async def repl(state_manager: StateManager):
     else:
         session_total = state_manager.session.session_total_usage
         if session_total:
-            prompt = session_total.get("prompt_tokens", 0)
-            completion = session_total.get("completion_tokens", 0)
-            total_tokens = prompt + completion
-            total_cost = session_total.get("cost", 0)
+            try:
+                prompt = int(session_total.get("prompt_tokens", 0) or 0)
+                completion = int(session_total.get("completion_tokens", 0) or 0)
+                total_tokens = prompt + completion
+                total_cost = float(session_total.get("cost", 0) or 0)
 
-            summary = (
-                f"\n[bold cyan]TunaCode Session Summary[/bold cyan]\n"
-                f"  - Total Tokens:      {total_tokens:,}\n"
-                f"  - Prompt Tokens:     {prompt:,}\n"
-                f"  - Completion Tokens: {completion:,}\n"
-                f"  - [bold green]Total Session Cost: ${total_cost:.4f}[/bold green]"
-            )
-            ui.console.print(summary)
+                # Only show summary if we have actual token usage
+                if total_tokens > 0 or total_cost > 0:
+                    summary = (
+                        f"\n[bold cyan]TunaCode Session Summary[/bold cyan]\n"
+                        f"  - Total Tokens:      {total_tokens:,}\n"
+                        f"  - Prompt Tokens:     {prompt:,}\n"
+                        f"  - Completion Tokens: {completion:,}\n"
+                        f"  - [bold green]Total Session Cost: ${total_cost:.4f}[/bold green]"
+                    )
+                    ui.console.print(summary)
+            except (TypeError, ValueError):
+                # Skip displaying summary if values can't be converted to numbers
+                pass
 
         await ui.info(MSG_SESSION_ENDED)
