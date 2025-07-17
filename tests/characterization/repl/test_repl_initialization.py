@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import tunacode.cli.repl as repl_mod
+from tunacode.constants import UI_COLORS
 
 
 @pytest.mark.asyncio
@@ -14,6 +15,13 @@ async def test_repl_initialization_basic(monkeypatch):
     state_manager.session.current_model = "gpt-test"
     state_manager.session.input_sessions = {}
     state_manager.session.show_thoughts = False
+    state_manager.session.total_tokens = 0
+    state_manager.session.user_config = {"context_window_size": 200000}
+
+    def mock_update_token_count():
+        state_manager.session.total_tokens = 100
+
+    state_manager.session.update_token_count = MagicMock(side_effect=mock_update_token_count)
 
     # Patch UI methods
     with (
@@ -41,7 +49,9 @@ async def test_repl_initialization_basic(monkeypatch):
             await repl_mod.repl(state_manager)
 
     # Check that startup UI was called
-    muted.assert_any_await("• Model: gpt-test")
+    muted.assert_any_await(
+        f"• Model: gpt-test • [b]Context:[/] [{UI_COLORS['success']}]100/200,000 (0%)[/]"
+    )
     success.assert_awaited()
     line.assert_awaited()
     get_agent.assert_called_once_with("gpt-test", state_manager)

@@ -39,6 +39,7 @@ from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
 from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
+from tunacode.tools.todo import TodoTool
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
 from tunacode.types import (
@@ -449,8 +450,9 @@ async def _process_node(
         # Handle tool returns
         for part in node.model_response.parts:
             if part.part_kind == "tool-return":
-                obs_msg = f"OBSERVATION[{part.tool_name}]: {part.content[:2_000]}"
-                state_manager.session.messages.append(obs_msg)
+                state_manager.session.messages.append(
+                    f"OBSERVATION[{part.tool_name}]: {part.content}"
+                )
 
                 # Display tool return when thoughts are enabled
                 if state_manager.session.show_thoughts:
@@ -521,6 +523,19 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             # Ignore errors loading TUNACODE.md
             pass
 
+        todo_tool = TodoTool(state_manager=state_manager)
+
+        try:
+            # Only add todo section if there are actual todos
+            current_todos = todo_tool.get_current_todos_sync()
+            if current_todos != "No todos found":
+                system_prompt += f'\n\n# Current Todo List\n\nYou have existing todos that need attention:\n\n{current_todos}\n\nRemember to check progress on these todos and update them as you work. Use todo("list") to see current status anytime.'
+        except Exception as e:
+            # Log error but don't fail agent creation
+            import sys
+
+            print(f"Warning: Failed to load todos: {e}", file=sys.stderr)
+
         state_manager.session.agents[model] = Agent(
             model=model,
             system_prompt=system_prompt,
@@ -531,6 +546,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 Tool(list_dir, max_retries=max_retries),
                 Tool(read_file, max_retries=max_retries),
                 Tool(run_command, max_retries=max_retries),
+                Tool(todo_tool._execute, max_retries=max_retries),
                 Tool(update_file, max_retries=max_retries),
                 Tool(write_file, max_retries=max_retries),
             ],

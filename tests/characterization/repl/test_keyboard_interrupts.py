@@ -14,6 +14,8 @@ async def test_repl_ctrl_c_behavior():
     state_manager.session.current_model = "gpt-test"
     state_manager.session.input_sessions = {}
     state_manager.session.show_thoughts = False
+    state_manager.session.total_tokens = 100
+    state_manager.session.user_config = {"context_window_size": 200000}
 
     # Patch UI and agent
     with (

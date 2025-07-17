@@ -20,6 +20,7 @@ MAX_FILE_SIZE = 100 * 1024  # 100KB
 MAX_COMMAND_OUTPUT = 5000  # 5000 chars
 MAX_FILES_IN_DIR = 50
 MAX_TOTAL_DIR_SIZE = 2 * 1024 * 1024  # 2 MB
+DEFAULT_CONTEXT_WINDOW = 200000  # 200k tokens
 
 
 # Command output processing
@@ -36,6 +37,7 @@ TOOL_BASH = "bash"
 TOOL_GREP = "grep"
 TOOL_LIST_DIR = "list_dir"
 TOOL_GLOB = "glob"
+TOOL_TODO = "todo"
 
 # Tool categorization
 READ_ONLY_TOOLS = [TOOL_READ_FILE, TOOL_GREP, TOOL_LIST_DIR, TOOL_GLOB]
@@ -138,3 +140,20 @@ MSG_UPDATE_AVAILABLE = "Update available: v{latest_version}"
 MSG_UPDATE_INSTRUCTION = "Exit, and run: [bold]pip install --upgrade tunacode-cli"
 MSG_VERSION_DISPLAY = "TunaCode CLI {version}"
 MSG_FILE_SIZE_LIMIT = " Please specify a smaller file or use other tools to process it."
+
+# Todo-related constants
+TODO_STATUS_PENDING = "pending"
+TODO_STATUS_IN_PROGRESS = "in_progress"
+TODO_STATUS_COMPLETED = "completed"
+TODO_STATUSES = [TODO_STATUS_PENDING, TODO_STATUS_IN_PROGRESS, TODO_STATUS_COMPLETED]
+
+TODO_PRIORITY_HIGH = "high"
+TODO_PRIORITY_MEDIUM = "medium"
+TODO_PRIORITY_LOW = "low"
+TODO_PRIORITIES = [TODO_PRIORITY_HIGH, TODO_PRIORITY_MEDIUM, TODO_PRIORITY_LOW]
+
+# Maximum number of todos allowed per session
+MAX_TODOS_PER_SESSION = 100
+
+# Maximum length for todo content
+MAX_TODO_CONTENT_LENGTH = 500

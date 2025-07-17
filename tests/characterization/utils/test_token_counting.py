@@ -9,16 +9,17 @@ from tunacode.utils import token_counter
     "text,expected",
     [
         ("", 0),
-        ("abcd", 1),
-        ("abcdefgh", 2),
-        ("a" * 100, 25),
-        ("hello world", 2),
-        ("    ", 1),
-        ("a" * 3999, 999),
-        ("a" * 4000, 1000),
+        ("abcd", 1),  # 4 chars / 4 = 1 token
+        ("abcdefgh", 2),  # 8 chars / 4 = 2 tokens
+        ("a" * 100, 25),  # 100 chars / 4 = 25 tokens
+        ("hello world", 2),  # 11 chars / 4 = 2.75 -> 2 tokens
+        ("    ", 1),  # 4 chars / 4 = 1 token
+        ("a" * 3999, 999),  # 3999 chars / 4 = 999.75 -> 999 tokens
+        ("a" * 4000, 1000),  # 4000 chars / 4 = 1000 tokens
     ],
 )
 def test_estimate_tokens_various_lengths(text, expected):
+    # Test without model (character-based fallback)
     assert token_counter.estimate_tokens(text) == expected
 
 
@@ -31,8 +32,8 @@ def test_estimate_tokens_none():
     [
         (0, "0"),
         (999, "999"),
-        (1000, "1,000"),
-        (1234567, "1,234,567"),
+        (1000, "1,000"),  # Now shows full number with commas
+        (1234567, "1,234,567"),  # Full number with commas
     ],
 )
 def test_format_token_count(count, expected):

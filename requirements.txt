@@ -2,4 +2,3 @@ typer==0.15.3
 pytest
 pytest-asyncio
 pydantic-ai[logfire]==0.2.6
-sentry_sdk==2.28.0

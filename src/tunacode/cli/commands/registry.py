@@ -26,6 +26,7 @@ from .implementations.system import (
     StreamingCommand,
     UpdateCommand,
 )
+from .implementations.todo import TodoCommand
 
 
 @dataclass
@@ -119,6 +120,7 @@ class CommandRegistry:
             CompactCommand,
             ModelCommand,
             InitCommand,
+            TodoCommand,
         ]
 
         # Register all discovered commands

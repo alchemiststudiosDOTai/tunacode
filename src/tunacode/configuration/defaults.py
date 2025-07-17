@@ -23,6 +23,7 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "guide_file": GUIDE_FILE_NAME,
         "fallback_response": True,
         "fallback_verbosity": "normal",  # Options: minimal, normal, detailed
+        "context_window_size": 200000,
     },
     "mcpServers": {},
 }

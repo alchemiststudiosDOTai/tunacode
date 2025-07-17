@@ -85,14 +85,28 @@ class StateManager:
     def session(self) -> SessionState:
         return self._session
 
-    def reset_session(self):
-        self._session = SessionState()
-
     def add_todo(self, todo: TodoItem) -> None:
         self._session.todos.append(todo)
 
     def update_todo(self, todo_id: str, status: str) -> None:
         from datetime import datetime
+
+        for todo in self._session.todos:
+            if todo.id == todo_id:
+                todo.status = status
+                if status == "completed" and not todo.completed_at:
+                    todo.completed_at = datetime.now()
+                break
+
+    def remove_todo(self, todo_id: str) -> None:
+        self._session.todos = [todo for todo in self._session.todos if todo.id != todo_id]
+
+    def clear_todos(self) -> None:
+        self._session.todos = []
+
+    def reset_session(self) -> None:
+        """Reset the session to a fresh state."""
+        self._session = SessionState()
 
         for todo in self._session.todos:
             if todo.id == todo_id:

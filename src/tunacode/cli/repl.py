@@ -19,6 +19,7 @@ from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.application.current import get_app
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
+from tunacode.constants import DEFAULT_CONTEXT_WINDOW
 from tunacode.core.agents import main as agent
 from tunacode.core.agents.main import patch_tool_messages
 from tunacode.core.tool_handler import ToolHandler
@@ -329,6 +330,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                 # Use the dedicated function for displaying agent output
                 await _display_agent_output(res, enable_streaming)
 
+            # Always show files in context after agent response
             if state_manager.session.files_in_context:
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
                 await ui.muted(f"\nFiles in context: {', '.join(filenames)}")
@@ -399,7 +401,15 @@ async def repl(state_manager: StateManager):
     action = None
     ctrl_c_pressed = False
 
-    await ui.muted(f"• Model: {state_manager.session.current_model}")
+    model_name = state_manager.session.current_model
+    max_tokens = (
+        state_manager.session.user_config.get("context_window_size") or DEFAULT_CONTEXT_WINDOW
+    )
+    state_manager.session.max_tokens = max_tokens
+
+    state_manager.session.update_token_count()
+    context_display = get_context_window_display(state_manager.session.total_tokens, max_tokens)
+    await ui.muted(f"• Model: {model_name} • {context_display}")
     await ui.success("Ready to assist")
     await ui.line()
 
@@ -469,45 +479,38 @@ async def repl(state_manager: StateManager):
             state_manager.session.current_task = get_app().create_background_task(
                 process_request(line, state_manager)
             )
-            # Only await if it's an actual task (not a mock in tests)
-            if hasattr(state_manager.session.current_task, '__await__'):
-                await state_manager.session.current_task
+            await state_manager.session.current_task
 
-            # Update token count and display context window after each request
-            if hasattr(state_manager.session, 'update_token_count'):
-                state_manager.session.update_token_count()
-            
-            # Show context window if we have the token counts
-            if hasattr(state_manager.session, 'total_tokens') and hasattr(state_manager.session, 'max_tokens'):
-                context_display = get_context_window_display(
-                    state_manager.session.total_tokens, state_manager.session.max_tokens
-                )
-                await ui.muted(f"• Model: {state_manager.session.current_model} • {context_display}")
+            state_manager.session.update_token_count()
+            context_display = get_context_window_display(
+                state_manager.session.total_tokens, state_manager.session.max_tokens
+            )
+            await ui.muted(f"• Model: {state_manager.session.current_model} • {context_display}")
 
-    # --- SESSION TERMINATION ---
-    if action == "restart":
-        await repl(state_manager)
-    else:
-        session_total = state_manager.session.session_total_usage
-        if session_total:
-            try:
-                prompt = int(session_total.get("prompt_tokens", 0) or 0)
-                completion = int(session_total.get("completion_tokens", 0) or 0)
-                total_tokens = prompt + completion
-                total_cost = float(session_total.get("cost", 0) or 0)
+        if action == "restart":
+            await repl(state_manager)
+        else:
+            # Show session cost summary if available
+            session_total = state_manager.session.session_total_usage
+            if session_total:
+                try:
+                    prompt = int(session_total.get("prompt_tokens", 0) or 0)
+                    completion = int(session_total.get("completion_tokens", 0) or 0)
+                    total_tokens = prompt + completion
+                    total_cost = float(session_total.get("cost", 0) or 0)
 
-                # Only show summary if we have actual token usage
-                if total_tokens > 0 or total_cost > 0:
-                    summary = (
-                        f"\n[bold cyan]TunaCode Session Summary[/bold cyan]\n"
-                        f"  - Total Tokens:      {total_tokens:,}\n"
-                        f"  - Prompt Tokens:     {prompt:,}\n"
-                        f"  - Completion Tokens: {completion:,}\n"
-                        f"  - [bold green]Total Session Cost: ${total_cost:.4f}[/bold green]"
-                    )
-                    ui.console.print(summary)
-            except (TypeError, ValueError):
-                # Skip displaying summary if values can't be converted to numbers
-                pass
+                    # Only show summary if we have actual token usage
+                    if total_tokens > 0 or total_cost > 0:
+                        summary = (
+                            f"\n[bold cyan]TunaCode Session Summary[/bold cyan]\n"
+                            f"  - Total Tokens:      {total_tokens:,}\n"
+                            f"  - Prompt Tokens:     {prompt:,}\n"
+                            f"  - Completion Tokens: {completion:,}\n"
+                            f"  - [bold green]Total Session Cost: ${total_cost:.4f}[/bold green]"
+                        )
+                        ui.console.print(summary)
+                except (TypeError, ValueError):
+                    # Skip displaying summary if values can't be converted to numbers
+                    pass
 
-        await ui.info(MSG_SESSION_ENDED)
+            await ui.info(MSG_SESSION_ENDED)

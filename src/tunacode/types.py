@@ -24,6 +24,7 @@ except ImportError:
     ModelRequest = Any
     ModelResponse = Any
 
+
 @dataclass
 class TodoItem:
     id: str

@@ -34,8 +34,8 @@ def test_capture_stdout_with_exception():
 @pytest.mark.parametrize(
     "text,expected",
     [
-        ("你好世界", 1),  # 4 Chinese chars, still 1 token by naive logic
-        ("😀" * 8, 2),  # 8 emoji, each is a multi-byte char
+        ("你好世界", 1),  # 4 chars / 4 = 1 token
+        ("😀" * 8, 2),  # 8 chars / 4 = 2 tokens
     ],
 )
 def test_estimate_tokens_unicode(text, expected):

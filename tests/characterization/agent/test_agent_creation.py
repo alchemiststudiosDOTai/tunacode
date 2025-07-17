@@ -53,7 +53,7 @@ class TestAgentCreation:
                         call_kwargs = mock_agent_class.call_args.kwargs
                         assert call_kwargs["model"] == model
                         assert call_kwargs["system_prompt"] == system_prompt
-                        assert len(call_kwargs["tools"]) == 8  # All 8 tools registered
+                        assert len(call_kwargs["tools"]) == 9  # All 9 tools registered
                         assert call_kwargs["mcp_servers"] == []
 
     def test_get_or_create_agent_cached(self):
@@ -144,8 +144,8 @@ class TestAgentCreation:
                     call_kwargs = mock_agent_class.call_args.kwargs
                     tools = call_kwargs["tools"]
 
-                    # Verify all 8 tools are registered
-                    assert len(tools) == 8
+                    # Verify all 9 tools are registered
+                    assert len(tools) == 9
 
                     # Verify each tool has max_retries set
                     for tool in tools:

@@ -26,6 +26,7 @@ from .implementations import (
     ParseToolsCommand,
     RefreshConfigCommand,
     ThoughtsCommand,
+    TodoCommand,
     UpdateCommand,
     YoloCommand,
 )
@@ -59,4 +60,5 @@ __all__ = [
     "UpdateCommand",
     "ModelCommand",
     "InitCommand",
+    "TodoCommand",
 ]
