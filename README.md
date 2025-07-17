@@ -40,12 +40,6 @@ tunacode --model "anthropic:claude-3.5-sonnet" --key "sk-ant-your-anthropic-key"
 tunacode --model "openrouter:openai/gpt-4o" --key "sk-or-your-openrouter-key"
 ```
 
-For context window calculations, you'll also need to set up a Gemini API Key:
-```bash
-export GEMINI_API_KEY=<your_api_key>
-```
-
-
 Your config is saved to `~/.config/tunacode.json` (edit directly with `nvim ~/.config/tunacode.json`)
 
 ### Recommended Models

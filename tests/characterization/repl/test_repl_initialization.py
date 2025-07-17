@@ -50,7 +50,7 @@ async def test_repl_initialization_basic(monkeypatch):
 
     # Check that startup UI was called
     muted.assert_any_await(
-        f"• Model: gpt-test • [b]Context:[/] [{UI_COLORS['success']}]100/200k (0%)[/]"
+        f"• Model: gpt-test • [b]Context:[/] [{UI_COLORS['success']}]100/200,000 (0%)[/]"
     )
     success.assert_awaited()
     line.assert_awaited()

@@ -57,7 +57,7 @@ class SessionState:
         message_contents = [get_message_content(msg) for msg in self.messages]
         message_content = " ".join(c for c in message_contents if c)
         file_content = " ".join(self.files_in_context)
-        self.total_tokens = estimate_tokens(message_content + file_content)
+        self.total_tokens = estimate_tokens(message_content + file_content, self.current_model)
 
 
 class StateManager:
