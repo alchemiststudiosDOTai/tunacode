@@ -35,6 +35,7 @@ from tunacode.core.recursive import RecursiveTaskExecutor
 from tunacode.core.state import StateManager
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 from tunacode.core.token_usage.cost_calculator import CostCalculator
+from tunacode.exceptions import ToolBatchingJSONError
 from tunacode.services.mcp import get_mcp_servers
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
@@ -473,9 +474,17 @@ async def _process_node(
         if not has_tool_calls and buffering_callback:
             for part in node.model_response.parts:
                 if hasattr(part, "content") and isinstance(part.content, str):
-                    await extract_and_execute_tool_calls(
-                        part.content, buffering_callback, state_manager
-                    )
+                    try:
+                        await extract_and_execute_tool_calls(
+                            part.content, buffering_callback, state_manager
+                        )
+                    except ToolBatchingJSONError as e:
+                        # Handle JSON parsing failure after retries
+                        logger.error(f"Tool batching JSON error: {e}")
+                        if state_manager.session.show_thoughts:
+                            await ui.error(str(e))
+                        # Continue processing other parts instead of failing completely
+                        continue
 
     # Final flush: disabled temporarily while fixing the parallel execution design
     # The buffer is not being used in the current implementation

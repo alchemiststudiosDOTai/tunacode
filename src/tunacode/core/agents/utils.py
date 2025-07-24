@@ -1,13 +1,20 @@
 import asyncio
 import importlib
 import json
+import logging
 import os
 import re
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
 
-from tunacode.constants import READ_ONLY_TOOLS
+from tunacode.constants import (
+    JSON_PARSE_BASE_DELAY,
+    JSON_PARSE_MAX_DELAY,
+    JSON_PARSE_MAX_RETRIES,
+    READ_ONLY_TOOLS,
+)
+from tunacode.exceptions import ToolBatchingJSONError
 from tunacode.types import (
     ErrorMessage,
     StateManager,
@@ -16,6 +23,9 @@ from tunacode.types import (
     ToolName,
 )
 from tunacode.ui import console as ui
+from tunacode.utils.retry import retry_json_parse_async
+
+logger = logging.getLogger(__name__)
 
 
 # Lazy import for Agent and Tool
@@ -167,11 +177,28 @@ async def parse_json_tool_calls(
             if brace_count == 0 and start_pos != -1:
                 potential_json = text[start_pos : i + 1]
                 try:
-                    parsed = json.loads(potential_json)
+                    # Use retry logic for JSON parsing
+                    parsed = await retry_json_parse_async(
+                        potential_json,
+                        max_retries=JSON_PARSE_MAX_RETRIES,
+                        base_delay=JSON_PARSE_BASE_DELAY,
+                        max_delay=JSON_PARSE_MAX_DELAY,
+                    )
                     if isinstance(parsed, dict) and "tool" in parsed and "args" in parsed:
                         potential_jsons.append((parsed["tool"], parsed["args"]))
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as e:
+                    # After all retries failed
+                    logger.error(f"JSON parsing failed after {JSON_PARSE_MAX_RETRIES} retries: {e}")
+                    if state_manager.session.show_thoughts:
+                        await ui.error(
+                            f"Failed to parse tool JSON after {JSON_PARSE_MAX_RETRIES} retries"
+                        )
+                    # Raise custom exception for better error handling
+                    raise ToolBatchingJSONError(
+                        json_content=potential_json,
+                        retry_count=JSON_PARSE_MAX_RETRIES,
+                        original_error=e,
+                    ) from e
                 start_pos = -1
 
     matches = potential_jsons
@@ -220,7 +247,13 @@ async def extract_and_execute_tool_calls(
 
     for match in code_matches:
         try:
-            tool_data = json.loads(match)
+            # Use retry logic for JSON parsing in code blocks
+            tool_data = await retry_json_parse_async(
+                match,
+                max_retries=JSON_PARSE_MAX_RETRIES,
+                base_delay=JSON_PARSE_BASE_DELAY,
+                max_delay=JSON_PARSE_MAX_DELAY,
+            )
             if "tool" in tool_data and "args" in tool_data:
 
                 class MockToolCall:
@@ -240,7 +273,20 @@ async def extract_and_execute_tool_calls(
                 if state_manager.session.show_thoughts:
                     await ui.muted(f"FALLBACK: Executed {tool_data['tool']} from code block")
 
-        except (json.JSONDecodeError, KeyError, Exception) as e:
+        except json.JSONDecodeError as e:
+            # After all retries failed
+            logger.error(f"Code block JSON parsing failed after {JSON_PARSE_MAX_RETRIES} retries: {e}")
+            if state_manager.session.show_thoughts:
+                await ui.error(
+                    f"Failed to parse code block tool JSON after {JSON_PARSE_MAX_RETRIES} retries"
+                )
+            # Raise custom exception for better error handling
+            raise ToolBatchingJSONError(
+                json_content=match,
+                retry_count=JSON_PARSE_MAX_RETRIES,
+                original_error=e,
+            ) from e
+        except (KeyError, Exception) as e:
             if state_manager.session.show_thoughts:
                 await ui.error(f"Error parsing code block tool call: {e!s}")
 
