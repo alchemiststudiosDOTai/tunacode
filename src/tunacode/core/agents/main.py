@@ -31,6 +31,7 @@ except ImportError:
 
 from tunacode.constants import READ_ONLY_TOOLS
 from tunacode.core.agents.dspy_integration import DSPyIntegration
+from tunacode.core.recursive import RecursiveTaskExecutor
 from tunacode.core.state import StateManager
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 from tunacode.core.token_usage.cost_calculator import CostCalculator
@@ -770,6 +771,14 @@ async def process_request(
     dspy_integration = None
     task_breakdown = None
 
+    # Check if recursive execution is enabled
+    use_recursive = state_manager.session.user_config.get("settings", {}).get(
+        "use_recursive_execution", True
+    )
+    recursive_threshold = state_manager.session.user_config.get("settings", {}).get(
+        "recursive_complexity_threshold", 0.7
+    )
+
     if use_dspy:
         try:
             dspy_integration = DSPyIntegration(state_manager)
@@ -802,6 +811,62 @@ async def process_request(
                         await todo_tool._execute(action="add_multiple", todos=todos)
         except Exception as e:
             logger.warning(f"DSPy task planning failed: {e}")
+
+    # Check if recursive execution should be used
+    if use_recursive and state_manager.session.current_recursion_depth == 0:
+        try:
+            # Initialize recursive executor
+            recursive_executor = RecursiveTaskExecutor(
+                state_manager=state_manager,
+                max_depth=state_manager.session.max_recursion_depth,
+                min_complexity_threshold=recursive_threshold,
+                default_iteration_budget=max_iterations,
+            )
+
+            # Analyze task complexity
+            complexity_result = await recursive_executor.decomposer.analyze_and_decompose(message)
+
+            if (
+                complexity_result.should_decompose
+                and complexity_result.total_complexity >= recursive_threshold
+            ):
+                if state_manager.session.show_thoughts:
+                    from tunacode.ui import console as ui
+
+                    await ui.muted(
+                        f"\n🔄 RECURSIVE EXECUTION: Task complexity {complexity_result.total_complexity:.2f} >= {recursive_threshold}"
+                    )
+                    await ui.muted(f"Reasoning: {complexity_result.reasoning}")
+                    await ui.muted(f"Subtasks: {len(complexity_result.subtasks)}")
+
+                # Execute recursively
+                success, result, error = await recursive_executor.execute_task(
+                    request=message, parent_task_id=None, depth=0
+                )
+
+                # Create AgentRun response
+                from datetime import datetime
+
+                if success:
+                    return AgentRun(
+                        messages=[{"role": "assistant", "content": str(result)}],
+                        timestamp=datetime.now(),
+                        model=model,
+                        iterations=1,
+                        status="success",
+                    )
+                else:
+                    return AgentRun(
+                        messages=[{"role": "assistant", "content": f"Task failed: {error}"}],
+                        timestamp=datetime.now(),
+                        model=model,
+                        iterations=1,
+                        status="error",
+                    )
+        except Exception as e:
+            logger.warning(f"Recursive execution failed, falling back to normal: {e}")
+            # Continue with normal execution
+
     from tunacode.configuration.models import ModelRegistry
     from tunacode.core.token_usage.usage_tracker import UsageTracker
 

@@ -61,13 +61,116 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "cancelled",
         "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Multi-Turn Recursive Loop for Complex Task Decomposition",
+        "description": "Implement a recursive multi-turn loop system that enables TunaCode to autonomously break down complex tasks into subtasks, execute them independently, and aggregate results - similar to how Anthropic's Claude Code handles complex requests.",
+        "details": "The task involves creating a RecursiveTaskExecutor class that can detect complex tasks, break them down into executable subtasks using DSPy planner, execute subtasks recursively with independent iteration budgets, and aggregate results. The system should support hierarchical task management with parent-child relationships, context inheritance, and progress tracking. Key components include: RecursiveTaskExecutor class, enhanced SessionState with recursion tracking, modified process_request() function, iteration budget management, and UI components for visual feedback.",
+        "testStrategy": "1. Unit tests for task decomposition logic, iteration budget allocation, result aggregation, and recursion depth limits. 2. Integration tests for end-to-end complex task execution, context propagation across subtasks, error handling in recursive execution, and performance with deeply nested tasks. 3. Characterization tests to capture behavior of complex task handling, ensure backward compatibility, and verify deterministic decomposition.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create RecursiveTaskExecutor Core Class",
+            "description": "Implement the main RecursiveTaskExecutor class that serves as the orchestrator for recursive task decomposition and execution",
+            "dependencies": [],
+            "details": "Create src/tunacode/core/recursive/executor.py with RecursiveTaskExecutor class. Include methods for task complexity detection, subtask generation using DSPy planner, execution orchestration, and result aggregation. Implement recursive depth tracking and iteration budget management. The class should handle parent-child task relationships and maintain execution context throughout the recursive process.\n<info added on 2025-07-24T02:15:13.895Z>\nUpdate the RecursiveTaskExecutor implementation to remove DSPy planner dependency. The class should integrate with TunaCode's existing agent system for task analysis and decomposition. Replace DSPy planner method calls with agent-based task breakdown using the main agent's reasoning capabilities and the existing tool system. The task complexity detection and subtask generation should leverage the current pydantic-ai agent architecture instead of external DSPy components.\n</info added on 2025-07-24T02:15:13.895Z>",
+            "status": "done",
+            "testStrategy": "Unit tests for task detection logic, recursion depth limits, budget allocation, and basic execution flow without actual tool calls"
+          },
+          {
+            "id": 2,
+            "title": "Enhance SessionState for Recursion Tracking",
+            "description": "Extend the existing SessionState class to support recursive execution context and hierarchy tracking",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Modify src/tunacode/core/state.py to add recursion-specific fields: current_recursion_depth, max_recursion_depth, parent_task_id, task_hierarchy, iteration_budgets, and recursive_context_stack. Add methods for managing recursive state transitions, context inheritance, and cleanup. Ensure thread-safety for concurrent subtask execution.",
+            "status": "done",
+            "testStrategy": "Unit tests for state transitions, context inheritance, recursion depth tracking, and concurrent access safety"
+          },
+          {
+            "id": 3,
+            "title": "Implement Task Decomposition Engine",
+            "description": "Create the intelligent task breakdown system using DSPy planner to analyze complex tasks and generate executable subtasks",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Implement src/tunacode/core/recursive/decomposer.py with TaskDecomposer class. Use DSPy ChainOfThought module to analyze task complexity, identify decomposition patterns, and generate structured subtasks with proper dependencies. Include heuristics for determining when a task should be decomposed versus executed directly. Integrate with existing agent tools and maintain context awareness.\n<info added on 2025-07-24T02:15:27.100Z>\nBased on the current subtask details and the user request, here is the new text to be appended:\n\n**UPDATED IMPLEMENTATION APPROACH**: Remove DSPy dependency and replace with pydantic-ai agent integration. The TaskDecomposer class should utilize the existing main agent (from core/agents/main.py) for task analysis and decomposition. Implement complexity analysis through structured prompts to the agent, requesting it to evaluate task scope, identify natural breakpoints, and generate subtasks with dependencies. Leverage the agent's existing tool ecosystem and maintain consistency with the current architecture. The decomposer should use agent conversations to determine decomposition strategies rather than separate ML modules.\n</info added on 2025-07-24T02:15:27.100Z>",
+            "status": "done",
+            "testStrategy": "Unit tests for complexity detection algorithms, subtask generation quality, dependency resolution, and integration with DSPy modules"
+          },
+          {
+            "id": 4,
+            "title": "Build Hierarchical Task Management System",
+            "description": "Implement the data structures and management logic for maintaining parent-child task relationships and execution state",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "Create src/tunacode/core/recursive/hierarchy.py with TaskHierarchy class. Implement tree-based task storage, parent-child relationship tracking, dependency resolution, and execution order determination. Add methods for context propagation between parent and child tasks, result aggregation, and error propagation handling. Support dynamic task addition during execution.",
+            "status": "done",
+            "testStrategy": "Unit tests for hierarchy operations, dependency resolution algorithms, context propagation, and error handling scenarios"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Recursive Execution into Main Process Loop",
+            "description": "Modify the main request processing pipeline to detect and handle recursive task execution",
+            "dependencies": [
+              "6.2",
+              "6.3",
+              "6.4"
+            ],
+            "details": "Enhance src/tunacode/core/main.py process_request() function to integrate RecursiveTaskExecutor. Add complexity detection logic to determine when to trigger recursive execution versus direct processing. Implement handoff mechanisms between normal and recursive execution modes while preserving existing functionality and tool access patterns.",
+            "status": "done",
+            "testStrategy": "Integration tests for request routing, mode switching, backward compatibility, and end-to-end complex task execution"
+          },
+          {
+            "id": 6,
+            "title": "Implement Iteration Budget Management",
+            "description": "Create a sophisticated budget allocation and tracking system for managing computational resources across recursive executions",
+            "dependencies": [
+              "6.1",
+              "6.4"
+            ],
+            "details": "Develop src/tunacode/core/recursive/budget.py with BudgetManager class. Implement algorithms for distributing iteration budgets across subtasks based on complexity estimates, tracking resource consumption, and enforcing limits. Include budget inheritance from parent to child tasks, dynamic reallocation based on execution progress, and graceful degradation when budgets are exhausted.",
+            "status": "done",
+            "testStrategy": "Unit tests for budget allocation algorithms, consumption tracking accuracy, limit enforcement, and resource optimization strategies"
+          },
+          {
+            "id": 7,
+            "title": "Build Result Aggregation and Context Management",
+            "description": "Implement sophisticated result collection and context synthesis from distributed subtask executions",
+            "dependencies": [
+              "6.4",
+              "6.5"
+            ],
+            "details": "Create src/tunacode/core/recursive/aggregator.py with ResultAggregator class. Implement intelligent result merging strategies, context synthesis from multiple execution branches, conflict resolution for contradictory results, and final output generation. Handle partial results from failed subtasks and maintain execution traceability for debugging.",
+            "status": "done",
+            "testStrategy": "Unit tests for result merging algorithms, context synthesis quality, conflict resolution, and partial failure handling"
+          },
+          {
+            "id": 8,
+            "title": "Add Visual Feedback and Progress Tracking UI",
+            "description": "Implement comprehensive user interface components for visualizing recursive execution progress and hierarchy",
+            "dependencies": [
+              "6.5",
+              "6.7"
+            ],
+            "details": "Enhance src/tunacode/ui/ components to display recursive execution progress. Add hierarchical task tree visualization, real-time progress indicators, budget consumption tracking, and execution depth indicators. Implement interactive progress display using rich library components, with ability to collapse/expand subtask details and show execution timelines.",
+            "status": "done",
+            "testStrategy": "Integration tests for UI rendering, progress accuracy, user interaction flows, and visual consistency across different terminal environments"
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-07-22T21:24:36.985Z",
-      "updated": "2025-07-24T01:51:23.501Z",
+      "updated": "2025-07-24T02:35:12.608Z",
       "description": "Tasks for master context"
     }
   }
