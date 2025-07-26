@@ -974,27 +974,28 @@ async def process_request(
             buffered_tasks = tool_buffer.flush()
             start_time = time.time()
 
-            await ui.muted("\n" + "=" * 60)
-            await ui.muted(
-                f"🚀 FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools"
-            )
-            await ui.muted("=" * 60)
+            if state_manager.session.show_thoughts:
+                await ui.muted("\n" + "=" * 60)
+                await ui.muted(
+                    f"🚀 FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools"
+                )
+                await ui.muted("=" * 60)
 
-            for idx, (part, node) in enumerate(buffered_tasks, 1):
-                tool_desc = f"  [{idx}] {part.tool_name}"
-                if hasattr(part, "args") and isinstance(part.args, dict):
-                    if part.tool_name == "read_file" and "file_path" in part.args:
-                        tool_desc += f" → {part.args['file_path']}"
-                    elif part.tool_name == "grep" and "pattern" in part.args:
-                        tool_desc += f" → pattern: '{part.args['pattern']}'"
-                        if "include_files" in part.args:
-                            tool_desc += f", files: '{part.args['include_files']}'"
-                    elif part.tool_name == "list_dir" and "directory" in part.args:
-                        tool_desc += f" → {part.args['directory']}"
-                    elif part.tool_name == "glob" and "pattern" in part.args:
-                        tool_desc += f" → pattern: '{part.args['pattern']}'"
-                await ui.muted(tool_desc)
-            await ui.muted("=" * 60)
+                for idx, (part, node) in enumerate(buffered_tasks, 1):
+                    tool_desc = f"  [{idx}] {part.tool_name}"
+                    if hasattr(part, "args") and isinstance(part.args, dict):
+                        if part.tool_name == "read_file" and "file_path" in part.args:
+                            tool_desc += f" → {part.args['file_path']}"
+                        elif part.tool_name == "grep" and "pattern" in part.args:
+                            tool_desc += f" → pattern: '{part.args['pattern']}'"
+                            if "include_files" in part.args:
+                                tool_desc += f", files: '{part.args['include_files']}'"
+                        elif part.tool_name == "list_dir" and "directory" in part.args:
+                            tool_desc += f" → {part.args['directory']}"
+                        elif part.tool_name == "glob" and "pattern" in part.args:
+                            tool_desc += f" → pattern: '{part.args['pattern']}'"
+                    await ui.muted(tool_desc)
+                await ui.muted("=" * 60)
 
             await execute_tools_parallel(buffered_tasks, tool_callback)
 
@@ -1002,10 +1003,11 @@ async def process_request(
             sequential_estimate = len(buffered_tasks) * 100
             speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
 
-            await ui.muted(
-                f"✅ Final batch completed in {elapsed_time:.0f}ms "
-                f"(~{speedup:.1f}x faster than sequential)\n"
-            )
+            if state_manager.session.show_thoughts:
+                await ui.muted(
+                    f"✅ Final batch completed in {elapsed_time:.0f}ms "
+                    f"(~{speedup:.1f}x faster than sequential)\n"
+                )
 
         # If we need to add a fallback response, create a wrapper
         if not response_state.has_user_response and i >= max_iterations and fallback_enabled:
