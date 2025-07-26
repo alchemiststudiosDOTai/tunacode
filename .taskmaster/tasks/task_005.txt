@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: Comprehensive Terminal Compatibility Testing
+# Status: pending
+# Dependencies: 4
+# Priority: medium
+# Description: Test the fixed safety warning across different terminal emulators and environments
+# Details:
+Perform comprehensive testing across common terminal environments including bash, zsh, Windows Terminal, macOS Terminal, and popular terminal emulators. Verify proper rendering, color support detection, and fallback behavior for terminals with limited color support. Document any environment-specific issues and ensure graceful degradation.
+
+# Test Strategy:
+Create a test matrix covering different terminals, operating systems, and color support levels. Test both the safety warning dialog and surrounding TunaCode functionality to ensure no regressions. Verify that the fix works consistently across all supported environments.
