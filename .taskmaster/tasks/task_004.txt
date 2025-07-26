@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Standardize UI Formatting Patterns
+# Status: done
+# Dependencies: 3
+# Priority: medium
+# Description: Ensure the safety warning follows TunaCode's established UI patterns and conventions
+# Details:
+Review existing TunaCode UI components to identify consistent patterns for warnings, confirmations, and user prompts. Apply these patterns to the safety branch warning to ensure visual consistency. This includes standardizing color usage, text formatting, spacing, and interactive element styling (like the '[1] Yes (default)' option).
+
+# Test Strategy:
+Conduct side-by-side comparison with other TunaCode prompts and dialogs. Verify that styling, spacing, and interaction patterns match established conventions. Test user experience flow to ensure consistency.

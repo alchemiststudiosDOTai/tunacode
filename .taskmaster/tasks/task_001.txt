@@ -1,0 +1,14 @@
+# Task ID: 1
+# Title: Analyze Current ANSI Color Code Issue
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Investigate the root cause of visible ANSI escape sequences in the safety branch warning dialog
+# Details:
+Locate the safety branch warning implementation in the TunaCode codebase. Examine how ANSI color codes are being applied and why they're rendering as visible text instead of formatting. Check if the issue is in the prompt generation, color utility functions, or terminal output handling. Review related UI components to understand the expected color formatting patterns.
+<info added on 2025-07-22T21:28:22.937Z>
+Root cause identified: The issue is in `/home/fabian/tunacode/src/tunacode/ui/tool_ui.py` in the `show_sync_confirmation` method (lines 157-159). Rich console interprets square brackets `[` and `]` as markup tags for formatting. When displaying options like `"  [1] Yes (default)"` using `ui.console.print()`, Rich attempts to parse `[1]` as a markup tag, fails, and displays raw ANSI escape codes instead. The solution requires escaping the square brackets or using Rich's Text object to display literal text without markup interpretation. This affects the sync confirmation dialog used when async operations aren't available.
+</info added on 2025-07-22T21:28:22.937Z>
+
+# Test Strategy:
+Run TunaCode without a safety branch in different terminal environments to reproduce the issue. Document the exact ANSI codes being displayed and compare with working UI elements.

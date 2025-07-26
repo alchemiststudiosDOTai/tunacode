@@ -114,3 +114,28 @@ class TooBroadPatternError(ToolExecutionError):
             f"Pattern '{pattern}' is too broad - no matches found within {timeout_seconds}s. "
             "Please use a more specific pattern.",
         )
+
+
+class ToolBatchingJSONError(TunaCodeError):
+    """Raised when JSON parsing fails during tool batching after all retries are exhausted."""
+
+    def __init__(
+        self,
+        json_content: str,
+        retry_count: int,
+        original_error: OriginalError = None,
+    ):
+        self.json_content = json_content
+        self.retry_count = retry_count
+        self.original_error = original_error
+        
+        # Truncate JSON content for display if too long
+        display_content = (
+            json_content[:100] + "..." if len(json_content) > 100 else json_content
+        )
+        
+        super().__init__(
+            f"The model is having issues with tool batching. "
+            f"JSON parsing failed after {retry_count} retries. "
+            f"Invalid JSON: {display_content}"
+        )

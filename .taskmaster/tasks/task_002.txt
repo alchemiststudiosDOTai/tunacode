@@ -1,0 +1,11 @@
+# Task ID: 2
+# Title: Fix ANSI Color Code Rendering
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Repair the color code implementation to properly format text without visible escape sequences
+# Details:
+Based on the analysis, fix the ANSI color code implementation. This may involve correcting color utility function calls, ensuring proper terminal detection, or fixing string formatting. Ensure colors are applied correctly using TunaCode's existing color system (likely using rich library). Update the safety warning dialog to use proper color formatting methods.
+
+# Test Strategy:
+Test the fix in multiple terminal environments (bash, zsh, Windows Terminal). Verify that colors render properly and no ANSI codes are visible as text. Compare output with other TunaCode prompts for consistency.

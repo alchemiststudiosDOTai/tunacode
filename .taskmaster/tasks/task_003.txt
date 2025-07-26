@@ -1,0 +1,11 @@
+# Task ID: 3
+# Title: Fix Text Alignment and Layout
+# Status: done
+# Dependencies: 2
+# Priority: medium
+# Description: Correct text alignment issues in the safety branch warning dialog
+# Details:
+Address the misaligned 'Thinking...' text and ensure proper spacing and alignment for all elements in the safety warning dialog. Review the layout structure and adjust padding, margins, or positioning as needed. Ensure consistent indentation and visual hierarchy throughout the warning message.
+
+# Test Strategy:
+Verify that all text elements are properly aligned and visually consistent. Test with different terminal widths to ensure responsive layout. Compare with other TunaCode dialogs for consistency.

@@ -68,6 +68,13 @@ class SessionState:
             "cost": 0.0,
         }
     )
+    # Recursive execution tracking
+    current_recursion_depth: int = 0
+    max_recursion_depth: int = 5
+    parent_task_id: Optional[str] = None
+    task_hierarchy: dict[str, Any] = field(default_factory=dict)
+    iteration_budgets: dict[str, int] = field(default_factory=dict)
+    recursive_context_stack: list[dict[str, Any]] = field(default_factory=list)
 
     def update_token_count(self):
         """Calculates the total token count from messages and files in context."""
@@ -97,6 +104,40 @@ class StateManager:
                 if status == "completed" and not todo.completed_at:
                     todo.completed_at = datetime.now()
                 break
+
+    def push_recursive_context(self, context: dict[str, Any]) -> None:
+        """Push a new context onto the recursive execution stack."""
+        self._session.recursive_context_stack.append(context)
+        self._session.current_recursion_depth += 1
+
+    def pop_recursive_context(self) -> Optional[dict[str, Any]]:
+        """Pop the current context from the recursive execution stack."""
+        if self._session.recursive_context_stack:
+            self._session.current_recursion_depth = max(
+                0, self._session.current_recursion_depth - 1
+            )
+            return self._session.recursive_context_stack.pop()
+        return None
+
+    def set_task_iteration_budget(self, task_id: str, budget: int) -> None:
+        """Set the iteration budget for a specific task."""
+        self._session.iteration_budgets[task_id] = budget
+
+    def get_task_iteration_budget(self, task_id: str) -> int:
+        """Get the iteration budget for a specific task."""
+        return self._session.iteration_budgets.get(task_id, 10)  # Default to 10
+
+    def can_recurse_deeper(self) -> bool:
+        """Check if we can recurse deeper without exceeding limits."""
+        return self._session.current_recursion_depth < self._session.max_recursion_depth
+
+    def reset_recursive_state(self) -> None:
+        """Reset all recursive execution state."""
+        self._session.current_recursion_depth = 0
+        self._session.parent_task_id = None
+        self._session.task_hierarchy.clear()
+        self._session.iteration_budgets.clear()
+        self._session.recursive_context_stack.clear()
 
     def remove_todo(self, todo_id: str) -> None:
         self._session.todos = [todo for todo in self._session.todos if todo.id != todo_id]

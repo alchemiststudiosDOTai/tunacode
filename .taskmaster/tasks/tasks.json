@@ -61,13 +61,224 @@
         "dependencies": [
           4
         ],
+        "status": "cancelled",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Multi-Turn Recursive Loop for Complex Task Decomposition",
+        "description": "Implement a recursive multi-turn loop system that enables TunaCode to autonomously break down complex tasks into subtasks, execute them independently, and aggregate results - similar to how Anthropic's Claude Code handles complex requests.",
+        "details": "The task involves creating a RecursiveTaskExecutor class that can detect complex tasks, break them down into executable subtasks using DSPy planner, execute subtasks recursively with independent iteration budgets, and aggregate results. The system should support hierarchical task management with parent-child relationships, context inheritance, and progress tracking. Key components include: RecursiveTaskExecutor class, enhanced SessionState with recursion tracking, modified process_request() function, iteration budget management, and UI components for visual feedback.",
+        "testStrategy": "1. Unit tests for task decomposition logic, iteration budget allocation, result aggregation, and recursion depth limits. 2. Integration tests for end-to-end complex task execution, context propagation across subtasks, error handling in recursive execution, and performance with deeply nested tasks. 3. Characterization tests to capture behavior of complex task handling, ensure backward compatibility, and verify deterministic decomposition.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create RecursiveTaskExecutor Core Class",
+            "description": "Implement the main RecursiveTaskExecutor class that serves as the orchestrator for recursive task decomposition and execution",
+            "dependencies": [],
+            "details": "Create src/tunacode/core/recursive/executor.py with RecursiveTaskExecutor class. Include methods for task complexity detection, subtask generation using DSPy planner, execution orchestration, and result aggregation. Implement recursive depth tracking and iteration budget management. The class should handle parent-child task relationships and maintain execution context throughout the recursive process.\n<info added on 2025-07-24T02:15:13.895Z>\nUpdate the RecursiveTaskExecutor implementation to remove DSPy planner dependency. The class should integrate with TunaCode's existing agent system for task analysis and decomposition. Replace DSPy planner method calls with agent-based task breakdown using the main agent's reasoning capabilities and the existing tool system. The task complexity detection and subtask generation should leverage the current pydantic-ai agent architecture instead of external DSPy components.\n</info added on 2025-07-24T02:15:13.895Z>",
+            "status": "done",
+            "testStrategy": "Unit tests for task detection logic, recursion depth limits, budget allocation, and basic execution flow without actual tool calls"
+          },
+          {
+            "id": 2,
+            "title": "Enhance SessionState for Recursion Tracking",
+            "description": "Extend the existing SessionState class to support recursive execution context and hierarchy tracking",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Modify src/tunacode/core/state.py to add recursion-specific fields: current_recursion_depth, max_recursion_depth, parent_task_id, task_hierarchy, iteration_budgets, and recursive_context_stack. Add methods for managing recursive state transitions, context inheritance, and cleanup. Ensure thread-safety for concurrent subtask execution.",
+            "status": "done",
+            "testStrategy": "Unit tests for state transitions, context inheritance, recursion depth tracking, and concurrent access safety"
+          },
+          {
+            "id": 3,
+            "title": "Implement Task Decomposition Engine",
+            "description": "Create the intelligent task breakdown system using DSPy planner to analyze complex tasks and generate executable subtasks",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Implement src/tunacode/core/recursive/decomposer.py with TaskDecomposer class. Use DSPy ChainOfThought module to analyze task complexity, identify decomposition patterns, and generate structured subtasks with proper dependencies. Include heuristics for determining when a task should be decomposed versus executed directly. Integrate with existing agent tools and maintain context awareness.\n<info added on 2025-07-24T02:15:27.100Z>\nBased on the current subtask details and the user request, here is the new text to be appended:\n\n**UPDATED IMPLEMENTATION APPROACH**: Remove DSPy dependency and replace with pydantic-ai agent integration. The TaskDecomposer class should utilize the existing main agent (from core/agents/main.py) for task analysis and decomposition. Implement complexity analysis through structured prompts to the agent, requesting it to evaluate task scope, identify natural breakpoints, and generate subtasks with dependencies. Leverage the agent's existing tool ecosystem and maintain consistency with the current architecture. The decomposer should use agent conversations to determine decomposition strategies rather than separate ML modules.\n</info added on 2025-07-24T02:15:27.100Z>",
+            "status": "done",
+            "testStrategy": "Unit tests for complexity detection algorithms, subtask generation quality, dependency resolution, and integration with DSPy modules"
+          },
+          {
+            "id": 4,
+            "title": "Build Hierarchical Task Management System",
+            "description": "Implement the data structures and management logic for maintaining parent-child task relationships and execution state",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "Create src/tunacode/core/recursive/hierarchy.py with TaskHierarchy class. Implement tree-based task storage, parent-child relationship tracking, dependency resolution, and execution order determination. Add methods for context propagation between parent and child tasks, result aggregation, and error propagation handling. Support dynamic task addition during execution.",
+            "status": "done",
+            "testStrategy": "Unit tests for hierarchy operations, dependency resolution algorithms, context propagation, and error handling scenarios"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Recursive Execution into Main Process Loop",
+            "description": "Modify the main request processing pipeline to detect and handle recursive task execution",
+            "dependencies": [
+              "6.2",
+              "6.3",
+              "6.4"
+            ],
+            "details": "Enhance src/tunacode/core/main.py process_request() function to integrate RecursiveTaskExecutor. Add complexity detection logic to determine when to trigger recursive execution versus direct processing. Implement handoff mechanisms between normal and recursive execution modes while preserving existing functionality and tool access patterns.",
+            "status": "done",
+            "testStrategy": "Integration tests for request routing, mode switching, backward compatibility, and end-to-end complex task execution"
+          },
+          {
+            "id": 6,
+            "title": "Implement Iteration Budget Management",
+            "description": "Create a sophisticated budget allocation and tracking system for managing computational resources across recursive executions",
+            "dependencies": [
+              "6.1",
+              "6.4"
+            ],
+            "details": "Develop src/tunacode/core/recursive/budget.py with BudgetManager class. Implement algorithms for distributing iteration budgets across subtasks based on complexity estimates, tracking resource consumption, and enforcing limits. Include budget inheritance from parent to child tasks, dynamic reallocation based on execution progress, and graceful degradation when budgets are exhausted.",
+            "status": "done",
+            "testStrategy": "Unit tests for budget allocation algorithms, consumption tracking accuracy, limit enforcement, and resource optimization strategies"
+          },
+          {
+            "id": 7,
+            "title": "Build Result Aggregation and Context Management",
+            "description": "Implement sophisticated result collection and context synthesis from distributed subtask executions",
+            "dependencies": [
+              "6.4",
+              "6.5"
+            ],
+            "details": "Create src/tunacode/core/recursive/aggregator.py with ResultAggregator class. Implement intelligent result merging strategies, context synthesis from multiple execution branches, conflict resolution for contradictory results, and final output generation. Handle partial results from failed subtasks and maintain execution traceability for debugging.",
+            "status": "done",
+            "testStrategy": "Unit tests for result merging algorithms, context synthesis quality, conflict resolution, and partial failure handling"
+          },
+          {
+            "id": 8,
+            "title": "Add Visual Feedback and Progress Tracking UI",
+            "description": "Implement comprehensive user interface components for visualizing recursive execution progress and hierarchy",
+            "dependencies": [
+              "6.5",
+              "6.7"
+            ],
+            "details": "Enhance src/tunacode/ui/ components to display recursive execution progress. Add hierarchical task tree visualization, real-time progress indicators, budget consumption tracking, and execution depth indicators. Implement interactive progress display using rich library components, with ability to collapse/expand subtask details and show execution timelines.",
+            "status": "done",
+            "testStrategy": "Integration tests for UI rendering, progress accuracy, user interaction flows, and visual consistency across different terminal environments"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement automatic retry logic for tool batching failures",
+        "description": "When tool batching JSON parsing fails in parse_json_tool_calls() and extract_and_execute_tool_calls() functions, the system should automatically retry up to 10 times before reporting the error to the user. The error is generated by the LLM returning malformed JSON, not from TunaCode source code.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "The issue occurs when the model returns invalid JSON for batched tool calls. The JSON parsing happens in parse_json_tool_calls() and extract_and_execute_tool_calls() in utils.py, where JSONDecodeError is currently caught silently without retry logic. Implementation needed:\n1. Add retry mechanism with exponential backoff specifically for JSON parsing failures\n2. Maximum of 10 retry attempts for JSONDecodeError exceptions\n3. Clear error message after all retries exhausted stating 'The model is having issues with tool batching'\n4. Log each retry attempt for debugging\n5. Preserve the original error context for troubleshooting\n6. Focus on utils.py functions: parse_json_tool_calls() and extract_and_execute_tool_calls()",
+        "testStrategy": "1. Unit tests for retry logic with mocked JSONDecodeError failures in utils.py functions\n2. Integration test simulating malformed JSON from LLM responses\n3. Test exponential backoff timing for JSON parsing retries\n4. Verify error message after max retries exhausted\n5. Test successful recovery within retry limit\n6. Mock LLM responses with invalid JSON to trigger retry mechanism",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Analyze parse_json_tool_calls() function in utils.py",
+            "description": "Examine the current JSONDecodeError handling in parse_json_tool_calls() function",
+            "status": "done",
+            "dependencies": [],
+            "details": "Review how JSONDecodeError is currently caught and handled silently. Identify the exact location where retry logic should be added.",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Analyze extract_and_execute_tool_calls() function in utils.py",
+            "description": "Examine the current JSONDecodeError handling in extract_and_execute_tool_calls() function",
+            "status": "done",
+            "dependencies": [],
+            "details": "Review how JSONDecodeError is currently caught and handled silently. Identify the exact location where retry logic should be added.",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement exponential backoff retry decorator",
+            "description": "Create a reusable retry decorator with exponential backoff for JSON parsing failures",
+            "status": "done",
+            "dependencies": [],
+            "details": "Implement a decorator that can be applied to JSON parsing operations with configurable max retries (default 10) and exponential backoff timing.",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Add retry logic to parse_json_tool_calls()",
+            "description": "Integrate retry mechanism into parse_json_tool_calls() function",
+            "status": "done",
+            "dependencies": [],
+            "details": "Replace silent JSONDecodeError handling with retry logic that attempts up to 10 times with exponential backoff before failing.",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Add retry logic to extract_and_execute_tool_calls()",
+            "description": "Integrate retry mechanism into extract_and_execute_tool_calls() function",
+            "status": "done",
+            "dependencies": [],
+            "details": "Replace silent JSONDecodeError handling with retry logic that attempts up to 10 times with exponential backoff before failing.",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement comprehensive logging for retry attempts",
+            "description": "Add detailed logging for each retry attempt to aid debugging",
+            "status": "done",
+            "dependencies": [],
+            "details": "Log retry attempt number, delay time, original error, and context information for troubleshooting malformed JSON issues.",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add final error message after retry exhaustion",
+            "description": "Display clear user-facing error message when all retries are exhausted",
+            "status": "done",
+            "dependencies": [],
+            "details": "After 10 failed retry attempts, show the message 'The model is having issues with tool batching' while preserving original error context for debugging.",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Create unit tests for RecursiveTaskExecutor",
+        "description": "Write comprehensive unit tests for the RecursiveTaskExecutor class including task execution, complexity analysis, and error handling scenarios",
+        "details": "Create tests/unit/test_recursive_executor.py with tests for:\n- execute_task() with various complexity levels\n- _analyze_task_complexity() logic\n- _execute_with_decomposition() flow\n- _execute_directly() flow\n- _allocate_iteration_budgets() calculations\n- Error handling and edge cases\n- Max recursion depth limits\n\nIntegrate with Makefile test target to run with 'make test'",
+        "testStrategy": "Use pytest with async test support. Mock the StateManager and agent interactions. Verify correct task decomposition and execution flow.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Create unit tests for TaskDecomposer and BudgetManager",
+        "description": "Write unit tests for TaskDecomposer complexity analysis and BudgetManager allocation strategies",
+        "details": "Create tests/unit/test_task_decomposer.py with tests for:\n- analyze_and_decompose() with various task types\n- Complexity scoring logic\n- Subtask generation\n- Confidence calculations\n\nCreate tests/unit/test_budget_manager.py with tests for:\n- allocate_budget() with different strategies (equal, weighted, adaptive, priority)\n- consume_budget() and release_budget() operations\n- Budget summary calculations\n- Edge cases (zero budget, single task, many tasks)\n\nEnsure tests run with 'make test'",
+        "testStrategy": "Use pytest with mocking for external dependencies. Test various allocation strategies and edge cases. Verify mathematical correctness of budget calculations.",
         "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Create unit tests for ResultAggregator and TaskHierarchy",
+        "description": "Write unit tests for ResultAggregator result combination strategies and TaskHierarchy relationship tracking",
+        "details": "Create tests/unit/test_result_aggregator.py with tests for:\n- aggregate_results() with different strategies (simple, structured, intelligent)\n- _simple_aggregation() text concatenation\n- _structured_aggregation() JSON/dict merging\n- _intelligent_aggregation() with mock agent responses\n- Error handling for failed subtasks\n\nCreate tests/unit/test_task_hierarchy.py with tests for:\n- add_task() and remove_task() operations\n- get_children() and get_ancestors() queries\n- detect_cycles() for circular dependencies\n- get_execution_order() topological sorting\n- Relationship validation\n\nUpdate Makefile to include new test files in 'make test' target",
+        "testStrategy": "Use pytest with fixtures for common test data. Mock agent interactions for intelligent aggregation. Test graph algorithms for hierarchy management.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
         "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-22T21:24:36.985Z",
-      "updated": "2025-07-24T01:51:23.501Z",
+      "updated": "2025-07-26T18:43:06.733Z",
       "description": "Tasks for master context"
     }
   }

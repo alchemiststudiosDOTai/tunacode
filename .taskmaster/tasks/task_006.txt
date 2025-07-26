@@ -1,0 +1,55 @@
+# Task ID: 6
+# Title: Review PR #53 - Recursive Task Execution Feature
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Comprehensive code review of the recursive task execution implementation from PR #53. Focus on architecture, code quality, error handling, and integration aspects to ensure the implementation follows best practices.
+# Details:
+PR #53 introduces a recursive task execution system to solve issue #54. The implementation includes:
+- New recursive module with decomposer, executor, aggregator, budget, and hierarchy components
+- JSON parsing retry logic with exponential backoff
+- Integration with the main agent flow
+- UI progress visualization
+- Comprehensive test coverage
+
+Review should focus on code quality, architecture decisions, error handling, and performance implications.
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Architecture & Design Review [pending]
+### Dependencies: None
+### Description: Review the new recursive module structure (decomposer, executor, aggregator, budget, hierarchy). Verify separation of concerns and modularity. Check for adherence to existing codebase patterns.
+### Details:
+Focus areas:
+- src/tunacode/core/recursive/ module structure
+- Separation of concerns between decomposer, executor, aggregator, budget, and hierarchy
+- Design patterns used and their appropriateness
+- Integration points with existing codebase
+- Modularity and potential for future extensions
+
+## 2. Code Quality & Error Handling Review [pending]
+### Dependencies: None
+### Description: Review JSON retry implementation with exponential backoff. Verify error handling in recursive execution flow. Check test coverage (new test files added). Review exception handling in new modules.
+### Details:
+Focus areas:
+- src/tunacode/utils/retry.py - JSON parsing retry logic
+- Error handling in all recursive modules
+- Exception types in src/tunacode/exceptions.py
+- Test coverage in tests/test_json_retry.py and tests/test_tool_batching_retry.py
+- Proper error propagation and user-facing error messages
+- Edge cases and failure scenarios
+
+## 3. Integration & Performance Review [pending]
+### Dependencies: None
+### Description: Review integration with main agent flow. Check budget management implementation. Verify UI progress visualization. Review any potential performance impacts.
+### Details:
+Focus areas:
+- src/tunacode/core/agents/main.py - integration changes
+- src/tunacode/ui/recursive_progress.py - UI visualization
+- Budget management in src/tunacode/core/recursive/budget.py
+- Performance implications of recursive execution
+- State management in src/tunacode/core/state.py
+- Impact on existing workflows and backward compatibility
+
