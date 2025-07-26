@@ -241,11 +241,44 @@
             "testStrategy": ""
           }
         ]
+      },
+      {
+        "id": 8,
+        "title": "Create unit tests for RecursiveTaskExecutor",
+        "description": "Write comprehensive unit tests for the RecursiveTaskExecutor class including task execution, complexity analysis, and error handling scenarios",
+        "details": "Create tests/unit/test_recursive_executor.py with tests for:\n- execute_task() with various complexity levels\n- _analyze_task_complexity() logic\n- _execute_with_decomposition() flow\n- _execute_directly() flow\n- _allocate_iteration_budgets() calculations\n- Error handling and edge cases\n- Max recursion depth limits\n\nIntegrate with Makefile test target to run with 'make test'",
+        "testStrategy": "Use pytest with async test support. Mock the StateManager and agent interactions. Verify correct task decomposition and execution flow.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Create unit tests for TaskDecomposer and BudgetManager",
+        "description": "Write unit tests for TaskDecomposer complexity analysis and BudgetManager allocation strategies",
+        "details": "Create tests/unit/test_task_decomposer.py with tests for:\n- analyze_and_decompose() with various task types\n- Complexity scoring logic\n- Subtask generation\n- Confidence calculations\n\nCreate tests/unit/test_budget_manager.py with tests for:\n- allocate_budget() with different strategies (equal, weighted, adaptive, priority)\n- consume_budget() and release_budget() operations\n- Budget summary calculations\n- Edge cases (zero budget, single task, many tasks)\n\nEnsure tests run with 'make test'",
+        "testStrategy": "Use pytest with mocking for external dependencies. Test various allocation strategies and edge cases. Verify mathematical correctness of budget calculations.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Create unit tests for ResultAggregator and TaskHierarchy",
+        "description": "Write unit tests for ResultAggregator result combination strategies and TaskHierarchy relationship tracking",
+        "details": "Create tests/unit/test_result_aggregator.py with tests for:\n- aggregate_results() with different strategies (simple, structured, intelligent)\n- _simple_aggregation() text concatenation\n- _structured_aggregation() JSON/dict merging\n- _intelligent_aggregation() with mock agent responses\n- Error handling for failed subtasks\n\nCreate tests/unit/test_task_hierarchy.py with tests for:\n- add_task() and remove_task() operations\n- get_children() and get_ancestors() queries\n- detect_cycles() for circular dependencies\n- get_execution_order() topological sorting\n- Relationship validation\n\nUpdate Makefile to include new test files in 'make test' target",
+        "testStrategy": "Use pytest with fixtures for common test data. Mock agent interactions for intelligent aggregation. Test graph algorithms for hierarchy management.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-22T21:24:36.985Z",
-      "updated": "2025-07-26T03:27:58.441Z",
+      "updated": "2025-07-26T18:43:06.733Z",
       "description": "Tasks for master context"
     }
   }

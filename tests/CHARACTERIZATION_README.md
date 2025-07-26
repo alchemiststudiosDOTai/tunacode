@@ -17,3 +17,7 @@ venv/bin/python -m pytest -q tests/characterization
 ```
 
 This will execute all tests within the `tests/characterization` directory.
+
+## Testing Philosophy
+
+For our overall testing approach and best practices, see [TESTING_PHILOSOPHY.md](./TESTING_PHILOSOPHY.md).
