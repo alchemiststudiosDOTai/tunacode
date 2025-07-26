@@ -275,7 +275,9 @@ async def extract_and_execute_tool_calls(
 
         except json.JSONDecodeError as e:
             # After all retries failed
-            logger.error(f"Code block JSON parsing failed after {JSON_PARSE_MAX_RETRIES} retries: {e}")
+            logger.error(
+                f"Code block JSON parsing failed after {JSON_PARSE_MAX_RETRIES} retries: {e}"
+            )
             if state_manager.session.show_thoughts:
                 await ui.error(
                     f"Failed to parse code block tool JSON after {JSON_PARSE_MAX_RETRIES} retries"

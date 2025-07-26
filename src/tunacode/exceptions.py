@@ -128,12 +128,10 @@ class ToolBatchingJSONError(TunaCodeError):
         self.json_content = json_content
         self.retry_count = retry_count
         self.original_error = original_error
-        
+
         # Truncate JSON content for display if too long
-        display_content = (
-            json_content[:100] + "..." if len(json_content) > 100 else json_content
-        )
-        
+        display_content = json_content[:100] + "..." if len(json_content) > 100 else json_content
+
         super().__init__(
             f"The model is having issues with tool batching. "
             f"JSON parsing failed after {retry_count} retries. "

@@ -2,8 +2,7 @@
 
 import asyncio
 import json
-import time
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -59,7 +58,7 @@ class TestRetryDecorator:
 
         with pytest.raises(json.JSONDecodeError):
             parse_json()
-        
+
         # Should have tried initial + 2 retries = 3 times
         assert call_count == 3
 
@@ -71,9 +70,9 @@ class TestRetryDecorator:
         def parse_json():
             json.loads('{"invalid": json}')
 
-        with patch('time.sleep') as mock_sleep:
+        with patch("time.sleep") as mock_sleep:
             mock_sleep.side_effect = lambda d: delays.append(d)
-            
+
             with pytest.raises(json.JSONDecodeError):
                 parse_json()
 
@@ -91,9 +90,9 @@ class TestRetryDecorator:
         def parse_json():
             json.loads('{"invalid": json}')
 
-        with patch('time.sleep') as mock_sleep:
+        with patch("time.sleep") as mock_sleep:
             mock_sleep.side_effect = lambda d: delays.append(d)
-            
+
             with pytest.raises(json.JSONDecodeError):
                 parse_json()
 
@@ -150,9 +149,9 @@ class TestAsyncRetryDecorator:
         async def parse_json():
             json.loads('{"invalid": json}')
 
-        with patch('asyncio.sleep') as mock_sleep:
+        with patch("asyncio.sleep") as mock_sleep:
             mock_sleep.side_effect = lambda d: delays.append(d) or asyncio.sleep(0)
-            
+
             with pytest.raises(json.JSONDecodeError):
                 await parse_json()
 
@@ -201,7 +200,7 @@ class TestRetryHelpers:
 
         with pytest.raises(ValueError):
             parse_json()
-        
+
         # Should not retry on non-JSON errors
         assert call_count == 1
 
@@ -211,6 +210,7 @@ class TestLogging:
 
     def test_retry_logging(self, caplog):
         """Test that retries are logged properly."""
+
         @retry_on_json_error(max_retries=2, base_delay=0.01)
         def parse_json():
             json.loads('{"bad": json}')
@@ -219,9 +219,12 @@ class TestLogging:
             parse_json()
 
         # Check that warning and error logs were created
-        assert any("JSON parsing error (attempt 1/3)" in record.message 
-                  for record in caplog.records)
-        assert any("JSON parsing error (attempt 2/3)" in record.message 
-                  for record in caplog.records)
-        assert any("JSON parsing failed after 2 retries" in record.message 
-                  for record in caplog.records)
+        assert any(
+            "JSON parsing error (attempt 1/3)" in record.message for record in caplog.records
+        )
+        assert any(
+            "JSON parsing error (attempt 2/3)" in record.message for record in caplog.records
+        )
+        assert any(
+            "JSON parsing failed after 2 retries" in record.message for record in caplog.records
+        )
