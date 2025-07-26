@@ -9,6 +9,7 @@ from rich.padding import Padding
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.table import Table
+from rich.text import Text
 
 from tunacode.configuration.models import ModelRegistry
 from tunacode.constants import (
@@ -89,9 +90,15 @@ class StreamingAgentPanel:
         # Use the UI_THINKING_MESSAGE constant instead of hardcoded text
         from tunacode.constants import UI_THINKING_MESSAGE
 
-        markdown_content = Markdown(self.content or UI_THINKING_MESSAGE)
+        # If no content, show thinking message with Rich markup
+        if not self.content:
+            content_to_display = Text.from_markup(UI_THINKING_MESSAGE)
+        else:
+            # Normal content is markdown
+            content_to_display = Markdown(self.content)
+
         panel_obj = Panel(
-            Padding(markdown_content, (0, 1, 0, 1)),
+            Padding(content_to_display, (0, 1, 0, 1)),
             title=f"[bold]{self.title}[/bold]",
             title_align="left",
             border_style=colors.primary,

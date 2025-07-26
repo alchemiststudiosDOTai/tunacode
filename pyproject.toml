@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tunacode-cli"
-version = "0.0.44"
+version = "0.0.44+local"
 description = "Your agentic CLI developer."
 keywords = ["cli", "agent", "development", "automation"]
 readme = "README.md"
@@ -31,8 +31,6 @@ dependencies = [
     "pygments==2.19.1",
     "rich==14.0.0",
     "tiktoken>=0.5.2",
-    "dspy-ai>=0.1.0",
-    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]

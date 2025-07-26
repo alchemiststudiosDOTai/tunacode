@@ -39,7 +39,7 @@ class TaskResult:
 
     task_id: str
     task_title: str
-    result_data: Any
+    result_data: object
     status: str  # completed, failed, partial
     timestamp: datetime = field(default_factory=datetime.now)
     error: Optional[str] = None
@@ -50,7 +50,7 @@ class TaskResult:
 class AggregatedResult:
     """Aggregated result from multiple tasks."""
 
-    primary_result: Any
+    primary_result: object
     task_results: List[TaskResult]
     strategy_used: AggregationStrategy
     conflicts_resolved: int = 0

@@ -115,6 +115,18 @@ Analysis of 219 Python files (32,163 lines of code) revealed several areas for i
 - Maximum 4 parameters per function
 - Test coverage > 80% for high-churn files
 
+## UI Layer Recommendations
+
+### Migration Away from Rich
+
+- Current UI components rely heavily on the Rich library for console rendering and styling.
+- Rich brings rich formatting but introduces a large dependency and some limitations for customization and performance.
+- To improve flexibility and reduce dependency footprint, consider migrating UI components towards a lighter or custom UI abstraction layer.
+- Evaluate alternative libraries or build minimal wrappers focusing on essential console features without Rich's overhead.
+- Aim to decouple UI logic from business logic to allow easier experimentation with UI frameworks in the future.
+- Plan incremental migration to prevent disruptions, starting with low-impact UI components such as status messages or logs.
+- Add integration tests to ensure UI stability after migration steps.
+
 ## Conclusion
 
 The codebase shows good overall structure with consistent patterns. Main areas of concern are concentrated in the agent system (main.py) which handles complex orchestration logic. By breaking down these complex areas and adding appropriate tests, the codebase can achieve better maintainability while preserving its functionality.

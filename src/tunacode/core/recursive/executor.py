@@ -32,7 +32,7 @@ class TaskNode:
     iteration_budget: int = 10
     subtasks: List["TaskNode"] = field(default_factory=list)
     status: str = "pending"  # pending, in_progress, completed, failed
-    result: Optional[Any] = None
+    result: Optional[object] = None
     error: Optional[str] = None
     context: Dict[str, Any] = field(default_factory=dict)
     depth: int = 0
@@ -128,15 +128,17 @@ class RecursiveTaskExecutor:
                 and depth < self.max_depth - 1
             ):
                 # Decompose into subtasks
-                logger.info(
-                    f"Decomposing complex task (score: {complexity_result.complexity_score:.2f})"
-                )
+                if self.state_manager.session.show_thoughts:
+                    logger.info(
+                        f"Decomposing complex task (score: {complexity_result.complexity_score:.2f})"
+                    )
                 return await self._execute_with_decomposition(task_node, complexity_result)
             else:
                 # Execute directly
-                logger.info(
-                    f"Executing task directly (score: {complexity_result.complexity_score:.2f})"
-                )
+                if self.state_manager.session.show_thoughts:
+                    logger.info(
+                        f"Executing task directly (score: {complexity_result.complexity_score:.2f})"
+                    )
                 return await self._execute_directly(task_node)
 
         except Exception as e:
@@ -255,7 +257,8 @@ Respond in JSON format:
             )
 
         for i, (subtask_desc, budget) in enumerate(zip(subtasks, subtask_budgets)):
-            logger.info(f"Executing subtask {i + 1}/{len(subtasks)}: {subtask_desc[:50]}...")
+            if self.state_manager.session.show_thoughts:
+                logger.info(f"Executing subtask {i + 1}/{len(subtasks)}: {subtask_desc[:50]}...")
 
             # Create subtask context
             subtask_context = {

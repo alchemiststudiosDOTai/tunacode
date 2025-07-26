@@ -385,9 +385,13 @@ async def repl(state_manager: StateManager):
 
     state_manager.session.update_token_count()
     context_display = get_context_window_display(state_manager.session.total_tokens, max_tokens)
-    await ui.muted(f"• Model: {model_name} • {context_display}")
-    await ui.success("Ready to assist")
-    await ui.line()
+
+    # Only show startup info if thoughts are enabled or on first run
+    if state_manager.session.show_thoughts or not hasattr(state_manager.session, "_startup_shown"):
+        await ui.muted(f"• Model: {model_name} • {context_display}")
+        await ui.success("Ready to assist")
+        await ui.line()
+        state_manager.session._startup_shown = True
 
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 
@@ -465,7 +469,11 @@ async def repl(state_manager: StateManager):
             context_display = get_context_window_display(
                 state_manager.session.total_tokens, state_manager.session.max_tokens
             )
-            await ui.muted(f"• Model: {state_manager.session.current_model} • {context_display}")
+            # Only show model/context info if thoughts are enabled
+            if state_manager.session.show_thoughts:
+                await ui.muted(
+                    f"• Model: {state_manager.session.current_model} • {context_display}"
+                )
 
         if action == "restart":
             await repl(state_manager)
@@ -480,7 +488,7 @@ async def repl(state_manager: StateManager):
                     total_cost = float(session_total.get("cost", 0) or 0)
 
                     # Only show summary if we have actual token usage
-                    if total_tokens > 0 or total_cost > 0:
+                    if state_manager.session.show_thoughts and (total_tokens > 0 or total_cost > 0):
                         summary = (
                             f"\n[bold cyan]TunaCode Session Summary[/bold cyan]\n"
                             f"  - Total Tokens:      {total_tokens:,}\n"

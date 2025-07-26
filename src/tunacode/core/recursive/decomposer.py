@@ -73,7 +73,7 @@ class TaskDecomposer:
         # Get the main agent
         agent = self.state_manager.session.agents.get("main")
         if not agent:
-            logger.warning("Main agent not available, using heuristic decomposition")
+            logger.debug("Main agent not available, using heuristic decomposition")
             return self._heuristic_decomposition(task_description)
 
         # Build context-aware prompt
