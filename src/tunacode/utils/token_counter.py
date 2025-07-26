@@ -4,8 +4,7 @@ import logging
 from functools import lru_cache
 from typing import Optional
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Get logger for this module
 logger = logging.getLogger(__name__)
 
 # Cache for tokenizer encodings

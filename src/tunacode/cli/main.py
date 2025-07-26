@@ -5,6 +5,7 @@ Enhanced CLI entry point with better styling while staying CLI-based.
 """
 
 import asyncio
+import logging
 
 import typer
 
@@ -35,6 +36,9 @@ def main(
     ),
 ):
     """Start TunaCode - Your AI-powered development assistant"""
+
+    # Configure logging to suppress INFO messages by default
+    logging.basicConfig(level=logging.WARNING, force=True)
 
     async def async_main():
         if version:
