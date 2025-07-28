@@ -9,7 +9,7 @@
 
 **AI-powered CLI coding assistant**
 
-![Demo](docs/assets/demo.gif)
+![TunaCode Example](assets/tunacode_example.png)
 
 </div>
 
