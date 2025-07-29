@@ -344,7 +344,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
     except CancelledError:
         await ui.muted(MSG_REQUEST_CANCELLED)
     except UserAbortError:
-        await ui.muted(MSG_OPERATION_ABORTED)
+        await ui.muted(MSG_OPERATION_ABORTED_BY_USER)
     except UnexpectedModelBehavior as e:
         error_message = str(e)
         await ui.muted(error_message)
@@ -463,7 +463,6 @@ async def repl(state_manager: StateManager):
             state_manager.session.current_task = get_app().create_background_task(
                 process_request(line, state_manager)
             )
-            await state_manager.session.current_task
 
             state_manager.session.update_token_count()
             context_display = get_context_window_display(

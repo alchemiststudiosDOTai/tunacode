@@ -1,9 +1,15 @@
 """Key binding handlers for TunaCode UI."""
 
+import logging
+
 from prompt_toolkit.key_binding import KeyBindings
 
+from ..core.state import StateManager
 
-def create_key_bindings() -> KeyBindings:
+logger = logging.getLogger(__name__)
+
+
+def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
     """Create and configure key bindings for the UI."""
     kb = KeyBindings()
 
@@ -21,5 +27,15 @@ def create_key_bindings() -> KeyBindings:
     def _escape_enter(event):
         """Insert a newline when escape then enter is pressed."""
         event.current_buffer.insert_text("\n")
+
+    @kb.add("escape")
+    def _escape(event):
+        """Immediately interrupts the current operation."""
+        current_task = state_manager.session.current_task if state_manager else None
+        if current_task and not current_task.done():
+            logger.debug("Interrupting current task")
+            current_task.cancel()
+        else:
+            logger.debug("Escape key pressed outside task context")
 
     return kb
