@@ -25,6 +25,29 @@ wget -qO- https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/maste
 pip install tunacode-cli
 ```
 
+## Development Installation
+
+For contributors and developers who want to work on TunaCode:
+
+```bash
+# Clone the repository
+git clone https://github.com/alchemiststudiosDOTai/tunacode.git
+cd tunacode
+
+# Quick setup (recommended)
+./scripts/setup_dev_env.sh
+
+# Or manual setup
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -e ".[dev]"
+
+# Verify installation
+python -m tunacode --version
+```
+
+See [Development Guide](docs/DEVELOPMENT.md) for detailed instructions.
+
 ## Configuration
 
 Choose your AI provider and set your API key:
