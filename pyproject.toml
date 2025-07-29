@@ -8,8 +8,8 @@ version = "0.0.45"
 description = "Your agentic CLI developer."
 keywords = ["cli", "agent", "development", "automation"]
 readme = "README.md"
-requires-python = ">=3.10"
-license = "MIT"
+requires-python = ">=3.10,<3.14"
+license = {text = "MIT"}
 authors = [
     { name = "larock22", email = "noreply@github.com" },
 ]
@@ -48,8 +48,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/larock22/tunacode"
-Repository = "https://github.com/larock22/tunacode"
+Homepage = "https://tunacode.xyz/"
+Repository = "https://github.com/alchemiststudiosDOTai/tunacode"
+Issues = "https://github.com/alchemiststudiosDOTai/tunacode/issues"
+Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
 
 [tool.ruff]
 line-length = 100
