@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Escape key to interrupt running tasks (PR #67) - @mohaidoss
+- Recursive task execution feature (PR #53) - @larock22
+
+### Fixed
+- Correct pip upgrade command in setup script (PR #70) - @larock22
+- Enhanced setup script robustness and improved documentation (PR #69) - @larock22
+
 ## [0.0.41] - 2025-01-17
 
 ### Added
