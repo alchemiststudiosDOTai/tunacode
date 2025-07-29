@@ -178,9 +178,11 @@ log "${GREEN}✓${NC} Virtual environment activated"
 
 # Upgrade pip, setuptools, and wheel
 log "${BLUE}Upgrading pip, setuptools, and wheel...${NC}"
-if ! install_with_retry "--upgrade pip setuptools wheel"; then
+if ! pip install --upgrade pip setuptools wheel 2>&1 | tee -a "$LOG_FILE"; then
+    log "${RED}Failed to upgrade pip, setuptools, and wheel${NC}"
     cleanup_on_failure
 fi
+log "${GREEN}✓${NC} Successfully upgraded pip, setuptools, and wheel"
 
 # Install critical dependency pydantic-ai first
 log "${BLUE}Installing critical dependency: pydantic-ai...${NC}"
