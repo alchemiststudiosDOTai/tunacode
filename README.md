@@ -102,6 +102,7 @@ _Note: While the tool is fully functional, we're focusing on stability and core 
 - [**Advanced Configuration**](docs/ADVANCED-CONFIG.md) - Provider setup, MCP, customization
 - [**Architecture**](docs/ARCHITECTURE.md) - Source code organization and design
 - [**Development**](docs/DEVELOPMENT.md) - Contributing and development setup
+- [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Links
 

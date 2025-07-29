@@ -9,30 +9,100 @@ This guide covers development setup, testing, and contribution guidelines for Tu
 
 ## Development Installation
 
-### Clone and Setup
+### Prerequisites
+
+- Python 3.10 or higher (3.10, 3.11, 3.12, 3.13 supported)
+- Git for version control
+- pip package manager (usually comes with Python)
+
+### Quick Setup (Recommended)
+
+For the fastest and most reliable setup, use our automated script:
 
 ```bash
 # Clone the repository
-git clone https://github.com/larock22/tunacode.git
+git clone https://github.com/alchemiststudiosDOTai/tunacode.git
+cd tunacode
+
+# Run the automated setup script
+./scripts/setup_dev_env.sh
+```
+
+This script will:
+- Create a clean virtual environment
+- Install all dependencies with verification
+- Set up pre-commit hooks
+- Run basic tests to ensure everything works
+
+### Manual Setup
+
+If you prefer manual installation or the script doesn't work for your system:
+
+```bash
+# Clone the repository
+git clone https://github.com/alchemiststudiosDOTai/tunacode.git
 cd tunacode
 
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install in development mode
+# Upgrade pip to latest version (important!)
+pip install --upgrade pip setuptools wheel
+
+# Install in development mode with all extras
 pip install -e ".[dev]"
+
+# Verify pydantic-ai installation (critical dependency)
+python -c "import pydantic_ai; print('pydantic-ai imported successfully')"
+```
+
+### Understanding the Installation Command
+
+```bash
+pip install -e ".[dev]"
+```
+
+- **`-e` (--editable)**: Installs the package in "editable" or "development" mode. This means:
+  - Changes to the source code are immediately available without reinstalling
+  - Perfect for development as you can test changes instantly
+  - Creates a link to your development directory instead of copying files
+
+- **`.[dev]`**: Installs the current directory (`.`) with the `dev` extras:
+  - The dot (`.`) refers to the current directory containing `pyproject.toml`
+  - `[dev]` includes additional development dependencies defined in `pyproject.toml`
+
+### Verify Installation
+
+After installation, verify everything is working:
+
+```bash
+# Check TunaCode CLI is available
+python -m tunacode --version
+
+# Verify critical imports
+python -c "from tunacode.cli.main import app; print('✓ TunaCode imports working')"
+python -c "import pydantic_ai; print('✓ pydantic-ai available')"
+python -c "import typer; print('✓ typer available')"
+
+# Run basic tests
+pytest tests/test_import.py -v
 ```
 
 ### Development Dependencies
 
 The `[dev]` extras include:
 - `pytest` - Testing framework
-- `pytest-asyncio` - Async test support
-- `black` - Code formatter
-- `isort` - Import sorter
-- `flake8` - Linting
-- `mypy` - Type checking
+- `pytest-asyncio` - Async test support  
+- `pytest-cov` - Coverage reporting
+- `ruff` - Fast Python linter and formatter (replaces black, isort, flake8)
+- `pre-commit` - Git hook framework
+- `build` - Package building
+- `textual-dev` - TUI development tools
+
+### Troubleshooting
+
+If you encounter any issues during setup or development, please see our comprehensive [Troubleshooting Guide](./TROUBLESHOOTING.md).
 
 ## Development Commands
 
