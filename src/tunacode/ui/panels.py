@@ -30,7 +30,6 @@ from tunacode.constants import (
     DESC_MODEL_SWITCH,
     DESC_YOLO,
     PANEL_AVAILABLE_COMMANDS,
-    PANEL_ERROR,
     PANEL_MESSAGE_HISTORY,
     PANEL_MODELS,
     UI_COLORS,
@@ -158,8 +157,10 @@ async def agent_streaming(content_stream, bottom: int = 1):
 
 
 async def error(text: str) -> None:
-    """Display an error panel."""
-    await panel(PANEL_ERROR, text, style=colors.error)
+    """Unified logging: error message."""
+    from .logging_compat import ui_logger
+
+    await ui_logger.error(text)
 
 
 async def dump_messages(messages_list=None, state_manager: StateManager = None) -> None:

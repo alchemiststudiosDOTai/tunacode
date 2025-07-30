@@ -6,7 +6,6 @@ Handles agent creation, configuration, and request processing.
 
 import asyncio
 import json
-import logging
 import os
 import re
 from datetime import datetime, timezone
@@ -14,6 +13,8 @@ from pathlib import Path
 from typing import Any, Iterator, List, Optional, Tuple
 
 from pydantic_ai import Agent
+
+from tunacode.core.logging.logger import get_logger
 
 # Import streaming types with fallback for older versions
 try:
@@ -59,7 +60,7 @@ from tunacode.types import (
 )
 
 # Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ToolBuffer:
@@ -519,12 +520,12 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 tunacode_content = tunacode_path.read_text(encoding="utf-8")
                 if tunacode_content.strip():
                     # Log that we found TUNACODE.md
-                    print("📄 TUNACODE.md located: Loading context...")
+                    logger.info("📄 TUNACODE.md located: Loading context...")
 
                     system_prompt += "\n\n# Project Context from TUNACODE.md\n" + tunacode_content
             else:
                 # Log that TUNACODE.md was not found
-                print("📄 TUNACODE.md not found: Using default context")
+                logger.info("📄 TUNACODE.md not found: Using default context")
         except Exception as e:
             # Log errors loading TUNACODE.md at debug level
             logger.debug(f"Error loading TUNACODE.md: {e}")
@@ -538,9 +539,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 system_prompt += f'\n\n# Current Todo List\n\nYou have existing todos that need attention:\n\n{current_todos}\n\nRemember to check progress on these todos and update them as you work. Use todo("list") to see current status anytime.'
         except Exception as e:
             # Log error but don't fail agent creation
-            import sys
 
-            print(f"Warning: Failed to load todos: {e}", file=sys.stderr)
+            logger.warning(f"Warning: Failed to load todos: {e}")
 
         state_manager.session.agents[model] = Agent(
             model=model,
@@ -795,14 +795,17 @@ async def process_request(
 
                 # Handle token-level streaming for model request nodes
                 if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
-                    async with node.stream(agent_run.ctx) as request_stream:
-                        async for event in request_stream:
-                            if isinstance(event, PartDeltaEvent) and isinstance(
-                                event.delta, TextPartDelta
-                            ):
-                                # Stream individual token deltas
-                                if event.delta.content_delta:
-                                    await streaming_callback(event.delta.content_delta)
+                    # Only stream content if thoughts are OFF. If thoughts are ON,
+                    # the detailed view in _process_node will show the content anyway.
+                    if not state_manager.session.show_thoughts:
+                        async with node.stream(agent_run.ctx) as request_stream:
+                            async for event in request_stream:
+                                if isinstance(event, PartDeltaEvent) and isinstance(
+                                    event.delta, TextPartDelta
+                                ):
+                                    # Stream individual token deltas
+                                    if event.delta.content_delta:
+                                        await streaming_callback(event.delta.content_delta)
 
                 await _process_node(
                     node,

@@ -81,7 +81,7 @@ async def multiline_input(
             "<darkgrey>"
             "<bold>Enter</bold> to submit • "
             "<bold>Esc + Enter</bold> for new line • "
-            "<bold>Esc</bold> to cancel • "
+            "<bold>Esc twice</bold> to cancel • "
             "<bold>/help</bold> for commands"
             "</darkgrey>"
         )

@@ -4,15 +4,15 @@ This module integrates DSPy's optimized prompts and tool selection logic
 into TunaCode's agent system for 3x performance improvements.
 """
 
-import logging
 import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DSPyIntegration:
