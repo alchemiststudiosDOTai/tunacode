@@ -49,6 +49,14 @@ class CostCalculator:
 
         pricing = model_config.pricing
 
+        # Safety check for None pricing
+        if not pricing:
+            return 0.0
+
+        # Safety check for None pricing attributes
+        if pricing.input is None or pricing.output is None:
+            return 0.0
+
         input_cost = (prompt_tokens / TOKENS_PER_MILLION) * pricing.input
 
         output_cost = (completion_tokens / TOKENS_PER_MILLION) * pricing.output

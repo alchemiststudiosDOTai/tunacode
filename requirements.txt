@@ -1,4 +1,0 @@
-typer==0.15.3
-pytest
-pytest-asyncio
-pydantic-ai[logfire]==0.2.6

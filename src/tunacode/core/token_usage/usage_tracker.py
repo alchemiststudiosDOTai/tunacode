@@ -60,17 +60,26 @@ class UsageTracker(UsageTrackerProtocol):
             if not api_model_name.startswith(provider_prefix + ":"):
                 final_model_name = f"{provider_prefix}:{api_model_name}"
 
-        return self.calculator.calculate_cost(
+        cost = self.calculator.calculate_cost(
             prompt_tokens=parsed_data.get("prompt_tokens", 0),
             completion_tokens=parsed_data.get("completion_tokens", 0),
             model_name=final_model_name,
         )
+
+        # Ensure cost is never None
+        return cost if cost is not None else 0.0
 
     def _update_state(self, parsed_data: dict, cost: float):
         """Updates the last_call and session_total usage in the state."""
         session = self.state_manager.session
         prompt_tokens = parsed_data.get("prompt_tokens", 0)
         completion_tokens = parsed_data.get("completion_tokens", 0)
+
+        # Initialize usage dicts if they're None
+        if session.last_call_usage is None:
+            session.last_call_usage = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
+        if session.session_total_usage is None:
+            session.session_total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
 
         # Update last call usage
         session.last_call_usage["prompt_tokens"] = prompt_tokens
@@ -85,6 +94,13 @@ class UsageTracker(UsageTrackerProtocol):
     async def _display_summary(self):
         """Formats and prints the usage summary to the console."""
         session = self.state_manager.session
+
+        # Initialize usage dicts if they're None
+        if session.last_call_usage is None:
+            session.last_call_usage = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
+        if session.session_total_usage is None:
+            session.session_total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
+
         prompt = session.last_call_usage["prompt_tokens"]
         completion = session.last_call_usage["completion_tokens"]
         last_cost = session.last_call_usage["cost"]

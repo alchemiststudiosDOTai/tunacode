@@ -22,6 +22,23 @@ async def test_repl_input_validation(inputs, expected_process_calls):
     state_manager.session.current_model = "gpt-test"
     state_manager.session.input_sessions = {}
     state_manager.session.show_thoughts = False
+    state_manager.session.user_config = {"context_window_size": 100000}
+    state_manager.session.max_tokens = 100000
+    state_manager.session.total_tokens = 0
+    state_manager.session.update_token_count = MagicMock()
+    state_manager.session._startup_shown = True
+    state_manager.session.current_task = None
+    state_manager.session.spinner = None
+    state_manager.session.session_total_usage = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cost": 0.0,
+    }
+    state_manager.session.last_call_usage = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cost": 0.0,
+    }
 
     # Patch UI and agent
     with (
@@ -39,9 +56,27 @@ async def test_repl_input_validation(inputs, expected_process_calls):
         agent_instance.run_mcp_servers = MagicMock(return_value=mcp_context)
         get_agent.return_value = agent_instance
 
+        # Track which input we're on
+        input_index = [0]
+
         # Simulate multiline_input yielding from the inputs list
         async def fake_multiline_input(*a, **kw):
-            return inputs.pop(0)
+            if input_index[0] < len(inputs):
+                val = inputs[input_index[0]]
+                input_index[0] += 1
+                # Give time for background tasks to complete
+                await asyncio.sleep(0.01)
+                return val
+            else:
+                raise Exception("No more inputs")
+
+        # Mock process_request to prevent actual processing
+        async def mock_process_request(text, state_manager, *args, **kwargs):
+            try:
+                await asyncio.sleep(0)  # Yield to event loop
+            finally:
+                # Mimic the real process_request clearing current_task
+                state_manager.session.current_task = None
 
         with (
             patch.object(repl_mod.ui, "multiline_input", new=fake_multiline_input),
@@ -54,6 +89,7 @@ async def test_repl_input_validation(inputs, expected_process_calls):
                 # Create a task that properly handles the coroutine to avoid RuntimeWarning
                 task = asyncio.create_task(coro)
                 return task
+
 
             get_app.return_value.create_background_task = MagicMock(
                 side_effect=mock_create_background_task

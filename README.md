@@ -1,4 +1,4 @@
-# TunaCode
+# TunaCode CLI
 
 <div align="center">
 
@@ -24,6 +24,29 @@ wget -qO- https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/maste
 # Option 2: pip install
 pip install tunacode-cli
 ```
+
+## Development Installation
+
+For contributors and developers who want to work on TunaCode:
+
+```bash
+# Clone the repository
+git clone https://github.com/alchemiststudiosDOTai/tunacode.git
+cd tunacode
+
+# Quick setup (recommended)
+./scripts/setup_dev_env.sh
+
+# Or manual setup
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -e ".[dev]"
+
+# Verify installation
+python -m tunacode --version
+```
+
+See [Development Guide](docs/DEVELOPMENT.md) for detailed instructions.
 
 ## Configuration
 
@@ -102,6 +125,7 @@ _Note: While the tool is fully functional, we're focusing on stability and core 
 - [**Advanced Configuration**](docs/ADVANCED-CONFIG.md) - Provider setup, MCP, customization
 - [**Architecture**](docs/ARCHITECTURE.md) - Source code organization and design
 - [**Development**](docs/DEVELOPMENT.md) - Contributing and development setup
+- [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Links
 
