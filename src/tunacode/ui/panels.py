@@ -135,7 +135,25 @@ class StreamingAgentPanel:
     async def stop(self):
         """Stop the live streaming display."""
         if self.live:
+            # Get the console before stopping the live display
+            from .output import console
+
+            # Stop the live display
             self.live.stop()
+
+            # Comprehensive cleanup to prevent extra lines
+            console.print("", end="")  # Reset the current line without newline
+            if hasattr(console, "file") and hasattr(console.file, "flush"):
+                console.file.flush()  # Ensure output is flushed
+
+            # Mark that we just finished streaming (for output control)
+            try:
+                from tunacode.core.logging.handlers import _streaming_context
+
+                _streaming_context["just_finished"] = True
+            except ImportError:
+                pass  # If we can't import, continue without the optimization
+
             self.live = None
 
 

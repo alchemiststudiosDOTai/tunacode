@@ -795,17 +795,14 @@ async def process_request(
 
                 # Handle token-level streaming for model request nodes
                 if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
-                    # Only stream content if thoughts are OFF. If thoughts are ON,
-                    # the detailed view in _process_node will show the content anyway.
-                    if not state_manager.session.show_thoughts:
-                        async with node.stream(agent_run.ctx) as request_stream:
-                            async for event in request_stream:
-                                if isinstance(event, PartDeltaEvent) and isinstance(
-                                    event.delta, TextPartDelta
-                                ):
-                                    # Stream individual token deltas
-                                    if event.delta.content_delta:
-                                        await streaming_callback(event.delta.content_delta)
+                    async with node.stream(agent_run.ctx) as request_stream:
+                        async for event in request_stream:
+                            if isinstance(event, PartDeltaEvent) and isinstance(
+                                event.delta, TextPartDelta
+                            ):
+                                # Stream individual token deltas
+                                if event.delta.content_delta:
+                                    await streaming_callback(event.delta.content_delta)
 
                 await _process_node(
                     node,

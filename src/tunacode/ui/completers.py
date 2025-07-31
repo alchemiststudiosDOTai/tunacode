@@ -17,7 +17,7 @@ class CommandCompleter(Completer):
         self.command_registry = command_registry
 
     def get_completions(
-        self, document: Document, complete_event: CompleteEvent
+        self, document: Document, _complete_event: CompleteEvent
     ) -> Iterable[Completion]:
         """Get completions for slash commands."""
         # Get the text before cursor
@@ -65,7 +65,7 @@ class FileReferenceCompleter(Completer):
     """Completer for @file references that provides file path suggestions."""
 
     def get_completions(
-        self, document: Document, complete_event: CompleteEvent
+        self, document: Document, _complete_event: CompleteEvent
     ) -> Iterable[Completion]:
         """Get completions for @file references."""
         # Get the word before cursor

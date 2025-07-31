@@ -4,6 +4,9 @@ import logging
 from rich.console import Console
 from rich.text import Text
 
+# Global context for streaming state
+_streaming_context = {"just_finished": False}
+
 
 class RichHandler(logging.Handler):
     """
@@ -32,7 +35,15 @@ class RichHandler(logging.Handler):
                 output = f"[{timestamp}] {icon} {msg}"
             else:
                 output = f"[{timestamp}] {msg}"
-            self.console.print(Text(output))
+
+            # Check if we just finished streaming to avoid extra newlines
+            just_finished_streaming = _streaming_context.get("just_finished", False)
+            if just_finished_streaming:
+                _streaming_context["just_finished"] = False  # Reset after use
+                # Don't add extra newline when transitioning from streaming
+                self.console.print(Text(output), end="\n")
+            else:
+                self.console.print(Text(output))
         except Exception:
             self.handleError(record)
 

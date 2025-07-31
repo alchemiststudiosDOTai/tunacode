@@ -356,7 +356,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
             # Always show files in context after agent response
             if state_manager.session.files_in_context:
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
-                await ui.muted(f"\nFiles in context: {', '.join(filenames)}")
+                await ui.muted(f"Files in context: {', '.join(filenames)}")
 
     # --- ERROR HANDLING ---
     except CancelledError:
@@ -408,7 +408,6 @@ async def repl(state_manager: StateManager):
     context_display = get_context_window_display(state_manager.session.total_tokens, max_tokens)
     await ui.muted(f"• Model: {model_name} • {context_display}")
     await ui.success("Ready to assist")
-    await ui.line()
 
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 

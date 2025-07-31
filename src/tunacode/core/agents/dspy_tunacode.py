@@ -438,7 +438,7 @@ def create_optimized_agent(api_key: str = None, model: str = "openrouter/openai/
     # Optimize tool selector
     tool_examples = get_tool_selection_examples()
     tool_optimizer = dspy.BootstrapFewShot(
-        metric=lambda ex, pred, trace: tool_selection_metric(ex, pred),
+        metric=lambda ex, pred, _trace: tool_selection_metric(ex, pred),
         max_bootstrapped_demos=3,
     )
     agent.tool_selector = tool_optimizer.compile(agent.tool_selector, trainset=tool_examples)
@@ -446,7 +446,7 @@ def create_optimized_agent(api_key: str = None, model: str = "openrouter/openai/
     # Optimize task planner
     task_examples = get_task_planning_examples()
     task_optimizer = dspy.BootstrapFewShot(
-        metric=lambda ex, pred, trace: task_planning_metric(ex, pred),
+        metric=lambda ex, pred, _trace: task_planning_metric(ex, pred),
         max_bootstrapped_demos=2,
     )
     agent.task_planner = task_optimizer.compile(agent.task_planner, trainset=task_examples)

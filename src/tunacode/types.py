@@ -13,7 +13,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Prot
 # Try to import pydantic-ai types if available
 try:
     from pydantic_ai import Agent
-    from pydantic_ai.messages import ModelRequest, ModelResponse, ToolReturnPart
+    from pydantic_ai.messages import ModelRequest, ToolReturnPart
 
     PydanticAgent = Agent
     MessagePart = Union[ToolReturnPart, Any]
