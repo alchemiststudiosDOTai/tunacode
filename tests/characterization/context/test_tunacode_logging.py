@@ -11,7 +11,7 @@ from tunacode.core.state import StateManager
 
 
 @pytest.mark.asyncio
-async def test_tunacode_loading_message_displayed():
+async def test_tunacode_loading_message_displayed(caplog):
     """Test that TUNACODE.md loading message is displayed when found."""
     # Create a temporary directory with TUNACODE.md
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -42,26 +42,17 @@ This file provides guidance to AI assistants.
             state_manager.session.show_thoughts = True
 
             # Create agent (this should log the message)
-            # Capture logs using caplog fixture would be better, but for now let's check stdout
-            import sys
-            from io import StringIO
+            get_or_create_agent("openai:gpt-4", state_manager)
 
-            captured_output = StringIO()
-            sys.stdout = captured_output
-
-            try:
-                get_or_create_agent("openai:gpt-4", state_manager)
-                output = captured_output.getvalue()
-                assert "📄 TUNACODE.md located: Loading context..." in output
-            finally:
-                sys.stdout = sys.__stdout__
+            # Check the log messages
+            assert "📄 TUNACODE.md located: Loading context..." in caplog.text
 
         finally:
             os.chdir(original_cwd)
 
 
 @pytest.mark.asyncio
-async def test_tunacode_not_found_message():
+async def test_tunacode_not_found_message(caplog):
     """Test that TUNACODE.md not found message is displayed when file doesn't exist."""
     # Create a temporary directory WITHOUT TUNACODE.md
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -74,18 +65,10 @@ async def test_tunacode_not_found_message():
             state_manager = StateManager()
 
             # Create agent (should log not found message)
-            import sys
-            from io import StringIO
+            get_or_create_agent("openai:gpt-4", state_manager)
 
-            captured_output = StringIO()
-            sys.stdout = captured_output
-
-            try:
-                get_or_create_agent("openai:gpt-4", state_manager)
-                output = captured_output.getvalue()
-                assert "📄 TUNACODE.md not found: Using default context" in output
-            finally:
-                sys.stdout = sys.__stdout__
+            # Check the log messages
+            assert "📄 TUNACODE.md not found: Using default context" in caplog.text
 
         finally:
             os.chdir(original_cwd)

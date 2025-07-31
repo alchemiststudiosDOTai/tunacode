@@ -24,17 +24,7 @@ async def test_async_print_calls_console_print():
 
 
 @pytest.mark.asyncio
-async def test_async_info_formats_and_prints():
+async def test_async_info_formats_and_prints(caplog):
     # info() now goes through ui_logger, let's test that
-    import sys
-    from io import StringIO
-
-    captured_output = StringIO()
-    sys.stdout = captured_output
-
-    try:
-        await output_mod.info("Test info")
-        output = captured_output.getvalue()
-        assert "Test info" in output
-    finally:
-        sys.stdout = sys.__stdout__
+    await output_mod.info("Test info")
+    assert "Test info" in caplog.text

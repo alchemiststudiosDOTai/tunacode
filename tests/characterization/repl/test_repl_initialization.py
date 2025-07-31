@@ -28,7 +28,6 @@ async def test_repl_initialization_basic(monkeypatch):
     with (
         patch.object(repl_mod.ui, "muted", new=AsyncMock()) as muted,
         patch.object(repl_mod.ui, "success", new=AsyncMock()) as success,
-        patch.object(repl_mod.ui, "line", new=AsyncMock()) as line,
         patch.object(repl_mod.agent, "get_or_create_agent") as get_agent,
     ):
         # Mock agent instance and MCP context
@@ -54,6 +53,5 @@ async def test_repl_initialization_basic(monkeypatch):
         f"• Model: gpt-test • [b]Context:[/] [{UI_COLORS['success']}]100/200,000 (0%)[/]"
     )
     success.assert_awaited()
-    line.assert_awaited()
     get_agent.assert_called_once_with("gpt-test", state_manager)
     info.assert_awaited_with("Session ended. Happy coding!")
