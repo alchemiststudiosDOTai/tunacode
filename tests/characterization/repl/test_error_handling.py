@@ -51,7 +51,7 @@ async def test_process_request_simple_error_handling(
         patch.object(repl_mod.ui, "muted", ui_muted_mock),
         patch.object(repl_mod.ui, "error", ui_error_mock),
         patch.object(repl_mod.ui, "spinner", ui_spinner_mock),
-        patch.object(repl_mod.agent, "process_request", side_effect=exception_type),
+        patch.object(repl_mod.agent, "process_request", new=AsyncMock(side_effect=exception_type)),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
         patch.object(repl_mod, "patch_tool_messages", patch_tool_messages_mock),
         patch("tunacode.cli.repl.run_in_terminal", new=AsyncMock()),
@@ -127,7 +127,9 @@ async def test_process_request_tool_recovery_logic(
         patch.object(repl_mod.ui, "error", ui_error_mock),
         patch.object(repl_mod.ui, "warning", ui_warning_mock),
         patch.object(repl_mod.ui, "spinner", ui_spinner_mock),
-        patch.object(repl_mod.agent, "process_request", side_effect=Exception(error_message)),
+        patch.object(
+            repl_mod.agent, "process_request", new=AsyncMock(side_effect=Exception(error_message))
+        ),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
         patch("tunacode.core.agents.main.extract_and_execute_tool_calls", extract_tool_calls_mock),
         patch("tunacode.cli.repl.run_in_terminal", new=AsyncMock()),
@@ -177,7 +179,11 @@ async def test_process_request_tool_recovery_no_messages():
         patch.object(repl_mod.ui, "error", ui_error_mock),
         patch.object(repl_mod.ui, "warning", ui_warning_mock),
         patch.object(repl_mod.ui, "spinner", new=AsyncMock()),
-        patch.object(repl_mod.agent, "process_request", side_effect=Exception("tool call failed")),
+        patch.object(
+            repl_mod.agent,
+            "process_request",
+            new=AsyncMock(side_effect=Exception("tool call failed")),
+        ),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
         patch("tunacode.core.agents.main.extract_and_execute_tool_calls", extract_tool_calls_mock),
         patch("tunacode.cli.repl.run_in_terminal", new=AsyncMock()),
@@ -219,7 +225,9 @@ async def test_process_request_tool_recovery_no_parts():
         patch.object(repl_mod.ui, "warning", ui_warning_mock),
         patch.object(repl_mod.ui, "spinner", new=AsyncMock()),
         patch.object(
-            repl_mod.agent, "process_request", side_effect=Exception("function call error")
+            repl_mod.agent,
+            "process_request",
+            new=AsyncMock(side_effect=Exception("function call error")),
         ),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
         patch("tunacode.core.agents.main.extract_and_execute_tool_calls", extract_tool_calls_mock),

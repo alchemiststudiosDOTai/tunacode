@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -39,11 +40,17 @@ async def test_repl_multiline_input_handling():
         with (
             patch.object(repl_mod.ui, "multiline_input", new=fake_multiline_input),
             patch("tunacode.cli.repl.get_app") as get_app,
+            patch("tunacode.cli.repl.process_request", new=AsyncMock()),
         ):
-            bg_task = AsyncMock()
-            bg_task.done.return_value = AsyncMock(return_value=True)
+            # Use AsyncMock to properly handle the coroutine passed to create_background_task
+            def mock_create_background_task(coro):
+                # Create a task that properly handles the coroutine to avoid RuntimeWarning
+                task = asyncio.create_task(coro)
+                return task
 
-            get_app.return_value.create_background_task = AsyncMock(return_value=bg_task)
+            get_app.return_value.create_background_task = MagicMock(
+                side_effect=mock_create_background_task
+            )
 
             await repl_mod.repl(state_manager)
 

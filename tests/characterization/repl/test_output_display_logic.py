@@ -57,7 +57,7 @@ async def test_process_request_output_display_logic(
         patch.object(repl_mod.ui, "agent", ui_agent_mock),
         patch.object(repl_mod.ui, "muted", ui_muted_mock),
         patch.object(repl_mod.ui, "spinner", ui_spinner_mock),
-        patch.object(repl_mod.agent, "process_request", return_value=result_obj),
+        patch.object(repl_mod.agent, "process_request", new=AsyncMock(return_value=result_obj)),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
     ):
         # Mock streaming panel for streaming tests
