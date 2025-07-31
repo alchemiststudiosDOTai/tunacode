@@ -77,3 +77,35 @@ exclude = [
     "dist",
     "venv",
 ]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src", "tests"]
+exclude = ["venv/", "build/", "dist/", ".git/", "__pycache__/", "*.egg-info/"]
+# Whitelist of false positives
+ignore_names = [
+    # TYPE_CHECKING imports
+    "ReadStream",
+    "WriteStream", 
+    "StateManager",
+    "ModelRequest",
+    "CommandRegistry",
+    # Pytest fixtures
+    "caplog",
+    "temp_workspace", 
+    "setup_test_environment",
+    "excinfo",
+    # Common patterns
+    "_complete_event",  # prompt_toolkit API requirement
+    "kw",  # **kw pattern
+    "kwargs",  # **kwargs pattern
+    "message",  # exception handling
+    "response_obj",  # API responses
+    # Test parameters and mock arguments
+    "should_restart",  # test parameter
+    "exc",  # exception handling in __aexit__
+    "exc_type",  # exception handling in __aexit__
+    "tb",  # traceback in __aexit__
+    "style_dict",  # Style.from_dict parameter
+    "style_str",  # get_attrs_for_style_str parameter
+]

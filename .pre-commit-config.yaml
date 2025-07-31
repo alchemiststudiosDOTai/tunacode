@@ -9,6 +9,14 @@ repos:
         always_run: true
         stages: [pre-commit]
       
+      - id: vulture-check
+        name: Check for dead code with vulture
+        entry: make vulture-check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+      
       - id: make-test
         name: Run make test
         entry: make test

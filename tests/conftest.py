@@ -106,8 +106,10 @@ if "pydantic_ai" not in sys.modules:
             pass
 
         async def iter(self, *args, **kwargs):
-            if False:
-                yield None
+            # This is an async generator stub for testing
+            # Using empty async generator pattern
+            for _ in []:
+                yield
 
         def run_mcp_servers(self):
             # Return a context manager for MCP servers

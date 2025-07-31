@@ -24,7 +24,6 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "fallback_response": True,
         "fallback_verbosity": "normal",  # Options: minimal, normal, detailed
         "context_window_size": 200000,
-        "use_dspy_optimization": True,  # Enable DSPy tool selection optimization
     },
     "mcpServers": {},
 }

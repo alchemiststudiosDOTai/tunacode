@@ -23,8 +23,6 @@ pip install vulture
 
 ### 2. Unused Variables (76 items)
 **src/**
-- [x] `src/tunacode/core/agents/dspy_tunacode.py:441`: unused variable 'trace' (100% confidence)
-- [x] `src/tunacode/core/agents/dspy_tunacode.py:449`: unused variable 'trace' (100% confidence)
 - [x] `src/tunacode/ui/completers.py:20`: unused variable 'complete_event' (100% confidence)
 - [x] `src/tunacode/ui/completers.py:68`: unused variable 'complete_event' (100% confidence)
 
@@ -62,22 +60,51 @@ pip install vulture
 - Date: 2025-07-31
 - Files affected:
   - `src/tunacode/types.py`
-  - `src/tunacode/core/agents/dspy_tunacode.py`
   - `src/tunacode/ui/completers.py`
-  - `.vulture.py`
+  - `whitelist.py` (moved to `pyproject.toml`)
 - Items removed:
   - `ModelResponse` import from `src/tunacode/types.py`
-  - Renamed `trace` to `_trace` in `src/tunacode/core/agents/dspy_tunacode.py`
   - Renamed `complete_event` to `_complete_event` in `src/tunacode/ui/completers.py`
 - Tests passed: [ ] (78/658 failed)
 
-### Batch 2
+### Batch 2 - Configuration Migration & Pre-commit Integration
+- Date: 2025-07-31
+- Files affected:
+  - `pyproject.toml` (added `[tool.vulture]` section)
+  - `whitelist.py` (removed - migrated to pyproject.toml)
+  - `docs/deadcode.md` (updated documentation)
+  - `Makefile` (added vulture and vulture-check targets)
+  - `.pre-commit-config.yaml` (added vulture-check hook)
+- Configuration changes:
+  - Migrated vulture whitelist from standalone file to pyproject.toml
+  - Added proper ignore_names list for false positives
+  - Set min_confidence to 80
+  - Added pre-commit hook for dead code detection (100% confidence)
+- Tests passed: [ ]
+
+### Batch 3
 - Date:
 - Files affected:
 - Items removed:
 - Tests passed: [ ]
 
 ## Vulture Configuration
+
+**Note**: Vulture configuration is now in `pyproject.toml` under the `[tool.vulture]` section.
+
+### Pre-commit Hook
+Vulture is integrated into the pre-commit hooks. It runs automatically before commits with:
+- `make vulture-check`: Checks for dead code with 100% confidence
+- `make vulture`: Full vulture scan with 80% confidence threshold
+
+To run manually:
+```bash
+# Check for dead code (100% confidence only)
+make vulture-check
+
+# Full scan (80% confidence threshold)
+make vulture
+```
 
 ### Command Line Options
 ```bash
@@ -90,8 +117,8 @@ vulture . --min-confidence 80
 # Exclude specific paths
 vulture . --exclude "*/tests/*,*/migrations/*"
 
-# Generate whitelist
-vulture . --make-whitelist > whitelist.py
+# Generate whitelist (deprecated - now using pyproject.toml)
+# vulture . --make-whitelist > whitelist.py
 ```
 
 ### Configuration File (.vulture.py)
@@ -130,7 +157,6 @@ Vulture.ignore_paths.append("file_*.py")
 1. **Test fixtures dominate the findings**: Most unused variables in tests/ are likely pytest fixtures or intentionally unused parameters
 2. **Low count in src/**: Only 7 findings in production code indicates good code hygiene
 3. **Import cleanup needed**: MCP-related imports in services/mcp.py may be leftovers from refactoring
-4. **Trace variables**: Two unused 'trace' variables in dspy_tunacode.py suggest incomplete debugging removal
 
 ### Recommended Approach:
 1. **Start with src/ directory**: Only 7 items, high impact, low risk
