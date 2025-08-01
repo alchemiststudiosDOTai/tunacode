@@ -20,6 +20,12 @@ lint-check:
 	ruff check .
 	ruff format --check .
 
+vulture:
+	venv/bin/vulture --config pyproject.toml
+
+vulture-check:
+	venv/bin/vulture --config pyproject.toml --min-confidence 100
+
 test:
 	venv/bin/python -m pytest -q tests/characterization tests/test_security.py tests/test_agent_output_formatting.py tests/test_prompt_changes_validation.py
 

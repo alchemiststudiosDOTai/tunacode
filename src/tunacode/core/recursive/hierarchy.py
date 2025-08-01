@@ -332,10 +332,11 @@ class TaskHierarchy:
         """Propagate context from one task to another.
 
         Args:
-            from_task: Source task ID
+            from_task: Source task ID (unused, kept for API consistency)
             to_task: Target task ID
             context_update: Context to propagate
         """
+        _ = from_task  # Unused but kept for API consistency
         if to_task in self._execution_contexts:
             self._execution_contexts[to_task].inherited_context.update(context_update)
 

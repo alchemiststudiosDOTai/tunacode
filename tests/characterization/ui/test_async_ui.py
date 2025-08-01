@@ -24,7 +24,7 @@ async def test_async_print_calls_console_print():
 
 
 @pytest.mark.asyncio
-async def test_async_info_formats_and_prints():
-    with patch("tunacode.ui.output.print") as mock_print:
-        await output_mod.info("Test info")
-        mock_print.assert_called_once()
+async def test_async_info_formats_and_prints(caplog):
+    # info() now goes through ui_logger, let's test that
+    await output_mod.info("Test info")
+    assert "Test info" in caplog.text

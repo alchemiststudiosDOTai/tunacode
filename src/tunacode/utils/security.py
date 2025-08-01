@@ -3,13 +3,14 @@ Security utilities for safe command execution and input validation.
 Provides defensive measures against command injection attacks.
 """
 
-import logging
 import re
 import shlex
 import subprocess
 from typing import List, Optional
 
-logger = logging.getLogger(__name__)
+from tunacode.core.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Dangerous shell metacharacters that indicate potential injection
 DANGEROUS_CHARS = [

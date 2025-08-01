@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 
 from pydantic_ai.exceptions import ModelRetry
 
+from tunacode.core.logging.logger import get_logger
 from tunacode.exceptions import FileOperationError, ToolExecutionError
 from tunacode.types import FilePath, ToolName, ToolResult, UILogger
 
@@ -22,6 +23,7 @@ class BaseTool(ABC):
             ui_logger: UI logger instance for displaying messages
         """
         self.ui = ui_logger
+        self.logger = get_logger(self.__class__.__name__)
 
     async def execute(self, *args, **kwargs) -> ToolResult:
         """Execute the tool with error handling and logging.
@@ -39,14 +41,17 @@ class BaseTool(ABC):
             ToolExecutionError: Raised for all other errors with structured information
         """
         try:
+            msg = f"{self.tool_name}({self._format_args(*args, **kwargs)})"
             if self.ui:
-                await self.ui.info(f"{self.tool_name}({self._format_args(*args, **kwargs)})")
+                await self.ui.info(msg)
+            self.logger.info(msg)
             result = await self._execute(*args, **kwargs)
             return result
         except ModelRetry as e:
             # Log as warning and re-raise for pydantic-ai
             if self.ui:
                 await self.ui.warning(str(e))
+            self.logger.warning(f"ModelRetry: {e}")
             raise
         except ToolExecutionError:
             # Already properly formatted, just re-raise
@@ -90,6 +95,7 @@ class BaseTool(ABC):
         err_msg = f"Error {self._get_error_context(*args, **kwargs)}: {error}"
         if self.ui:
             await self.ui.error(err_msg)
+        self.logger.error(err_msg)
 
         # Raise proper exception instead of returning string
         raise ToolExecutionError(tool_name=self.tool_name, message=str(error), original_error=error)

@@ -9,29 +9,26 @@ from rich.markdown import Markdown
 # Import and re-export all functions from specialized modules
 from .input import formatted_text, input, multiline_input
 from .keybindings import create_key_bindings
+
+# Unified UI logger compatibility layer
+from .logging_compat import ui_logger
 from .output import (
     banner,
     clear,
-    info,
     line,
     muted,
     print,
     spinner,
-    success,
     sync_print,
     update_available,
     usage,
     version,
-    warning,
 )
-
-# Patch banner to use sync fast version
 from .panels import (
     StreamingAgentPanel,
     agent,
     agent_streaming,
     dump_messages,
-    error,
     help,
     models,
     panel,
@@ -41,6 +38,28 @@ from .panels import (
 )
 from .prompt_manager import PromptConfig, PromptManager
 from .validators import ModelValidator
+
+
+# Async wrappers for UI logging
+async def info(message: str) -> None:
+    await ui_logger.info(message)
+
+
+async def warning(message: str) -> None:
+    await ui_logger.warning(message)
+
+
+async def error(message: str) -> None:
+    await ui_logger.error(message)
+
+
+async def debug(message: str) -> None:
+    await ui_logger.debug(message)
+
+
+async def success(message: str) -> None:
+    await ui_logger.success(message)
+
 
 # Create console object for backward compatibility
 console = RichConsole(force_terminal=True, legacy_windows=False)
@@ -68,22 +87,24 @@ __all__ = [
     "banner",
     "clear",
     "console",
-    "info",
     "line",
     "muted",
     "print",
     "spinner",
-    "success",
     "sync_print",
     "update_available",
     "usage",
     "version",
+    # Unified logging wrappers
+    "info",
     "warning",
+    "error",
+    "debug",
+    "success",
     # From panels module
     "agent",
     "agent_streaming",
     "dump_messages",
-    "error",
     "help",
     "models",
     "panel",

@@ -9,7 +9,6 @@ from rich.padding import Padding
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.table import Table
-from rich.text import Text
 
 from tunacode.configuration.models import ModelRegistry
 from tunacode.constants import (
@@ -31,7 +30,6 @@ from tunacode.constants import (
     DESC_MODEL_SWITCH,
     DESC_YOLO,
     PANEL_AVAILABLE_COMMANDS,
-    PANEL_ERROR,
     PANEL_MESSAGE_HISTORY,
     PANEL_MODELS,
     UI_COLORS,
@@ -88,17 +86,17 @@ class StreamingAgentPanel:
     def _create_panel(self) -> Panel:
         """Create a Rich panel with current content."""
         # Use the UI_THINKING_MESSAGE constant instead of hardcoded text
+        from rich.text import Text
+
         from tunacode.constants import UI_THINKING_MESSAGE
 
-        # If no content, show thinking message with Rich markup
+        # Handle the default thinking message with Rich markup
         if not self.content:
-            content_to_display = Text.from_markup(UI_THINKING_MESSAGE)
+            content_renderable = Text.from_markup(UI_THINKING_MESSAGE)
         else:
-            # Normal content is markdown
-            content_to_display = Markdown(self.content)
-
+            content_renderable = Markdown(self.content)
         panel_obj = Panel(
-            Padding(content_to_display, (0, 1, 0, 1)),
+            Padding(content_renderable, (0, 1, 0, 1)),
             title=f"[bold]{self.title}[/bold]",
             title_align="left",
             border_style=colors.primary,
@@ -137,7 +135,25 @@ class StreamingAgentPanel:
     async def stop(self):
         """Stop the live streaming display."""
         if self.live:
+            # Get the console before stopping the live display
+            from .output import console
+
+            # Stop the live display
             self.live.stop()
+
+            # Comprehensive cleanup to prevent extra lines
+            console.print("", end="")  # Reset the current line without newline
+            if hasattr(console, "file") and hasattr(console.file, "flush"):
+                console.file.flush()  # Ensure output is flushed
+
+            # Mark that we just finished streaming (for output control)
+            try:
+                from tunacode.core.logging.handlers import _streaming_context
+
+                _streaming_context["just_finished"] = True
+            except ImportError:
+                pass  # If we can't import, continue without the optimization
+
             self.live = None
 
 
@@ -159,8 +175,10 @@ async def agent_streaming(content_stream, bottom: int = 1):
 
 
 async def error(text: str) -> None:
-    """Display an error panel."""
-    await panel(PANEL_ERROR, text, style=colors.error)
+    """Unified logging: error message."""
+    from .logging_compat import ui_logger
+
+    await ui_logger.error(text)
 
 
 async def dump_messages(messages_list=None, state_manager: StateManager = None) -> None:

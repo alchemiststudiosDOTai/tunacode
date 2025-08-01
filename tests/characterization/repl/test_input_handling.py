@@ -90,7 +90,6 @@ async def test_repl_input_validation(inputs, expected_process_calls):
                 task = asyncio.create_task(coro)
                 return task
 
-
             get_app.return_value.create_background_task = MagicMock(
                 side_effect=mock_create_background_task
             )

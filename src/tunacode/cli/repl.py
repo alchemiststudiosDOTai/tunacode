@@ -90,6 +90,12 @@ def _parse_args(args) -> ToolArgs:
 
 async def _tool_handler(part, state_manager: StateManager):
     """Handle tool execution with separated business logic and UI."""
+    # Check for cancellation before tool execution (only if explicitly set to True)
+    operation_cancelled = getattr(state_manager.session, "operation_cancelled", False)
+    if operation_cancelled is True:
+        logger.debug("Tool execution cancelled")
+        raise CancelledError("Operation was cancelled")
+
     tool_handler = ToolHandler(state_manager)
 
     if tool_handler.should_confirm(part.tool_name):
@@ -249,6 +255,12 @@ async def _display_agent_output(res, enable_streaming: bool) -> None:
 async def process_request(text: str, state_manager: StateManager, output: bool = True):
     """Process input using the agent, handling cancellation safely."""
 
+    # Check for cancellation before starting (only if explicitly set to True)
+    operation_cancelled = getattr(state_manager.session, "operation_cancelled", False)
+    if operation_cancelled is True:
+        logger.debug("Operation cancelled before processing started")
+        raise CancelledError("Operation was cancelled")
+
     state_manager.session.spinner = await ui.spinner(
         True, state_manager.session.spinner, state_manager
     )
@@ -274,6 +286,12 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
         except ValueError as e:
             await ui.error(str(e))
             return
+
+        # Check for cancellation before proceeding with agent call (only if explicitly set to True)
+        operation_cancelled = getattr(state_manager.session, "operation_cancelled", False)
+        if operation_cancelled is True:
+            logger.debug("Operation cancelled before agent processing")
+            raise CancelledError("Operation was cancelled")
 
         enable_streaming = state_manager.session.user_config.get("settings", {}).get(
             "enable_streaming", True
@@ -338,7 +356,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
             # Always show files in context after agent response
             if state_manager.session.files_in_context:
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
-                await ui.muted(f"\nFiles in context: {', '.join(filenames)}")
+                await ui.muted(f"Files in context: {', '.join(filenames)}")
 
     # --- ERROR HANDLING ---
     except CancelledError:
@@ -360,6 +378,9 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
     finally:
         await ui.spinner(False, state_manager.session.spinner, state_manager)
         state_manager.session.current_task = None
+        # Reset cancellation flag when task completes (if attribute exists)
+        if hasattr(state_manager.session, "operation_cancelled"):
+            state_manager.session.operation_cancelled = False
 
         if "multiline" in state_manager.session.input_sessions:
             await run_in_terminal(
@@ -459,6 +480,10 @@ async def repl(state_manager: StateManager):
             if state_manager.session.current_task and not state_manager.session.current_task.done():
                 await ui.muted(MSG_AGENT_BUSY)
                 continue
+
+            # Reset cancellation flag for new operations (if attribute exists)
+            if hasattr(state_manager.session, "operation_cancelled"):
+                state_manager.session.operation_cancelled = False
 
             state_manager.session.current_task = get_app().create_background_task(
                 process_request(line, state_manager)

@@ -75,12 +75,13 @@ async def multiline_input(
     state_manager: Optional[StateManager] = None, command_registry=None
 ) -> str:
     """Get multiline input from the user with @file completion and highlighting."""
-    kb = create_key_bindings()
+    kb = create_key_bindings(state_manager)
     placeholder = formatted_text(
         (
             "<darkgrey>"
             "<bold>Enter</bold> to submit • "
             "<bold>Esc + Enter</bold> for new line • "
+            "<bold>Esc twice</bold> to cancel • "
             "<bold>/help</bold> for commands"
             "</darkgrey>"
         )

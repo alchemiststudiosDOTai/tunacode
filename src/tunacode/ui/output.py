@@ -18,6 +18,7 @@ from tunacode.utils.token_counter import format_token_count
 
 from .constants import SPINNER_TYPE
 from .decorators import create_sync_wrapper
+from .logging_compat import ui_logger
 
 # Create console with explicit settings to ensure ANSI codes work properly
 console = Console(force_terminal=True, legacy_windows=False)
@@ -54,18 +55,18 @@ async def line() -> None:
 
 
 async def info(text: str) -> None:
-    """Print an informational message."""
-    await print(f"[{colors.primary}]●[/{colors.primary}] {text}", style=colors.muted)
+    """Unified logging: informational message."""
+    await ui_logger.info(text)
 
 
 async def success(message: str) -> None:
-    """Print a success message."""
-    await print(f"[{colors.success}]✓[/{colors.success}] {message}")
+    """Unified logging: success message."""
+    await ui_logger.success(message)
 
 
 async def warning(text: str) -> None:
-    """Print a warning message."""
-    await print(f"[{colors.warning}]⚠[/{colors.warning}] {text}")
+    """Unified logging: warning message."""
+    await ui_logger.warning(text)
 
 
 async def muted(text: str) -> None:

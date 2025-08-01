@@ -6,7 +6,6 @@ Handles agent creation, configuration, and request processing.
 
 import asyncio
 import json
-import logging
 import os
 import re
 from datetime import datetime, timezone
@@ -14,6 +13,8 @@ from pathlib import Path
 from typing import Any, Iterator, List, Optional, Tuple
 
 from pydantic_ai import Agent
+
+from tunacode.core.logging.logger import get_logger
 
 # Import streaming types with fallback for older versions
 try:
@@ -30,11 +31,10 @@ except ImportError:
     STREAMING_AVAILABLE = False
 
 from tunacode.constants import READ_ONLY_TOOLS
-from tunacode.core.recursive import RecursiveTaskExecutor
 from tunacode.core.state import StateManager
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 from tunacode.core.token_usage.cost_calculator import CostCalculator
-from tunacode.exceptions import ToolBatchingJSONError
+from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
 from tunacode.services.mcp import get_mcp_servers
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
@@ -60,7 +60,7 @@ from tunacode.types import (
 )
 
 # Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ToolBuffer:
@@ -528,12 +528,12 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 tunacode_content = tunacode_path.read_text(encoding="utf-8")
                 if tunacode_content.strip():
                     # Log that we found TUNACODE.md
-                    print("📄 TUNACODE.md located: Loading context...")
+                    logger.info("📄 TUNACODE.md located: Loading context...")
 
                     system_prompt += "\n\n# Project Context from TUNACODE.md\n" + tunacode_content
             else:
                 # Log that TUNACODE.md was not found
-                print("📄 TUNACODE.md not found: Using default context")
+                logger.info("📄 TUNACODE.md not found: Using default context")
         except Exception as e:
             # Log errors loading TUNACODE.md at debug level
             logger.debug(f"Error loading TUNACODE.md: {e}")
@@ -547,9 +547,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 system_prompt += f'\n\n# Current Todo List\n\nYou have existing todos that need attention:\n\n{current_todos}\n\nRemember to check progress on these todos and update them as you work. Use todo("list") to see current status anytime.'
         except Exception as e:
             # Log error but don't fail agent creation
-            import sys
 
-            print(f"Warning: Failed to load todos: {e}", file=sys.stderr)
+            logger.warning(f"Warning: Failed to load todos: {e}")
 
         state_manager.session.agents[model] = Agent(
             model=model,
@@ -752,160 +751,115 @@ async def process_request(
     tool_callback: Optional[ToolCallback] = None,
     streaming_callback: Optional[callable] = None,
 ) -> AgentRun:
-    agent = get_or_create_agent(model, state_manager)
-    mh = state_manager.session.messages.copy()
-    # Get max iterations from config (default: 40)
-    max_iterations = state_manager.session.user_config.get("settings", {}).get("max_iterations", 40)
-    fallback_enabled = state_manager.session.user_config.get("settings", {}).get(
-        "fallback_response", True
-    )
+    try:
+        agent = get_or_create_agent(model, state_manager)
+        mh = state_manager.session.messages.copy()
+        # Get max iterations from config (default: 40)
+        max_iterations = state_manager.session.user_config.get("settings", {}).get(
+            "max_iterations", 40
+        )
+        fallback_enabled = state_manager.session.user_config.get("settings", {}).get(
+            "fallback_response", True
+        )
 
-    # Check if recursive execution is enabled
-    use_recursive = state_manager.session.user_config.get("settings", {}).get(
-        "use_recursive_execution", True
-    )
-    recursive_threshold = state_manager.session.user_config.get("settings", {}).get(
-        "recursive_complexity_threshold", 0.7
-    )
+        from tunacode.configuration.models import ModelRegistry
+        from tunacode.core.token_usage.usage_tracker import UsageTracker
 
-    # Check if recursive execution should be used
-    if use_recursive and state_manager.session.current_recursion_depth == 0:
-        try:
-            # Initialize recursive executor
-            recursive_executor = RecursiveTaskExecutor(
-                state_manager=state_manager,
-                max_depth=state_manager.session.max_recursion_depth,
-                min_complexity_threshold=recursive_threshold,
-                default_iteration_budget=max_iterations,
-            )
+        parser = ApiResponseParser()
+        registry = ModelRegistry()
+        calculator = CostCalculator(registry)
+        usage_tracker = UsageTracker(parser, calculator, state_manager)
+        response_state = ResponseState()
 
-            # Analyze task complexity
-            complexity_result = await recursive_executor.decomposer.analyze_and_decompose(message)
+        # Reset iteration tracking for this request
+        state_manager.session.iteration_count = 0
 
-            if (
-                complexity_result.should_decompose
-                and complexity_result.total_complexity >= recursive_threshold
-            ):
-                if state_manager.session.show_thoughts:
-                    from tunacode.ui import console as ui
+        # Create a request-level buffer for batching read-only tools across nodes
+        tool_buffer = ToolBuffer()
 
-                    await ui.muted(
-                        f"\n🔄 RECURSIVE EXECUTION: Task complexity {complexity_result.total_complexity:.2f} >= {recursive_threshold}"
-                    )
-                    await ui.muted(f"Reasoning: {complexity_result.reasoning}")
-                    await ui.muted(f"Subtasks: {len(complexity_result.subtasks)}")
-
-                # Execute recursively
-                success, result, error = await recursive_executor.execute_task(
-                    request=message, parent_task_id=None, depth=0
-                )
-
-                # For now, fall back to normal execution
-                # TODO: Properly integrate recursive execution results
-                pass
-        except Exception as e:
-            logger.warning(f"Recursive execution failed, falling back to normal: {e}")
-            # Continue with normal execution
-
-    from tunacode.configuration.models import ModelRegistry
-    from tunacode.core.token_usage.usage_tracker import UsageTracker
-
-    parser = ApiResponseParser()
-    registry = ModelRegistry()
-    calculator = CostCalculator(registry)
-    usage_tracker = UsageTracker(parser, calculator, state_manager)
-    response_state = ResponseState()
-
-    # Reset iteration tracking for this request
-    state_manager.session.iteration_count = 0
-
-    # Create a request-level buffer for batching read-only tools across nodes
-    tool_buffer = ToolBuffer()
-
-    # Show TUNACODE.md preview if it was loaded and thoughts are enabled
-    if state_manager.session.show_thoughts and hasattr(state_manager, "tunacode_preview"):
-        from tunacode.ui import console as ui
-
-        await ui.muted(state_manager.tunacode_preview)
-        # Clear the preview after displaying it once
-        delattr(state_manager, "tunacode_preview")
-
-    # Show what we're sending to the API when thoughts are enabled
-    if state_manager.session.show_thoughts:
-        from tunacode.ui import console as ui
-
-        await ui.muted("\n" + "=" * 60)
-        await ui.muted("📤 SENDING TO API:")
-        await ui.muted(f"Message: {message}")
-        await ui.muted(f"Model: {model}")
-        await ui.muted(f"Message History Length: {len(mh)}")
-        await ui.muted("=" * 60)
-
-    async with agent.iter(message, message_history=mh) as agent_run:
-        i = 0
-        async for node in agent_run:
-            state_manager.session.current_iteration = i + 1
-
-            # Handle token-level streaming for model request nodes
-            if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
-                async with node.stream(agent_run.ctx) as request_stream:
-                    async for event in request_stream:
-                        if isinstance(event, PartDeltaEvent) and isinstance(
-                            event.delta, TextPartDelta
-                        ):
-                            # Stream individual token deltas
-                            if event.delta.content_delta:
-                                await streaming_callback(event.delta.content_delta)
-
-            await _process_node(
-                node,
-                tool_callback,
-                state_manager,
-                tool_buffer,
-                streaming_callback,
-                usage_tracker,
-            )
-            if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
-                if node.result.output:
-                    response_state.has_user_response = True
-            i += 1
-            state_manager.session.iteration_count = i
-
-            # Display iteration progress if thoughts are enabled
-            if state_manager.session.show_thoughts:
-                from tunacode.ui import console as ui
-
-                await ui.muted(f"\nITERATION: {i}/{max_iterations}")
-
-                # Show summary of tools used so far
-                if state_manager.session.tool_calls:
-                    tool_summary = {}
-                    for tc in state_manager.session.tool_calls:
-                        tool_name = tc.get("tool", "unknown")
-                        tool_summary[tool_name] = tool_summary.get(tool_name, 0) + 1
-
-                    summary_str = ", ".join(
-                        [f"{name}: {count}" for name, count in tool_summary.items()]
-                    )
-                    await ui.muted(f"TOOLS USED: {summary_str}")
-
-            if i >= max_iterations:
-                if state_manager.session.show_thoughts:
-                    from tunacode.ui import console as ui
-
-                    await ui.warning(f"Reached maximum iterations ({max_iterations})")
-                break
-
-        # Final flush: execute any remaining buffered read-only tools
-        if tool_callback and tool_buffer.has_tasks():
-            import time
-
+        # Show TUNACODE.md preview if it was loaded and thoughts are enabled
+        if state_manager.session.show_thoughts and hasattr(state_manager, "tunacode_preview"):
             from tunacode.ui import console as ui
 
-            buffered_tasks = tool_buffer.flush()
-            start_time = time.time()
+            await ui.muted(state_manager.tunacode_preview)
+            # Clear the preview after displaying it once
+            delattr(state_manager, "tunacode_preview")
 
-            if state_manager.session.show_thoughts:
+        # Show what we're sending to the API when thoughts are enabled
+        if state_manager.session.show_thoughts:
+            from tunacode.ui import console as ui
+
+            await ui.muted("\n" + "=" * 60)
+            await ui.muted("📤 SENDING TO API:")
+            await ui.muted(f"Message: {message}")
+            await ui.muted(f"Model: {model}")
+            await ui.muted(f"Message History Length: {len(mh)}")
+            await ui.muted("=" * 60)
+
+        async with agent.iter(message, message_history=mh) as agent_run:
+            i = 0
+            async for node in agent_run:
+                state_manager.session.current_iteration = i + 1
+
+                # Handle token-level streaming for model request nodes
+                if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
+                    async with node.stream(agent_run.ctx) as request_stream:
+                        async for event in request_stream:
+                            if isinstance(event, PartDeltaEvent) and isinstance(
+                                event.delta, TextPartDelta
+                            ):
+                                # Stream individual token deltas
+                                if event.delta.content_delta:
+                                    await streaming_callback(event.delta.content_delta)
+
+                await _process_node(
+                    node,
+                    tool_callback,
+                    state_manager,
+                    tool_buffer,
+                    streaming_callback,
+                    usage_tracker,
+                )
+                if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
+                    if node.result.output:
+                        response_state.has_user_response = True
+                i += 1
+                state_manager.session.iteration_count = i
+
+                # Display iteration progress if thoughts are enabled
+                if state_manager.session.show_thoughts:
+                    from tunacode.ui import console as ui
+
+                    await ui.muted(f"\nITERATION: {i}/{max_iterations}")
+
+                    # Show summary of tools used so far
+                    if state_manager.session.tool_calls:
+                        tool_summary = {}
+                        for tc in state_manager.session.tool_calls:
+                            tool_name = tc.get("tool", "unknown")
+                            tool_summary[tool_name] = tool_summary.get(tool_name, 0) + 1
+
+                        summary_str = ", ".join(
+                            [f"{name}: {count}" for name, count in tool_summary.items()]
+                        )
+                        await ui.muted(f"TOOLS USED: {summary_str}")
+
+                if i >= max_iterations:
+                    if state_manager.session.show_thoughts:
+                        from tunacode.ui import console as ui
+
+                        await ui.warning(f"Reached maximum iterations ({max_iterations})")
+                    break
+
+            # Final flush: execute any remaining buffered read-only tools
+            if tool_callback and tool_buffer.has_tasks():
+                import time
+
+                from tunacode.ui import console as ui
+
+                buffered_tasks = tool_buffer.flush()
+                start_time = time.time()
+
                 await ui.muted("\n" + "=" * 60)
                 await ui.muted(
                     f"🚀 FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools"
@@ -928,123 +882,152 @@ async def process_request(
                     await ui.muted(tool_desc)
                 await ui.muted("=" * 60)
 
-            await execute_tools_parallel(buffered_tasks, tool_callback)
+                await execute_tools_parallel(buffered_tasks, tool_callback)
 
-            elapsed_time = (time.time() - start_time) * 1000
-            sequential_estimate = len(buffered_tasks) * 100
-            speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
+                elapsed_time = (time.time() - start_time) * 1000
+                sequential_estimate = len(buffered_tasks) * 100
+                speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
 
-            if state_manager.session.show_thoughts:
                 await ui.muted(
                     f"✅ Final batch completed in {elapsed_time:.0f}ms "
                     f"(~{speedup:.1f}x faster than sequential)\n"
                 )
 
-        # If we need to add a fallback response, create a wrapper
-        if not response_state.has_user_response and i >= max_iterations and fallback_enabled:
-            patch_tool_messages("Task incomplete", state_manager=state_manager)
-            response_state.has_final_synthesis = True
+            # If we need to add a fallback response, create a wrapper
+            if not response_state.has_user_response and i >= max_iterations and fallback_enabled:
+                patch_tool_messages("Task incomplete", state_manager=state_manager)
+                response_state.has_final_synthesis = True
 
-            # Extract context from the agent run
-            tool_calls_summary = []
-            files_modified = set()
-            commands_run = []
+                # Extract context from the agent run
+                tool_calls_summary = []
+                files_modified = set()
+                commands_run = []
 
-            # Analyze message history for context
-            for msg in state_manager.session.messages:
-                if hasattr(msg, "parts"):
-                    for part in msg.parts:
-                        if hasattr(part, "part_kind") and part.part_kind == "tool-call":
-                            tool_name = getattr(part, "tool_name", "unknown")
-                            tool_calls_summary.append(tool_name)
+                # Analyze message history for context
+                for msg in state_manager.session.messages:
+                    if hasattr(msg, "parts"):
+                        for part in msg.parts:
+                            if hasattr(part, "part_kind") and part.part_kind == "tool-call":
+                                tool_name = getattr(part, "tool_name", "unknown")
+                                tool_calls_summary.append(tool_name)
 
-                            # Track specific operations
-                            if tool_name in ["write_file", "update_file"] and hasattr(part, "args"):
-                                if isinstance(part.args, dict) and "file_path" in part.args:
-                                    files_modified.add(part.args["file_path"])
-                            elif tool_name in ["run_command", "bash"] and hasattr(part, "args"):
-                                if isinstance(part.args, dict) and "command" in part.args:
-                                    commands_run.append(part.args["command"])
+                                # Track specific operations
+                                if tool_name in ["write_file", "update_file"] and hasattr(
+                                    part, "args"
+                                ):
+                                    if isinstance(part.args, dict) and "file_path" in part.args:
+                                        files_modified.add(part.args["file_path"])
+                                elif tool_name in ["run_command", "bash"] and hasattr(part, "args"):
+                                    if isinstance(part.args, dict) and "command" in part.args:
+                                        commands_run.append(part.args["command"])
 
-            # Build fallback response with context
-            fallback = FallbackResponse(
-                summary="Reached maximum iterations without producing a final response.",
-                progress=f"Completed {i} iterations (limit: {max_iterations})",
-            )
+                # Build fallback response with context
+                fallback = FallbackResponse(
+                    summary="Reached maximum iterations without producing a final response.",
+                    progress=f"Completed {i} iterations (limit: {max_iterations})",
+                )
 
-            # Get verbosity setting
-            verbosity = state_manager.session.user_config.get("settings", {}).get(
-                "fallback_verbosity", "normal"
-            )
+                # Get verbosity setting
+                verbosity = state_manager.session.user_config.get("settings", {}).get(
+                    "fallback_verbosity", "normal"
+                )
 
-            if verbosity in ["normal", "detailed"]:
-                # Add what was attempted
-                if tool_calls_summary:
-                    tool_counts = {}
-                    for tool in tool_calls_summary:
-                        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+                if verbosity in ["normal", "detailed"]:
+                    # Add what was attempted
+                    if tool_calls_summary:
+                        tool_counts = {}
+                        for tool in tool_calls_summary:
+                            tool_counts[tool] = tool_counts.get(tool, 0) + 1
 
-                    fallback.issues.append(f"Executed {len(tool_calls_summary)} tool calls:")
-                    for tool, count in sorted(tool_counts.items()):
-                        fallback.issues.append(f"  • {tool}: {count}x")
+                        fallback.issues.append(f"Executed {len(tool_calls_summary)} tool calls:")
+                        for tool, count in sorted(tool_counts.items()):
+                            fallback.issues.append(f"  • {tool}: {count}x")
 
-                if verbosity == "detailed":
-                    if files_modified:
-                        fallback.issues.append(f"\nFiles modified ({len(files_modified)}):")
-                        for f in sorted(files_modified)[:5]:  # Limit to 5 files
-                            fallback.issues.append(f"  • {f}")
-                        if len(files_modified) > 5:
-                            fallback.issues.append(f"  • ... and {len(files_modified) - 5} more")
+                    if verbosity == "detailed":
+                        if files_modified:
+                            fallback.issues.append(f"\nFiles modified ({len(files_modified)}):")
+                            for f in sorted(files_modified)[:5]:  # Limit to 5 files
+                                fallback.issues.append(f"  • {f}")
+                            if len(files_modified) > 5:
+                                fallback.issues.append(
+                                    f"  • ... and {len(files_modified) - 5} more"
+                                )
 
-                    if commands_run:
-                        fallback.issues.append(f"\nCommands executed ({len(commands_run)}):")
-                        for cmd in commands_run[:3]:  # Limit to 3 commands
-                            # Truncate long commands
-                            display_cmd = cmd if len(cmd) <= 60 else cmd[:57] + "..."
-                            fallback.issues.append(f"  • {display_cmd}")
-                        if len(commands_run) > 3:
-                            fallback.issues.append(f"  • ... and {len(commands_run) - 3} more")
+                        if commands_run:
+                            fallback.issues.append(f"\nCommands executed ({len(commands_run)}):")
+                            for cmd in commands_run[:3]:  # Limit to 3 commands
+                                # Truncate long commands
+                                display_cmd = cmd if len(cmd) <= 60 else cmd[:57] + "..."
+                                fallback.issues.append(f"  • {display_cmd}")
+                            if len(commands_run) > 3:
+                                fallback.issues.append(f"  • ... and {len(commands_run) - 3} more")
 
-            # Add helpful next steps
-            fallback.next_steps.append(
-                "The task may be too complex - try breaking it into smaller steps"
-            )
-            fallback.next_steps.append("Check the output above for any errors or partial progress")
-            if files_modified:
-                fallback.next_steps.append("Review modified files to see what changes were made")
+                # Add helpful next steps
+                fallback.next_steps.append(
+                    "The task may be too complex - try breaking it into smaller steps"
+                )
+                fallback.next_steps.append(
+                    "Check the output above for any errors or partial progress"
+                )
+                if files_modified:
+                    fallback.next_steps.append(
+                        "Review modified files to see what changes were made"
+                    )
 
-            # Create comprehensive output
-            output_parts = [fallback.summary, ""]
+                # Create comprehensive output
+                output_parts = [fallback.summary, ""]
 
-            if fallback.progress:
-                output_parts.append(f"Progress: {fallback.progress}")
+                if fallback.progress:
+                    output_parts.append(f"Progress: {fallback.progress}")
 
-            if fallback.issues:
-                output_parts.append("\nWhat happened:")
-                output_parts.extend(fallback.issues)
+                if fallback.issues:
+                    output_parts.append("\nWhat happened:")
+                    output_parts.extend(fallback.issues)
 
-            if fallback.next_steps:
-                output_parts.append("\nSuggested next steps:")
-                for step in fallback.next_steps:
-                    output_parts.append(f"  • {step}")
+                if fallback.next_steps:
+                    output_parts.append("\nSuggested next steps:")
+                    for step in fallback.next_steps:
+                        output_parts.append(f"  • {step}")
 
-            comprehensive_output = "\n".join(output_parts)
+                comprehensive_output = "\n".join(output_parts)
 
-            # Create a wrapper object that mimics AgentRun with the required attributes
-            class AgentRunWrapper:
-                def __init__(self, wrapped_run, fallback_result):
+                # Create a wrapper object that mimics AgentRun with the required attributes
+                class AgentRunWrapper:
+                    def __init__(self, wrapped_run, fallback_result):
+                        self._wrapped = wrapped_run
+                        self._result = fallback_result
+                        self.response_state = response_state
+
+                    def __getattribute__(self, name):
+                        # Handle special attributes first to avoid conflicts
+                        if name in ["_wrapped", "_result", "response_state"]:
+                            return object.__getattribute__(self, name)
+
+                        # Explicitly handle 'result' to return our fallback result
+                        if name == "result":
+                            return object.__getattribute__(self, "_result")
+
+                        # Delegate all other attributes to the wrapped object
+                        try:
+                            return getattr(object.__getattribute__(self, "_wrapped"), name)
+                        except AttributeError:
+                            raise AttributeError(
+                                f"'{type(self).__name__}' object has no attribute '{name}'"
+                            )
+
+                return AgentRunWrapper(agent_run, SimpleResult(comprehensive_output))
+
+            # For non-fallback cases, we still need to handle the response_state
+            # Create a minimal wrapper just to add response_state
+            class AgentRunWithState:
+                def __init__(self, wrapped_run):
                     self._wrapped = wrapped_run
-                    self._result = fallback_result
                     self.response_state = response_state
 
                 def __getattribute__(self, name):
-                    # Handle special attributes first to avoid conflicts
-                    if name in ["_wrapped", "_result", "response_state"]:
+                    # Handle special attributes first
+                    if name in ["_wrapped", "response_state"]:
                         return object.__getattribute__(self, name)
-
-                    # Explicitly handle 'result' to return our fallback result
-                    if name == "result":
-                        return object.__getattribute__(self, "_result")
 
                     # Delegate all other attributes to the wrapped object
                     try:
@@ -1054,26 +1037,7 @@ async def process_request(
                             f"'{type(self).__name__}' object has no attribute '{name}'"
                         )
 
-            return AgentRunWrapper(agent_run, SimpleResult(comprehensive_output))
-
-        # For non-fallback cases, we still need to handle the response_state
-        # Create a minimal wrapper just to add response_state
-        class AgentRunWithState:
-            def __init__(self, wrapped_run):
-                self._wrapped = wrapped_run
-                self.response_state = response_state
-
-            def __getattribute__(self, name):
-                # Handle special attributes first
-                if name in ["_wrapped", "response_state"]:
-                    return object.__getattribute__(self, name)
-
-                # Delegate all other attributes to the wrapped object
-                try:
-                    return getattr(object.__getattribute__(self, "_wrapped"), name)
-                except AttributeError:
-                    raise AttributeError(
-                        f"'{type(self).__name__}' object has no attribute '{name}'"
-                    )
-
         return AgentRunWithState(agent_run)
+    except asyncio.CancelledError:
+        # When task is cancelled, raise UserAbortError instead
+        raise UserAbortError("Operation was cancelled by user")
