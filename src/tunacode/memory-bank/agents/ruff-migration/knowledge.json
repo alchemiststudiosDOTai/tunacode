@@ -1,9 +1,0 @@
-{
-  "ruff.migration.summary": {
-    "value": "Successfully migrated from black/isort/flake8 to Ruff. Created ruff.toml, updated pyproject.toml, Makefile, and dev scripts. Single tool replaces three with better performance.",
-    "created": "2025-06-26T17:41:51Z",
-    "updated": "2025-06-26T17:41:51Z",
-    "agent": "ruff-migration",
-    "tags": []
-  }
-}

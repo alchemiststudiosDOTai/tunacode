@@ -1,7 +1,10 @@
 """Key binding handlers for TunaCode UI."""
 
 import logging
+import time
 
+from prompt_toolkit.application import run_in_terminal
+from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
 
 from ..core.state import StateManager
@@ -9,42 +12,61 @@ from ..core.state import StateManager
 logger = logging.getLogger(__name__)
 
 
-def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
-    """Create and configure key bindings for the UI."""
+def create_key_bindings(state_manager: StateManager | None = None) -> KeyBindings:
     kb = KeyBindings()
+
+    # --- ESC double-press state (closure) ---
+    esc_last = 0.0
+    esc_snapshot = {"text": "", "cursor": 0}
+    ESC_WINDOW = 3.0  # seconds
 
     @kb.add("enter")
     def _submit(event):
-        """Submit the current buffer."""
         event.current_buffer.validate_and_handle()
 
-    @kb.add("c-o")  # ctrl+o
+    @kb.add("c-o")  # ctrl+o => newline
     def _newline(event):
-        """Insert a newline character."""
-        event.current_buffer.insert_text("\n")
-
-    @kb.add("escape", "enter")
-    def _escape_enter(event):
-        """Insert a newline when escape then enter is pressed."""
         event.current_buffer.insert_text("\n")
 
     @kb.add("escape")
     def _escape(event):
-        """Handle ESC key - raises KeyboardInterrupt for unified abort handling."""
-        logger.debug("ESC key pressed - raising KeyboardInterrupt")
+        """First ESC: flash 'hit esc to stop'.
+        Second ESC within 3s: cancel/stop, keep prompt & restore same input."""
+        nonlocal esc_last, esc_snapshot
 
-        # Cancel any active task if present
-        if state_manager and hasattr(state_manager.session, "current_task"):
-            current_task = state_manager.session.current_task
-            if current_task and not current_task.done():
-                logger.debug(f"Cancelling current task: {current_task}")
-                try:
-                    current_task.cancel()
-                    logger.debug("Task cancellation initiated successfully")
-                except Exception as e:
-                    logger.debug(f"Failed to cancel task: {e}")
+        now = time.time()
+        first_press = (now - esc_last) > ESC_WINDOW
+        esc_last = now
 
-        # Raise KeyboardInterrupt to trigger unified abort handling in REPL
-        raise KeyboardInterrupt()
+        if first_press:
+            # Take a snapshot of the current input so we can *guarantee* we restore it.
+            buf = event.current_buffer
+            esc_snapshot["text"] = buf.document.text
+            esc_snapshot["cursor"] = buf.document.cursor_position
+
+            # Flash a transient message and redraw prompt.
+            run_in_terminal(lambda: print("⚠️  Hit ESC again within 3s to stop"))
+            return
+
+        # Second ESC within window → stop/cancel anything running, keep the prompt.
+        try:
+            if state_manager and hasattr(state_manager, "session"):
+                task = getattr(state_manager.session, "current_task", None)
+                if task and not task.done():
+                    task.cancel()
+                    logger.debug("Cancellation requested for current task.")
+            # Optional: global stop signal for your loop/agents
+            if state_manager and hasattr(state_manager, "request_stop"):
+                state_manager.request_stop()
+        except Exception as e:
+            logger.debug("ESC stop error: %r", e)
+
+        # Restore the exact same input line (text + cursor) and stay in the prompt.
+        buf = event.current_buffer
+        buf.set_document(
+            Document(esc_snapshot["text"], cursor_position=esc_snapshot["cursor"]),
+            bypass_readonly=True,
+        )
+        run_in_terminal(lambda: print("⏹️  Stopped."))
 
     return kb
