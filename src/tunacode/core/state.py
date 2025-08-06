@@ -6,6 +6,7 @@ Handles user preferences, conversation history, and runtime state.
 CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 """
 
+import asyncio
 import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
@@ -99,6 +100,8 @@ class StateManager:
     def __init__(self):
         self._session = SessionState()
         self._tool_handler: Optional["ToolHandler"] = None
+        self.stop_event = asyncio.Event()
+        self._generation_id = 0
 
     @property
     def session(self) -> SessionState:
@@ -110,6 +113,32 @@ class StateManager:
 
     def set_tool_handler(self, handler: "ToolHandler") -> None:
         self._tool_handler = handler
+
+    def new_generation(self) -> int:
+        """Start a new generation for output tracking."""
+        self._generation_id += 1
+        self.stop_event.clear()
+        return self._generation_id
+
+    def current_generation(self) -> int:
+        """Get the current generation ID."""
+        return self._generation_id
+
+    def invalidate_generation(self) -> None:
+        """Invalidate current generation, making any in-flight output stale."""
+        self._generation_id += 1
+        self.stop_event.set()
+
+    def is_current(self, gen_id: int) -> bool:
+        """Check if a generation ID is still current and not stopped."""
+        return gen_id == self._generation_id and not self.stop_event.is_set()
+
+    def cancel_active(self):
+        """Cancel any active task and set stop event."""
+        self.stop_event.set()
+        task = self.session.current_task
+        if task and not task.done():
+            task.cancel()
 
     def add_todo(self, todo: TodoItem) -> None:
         self._session.todos.append(todo)

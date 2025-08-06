@@ -62,6 +62,13 @@ class TestReplCharacterization:
         # Mock for messages
         state_manager.session.messages = []
 
+        # Mock generation tracking methods
+        state_manager.new_generation = MagicMock(return_value=1)
+        state_manager.current_generation = MagicMock(return_value=1)
+        state_manager.invalidate_generation = MagicMock()
+        state_manager.is_current = MagicMock(return_value=True)
+        state_manager.cancel_active = MagicMock()
+
         return state_manager
 
     def test_parse_args_with_string(self):

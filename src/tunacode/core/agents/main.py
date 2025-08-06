@@ -38,6 +38,7 @@ __all__ = [
     "get_agent_tool",
 ]
 
+import asyncio
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 
 from pydantic_ai import Agent
@@ -672,6 +673,11 @@ Please let me know how to proceed."""
             state_wrapper = AgentRunWithState(agent_run, response_state)
             return state_wrapper
 
+    except asyncio.CancelledError:
+        # Handle cancellation gracefully without error messages
+        logger.debug("Agent task cancelled by user")
+        # Don't print completion messages or errors
+        raise
     except UserAbortError:
         raise
     except ToolBatchingJSONError as e:

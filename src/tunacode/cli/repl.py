@@ -156,6 +156,9 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
 
             state_manager.session.is_streaming_active = True
 
+            # Get a new generation ID for this request
+            gen_id = state_manager.new_generation()
+
             streaming_panel = ui.StreamingAgentPanel()
             await streaming_panel.start()
 
@@ -164,7 +167,9 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
             try:
 
                 async def streaming_callback(content: str):
-                    await streaming_panel.update(content)
+                    # Only update if this generation is still current
+                    if state_manager.is_current(gen_id):
+                        await streaming_panel.update(content)
 
                 res = await agent.process_request(
                     text,
@@ -179,6 +184,9 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                 state_manager.session.is_streaming_active = False
         else:
             # Use normal agent processing
+            # Still get generation ID for consistent cancellation
+            gen_id = state_manager.new_generation()
+
             res = await agent.process_request(
                 text,
                 state_manager.session.current_model,

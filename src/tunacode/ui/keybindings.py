@@ -50,14 +50,12 @@ def create_key_bindings(state_manager: StateManager | None = None) -> KeyBinding
 
         # Second ESC within window → stop/cancel anything running, keep the prompt.
         try:
-            if state_manager and hasattr(state_manager, "session"):
-                task = getattr(state_manager.session, "current_task", None)
-                if task and not task.done():
-                    task.cancel()
-                    logger.debug("Cancellation requested for current task.")
-            # Optional: global stop signal for your loop/agents
-            if state_manager and hasattr(state_manager, "request_stop"):
-                state_manager.request_stop()
+            if state_manager:
+                # Invalidate generation to stop output immediately
+                state_manager.invalidate_generation()
+                # Cancel active task
+                state_manager.cancel_active()
+                logger.debug("Generation invalidated and task cancelled.")
         except Exception as e:
             logger.debug("ESC stop error: %r", e)
 
