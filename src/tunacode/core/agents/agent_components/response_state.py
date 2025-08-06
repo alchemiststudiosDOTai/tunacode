@@ -11,3 +11,4 @@ class ResponseState:
     task_completed: bool = False
     awaiting_user_guidance: bool = False
     has_final_synthesis: bool = False
+    stream_cancelled: bool = False

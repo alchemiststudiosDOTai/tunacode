@@ -225,19 +225,40 @@ async def process_request(
                 # Handle token-level streaming for model request nodes
                 Agent, _ = get_agent_tool()
                 if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
-                    async with node.stream(agent_run.ctx) as request_stream:
-                        async for event in request_stream:
-                            # Check if generation is still current
-                            if not state_manager.is_current(gen_id):
-                                logger.debug(f"Generation {gen_id} invalidated, breaking stream")
-                                break
+                    # Use exception to exit context manager on cancellation
+                    class StreamCancelled(Exception):
+                        pass
 
-                            if isinstance(event, PartDeltaEvent) and isinstance(
-                                event.delta, TextPartDelta
-                            ):
-                                # Stream individual token deltas
-                                if event.delta.content_delta and streaming_callback:
-                                    await streaming_callback(event.delta.content_delta)
+                    try:
+                        async with node.stream(agent_run.ctx) as request_stream:
+                            async for event in request_stream:
+                                # Check if generation is still current
+                                if not state_manager.is_current(gen_id):
+                                    logger.debug(f"Generation {gen_id} invalidated, closing stream")
+                                    raise StreamCancelled()
+
+                                if isinstance(event, PartDeltaEvent) and isinstance(
+                                    event.delta, TextPartDelta
+                                ):
+                                    # Stream individual token deltas
+                                    if event.delta.content_delta and streaming_callback:
+                                        await streaming_callback(event.delta.content_delta)
+                    except StreamCancelled:
+                        # Stream was cancelled, context manager will close it
+                        logger.debug("Stream cancelled and closed")
+                        # Set flag to skip further processing
+                        response_state.stream_cancelled = True
+
+                # If stream was cancelled, return early with cancellation response
+                if response_state.stream_cancelled:
+                    return AgentRunWrapper(
+                        wrapped_run=agent_run,
+                        fallback_result=FallbackResponse(
+                            output="",  # Empty output since streaming was interrupted
+                            task_complete=False,
+                        ),
+                        response_state=response_state,
+                    )
 
                 empty_response, empty_reason = await _process_node(
                     node,

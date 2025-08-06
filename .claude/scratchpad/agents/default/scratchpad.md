@@ -11,3 +11,4 @@ _Agent: default
 [7] [7] CancelledError handling exists but no explicit stream cleanup in finally block
 [8] [8] Added streaming panel cleanup in finally block to ensure proper UI cleanup
 [9] [9] Creating documentation commit to track all attempted solutions
+[10] [10] Found issue: break does not exit async context manager - stream stays open
