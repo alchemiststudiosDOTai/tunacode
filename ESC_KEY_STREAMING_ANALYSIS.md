@@ -237,3 +237,72 @@ The issue isn't that "async I/O can't be interrupted" - it absolutely can! The p
 3. The library must not swallow `CancelledError`
 
 Without transport control, we're limited to workarounds like timeout wrappers or waiting for pydantic-ai to add proper cancellation support.
+
+## Implementation Update (2025-08-06)
+
+### What We Implemented
+
+We implemented the **AbortableStream + Separate Task** solution:
+
+1. **Created `stream_utils.py`** with:
+   - `AbortableStream` wrapper that tries multiple methods to close the underlying transport
+   - `stream_worker` function that runs streaming in a cancellable task with proper cleanup
+
+2. **Updated `main.py`** to:
+   - Run streaming in a separate `asyncio.Task`
+   - Store streaming tasks in `state_manager.session.stream_tasks`
+   - Properly handle `CancelledError` and clean up task references
+
+3. **Updated `state.py`** to:
+   - Cancel all streaming tasks in `cancel_active()` method
+   - Ensures both main task and streaming tasks are cancelled
+
+4. **Updated `keybindings.py`** to:
+   - Add `event.app.invalidate()` call after cancellation for immediate UI refresh
+   - Maintains proper ordering: invalidate → cancel → invalidate UI
+
+### Implementation Code
+
+```python
+# stream_utils.py - AbortableStream implementation
+class AbortableStream:
+    def __init__(self, inner):
+        self._inner = inner
+        self._abort = getattr(inner, "abort", None)
+        self._aclose = getattr(inner, "aclose", None)
+        self._resp = getattr(inner, "response", None) or getattr(inner, "_response", None)
+
+    async def aclose(self):
+        # Try multiple approaches to close the stream
+        if callable(self._abort):
+            await self._abort()
+        elif callable(self._aclose):
+            await self._aclose()
+        elif self._resp and hasattr(self._resp, "aclose"):
+            await self._resp.aclose()
+
+# main.py - Streaming in separate task
+stream_task = asyncio.create_task(
+    stream_worker(gen_id, make_stream, write_callback, state_manager, logger)
+)
+state_manager.session.stream_tasks.append(stream_task)
+try:
+    await stream_task
+except asyncio.CancelledError:
+    response_state.stream_cancelled = True
+```
+
+### Results
+
+This implementation provides the best possible cancellation given pydantic-ai's limitations:
+
+1. ✅ **Immediate UI feedback** - Generation invalidated stops new chunks from displaying
+2. ✅ **Task cancellation** - Streaming runs in separate task that can be cancelled
+3. ✅ **Transport closure attempt** - AbortableStream tries to close underlying connections
+4. ⚠️ **Library limitation** - If pydantic-ai doesn't expose transport, we can't force close
+
+### Future Improvements
+
+1. **Timeout wrapper** - Add `asyncio.wait_for` with short timeout as fallback
+2. **Patch pydantic-ai** - Submit PR to expose transport control methods
+3. **Alternative client** - Use HTTP client directly for full control

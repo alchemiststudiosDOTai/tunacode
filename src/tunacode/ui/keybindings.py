@@ -55,6 +55,8 @@ def create_key_bindings(state_manager: StateManager | None = None) -> KeyBinding
                 state_manager.invalidate_generation()
                 # Cancel active task
                 state_manager.cancel_active()
+                # Force UI refresh
+                event.app.invalidate()
                 logger.debug("Generation invalidated and task cancelled.")
         except Exception as e:
             logger.debug("ESC stop error: %r", e)

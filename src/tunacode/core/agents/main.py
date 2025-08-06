@@ -225,29 +225,47 @@ async def process_request(
                 # Handle token-level streaming for model request nodes
                 Agent, _ = get_agent_tool()
                 if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
-                    # Use exception to exit context manager on cancellation
-                    class StreamCancelled(Exception):
-                        pass
+                    from .stream_utils import stream_worker
+
+                    # Create stream factory function
+                    async def make_stream():
+                        return node.stream(agent_run.ctx)
+
+                    # Create write callback that filters for text deltas
+                    async def write_callback(event):
+                        if isinstance(event, PartDeltaEvent) and isinstance(
+                            event.delta, TextPartDelta
+                        ):
+                            if event.delta.content_delta and streaming_callback:
+                                await streaming_callback(event.delta.content_delta)
+
+                    # Create and store streaming task
+                    stream_task = asyncio.create_task(
+                        stream_worker(
+                            gen_id=gen_id,
+                            make_stream=make_stream,
+                            write_callback=write_callback,
+                            state_manager=state_manager,
+                            logger=logger,
+                        )
+                    )
+
+                    # Store task reference for cancellation
+                    if not hasattr(state_manager.session, "stream_tasks"):
+                        state_manager.session.stream_tasks = []
+                    state_manager.session.stream_tasks.append(stream_task)
 
                     try:
-                        async with node.stream(agent_run.ctx) as request_stream:
-                            async for event in request_stream:
-                                # Check if generation is still current
-                                if not state_manager.is_current(gen_id):
-                                    logger.debug(f"Generation {gen_id} invalidated, closing stream")
-                                    raise StreamCancelled()
-
-                                if isinstance(event, PartDeltaEvent) and isinstance(
-                                    event.delta, TextPartDelta
-                                ):
-                                    # Stream individual token deltas
-                                    if event.delta.content_delta and streaming_callback:
-                                        await streaming_callback(event.delta.content_delta)
-                    except StreamCancelled:
-                        # Stream was cancelled, context manager will close it
-                        logger.debug("Stream cancelled and closed")
-                        # Set flag to skip further processing
+                        # Wait for streaming to complete
+                        await stream_task
+                    except asyncio.CancelledError:
+                        # Stream was cancelled
+                        logger.debug("Streaming task cancelled")
                         response_state.stream_cancelled = True
+                    finally:
+                        # Remove task from list
+                        if hasattr(state_manager.session, "stream_tasks"):
+                            state_manager.session.stream_tasks.remove(stream_task)
 
                 # If stream was cancelled, return early with cancellation response
                 if response_state.stream_cancelled:

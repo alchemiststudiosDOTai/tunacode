@@ -136,9 +136,19 @@ class StateManager:
     def cancel_active(self):
         """Cancel any active task and set stop event."""
         self.stop_event.set()
+
+        # Cancel main task
         task = self.session.current_task
         if task and not task.done():
             task.cancel()
+
+        # Cancel any streaming tasks
+        if hasattr(self.session, "stream_tasks"):
+            for stream_task in list(
+                self.session.stream_tasks
+            ):  # Copy list to avoid modification during iteration
+                if not stream_task.done():
+                    stream_task.cancel()
 
     def add_todo(self, todo: TodoItem) -> None:
         self._session.todos.append(todo)
