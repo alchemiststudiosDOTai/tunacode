@@ -202,6 +202,9 @@ async def process_request(
     # Track response state
     response_state = ResponseState()
 
+    # Get current generation ID for cancellation checking
+    gen_id = state_manager.current_generation()
+
     try:
         # Get message history from session messages
         # Create a copy of the message history to avoid modifying the original
@@ -211,6 +214,11 @@ async def process_request(
             # Process nodes iteratively
             i = 1
             async for node in agent_run:
+                # Check if generation is still current before processing node
+                if not state_manager.is_current(gen_id):
+                    logger.debug(f"Generation {gen_id} invalidated, stopping agent run")
+                    break
+
                 state_manager.session.current_iteration = i
                 state_manager.session.iteration_count = i
 
@@ -219,6 +227,11 @@ async def process_request(
                 if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
                     async with node.stream(agent_run.ctx) as request_stream:
                         async for event in request_stream:
+                            # Check if generation is still current
+                            if not state_manager.is_current(gen_id):
+                                logger.debug(f"Generation {gen_id} invalidated, breaking stream")
+                                break
+
                             if isinstance(event, PartDeltaEvent) and isinstance(
                                 event.delta, TextPartDelta
                             ):

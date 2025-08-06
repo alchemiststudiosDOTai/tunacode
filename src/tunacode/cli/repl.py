@@ -11,6 +11,7 @@ CLAUDE_ANCHOR[repl-module]: Core REPL loop and user interaction handling
 # IMPORTS AND DEPENDENCIES
 # ============================================================================
 
+import asyncio
 import logging
 import os
 import subprocess
@@ -239,6 +240,21 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
         await ui.error(str(e))
     finally:
         await ui.spinner(False, state_manager.session.spinner, state_manager)
+
+        # Ensure streaming panel is stopped on any exit (normal or cancelled)
+        if state_manager.session.streaming_panel:
+            try:
+                # Try to stop the streaming panel if it has a stop method
+                if hasattr(state_manager.session.streaming_panel, "stop"):
+                    stop_method = getattr(state_manager.session.streaming_panel, "stop")
+                    if asyncio.iscoroutinefunction(stop_method):
+                        await stop_method()
+            except Exception:
+                # Ignore errors in test mocks or cleanup
+                pass
+            state_manager.session.streaming_panel = None
+            state_manager.session.is_streaming_active = False
+
         state_manager.session.current_task = None
         # Reset cancellation flag when task completes (if attribute exists)
         if hasattr(state_manager.session, "operation_cancelled"):
