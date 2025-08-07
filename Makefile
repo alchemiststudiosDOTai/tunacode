@@ -1,95 +1,84 @@
+# TunaCode - Deprecated Makefile
+# 
+# ⚠️  DEPRECATION NOTICE ⚠️
+# 
+# This Makefile is deprecated and will be removed in the next minor version.
+# Please migrate to using Hatch commands for better cross-platform support:
+#
+#   make install     → hatch run install
+#   make run         → hatch run run  
+#   make clean       → hatch run clean
+#   make lint        → hatch run lint
+#   make lint-check  → hatch run lint-check
+#   make test        → hatch run test
+#   make coverage    → hatch run coverage
+#   make build       → hatch build
+#   make vulture     → hatch run vulture
+#   make dead-code-* → hatch run dead-code-*
+#   make *-playwright→ hatch run *-playwright
+#
+# Benefits of migrating to Hatch:
+# - Cross-platform compatibility (Windows, macOS, Linux)
+# - No external make dependency required
+# - Better Python ecosystem integration
+# - Consistent behavior across environments
+#
+# Documentation: https://hatch.pypa.io/latest/
+
 .PHONY: install clean lint format test coverage build remove-playwright-binaries restore-playwright-binaries
+.PHONY: vulture vulture-check dead-code-check dead-code-clean dead-code-report
+
+define deprecation_warning
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "⚠️  DEPRECATION WARNING: Makefile is deprecated!"
+	@echo ""
+	@echo "Please use: hatch run $(1)"
+	@echo "This Makefile will be removed in the next minor version."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+endef
 
 install:
-	pip install -e ".[dev]"
+	$(call deprecation_warning,install)
 
 run:
-	env/bin/tunacode
+	$(call deprecation_warning,run)
 
 clean:
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
+	$(call deprecation_warning,clean)
 
 lint:
-	ruff check . && ruff format .
+	$(call deprecation_warning,lint)
 
 lint-check:
-	ruff check .
-	ruff format --check .
+	$(call deprecation_warning,lint-check)
 
 vulture:
-	venv/bin/vulture --config pyproject.toml
+	$(call deprecation_warning,vulture)
 
 vulture-check:
-	venv/bin/vulture --config pyproject.toml --min-confidence 100
-
-# Enhanced dead code detection
-.PHONY: dead-code-check dead-code-clean dead-code-report
+	$(call deprecation_warning,vulture-check)
 
 dead-code-check:
-	@echo "Running comprehensive dead code analysis..."
-	@echo "\n=== Vulture (unused code) ==="
-	@venv/bin/vulture . --min-confidence 80 --exclude "*/test/*,*/tests/*,venv/*,build/*,dist/*" || true
-	@echo "\n=== Unimport (unused imports) ==="
-	@venv/bin/unimport --check . || true
-	@echo "\n=== Dead (dead code detector) ==="
-	@venv/bin/dead . || true
-	@echo "\n=== Checking test coverage for dead code ==="
-	@venv/bin/python -m pytest --cov=src/tunacode --cov-report=term-missing:skip-covered | grep -E "(TOTAL|src/)" || true
+	$(call deprecation_warning,dead-code-check)
 
 dead-code-clean:
-	@echo "Removing dead code..."
-	@venv/bin/unimport --remove-all .
-	@venv/bin/autoflake --remove-all-unused-imports --remove-unused-variables -i -r src/
-	@echo "Dead code cleanup complete!"
+	$(call deprecation_warning,dead-code-clean)
 
 dead-code-report:
-	@echo "Generating dead code reports..."
-	@mkdir -p reports
-	@venv/bin/vulture . --min-confidence 60 > reports/dead_code_vulture.txt || true
-	@venv/bin/unimport --check . --diff > reports/unused_imports.txt || true
-	@echo "Dead Code Metrics:" > reports/metrics.txt
-	@echo "Unused functions: $$(grep -c "unused function" reports/dead_code_vulture.txt 2>/dev/null || echo 0)" >> reports/metrics.txt
-	@echo "Unused imports: $$(grep -c "^-" reports/unused_imports.txt 2>/dev/null || echo 0)" >> reports/metrics.txt
-	@echo "Reports generated in reports/ directory"
+	$(call deprecation_warning,dead-code-report)
 
 test:
-	venv/bin/python -m pytest -q tests/characterization tests/test_security.py tests/test_agent_output_formatting.py tests/test_prompt_changes_validation.py
-
+	$(call deprecation_warning,test)
 
 coverage:
-	pytest --cov=src/tunacode --cov-report=term
+	$(call deprecation_warning,coverage)
 
 build:
-	python -m build
+	$(call deprecation_warning,build)
 
 remove-playwright-binaries:
-	@echo "Removing Playwright binaries for testing..."
-	@MAC_CACHE="$(HOME)/Library/Caches/ms-playwright"; \
-	LINUX_CACHE="$(HOME)/.cache/ms-playwright"; \
-	if [ -d "$$MAC_CACHE" ]; then \
-		mv "$$MAC_CACHE" "$$MAC_CACHE"_backup; \
-		echo "Playwright binaries moved to $$MAC_CACHE"_backup; \
-	elif [ -d "$$LINUX_CACHE" ]; then \
-		mv "$$LINUX_CACHE" "$$LINUX_CACHE"_backup; \
-		echo "Playwright binaries moved to $$LINUX_CACHE"_backup; \
-	else \
-		echo "No Playwright binaries found. Please run 'playwright install' first if you want to test the reinstall flow."; \
-	fi
+	$(call deprecation_warning,remove-playwright)
 
 restore-playwright-binaries:
-	@echo "Restoring Playwright binaries..."
-	@MAC_CACHE="$(HOME)/Library/Caches/ms-playwright"; \
-	LINUX_CACHE="$(HOME)/.cache/ms-playwright"; \
-	if [ -d "$$MAC_CACHE"_backup ]; then \
-		mv "$$MAC_CACHE"_backup "$$MAC_CACHE"; \
-		echo "Playwright binaries restored from $$MAC_CACHE"_backup; \
-	elif [ -d "$$LINUX_CACHE"_backup ]; then \
-		mv "$$LINUX_CACHE"_backup "$$LINUX_CACHE"; \
-		echo "Playwright binaries restored from $$LINUX_CACHE"_backup; \
-	else \
-		echo "No backed up Playwright binaries found. Nothing to restore."; \
-	fi
+	$(call deprecation_warning,restore-playwright)

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING**: Migrated from Makefile to Hatch for cross-platform compatibility
 - Modified CLI commands processing
 - Updated REPL functionality
 - Enhanced output display formatting
@@ -21,6 +22,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New helper module `agent_helpers.py` for common agent operations
 - Streaming cancellation with AbortableStream for better ESC key response
 - Memory anchors and documentation organization improvements
+- **Hatch integration**: Added comprehensive build and task management via `hatch run` commands
+- **Cross-platform scripts**: Created `scripts/playwright_cache.py` for browser cache management
+- **Migration tooling**: Deprecated Makefile with clear migration warnings and guidance
+
+### Migration Guide
+
+**Makefile → Hatch Command Migration:**
+
+| Old Command | New Command | Notes |
+|-------------|-------------|--------|
+| `make install` | `hatch run install` | Install dev dependencies |
+| `make run` | `hatch run run` | Run TunaCode CLI |
+| `make clean` | `hatch run clean` | Clean build artifacts |
+| `make lint` | `hatch run lint` | Run linting and formatting |
+| `make test` | `hatch run test` | Run test suite |
+| `make coverage` | `hatch run coverage` | Run tests with coverage |
+| `make build` | `hatch build` | Build distribution packages |
+| `make vulture` | `hatch run vulture` | Dead code analysis |
+| `make remove-playwright-binaries` | `hatch run remove-playwright` | Remove Playwright cache |
+
+**Benefits:**
+- Windows compatibility without WSL or MinGW
+- No external make dependency required
+- Better Python ecosystem integration
+- Consistent cross-platform behavior
 
 ### Fixed
 
