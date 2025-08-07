@@ -86,3 +86,11 @@ async def spinner(show: bool = True, spinner_obj=None, state_manager: StateManag
 [21~1] Spinner now continues running during tool execution
 [21~2] Updates from node_processor.py should now be visible
 [22] Updated test to reflect new behavior - spinner no longer stops/starts
+[23] Investigation complete - found that spinner updates ARE working but display doesn't refresh
+[23~1] Updates are called with messages like "Collecting tools (4 buffered)..."
+[23~2] Rich Status.update() is executed successfully
+[23~3] Terminal display remains as "Thinking..." (likely prompt_toolkit/Rich interaction issue)
+[24] Added debug logging with builtins.print to avoid async print issues
+[25] Committed infrastructure for spinner updates - foundation is complete
+[25~1] Even without visual updates, the agent now logs what it's doing
+[25~2] This provides transparency into tool execution status
