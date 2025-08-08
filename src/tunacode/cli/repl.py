@@ -279,11 +279,15 @@ async def _handle_plan_approval(state_manager, original_request=None):
         await ui.line()
         
         # Handle double-escape pattern like main REPL
+        from tunacode.ui.keybindings import create_key_bindings
+        kb = create_key_bindings(state_manager)
+        
         while True:
             try:
                 response = await ui.input(
                     session_key="plan_approval", 
                     pretext="  → Your choice [a/m/r]: ",
+                    key_bindings=kb,
                     state_manager=state_manager
                 )
                 response = response.strip().lower()
