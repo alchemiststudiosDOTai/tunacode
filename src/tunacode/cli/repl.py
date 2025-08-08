@@ -286,44 +286,43 @@ async def _handle_plan_approval(state_manager, original_request=None):
         approval_abort_pressed = getattr(state_manager.session, 'approval_abort_pressed', False)
         approval_last_abort_time = getattr(state_manager.session, 'approval_last_abort_time', 0.0)
         
-        try:
-            with patch_stdout():
-                response = await session.prompt_async("  → Your choice [a/m/r]: ")
-            response = response.strip().lower()
-            
-            # Reset abort flags on successful input
-            state_manager.session.approval_abort_pressed = False
-            
-        except (KeyboardInterrupt, EOFError):
-            import time
-            current_time = time.time()
-            
-            # Reset if more than 3 seconds have passed
-            if current_time - approval_last_abort_time > 3.0:
-                approval_abort_pressed = False
-            
-            if approval_abort_pressed:
-                # Second escape - return to Plan Mode
-                await ui.line()
-                await ui.info("🔄 Returning to Plan Mode for further planning")
-                await ui.line()
-                state_manager.enter_plan_mode()
-                # Clean up approval flags
+        while True:
+            try:
+                with patch_stdout():
+                    response = await session.prompt_async("  → Your choice [a/m/r]: ")
+                response = response.strip().lower()
+                
+                # Reset abort flags on successful input
                 state_manager.session.approval_abort_pressed = False
                 state_manager.session.approval_last_abort_time = 0.0
-                return
-            
-            # First escape - show warning and continue
-            state_manager.session.approval_abort_pressed = True
-            state_manager.session.approval_last_abort_time = current_time
-            await ui.line()
-            await ui.warning("Hit ESC or Ctrl+C again to return to Plan Mode")
-            await ui.line()
-            
-            # Re-display the panel and try again
-            await ui.panel("🎯 Plan Review", content, border_style="cyan")
-            await ui.line()
-            return await _handle_plan_approval(state_manager, original_request)
+                break
+                
+            except (KeyboardInterrupt, EOFError):
+                import time
+                current_time = time.time()
+                
+                # Reset if more than 3 seconds have passed
+                if current_time - approval_last_abort_time > 3.0:
+                    approval_abort_pressed = False
+                
+                if approval_abort_pressed:
+                    # Second escape - return to Plan Mode
+                    await ui.line()
+                    await ui.info("🔄 Returning to Plan Mode for further planning")
+                    await ui.line()
+                    state_manager.enter_plan_mode()
+                    # Clean up approval flags
+                    state_manager.session.approval_abort_pressed = False
+                    state_manager.session.approval_last_abort_time = 0.0
+                    return
+                
+                # First escape - show warning and continue the loop
+                state_manager.session.approval_abort_pressed = True
+                state_manager.session.approval_last_abort_time = current_time
+                await ui.line()
+                await ui.warning("Hit ESC or Ctrl+C again to return to Plan Mode")
+                await ui.line()
+                continue
         
         if response in ['a', 'approve']:
             await ui.line()
