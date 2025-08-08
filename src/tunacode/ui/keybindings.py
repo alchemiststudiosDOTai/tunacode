@@ -51,16 +51,26 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
     def _toggle_plan_mode(event):
         """Toggle between Plan Mode and normal mode."""
         if state_manager:
+            from rich.console import Console
+            console = Console()
+            
+            # Toggle the state
             if state_manager.is_plan_mode():
                 state_manager.exit_plan_mode()
                 logger.debug("Toggled to normal mode via Shift+Tab")
+                # Move cursor up 2 lines and clear the Plan Mode indicator
+                print("\033[2A\033[K", end="", flush=True)
+                print("")  # Empty line for spacing
+                print("\033[1B", end="", flush=True)  # Move back down
             else:
                 state_manager.enter_plan_mode()
                 logger.debug("Toggled to Plan Mode via Shift+Tab")
+                # Move cursor up 2 lines and show the Plan Mode indicator
+                print("\033[2A", end="", flush=True)
+                console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
+                print("\033[1B", end="", flush=True)  # Move back down
             
-            # Submit empty input to trigger new prompt with updated status
-            # The REPL will skip empty lines and show a new prompt
-            event.current_buffer.text = ""
-            event.current_buffer.validate_and_handle()
+            # Refresh the display without submitting
+            event.app.invalidate()
 
     return kb
