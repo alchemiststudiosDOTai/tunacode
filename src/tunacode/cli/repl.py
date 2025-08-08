@@ -297,7 +297,7 @@ async def _handle_plan_approval(state_manager, original_request=None):
                 state_manager.session.approval_last_abort_time = 0.0
                 break
                 
-            except KeyboardInterrupt:
+            except UserAbortError:
                 import time
                 current_time = time.time()
                 
