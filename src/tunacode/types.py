@@ -21,6 +21,9 @@ from typing import (
     Union,
 )
 
+# Plan types will be defined below
+from enum import Enum
+
 # Try to import pydantic-ai types if available
 try:
     from pydantic_ai import Agent
@@ -190,6 +193,60 @@ class SimpleResult:
     """Simple result container for agent responses."""
 
     output: str
+
+
+# =============================================================================
+# Plan Types
+# =============================================================================
+
+
+class PlanPhase(Enum):
+    """Plan Mode phases."""
+    PLANNING_RESEARCH = "research"
+    PLANNING_DRAFT = "draft"
+    PLAN_READY = "ready"
+    REVIEW_DECISION = "review"
+
+
+@dataclass
+class PlanDoc:
+    """Structured plan document with all required sections."""
+    
+    # Required sections
+    title: str
+    overview: str
+    steps: List[str]
+    files_to_modify: List[str]
+    files_to_create: List[str]
+    
+    # Optional but recommended sections
+    risks: List[str] = field(default_factory=list)
+    tests: List[str] = field(default_factory=list)
+    rollback: Optional[str] = None
+    open_questions: List[str] = field(default_factory=list)
+    success_criteria: List[str] = field(default_factory=list)
+    references: List[str] = field(default_factory=list)
+    
+    def validate(self) -> Tuple[bool, List[str]]:
+        """
+        Validate the plan document.
+        
+        Returns:
+            tuple: (is_valid, list_of_missing_sections)
+        """
+        missing = []
+        
+        # Check required fields
+        if not self.title or not self.title.strip():
+            missing.append("title")
+        if not self.overview or not self.overview.strip():
+            missing.append("overview")
+        if not self.steps:
+            missing.append("steps")
+        if not self.files_to_modify and not self.files_to_create:
+            missing.append("files_to_modify or files_to_create")
+            
+        return len(missing) == 0, missing
 
 
 # =============================================================================

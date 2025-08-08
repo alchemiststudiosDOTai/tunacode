@@ -15,6 +15,8 @@ from tunacode.types import (
     InputSessions,
     MessageHistory,
     ModelName,
+    PlanDoc,
+    PlanPhase,
     SessionId,
     TodoItem,
     ToolName,
@@ -87,7 +89,8 @@ class SessionState:
     
     # Plan Mode state tracking
     plan_mode: bool = False
-    current_plan: Optional[dict[str, Any]] = None
+    plan_phase: Optional[PlanPhase] = None
+    current_plan: Optional[PlanDoc] = None
     plan_approved: bool = False
 
     def update_token_count(self):
@@ -177,12 +180,14 @@ class StateManager:
     def enter_plan_mode(self) -> None:
         """Enter plan mode - restricts to read-only operations."""
         self._session.plan_mode = True
+        self._session.plan_phase = PlanPhase.PLANNING_RESEARCH
         self._session.current_plan = None
         self._session.plan_approved = False
 
-    def exit_plan_mode(self, plan: Optional[dict[str, Any]] = None) -> None:
+    def exit_plan_mode(self, plan: Optional[PlanDoc] = None) -> None:
         """Exit plan mode with optional plan data."""
         self._session.plan_mode = False
+        self._session.plan_phase = None
         self._session.current_plan = plan
         self._session.plan_approved = False
 
@@ -195,10 +200,10 @@ class StateManager:
         """Check if currently in plan mode."""
         return self._session.plan_mode
 
-    def set_current_plan(self, plan: dict[str, Any]) -> None:
+    def set_current_plan(self, plan: PlanDoc) -> None:
         """Set the current plan data."""
         self._session.current_plan = plan
 
-    def get_current_plan(self) -> Optional[dict[str, Any]]:
+    def get_current_plan(self) -> Optional[PlanDoc]:
         """Get the current plan data."""
         return self._session.current_plan

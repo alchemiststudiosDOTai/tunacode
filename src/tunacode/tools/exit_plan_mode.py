@@ -69,63 +69,72 @@ class ExitPlanModeTool(BaseTool):
     
     async def _present_plan(self, plan: Dict[str, Any]) -> None:
         """Present the plan in a formatted way."""
-        await ui.print("")  # Empty line
-        await ui.print("╭─────────────────────────────────────────────────────────╮")
-        await ui.print("│                  📋 IMPLEMENTATION PLAN                │")
-        await ui.print("╰─────────────────────────────────────────────────────────╯")
-        await ui.print("")
+        # Build the entire plan output as a single string to avoid UI flooding
+        output = []
+        output.append("")
+        output.append("╭─────────────────────────────────────────────────────────╮")
+        output.append("│                  📋 IMPLEMENTATION PLAN                │")
+        output.append("╰─────────────────────────────────────────────────────────╯")
+        output.append("")
+        output.append(f"🎯 {plan['title']}")
+        output.append("")
         
-        # Plan title and overview
-        await ui.info(f"🎯 {plan['title']}")
-        await ui.print("")
         if plan["overview"]:
-            await ui.info(f"📝 Overview: {plan['overview']}")
-            await ui.print("")
+            output.append(f"📝 Overview: {plan['overview']}")
+            output.append("")
         
         # Files section
         if plan["files_to_modify"]:
-            await ui.info("📝 Files to Modify:")
+            output.append("📝 Files to Modify:")
             for f in plan["files_to_modify"]:
-                await ui.info(f"  • {f}")
-            await ui.print("")
+                output.append(f"  • {f}")
+            output.append("")
             
         if plan["files_to_create"]:
-            await ui.info("📄 Files to Create:")
+            output.append("📄 Files to Create:")
             for f in plan["files_to_create"]:
-                await ui.info(f"  • {f}")
-            await ui.print("")
+                output.append(f"  • {f}")
+            output.append("")
         
         # Implementation steps
-        await ui.info("🔧 Implementation Steps:")
+        output.append("🔧 Implementation Steps:")
         for i, step in enumerate(plan["implementation_steps"], 1):
-            await ui.info(f"  {i}. {step}")
-        await ui.print("")
+            output.append(f"  {i}. {step}")
+        output.append("")
         
         # Testing approach
         if plan["testing_approach"]:
-            await ui.info(f"🧪 Testing Approach: {plan['testing_approach']}")
-            await ui.print("")
+            output.append(f"🧪 Testing Approach: {plan['testing_approach']}")
+            output.append("")
         
         # Success criteria
         if plan["success_criteria"]:
-            await ui.info("✅ Success Criteria:")
+            output.append("✅ Success Criteria:")
             for criteria in plan["success_criteria"]:
-                await ui.info(f"  • {criteria}")
-            await ui.print("")
+                output.append(f"  • {criteria}")
+            output.append("")
         
         # Risks and considerations
         if plan["risks_and_considerations"]:
-            await ui.warning("⚠️ Risks & Considerations:")
+            output.append("⚠️ Risks & Considerations:")
             for risk in plan["risks_and_considerations"]:
-                await ui.warning(f"  • {risk}")
-            await ui.print("")
+                output.append(f"  • {risk}")
+            output.append("")
+        
+        # Print everything at once
+        await ui.info("\n".join(output))
     
     async def _get_user_approval(self) -> bool:
         """Get user approval for the plan."""
         try:
-            from prompt_toolkit import prompt as pt_prompt
+            from prompt_toolkit import PromptSession
+            from prompt_toolkit.patch_stdout import patch_stdout
             
-            response = await pt_prompt("\n🤔 Approve this implementation plan? (y/n): ")
+            session = PromptSession()
+            
+            with patch_stdout():
+                response = await session.prompt_async("\n🤔 Approve this implementation plan? (y/n): ")
+            
             return response.strip().lower() in ['y', 'yes', 'approve']
         except (KeyboardInterrupt, EOFError):
             return False

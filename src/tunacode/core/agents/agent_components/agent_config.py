@@ -8,7 +8,7 @@ from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.services.mcp import get_mcp_servers
 from tunacode.tools.bash import bash
-from tunacode.tools.exit_plan_mode import create_exit_plan_mode_tool
+from tunacode.tools.present_plan import create_present_plan_tool
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
@@ -81,26 +81,50 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
 
         # Add plan mode context if in plan mode
         if state_manager.is_plan_mode():
-            system_prompt += """
+            plan_mode_override = """
+🔍 PLAN MODE - YOU MUST USE THE present_plan TOOL 🔍
 
-🔍 PLAN MODE ACTIVE
+CRITICAL: You are in Plan Mode. You CANNOT present plans as text responses.
 
-You are currently in Plan Mode - a read-only research phase. Your objectives:
+Available tools in Plan Mode:
+- read_file, grep, list_dir, glob: For research only
+- present_plan: THE ONLY WAY TO PRESENT A PLAN (MANDATORY)
 
-1. RESEARCH PHASE: Use only read-only tools to explore and understand the codebase
-   - Available tools: read_file, grep, list_dir, glob
-   - Write operations (write_file, update_file, bash, run_command) are BLOCKED
+❌ FORBIDDEN ACTIONS:
+- DO NOT write plans in text format
+- DO NOT use markdown formatting for plans  
+- DO NOT say "Here's the plan" or similar
+- DO NOT present plans as prose or summaries
+- DO NOT use any write tools (they are blocked)
 
-2. PLAN DEVELOPMENT: Based on your research, develop a comprehensive implementation plan
+✅ REQUIRED ACTION:
+When ready to present a plan, you MUST call:
+present_plan(
+    title="...",
+    overview="...",
+    steps=[...],
+    files_to_modify=[...],
+    files_to_create=[...],
+    # optional: risks, tests, success_criteria, etc.
+)
 
-3. PLAN PRESENTATION: When ready, use the 'exit_plan_mode' tool to present your plan
+IMPORTANT: Text responses describing plans will be IGNORED.
+Only the present_plan() tool call will be recognized as a plan.
 
-Remember: No code changes can be made in Plan Mode. Focus on understanding the codebase structure, identifying the files that need changes, and creating a detailed implementation strategy.
+If the user asks you to "plan" something:
+1. Research using read-only tools if needed
+2. Call present_plan() with structured data
+3. DO NOT write any plan text - just call the tool
+
+The system will handle displaying your plan after you call the tool.
+
 """
+            # Prepend to beginning of system prompt for maximum visibility
+            system_prompt = plan_mode_override + system_prompt
 
         # Initialize tools that need state manager
         todo_tool = TodoTool(state_manager=state_manager)
-        exit_plan_mode = create_exit_plan_mode_tool(state_manager)
+        present_plan = create_present_plan_tool(state_manager)
 
         # Add todo context if available
         try:
@@ -116,7 +140,7 @@ Remember: No code changes can be made in Plan Mode. Focus on understanding the c
             system_prompt=system_prompt,
             tools=[
                 Tool(bash, max_retries=max_retries),
-                Tool(exit_plan_mode, max_retries=max_retries),
+                Tool(present_plan, max_retries=max_retries),
                 Tool(glob, max_retries=max_retries),
                 Tool(grep, max_retries=max_retries),
                 Tool(list_dir, max_retries=max_retries),
