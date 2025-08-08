@@ -76,6 +76,15 @@ async def multiline_input(
 ) -> str:
     """Get multiline input from the user with @file completion and highlighting."""
     kb = create_key_bindings(state_manager)
+    
+    # Add Plan Mode indicator to placeholder and prompt
+    if state_manager and state_manager.is_plan_mode():
+        plan_mode_text = " • <b>🔍 PLAN MODE</b> (read-only)"
+        prompt_prefix = "🔍 > "
+    else:
+        plan_mode_text = ""
+        prompt_prefix = "> "
+    
     placeholder = formatted_text(
         (
             "<darkgrey>"
@@ -83,12 +92,13 @@ async def multiline_input(
             "<bold>Esc + Enter</bold> for new line • "
             "<bold>Esc twice</bold> to cancel • "
             "<bold>/help</bold> for commands"
+            f"{plan_mode_text}"
             "</darkgrey>"
         )
     )
     return await input(
         "multiline",
-        pretext="> ",  # Default prompt
+        pretext=prompt_prefix,
         key_bindings=kb,
         multiline=True,
         placeholder=placeholder,

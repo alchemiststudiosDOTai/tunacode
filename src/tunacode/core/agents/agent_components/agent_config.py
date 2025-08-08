@@ -8,6 +8,7 @@ from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.services.mcp import get_mcp_servers
 from tunacode.tools.bash import bash
+from tunacode.tools.exit_plan_mode import create_exit_plan_mode_tool
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
@@ -78,8 +79,28 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # Load TUNACODE.md context
         system_prompt += load_tunacode_context()
 
-        # Initialize todo tool
+        # Add plan mode context if in plan mode
+        if state_manager.is_plan_mode():
+            system_prompt += """
+
+🔍 PLAN MODE ACTIVE
+
+You are currently in Plan Mode - a read-only research phase. Your objectives:
+
+1. RESEARCH PHASE: Use only read-only tools to explore and understand the codebase
+   - Available tools: read_file, grep, list_dir, glob
+   - Write operations (write_file, update_file, bash, run_command) are BLOCKED
+
+2. PLAN DEVELOPMENT: Based on your research, develop a comprehensive implementation plan
+
+3. PLAN PRESENTATION: When ready, use the 'exit_plan_mode' tool to present your plan
+
+Remember: No code changes can be made in Plan Mode. Focus on understanding the codebase structure, identifying the files that need changes, and creating a detailed implementation strategy.
+"""
+
+        # Initialize tools that need state manager
         todo_tool = TodoTool(state_manager=state_manager)
+        exit_plan_mode = create_exit_plan_mode_tool(state_manager)
 
         # Add todo context if available
         try:
@@ -95,6 +116,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             system_prompt=system_prompt,
             tools=[
                 Tool(bash, max_retries=max_retries),
+                Tool(exit_plan_mode, max_retries=max_retries),
                 Tool(glob, max_retries=max_retries),
                 Tool(grep, max_retries=max_retries),
                 Tool(list_dir, max_retries=max_retries),

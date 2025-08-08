@@ -84,6 +84,11 @@ class SessionState:
     task_hierarchy: dict[str, Any] = field(default_factory=dict)
     iteration_budgets: dict[str, int] = field(default_factory=dict)
     recursive_context_stack: list[dict[str, Any]] = field(default_factory=list)
+    
+    # Plan Mode state tracking
+    plan_mode: bool = False
+    current_plan: Optional[dict[str, Any]] = None
+    plan_approved: bool = False
 
     def update_token_count(self):
         """Calculates the total token count from messages and files in context."""
@@ -167,3 +172,33 @@ class StateManager:
     def reset_session(self) -> None:
         """Reset the session to a fresh state."""
         self._session = SessionState()
+
+    # Plan Mode methods
+    def enter_plan_mode(self) -> None:
+        """Enter plan mode - restricts to read-only operations."""
+        self._session.plan_mode = True
+        self._session.current_plan = None
+        self._session.plan_approved = False
+
+    def exit_plan_mode(self, plan: Optional[dict[str, Any]] = None) -> None:
+        """Exit plan mode with optional plan data."""
+        self._session.plan_mode = False
+        self._session.current_plan = plan
+        self._session.plan_approved = False
+
+    def approve_plan(self) -> None:
+        """Mark current plan as approved for execution."""
+        self._session.plan_approved = True
+        self._session.plan_mode = False
+
+    def is_plan_mode(self) -> bool:
+        """Check if currently in plan mode."""
+        return self._session.plan_mode
+
+    def set_current_plan(self, plan: dict[str, Any]) -> None:
+        """Set the current plan data."""
+        self._session.current_plan = plan
+
+    def get_current_plan(self) -> Optional[dict[str, Any]]:
+        """Get the current plan data."""
+        return self._session.current_plan
