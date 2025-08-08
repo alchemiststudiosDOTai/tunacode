@@ -264,9 +264,7 @@ async def repl(state_manager: StateManager):
 
     # Only show startup info if thoughts are enabled or on first run
     if state_manager.session.show_thoughts or not hasattr(state_manager.session, "_startup_shown"):
-        # Add Plan Mode indicator to status
-        plan_mode_indicator = " • 🔍 PLAN MODE" if state_manager.is_plan_mode() else ""
-        await ui.muted(f"• Model: {model_name} • {context_display}{plan_mode_indicator}")
+        await ui.muted(f"• Model: {model_name} • {context_display}")
         await ui.success("Ready to assist")
         await ui.line()
         state_manager.session._startup_shown = True
@@ -369,10 +367,8 @@ async def repl(state_manager: StateManager):
             )
             # Only show model/context info if thoughts are enabled
             if state_manager.session.show_thoughts:
-                # Add Plan Mode indicator to status
-                plan_mode_indicator = " • 🔍 PLAN MODE" if state_manager.is_plan_mode() else ""
                 await ui.muted(
-                    f"• Model: {state_manager.session.current_model} • {context_display}{plan_mode_indicator}"
+                    f"• Model: {state_manager.session.current_model} • {context_display}"
                 )
 
         if action == "restart":

@@ -47,4 +47,20 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
         # Raise KeyboardInterrupt to trigger unified abort handling in REPL
         raise KeyboardInterrupt()
 
+    @kb.add("s-tab")  # shift+tab
+    def _toggle_plan_mode(event):
+        """Toggle between Plan Mode and normal mode."""
+        if state_manager:
+            if state_manager.is_plan_mode():
+                state_manager.exit_plan_mode()
+                logger.debug("Toggled to normal mode via Shift+Tab")
+            else:
+                state_manager.enter_plan_mode()
+                logger.debug("Toggled to Plan Mode via Shift+Tab")
+            
+            # Submit empty input to trigger new prompt with updated status
+            # The REPL will skip empty lines and show a new prompt
+            event.current_buffer.text = ""
+            event.current_buffer.validate_and_handle()
+
     return kb

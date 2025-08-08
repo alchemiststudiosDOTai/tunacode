@@ -26,7 +26,7 @@ class PlanCommand(SimpleCommand):
         await ui.info("• Use tools to research and analyze the codebase")
         await ui.info("• Use 'exit_plan_mode' tool to present your plan")
         await ui.info("• Read-only tools: read_file, grep, list_dir, glob")
-        await ui.success("✅ Plan Mode active - notice the 🔍 indicators in the status bar and prompt")
+        await ui.success("✅ Plan Mode active - notice the turquoise '⏸ PLAN MODE ON' status below")
 
 
 class ExitPlanCommand(SimpleCommand):
@@ -47,4 +47,4 @@ class ExitPlanCommand(SimpleCommand):
         
         context.state_manager.exit_plan_mode()
         await ui.success("🚪 Exiting Plan Mode - returning to normal mode")
-        await ui.info("✅ All tools are now available - 🔍 indicators removed")
+        await ui.info("✅ All tools are now available - '⏸ PLAN MODE ON' status removed")

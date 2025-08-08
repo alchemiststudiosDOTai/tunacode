@@ -5,6 +5,7 @@ from typing import Optional
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.validation import Validator
+from rich.console import Console
 
 from tunacode.constants import UI_PROMPT_PREFIX
 from tunacode.core.state import StateManager
@@ -75,15 +76,10 @@ async def multiline_input(
     state_manager: Optional[StateManager] = None, command_registry=None
 ) -> str:
     """Get multiline input from the user with @file completion and highlighting."""
-    kb = create_key_bindings(state_manager)
+    from rich.console import Console
     
-    # Add Plan Mode indicator to placeholder and prompt
-    if state_manager and state_manager.is_plan_mode():
-        plan_mode_text = " • <b>🔍 PLAN MODE</b> (read-only)"
-        prompt_prefix = "🔍 > "
-    else:
-        plan_mode_text = ""
-        prompt_prefix = "> "
+    console = Console()
+    kb = create_key_bindings(state_manager)
     
     placeholder = formatted_text(
         (
@@ -91,14 +87,22 @@ async def multiline_input(
             "<bold>Enter</bold> to submit • "
             "<bold>Esc + Enter</bold> for new line • "
             "<bold>Esc twice</bold> to cancel • "
+            "<bold>Shift + Tab</bold> toggle plan mode • "
             "<bold>/help</bold> for commands"
-            f"{plan_mode_text}"
             "</darkgrey>"
         )
     )
-    return await input(
+    
+    # Always show Plan Mode status line (empty when not in plan mode)
+    if state_manager and state_manager.is_plan_mode():
+        console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
+    else:
+        console.print("")  # Empty line to maintain consistent spacing
+    
+    # Display input area
+    result = await input(
         "multiline",
-        pretext=prompt_prefix,
+        pretext="> ",
         key_bindings=kb,
         multiline=True,
         placeholder=placeholder,
@@ -106,3 +110,5 @@ async def multiline_input(
         lexer=FileReferenceLexer(),
         state_manager=state_manager,
     )
+    
+    return result
