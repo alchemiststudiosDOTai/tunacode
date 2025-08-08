@@ -30,8 +30,8 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
 
     @kb.add("escape")
     def _escape(event):
-        """Handle ESC key - raises KeyboardInterrupt for unified abort handling."""
-        logger.debug("ESC key pressed - raising KeyboardInterrupt")
+        """Handle ESC key - use prompt_toolkit's built-in abort mechanism."""
+        logger.debug("ESC key pressed - using app.exit() for clean abort")
 
         # Cancel any active task if present
         if state_manager and hasattr(state_manager.session, "current_task"):
@@ -44,8 +44,8 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
                 except Exception as e:
                     logger.debug(f"Failed to cancel task: {e}")
 
-        # Raise KeyboardInterrupt to trigger unified abort handling in REPL
-        raise KeyboardInterrupt()
+        # Use prompt_toolkit's built-in abort mechanism instead of raising exception
+        event.app.exit(exception=KeyboardInterrupt)
 
     @kb.add("s-tab")  # shift+tab
     def _toggle_plan_mode(event):
