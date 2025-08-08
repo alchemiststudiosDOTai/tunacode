@@ -252,8 +252,6 @@ async def _handle_plan_approval(state_manager, original_request=None):
     """
     try:
         from tunacode.types import PlanPhase
-        from prompt_toolkit import PromptSession
-        from prompt_toolkit.patch_stdout import patch_stdout
         
         # Exit plan mode and move to review phase
         state_manager.session.plan_phase = PlanPhase.REVIEW_DECISION
@@ -266,8 +264,6 @@ async def _handle_plan_approval(state_manager, original_request=None):
         
         # Display the plan content now
         await _display_plan(plan_doc)
-        
-        session = PromptSession()
         
         # Display approval options with better styling
         await ui.line()
@@ -283,13 +279,13 @@ async def _handle_plan_approval(state_manager, original_request=None):
         await ui.line()
         
         # Handle double-escape pattern like main REPL
-        approval_abort_pressed = getattr(state_manager.session, 'approval_abort_pressed', False)
-        approval_last_abort_time = getattr(state_manager.session, 'approval_last_abort_time', 0.0)
-        
         while True:
             try:
-                with patch_stdout():
-                    response = await session.prompt_async("  → Your choice [a/m/r]: ")
+                response = await ui.input(
+                    session_key="plan_approval", 
+                    pretext="  → Your choice [a/m/r]: ",
+                    state_manager=state_manager
+                )
                 response = response.strip().lower()
                 
                 # Reset abort flags on successful input
@@ -297,13 +293,18 @@ async def _handle_plan_approval(state_manager, original_request=None):
                 state_manager.session.approval_last_abort_time = 0.0
                 break
                 
-            except (KeyboardInterrupt, EOFError):
+            except KeyboardInterrupt:
                 import time
                 current_time = time.time()
+                
+                # Get current session state
+                approval_abort_pressed = getattr(state_manager.session, 'approval_abort_pressed', False)
+                approval_last_abort_time = getattr(state_manager.session, 'approval_last_abort_time', 0.0)
                 
                 # Reset if more than 3 seconds have passed
                 if current_time - approval_last_abort_time > 3.0:
                     approval_abort_pressed = False
+                    state_manager.session.approval_abort_pressed = False
                 
                 if approval_abort_pressed:
                     # Second escape - return to Plan Mode
