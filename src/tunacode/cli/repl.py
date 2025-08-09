@@ -83,6 +83,7 @@ async def _display_plan(plan_doc) -> None:
     from tunacode.types import PlanDoc
     
     if not plan_doc:
+        await ui.error("⚠️ Error: No plan document found to display")
         return
         
     output = []
@@ -158,7 +159,7 @@ async def _display_plan(plan_doc) -> None:
         output.append("")
     
     # Print everything at once
-    await ui.info("\n".join(output))
+    await ui.print("\n".join(output))
 
 
 async def _detect_and_handle_text_plan(state_manager, agent_response, original_request):
