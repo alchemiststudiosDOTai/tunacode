@@ -81,21 +81,24 @@ async def multiline_input(
     console = Console()
     kb = create_key_bindings(state_manager)
     
-    # Shorter placeholder to avoid display issues
-    if state_manager and state_manager.is_plan_mode():
-        placeholder = formatted_text(
-            "<darkgrey>🔍 Plan Mode • Enter to submit • /help for commands</darkgrey>"
-        )
-    else:
-        placeholder = formatted_text(
-            "<darkgrey>Enter to submit • /help for commands</darkgrey>"
-        )
+    # Clear any residual terminal output
+    import sys
+    sys.stdout.flush()
     
-    # Display Plan Mode status if active (above input area with proper spacing)
-    if state_manager and state_manager.is_plan_mode():
-        console.print("\n⏸  PLAN MODE ON", style="bold #40E0D0")
-    else:
-        console.print()  # Blank line for consistent spacing
+    # Full placeholder with all keyboard shortcuts
+    placeholder = formatted_text(
+        (
+            "<darkgrey>"
+            "<bold>Enter</bold> to submit • "
+            "<bold>Esc + Enter</bold> for new line • "
+            "<bold>Esc twice</bold> to cancel • "
+            "<bold>Shift + Tab</bold> toggle plan mode • "
+            "<bold>/help</bold> for commands"
+            "</darkgrey>"
+        )
+    )
+    
+    # Plan Mode status is shown in the status bar, no need to print it here
     
     # Display input area
     result = await input(
