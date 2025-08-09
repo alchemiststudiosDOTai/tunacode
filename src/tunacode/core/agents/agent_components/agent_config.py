@@ -217,15 +217,15 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
             ]
         
         # Log which tools are being registered
-        logger.warning(f"Creating agent: plan_mode={state_manager.is_plan_mode()}, tools={len(tools_list)}")
+        logger.debug(f"Creating agent: plan_mode={state_manager.is_plan_mode()}, tools={len(tools_list)}")
         if state_manager.is_plan_mode():
-            logger.warning(f"PLAN MODE TOOLS: {[str(tool) for tool in tools_list]}")
-            logger.warning(f"present_plan tool type: {type(present_plan)}")
+            logger.debug(f"PLAN MODE TOOLS: {[str(tool) for tool in tools_list]}")
+            logger.debug(f"present_plan tool type: {type(present_plan)}")
         
         if "PLAN MODE - YOU MUST USE THE present_plan TOOL" in system_prompt:
-            logger.warning("✅ Plan mode instructions ARE in system prompt")
+            logger.debug("✅ Plan mode instructions ARE in system prompt")
         else:
-            logger.warning("❌ Plan mode instructions NOT in system prompt")
+            logger.debug("❌ Plan mode instructions NOT in system prompt")
         
         state_manager.session.agents[model] = Agent(
             model=model,
