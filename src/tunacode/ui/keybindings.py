@@ -30,11 +30,24 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
 
     @kb.add("escape")
     def _escape(event):
-        """Handle ESC key - do nothing, let Ctrl+C handle interrupts."""
-        logger.debug("ESC key pressed - ignoring (use Ctrl+C for interrupt)")
-        # For now, do nothing on ESC to avoid prompt_toolkit conflicts
-        # Users should use Ctrl+C for interrupting
-        pass
+        """Handle ESC key - trigger Ctrl+C behavior."""
+        logger.debug("ESC key pressed - simulating Ctrl+C")
+        
+        # Cancel any active task if present
+        if state_manager and hasattr(state_manager.session, "current_task"):
+            current_task = state_manager.session.current_task
+            if current_task and not current_task.done():
+                logger.debug(f"Cancelling current task: {current_task}")
+                try:
+                    current_task.cancel()
+                    logger.debug("Task cancellation initiated successfully")
+                except Exception as e:
+                    logger.debug(f"Failed to cancel task: {e}")
+        
+        # Trigger the same behavior as Ctrl+C by sending the signal
+        import signal
+        import os
+        os.kill(os.getpid(), signal.SIGINT)
 
     @kb.add("s-tab")  # shift+tab
     def _toggle_plan_mode(event):

@@ -66,7 +66,11 @@ def load_tunacode_context() -> str:
 
 def get_or_create_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
     """Get existing agent or create new one for the specified model."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if model not in state_manager.session.agents:
+        logger.debug(f"Creating new agent for model {model}, plan_mode={state_manager.is_plan_mode()}")
         max_retries = state_manager.session.user_config.get("settings", {}).get("max_retries", 3)
 
         # Lazy import Agent and Tool
@@ -125,6 +129,7 @@ The system will handle displaying your plan after you call the tool.
         # Initialize tools that need state manager
         todo_tool = TodoTool(state_manager=state_manager)
         present_plan = create_present_plan_tool(state_manager)
+        logger.debug(f"Tools initialized, present_plan available: {present_plan is not None}")
 
         # Add todo context if available
         try:
@@ -135,21 +140,27 @@ The system will handle displaying your plan after you call the tool.
             logger.warning(f"Warning: Failed to load todos: {e}")
 
         # Create agent with all tools
+        tools_list = [
+            Tool(bash, max_retries=max_retries),
+            Tool(present_plan, max_retries=max_retries),
+            Tool(glob, max_retries=max_retries),
+            Tool(grep, max_retries=max_retries),
+            Tool(list_dir, max_retries=max_retries),
+            Tool(read_file, max_retries=max_retries),
+            Tool(run_command, max_retries=max_retries),
+            Tool(todo_tool._execute, max_retries=max_retries),
+            Tool(update_file, max_retries=max_retries),
+            Tool(write_file, max_retries=max_retries),
+        ]
+        
+        # Log which tools are being registered
+        tool_names = [getattr(tool.fn, '__name__', 'unknown') for tool in tools_list]
+        logger.debug(f"Registering tools for agent: {tool_names}")
+        
         state_manager.session.agents[model] = Agent(
             model=model,
             system_prompt=system_prompt,
-            tools=[
-                Tool(bash, max_retries=max_retries),
-                Tool(present_plan, max_retries=max_retries),
-                Tool(glob, max_retries=max_retries),
-                Tool(grep, max_retries=max_retries),
-                Tool(list_dir, max_retries=max_retries),
-                Tool(read_file, max_retries=max_retries),
-                Tool(run_command, max_retries=max_retries),
-                Tool(todo_tool._execute, max_retries=max_retries),
-                Tool(update_file, max_retries=max_retries),
-                Tool(write_file, max_retries=max_retries),
-            ],
+            tools=tools_list,
             mcp_servers=get_mcp_servers(state_manager),
         )
     return state_manager.session.agents[model]
