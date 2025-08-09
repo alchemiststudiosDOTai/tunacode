@@ -5,7 +5,6 @@ from typing import Optional
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.validation import Validator
-from rich.console import Console
 
 from tunacode.constants import UI_PROMPT_PREFIX
 from tunacode.core.state import StateManager
