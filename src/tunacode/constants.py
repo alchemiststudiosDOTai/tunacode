@@ -44,6 +44,7 @@ class ToolName(str, Enum):
     LIST_DIR = "list_dir"
     GLOB = "glob"
     TODO = "todo"
+    EXIT_PLAN_MODE = "exit_plan_mode"
 
 
 # Tool names (backward compatibility)
@@ -56,9 +57,10 @@ TOOL_GREP = ToolName.GREP
 TOOL_LIST_DIR = ToolName.LIST_DIR
 TOOL_GLOB = ToolName.GLOB
 TOOL_TODO = ToolName.TODO
+TOOL_EXIT_PLAN_MODE = ToolName.EXIT_PLAN_MODE
 
 # Tool categorization
-READ_ONLY_TOOLS = [ToolName.READ_FILE, ToolName.GREP, ToolName.LIST_DIR, ToolName.GLOB]
+READ_ONLY_TOOLS = [ToolName.READ_FILE, ToolName.GREP, ToolName.LIST_DIR, ToolName.GLOB, ToolName.EXIT_PLAN_MODE]
 WRITE_TOOLS = [ToolName.WRITE_FILE, ToolName.UPDATE_FILE]
 EXECUTE_TOOLS = [ToolName.BASH, ToolName.RUN_COMMAND]
 

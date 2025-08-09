@@ -23,6 +23,7 @@ from .implementations.debug import (
 )
 from .implementations.development import BranchCommand, InitCommand
 from .implementations.model import ModelCommand
+from .implementations.plan import ExitPlanCommand, PlanCommand
 from .implementations.system import (
     ClearCommand,
     HelpCommand,
@@ -129,6 +130,8 @@ class CommandRegistry:
             InitCommand,
             TemplateCommand,
             TodoCommand,
+            PlanCommand,        # Add plan command
+            ExitPlanCommand,    # Add exit plan command
         ]
 
         # Register all discovered commands

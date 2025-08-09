@@ -50,6 +50,7 @@ dev = [
     "unimport>=1.0.0",
     "autoflake>=2.0.0",
     "dead>=1.5.0",
+    "hatch>=1.6.0",
 ]
 
 [project.urls]
@@ -146,3 +147,59 @@ warn_no_return = true
 follow_imports = "silent"
 # Allow CLAUDE_ANCHOR comments in docstrings
 disable_error_code = ["annotation-unchecked"]
+
+[tool.hatch.envs.default.scripts]
+# Development
+install = "pip install -e '.[dev]'"
+run = "python -m tunacode"
+test-script = "echo 'Test script works'"
+
+# Cleaning
+clean = "python -c \"import shutil, pathlib; dirs=['build', 'dist']; [shutil.rmtree(d, ignore_errors=True) for d in dirs]; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('*.egg-info') if p.is_dir()]; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__') if p.is_dir()]; [p.unlink(missing_ok=True) for p in pathlib.Path('.').rglob('*.pyc')]; print('Cleaned build artifacts, egg-info, __pycache__, and *.pyc files')\""
+
+# Linting & Formatting
+lint = "ruff check . && ruff format ."
+lint-check = [
+    "ruff check .",
+    "ruff format --check .",
+]
+
+# Dead code analysis
+vulture = "python -m vulture --config pyproject.toml"
+vulture-check = "python -m vulture --config pyproject.toml --min-confidence 100"
+
+dead-code-check = [
+    "python -c \"print('Running comprehensive dead code analysis...')\"",
+    "python -c \"print('\\n=== Vulture (unused code) ===')\"",
+    "python -m vulture . --min-confidence 80 --exclude '*/test/*,*/tests/*,venv/*,build/*,dist/*' || true",
+    "python -c \"print('\\n=== Unimport (unused imports) ===')\"", 
+    "python -m unimport --check . || true",
+    "python -c \"print('\\n=== Dead (dead code detector) ===')\"",
+    "python -m dead . || true",
+    "python -c \"print('\\n=== Checking test coverage for dead code ===')\"",
+]
+
+dead-code-clean = [
+    "python -c \"print('Removing dead code...')\"",
+    "python -m unimport --remove-all .",
+    "python -m autoflake --remove-all-unused-imports --remove-unused-variables -i -r src/",
+    "python -c \"print('Dead code cleanup complete!')\"",
+]
+
+dead-code-report = [
+    "python -c \"print('Generating dead code reports...'); import pathlib; pathlib.Path('reports').mkdir(exist_ok=True)\"",
+    "python -m vulture . --min-confidence 60 > reports/dead_code_vulture.txt || true",
+    "python -m unimport --check . --diff > reports/unused_imports.txt || true",
+    "python -c \"print('Reports generated in reports/ directory')\"",
+]
+
+# Testing
+test = "python -m pytest -q tests/characterization tests/test_security.py tests/test_agent_output_formatting.py tests/test_prompt_changes_validation.py"
+coverage = "pytest --cov=src/tunacode --cov-report=term"
+
+# Building
+build = "python -m build"
+
+# Playwright utilities
+remove-playwright = "python scripts/playwright_cache.py remove"
+restore-playwright = "python scripts/playwright_cache.py restore"

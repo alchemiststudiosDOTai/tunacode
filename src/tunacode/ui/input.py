@@ -76,19 +76,28 @@ async def multiline_input(
 ) -> str:
     """Get multiline input from the user with @file completion and highlighting."""
     kb = create_key_bindings(state_manager)
+
+    # Clear any residual terminal output
+    import sys
+    sys.stdout.flush()
+
+    # Full placeholder with all keyboard shortcuts
     placeholder = formatted_text(
         (
             "<darkgrey>"
             "<bold>Enter</bold> to submit • "
             "<bold>Esc + Enter</bold> for new line • "
             "<bold>Esc twice</bold> to cancel • "
+            "<bold>Shift + Tab</bold> toggle plan mode • "
             "<bold>/help</bold> for commands"
             "</darkgrey>"
         )
     )
-    return await input(
+
+    # Display input area (Plan Mode indicator is handled dynamically in prompt manager)
+    result = await input(
         "multiline",
-        pretext="> ",  # Default prompt
+        pretext="> ",
         key_bindings=kb,
         multiline=True,
         placeholder=placeholder,
@@ -96,3 +105,5 @@ async def multiline_input(
         lexer=FileReferenceLexer(),
         state_manager=state_manager,
     )
+
+    return result

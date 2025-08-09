@@ -100,15 +100,32 @@ class PromptManager:
         """
         session = self.get_session(session_key, config)
 
-        # Create a custom prompt that changes based on input
+        # Create a custom prompt that changes based on input and plan mode
         def get_prompt():
+            # Start with the base prompt
+            base_prompt = prompt
+
+            # Add Plan Mode indicator if active
+            if (self.state_manager and
+                self.state_manager.is_plan_mode() and
+                "PLAN MODE ON" not in base_prompt):
+                base_prompt = '<style fg="#40E0D0"><bold>⏸  PLAN MODE ON</bold></style>\n' + base_prompt
+            elif (self.state_manager and
+                  not self.state_manager.is_plan_mode() and
+                  ("⏸" in base_prompt or "PLAN MODE ON" in base_prompt)):
+                # Remove plan mode indicator if no longer in plan mode
+                lines = base_prompt.split("\n")
+                if len(lines) > 1 and ("⏸" in lines[0] or "PLAN MODE ON" in lines[0]):
+                    base_prompt = "\n".join(lines[1:])
+
             # Check if current buffer starts with "!"
             if hasattr(session.app, "current_buffer") and session.app.current_buffer:
                 text = session.app.current_buffer.text
                 if text.startswith("!"):
                     # Use bright yellow background with black text for high visibility
                     return HTML('<style bg="#ffcc00" fg="black"><b> ◆ BASH MODE ◆ </b></style> ')
-            return HTML(prompt) if isinstance(prompt, str) else prompt
+
+            return HTML(base_prompt) if isinstance(base_prompt, str) else base_prompt
 
         try:
             # Get user input with dynamic prompt

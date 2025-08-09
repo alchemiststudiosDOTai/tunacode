@@ -41,6 +41,14 @@ class ToolHandler:
         Returns:
             bool: True if confirmation is required, False otherwise.
         """
+        # Never confirm present_plan - it has its own approval flow
+        if tool_name == "present_plan":
+            return False
+            
+        # Block write tools in plan mode
+        if self.is_tool_blocked_in_plan_mode(tool_name):
+            return True  # Force confirmation for blocked tools
+
         # Skip confirmation for read-only tools
         if is_read_only_tool(tool_name):
             return False
@@ -51,6 +59,18 @@ class ToolHandler:
                 return False
 
         return not (self.state.session.yolo or tool_name in self.state.session.tool_ignore)
+
+    def is_tool_blocked_in_plan_mode(self, tool_name: ToolName) -> bool:
+        """Check if tool is blocked in plan mode."""
+        if not self.state.is_plan_mode():
+            return False
+        
+        # Allow present_plan tool to end planning phase
+        if tool_name == "present_plan":
+            return False
+            
+        # Allow read-only tools
+        return not is_read_only_tool(tool_name)
 
     def process_confirmation(self, response: ToolConfirmationResponse, tool_name: ToolName) -> bool:
         """
