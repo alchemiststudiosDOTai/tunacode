@@ -98,8 +98,9 @@ async def multiline_input(
         )
     )
     
-    # Plan Mode indicator is handled by Shift+Tab keybinding and /plan command
-    # Don't display here to avoid duplicates
+    # Display Plan Mode indicator if active
+    if state_manager and state_manager.is_plan_mode():
+        console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
     
     # Display input area
     result = await input(

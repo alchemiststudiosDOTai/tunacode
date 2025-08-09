@@ -53,21 +53,16 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
     def _toggle_plan_mode(event):
         """Toggle between Plan Mode and normal mode."""
         if state_manager:
-            from rich.console import Console
-            console = Console()
-            
             # Toggle the state
             if state_manager.is_plan_mode():
                 state_manager.exit_plan_mode()
                 logger.debug("Toggled to normal mode via Shift+Tab")
-                # Clear the Plan Mode indicator - move up one line, clear it, move back
-                print("\033[1A\033[2K", end="", flush=True)  # Move up and clear line
             else:
                 state_manager.enter_plan_mode()
                 logger.debug("Toggled to Plan Mode via Shift+Tab")
-                # Add Plan Mode indicator above current line
-                print("\033[1A", end="", flush=True)  # Move up one line
-                console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
-                print("", flush=True)  # Move back to input line
+            
+            # Force exit current input to restart with new state
+            # This will trigger multiline_input to be called again with the new plan mode state
+            event.app.exit(result="")
 
     return kb
