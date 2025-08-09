@@ -60,18 +60,12 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
             if state_manager.is_plan_mode():
                 state_manager.exit_plan_mode()
                 logger.debug("Toggled to normal mode via Shift+Tab")
-                # Clear the Plan Mode indicator by moving up, clearing, and returning
-                print("\033[1A\033[2K\033[1A\033[2K", end="", flush=True)  # Clear previous lines
             else:
                 state_manager.enter_plan_mode()
                 logger.debug("Toggled to Plan Mode via Shift+Tab")
-                # Display the Plan Mode indicator immediately above the input
-                print("\033[1A", end="", flush=True)  # Move up one line
-                print("\r\033[K", end="", flush=True)  # Clear the line
-                console.print("\n⏸  PLAN MODE ON", style="bold #40E0D0")
-                print("\n", end="", flush=True)  # Ensure we're on the right line for input
             
-            # Refresh the display
+            # Just refresh the display - don't manipulate cursor position
+            # The prompt will redraw with or without the indicator as needed
             event.app.invalidate()
 
     return kb
