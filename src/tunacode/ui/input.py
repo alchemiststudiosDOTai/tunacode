@@ -98,7 +98,11 @@ async def multiline_input(
         )
     )
     
-    # Plan Mode status is shown in the status bar, no need to print it here
+    # Display Plan Mode indicator if active (single location, above input)
+    if state_manager and state_manager.is_plan_mode():
+        # Clear any previous line and show Plan Mode indicator
+        print("\r\033[K", end="", flush=True)  # Clear current line
+        console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
     
     # Display input area
     result = await input(
