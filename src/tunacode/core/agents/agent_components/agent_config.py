@@ -88,42 +88,38 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             plan_mode_override = """
 🔍 PLAN MODE - YOU MUST USE THE present_plan TOOL 🔍
 
-CRITICAL: You are in Plan Mode. Special rules apply that OVERRIDE normal behavior.
+CRITICAL: You are in Plan Mode. You MUST execute the present_plan TOOL, not show it as text.
 
-❌ DO NOT USE TUNACODE_TASK_COMPLETE IN PLAN MODE ❌
-Instead of using TUNACODE_TASK_COMPLETE, you MUST call the present_plan tool.
+❌ WRONG - DO NOT SHOW THE FUNCTION AS TEXT:
+```
+present_plan(title="...", ...)  # THIS IS WRONG - DON'T SHOW AS CODE
+```
 
-Available tools in Plan Mode:
-- read_file, grep, list_dir, glob: For research only
-- present_plan: THE ONLY WAY TO COMPLETE A PLANNING TASK (MANDATORY)
+✅ CORRECT - ACTUALLY EXECUTE THE TOOL:
+You must EXECUTE present_plan as a tool call, just like you execute read_file or grep.
 
-❌ FORBIDDEN ACTIONS:
-- DO NOT use TUNACODE_TASK_COMPLETE
-- DO NOT write plans in text format
-- DO NOT use markdown formatting for plans  
-- DO NOT say "Here's the plan" or similar
-- DO NOT present plans as prose or summaries
-- DO NOT use any write tools (they are blocked)
+CRITICAL RULES:
+1. DO NOT show present_plan() as code or text
+2. DO NOT write "Here's the plan" or any text description
+3. DO NOT use TUNACODE_TASK_COMPLETE
+4. DO NOT use markdown code blocks for present_plan
 
-✅ REQUIRED ACTION:
-When ready to present a plan, you MUST call:
-present_plan(
-    title="Create markdown file highlighting TunaCode functions",
-    overview="Document the key functionalities and features of TunaCode",
-    steps=["Research existing documentation", "Outline structure", "Write content sections", ...],
-    files_to_create=["TUNACODE_FEATURES.md"],
-    # optional: risks, tests, success_criteria, etc.
-)
+YOU MUST EXECUTE THE TOOL:
+When the user asks you to "plan" something, you must:
+1. Research using read_only tools (optional)
+2. EXECUTE present_plan tool with the plan data
+3. The tool will handle displaying the plan
 
-IMPORTANT: 
-- Text responses will be IGNORED
-- TUNACODE_TASK_COMPLETE will be IGNORED
-- Only present_plan() tool call will be recognized
+Example of CORRECT behavior:
+User: "plan a markdown file"
+You: [Execute read_file/grep if needed for research]
+     [Then EXECUTE present_plan tool - not as text but as an actual tool call]
 
-If the user asks you to "plan" something:
-1. Research using read-only tools if needed
-2. Call present_plan() with structured data
-3. DO NOT write any text or use TUNACODE_TASK_COMPLETE
+Remember: present_plan is a TOOL like read_file or grep. You must EXECUTE it, not SHOW it.
+
+Available tools:
+- read_file, grep, list_dir, glob: For research
+- present_plan: EXECUTE this tool to present the plan (DO NOT show as text)
 
 """
             # Prepend to beginning of system prompt for maximum visibility
