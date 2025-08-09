@@ -170,6 +170,18 @@ class StreamingAgentPanel:
         # Defensive: some providers may yield None chunks intermittently
         if content_chunk is None:
             content_chunk = ""
+            
+        # Filter out plan mode system prompts and tool definitions from streaming
+        if any(phrase in str(content_chunk) for phrase in [
+            "🔧 PLAN MODE",
+            "TOOL EXECUTION ONLY",
+            "planning assistant that ONLY communicates",
+            "namespace functions {",
+            "namespace multi_tool_use {",
+            "You are trained on data up to"
+        ]):
+            return
+            
         # Ensure type safety for concatenation
         self.content = (self.content or "") + str(content_chunk)
 
@@ -182,6 +194,17 @@ class StreamingAgentPanel:
 
     async def set_content(self, content: str):
         """Set the complete content (overwrites previous)."""
+        # Filter out plan mode system prompts and tool definitions
+        if any(phrase in str(content) for phrase in [
+            "🔧 PLAN MODE",
+            "TOOL EXECUTION ONLY",
+            "planning assistant that ONLY communicates",
+            "namespace functions {",
+            "namespace multi_tool_use {",
+            "You are trained on data up to"
+        ]):
+            return
+            
         self.content = content
         if self.live:
             self.live.update(self._create_panel())

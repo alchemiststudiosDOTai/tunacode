@@ -36,15 +36,15 @@ async def display_agent_output(res, enable_streaming: bool, state_manager=None) 
         return
     
     # Filter out plan mode system prompts and tool definitions
-    if "PLAN MODE - TOOL EXECUTION ONLY" in output:
-        return
-    
-    # Filter out TypeScript-style tool definitions
-    if "namespace functions {" in output:
-        return
-    
-    # Filter out multi_tool_use namespace definitions
-    if "namespace multi_tool_use {" in output:
+    if any(phrase in output for phrase in [
+        "PLAN MODE - TOOL EXECUTION ONLY",
+        "🔧 PLAN MODE",
+        "TOOL EXECUTION ONLY 🔧",
+        "planning assistant that ONLY communicates",
+        "namespace functions {",
+        "namespace multi_tool_use {",
+        "You are trained on data up to"
+    ]):
         return
 
     await ui.agent(output)
