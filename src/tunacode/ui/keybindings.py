@@ -32,7 +32,7 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
     def _escape(event):
         """Handle ESC key - trigger Ctrl+C behavior."""
         logger.debug("ESC key pressed - simulating Ctrl+C")
-        
+
         # Cancel any active task if present
         if state_manager and hasattr(state_manager.session, "current_task"):
             current_task = state_manager.session.current_task
@@ -43,10 +43,10 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
                     logger.debug("Task cancellation initiated successfully")
                 except Exception as e:
                     logger.debug(f"Failed to cancel task: {e}")
-        
+
         # Trigger the same behavior as Ctrl+C by sending the signal
-        import signal
         import os
+        import signal
         os.kill(os.getpid(), signal.SIGINT)
 
     @kb.add("s-tab")  # shift+tab
@@ -60,9 +60,11 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
             else:
                 state_manager.enter_plan_mode()
                 logger.debug("Toggled to Plan Mode via Shift+Tab")
-            
-            # Force exit current input to restart with new state
-            # This will trigger multiline_input to be called again with the new plan mode state
-            event.app.exit(result="")
+
+            # Clear the current buffer and refresh the display
+            event.current_buffer.reset()
+
+            # Force a refresh of the application without exiting
+            event.app.invalidate()
 
     return kb

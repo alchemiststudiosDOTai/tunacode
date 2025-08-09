@@ -76,15 +76,12 @@ async def multiline_input(
     state_manager: Optional[StateManager] = None, command_registry=None
 ) -> str:
     """Get multiline input from the user with @file completion and highlighting."""
-    from rich.console import Console
-    
-    console = Console()
     kb = create_key_bindings(state_manager)
-    
+
     # Clear any residual terminal output
     import sys
     sys.stdout.flush()
-    
+
     # Full placeholder with all keyboard shortcuts
     placeholder = formatted_text(
         (
@@ -97,12 +94,8 @@ async def multiline_input(
             "</darkgrey>"
         )
     )
-    
-    # Display Plan Mode indicator if active
-    if state_manager and state_manager.is_plan_mode():
-        console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
-    
-    # Display input area
+
+    # Display input area (Plan Mode indicator is handled dynamically in prompt manager)
     result = await input(
         "multiline",
         pretext="> ",
@@ -113,5 +106,5 @@ async def multiline_input(
         lexer=FileReferenceLexer(),
         state_manager=state_manager,
     )
-    
+
     return result
