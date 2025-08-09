@@ -154,8 +154,11 @@ The system will handle displaying your plan after you call the tool.
         ]
         
         # Log which tools are being registered
-        tool_names = [getattr(tool.fn, '__name__', 'unknown') for tool in tools_list]
-        logger.debug(f"Registering tools for agent: {tool_names}")
+        logger.debug(f"Registering {len(tools_list)} tools for agent in plan_mode={state_manager.is_plan_mode()}")
+        if "PLAN MODE - YOU MUST USE THE present_plan TOOL" in system_prompt:
+            logger.debug("Plan mode instructions ARE in system prompt")
+        else:
+            logger.debug("Plan mode instructions NOT in system prompt")
         
         state_manager.session.agents[model] = Agent(
             model=model,
