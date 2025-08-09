@@ -60,17 +60,15 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
             if state_manager.is_plan_mode():
                 state_manager.exit_plan_mode()
                 logger.debug("Toggled to normal mode via Shift+Tab")
-                # Move cursor up 2 lines and clear the Plan Mode indicator
-                print("\033[2A\033[K", end="", flush=True)
-                print("")  # Empty line for spacing
-                print("\033[1B", end="", flush=True)  # Move back down
+                # Clear the line where Plan Mode indicator was
+                print("\r\033[K", end="", flush=True)  # Clear current line
             else:
                 state_manager.enter_plan_mode()
                 logger.debug("Toggled to Plan Mode via Shift+Tab")
-                # Move cursor up 2 lines and show the Plan Mode indicator
-                print("\033[2A", end="", flush=True)
-                console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
-                print("\033[1B", end="", flush=True)  # Move back down
+                # Add Plan Mode indicator on current line
+                print("\r", end="", flush=True)  # Return to start of line
+                console.print("⏸  PLAN MODE ON", style="bold #40E0D0", end="")
+                print("\n", end="", flush=True)  # Move to next line for input
             
             # Refresh the display without submitting
             event.app.invalidate()
