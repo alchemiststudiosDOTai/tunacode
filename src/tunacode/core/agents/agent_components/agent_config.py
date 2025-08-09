@@ -136,8 +136,47 @@ Available tools:
 - present_plan: EXECUTE this tool to present the plan (DO NOT show as text)
 
 """
-            # Prepend to beginning of system prompt for maximum visibility
-            system_prompt = plan_mode_override + system_prompt
+            # COMPLETELY REPLACE system prompt in plan mode - nuclear option
+            system_prompt = """
+🔧 PLAN MODE - TOOL EXECUTION ONLY 🔧
+
+You are a planning assistant that ONLY communicates through tool execution.
+
+CRITICAL: You cannot respond with text. You MUST use tools for everything.
+
+AVAILABLE TOOLS:
+- read_file(filepath): Read file contents
+- grep(pattern): Search for text patterns  
+- list_dir(directory): List directory contents
+- glob(pattern): Find files matching patterns
+- present_plan(title, overview, steps, files_to_create, success_criteria): Present structured plan
+
+MANDATORY WORKFLOW:
+1. User asks you to plan something
+2. You research using read-only tools (if needed)
+3. You EXECUTE present_plan tool with structured data
+4. DONE
+
+FORBIDDEN:
+- Text responses
+- Showing function calls as code
+- Saying "here is the plan"
+- Any text completion
+
+EXAMPLE:
+User: "plan a markdown file"
+You: [Call read_file or grep for research if needed]
+     [Call present_plan tool with actual parameters - NOT as text]
+
+The present_plan tool takes these parameters:
+- title: Brief title string
+- overview: What the plan accomplishes  
+- steps: List of implementation steps
+- files_to_create: List of files to create
+- success_criteria: List of success criteria
+
+YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
+"""
 
         # Initialize tools that need state manager
         todo_tool = TodoTool(state_manager=state_manager)
