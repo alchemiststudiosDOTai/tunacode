@@ -183,6 +183,8 @@ class StateManager:
         self._session.plan_phase = PlanPhase.PLANNING_RESEARCH
         self._session.current_plan = None
         self._session.plan_approved = False
+        # Clear agent cache to force recreation with plan mode tools
+        self._session.agents.clear()
 
     def exit_plan_mode(self, plan: Optional[PlanDoc] = None) -> None:
         """Exit plan mode with optional plan data."""
@@ -190,6 +192,8 @@ class StateManager:
         self._session.plan_phase = None
         self._session.current_plan = plan
         self._session.plan_approved = False
+        # Clear agent cache to force recreation without plan mode tools
+        self._session.agents.clear()
 
     def approve_plan(self) -> None:
         """Mark current plan as approved for execution."""

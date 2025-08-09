@@ -292,10 +292,6 @@ async def _handle_plan_approval(state_manager, original_request=None):
                 )
                 response = response.strip().lower()
                 
-                # Check for special escape signal from keybindings
-                if response == "__tunacode_esc_signal__":
-                    raise UserAbortError()
-                
                 # Reset abort flags on successful input
                 state_manager.session.approval_abort_pressed = False
                 state_manager.session.approval_last_abort_time = 0.0

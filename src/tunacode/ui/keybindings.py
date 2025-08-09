@@ -30,24 +30,11 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
 
     @kb.add("escape")
     def _escape(event):
-        """Handle ESC key - simulate validation with special escape signal."""
-        logger.debug("ESC key pressed - using validation bypass for clean exit")
-
-        # Cancel any active task if present
-        if state_manager and hasattr(state_manager.session, "current_task"):
-            current_task = state_manager.session.current_task
-            if current_task and not current_task.done():
-                logger.debug(f"Cancelling current task: {current_task}")
-                try:
-                    current_task.cancel()
-                    logger.debug("Task cancellation initiated successfully")
-                except Exception as e:
-                    logger.debug(f"Failed to cancel task: {e}")
-
-        # Set a special escape marker in the buffer and validate to complete the input
-        # This allows the input to complete normally but with a signal that it was escaped
-        event.current_buffer.text = "__TUNACODE_ESC_SIGNAL__"
-        event.current_buffer.validate_and_handle()
+        """Handle ESC key - do nothing, let Ctrl+C handle interrupts."""
+        logger.debug("ESC key pressed - ignoring (use Ctrl+C for interrupt)")
+        # For now, do nothing on ESC to avoid prompt_toolkit conflicts
+        # Users should use Ctrl+C for interrupting
+        pass
 
     @kb.add("s-tab")  # shift+tab
     def _toggle_plan_mode(event):
