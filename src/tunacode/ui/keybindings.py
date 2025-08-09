@@ -30,8 +30,8 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
 
     @kb.add("escape")
     def _escape(event):
-        """Handle ESC key - use prompt_toolkit's built-in abort mechanism."""
-        logger.debug("ESC key pressed - using app.exit() for clean abort")
+        """Handle ESC key - simulate validation with special escape signal."""
+        logger.debug("ESC key pressed - using validation bypass for clean exit")
 
         # Cancel any active task if present
         if state_manager and hasattr(state_manager.session, "current_task"):
@@ -44,8 +44,10 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
                 except Exception as e:
                     logger.debug(f"Failed to cancel task: {e}")
 
-        # Use prompt_toolkit's built-in abort mechanism instead of raising exception
-        event.app.exit(exception=KeyboardInterrupt)
+        # Set a special escape marker in the buffer and validate to complete the input
+        # This allows the input to complete normally but with a signal that it was escaped
+        event.current_buffer.text = "__TUNACODE_ESC_SIGNAL__"
+        event.current_buffer.validate_and_handle()
 
     @kb.add("s-tab")  # shift+tab
     def _toggle_plan_mode(event):
