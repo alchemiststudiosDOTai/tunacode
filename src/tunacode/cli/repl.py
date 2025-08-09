@@ -539,7 +539,7 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
                 await ui.muted(MSG_REQUEST_COMPLETED)
             else:
                 # Use the dedicated function for displaying agent output
-                await display_agent_output(res, enable_streaming)
+                await display_agent_output(res, enable_streaming, state_manager)
 
             # Always show files in context after agent response
             if state_manager.session.files_in_context:
