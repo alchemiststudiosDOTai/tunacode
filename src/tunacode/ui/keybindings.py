@@ -64,8 +64,10 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
                 state_manager.enter_plan_mode()
                 logger.debug("Toggled to Plan Mode via Shift+Tab")
             
-            # Just refresh the display - don't manipulate cursor position
-            # The prompt will redraw with or without the indicator as needed
-            event.app.invalidate()
+            # Force refresh by exiting and restarting the input
+            # This will cause multiline_input to be called again and show/hide the indicator
+            from prompt_toolkit.application import get_app
+            app = get_app()
+            app.exit()  # Exit current input session to trigger refresh
 
     return kb
