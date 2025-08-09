@@ -343,45 +343,46 @@ async def _process_tool_calls(
                             f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
                         )
 
-                        # Enhanced visual feedback for parallel execution
-                        await ui.muted("\n" + "=" * 60)
-                        await ui.muted(
-                            f"🚀 PARALLEL BATCH #{batch_id}: Executing {len(buffered_tasks)} read-only tools concurrently"
-                        )
-                        await ui.muted("=" * 60)
+                        # Enhanced visual feedback for parallel execution (suppress in plan mode)
+                        if not state_manager.is_plan_mode():
+                            await ui.muted("\n" + "=" * 60)
+                            await ui.muted(
+                                f"🚀 PARALLEL BATCH #{batch_id}: Executing {len(buffered_tasks)} read-only tools concurrently"
+                            )
+                            await ui.muted("=" * 60)
 
-                        # Display details of what's being executed
-                        for idx, (buffered_part, _) in enumerate(buffered_tasks, 1):
-                            tool_desc = f"  [{idx}] {buffered_part.tool_name}"
-                            if hasattr(buffered_part, "args") and isinstance(
-                                buffered_part.args, dict
-                            ):
-                                if (
-                                    buffered_part.tool_name == "read_file"
-                                    and "file_path" in buffered_part.args
+                            # Display details of what's being executed
+                            for idx, (buffered_part, _) in enumerate(buffered_tasks, 1):
+                                tool_desc = f"  [{idx}] {buffered_part.tool_name}"
+                                if hasattr(buffered_part, "args") and isinstance(
+                                    buffered_part.args, dict
                                 ):
-                                    tool_desc += f" → {buffered_part.args['file_path']}"
-                                elif (
-                                    buffered_part.tool_name == "grep"
-                                    and "pattern" in buffered_part.args
-                                ):
-                                    tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
-                                    if "include_files" in buffered_part.args:
-                                        tool_desc += (
-                                            f", files: '{buffered_part.args['include_files']}'"
-                                        )
-                                elif (
-                                    buffered_part.tool_name == "list_dir"
-                                    and "directory" in buffered_part.args
-                                ):
-                                    tool_desc += f" → {buffered_part.args['directory']}"
-                                elif (
-                                    buffered_part.tool_name == "glob"
-                                    and "pattern" in buffered_part.args
-                                ):
-                                    tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
-                            await ui.muted(tool_desc)
-                        await ui.muted("=" * 60)
+                                    if (
+                                        buffered_part.tool_name == "read_file"
+                                        and "file_path" in buffered_part.args
+                                    ):
+                                        tool_desc += f" → {buffered_part.args['file_path']}"
+                                    elif (
+                                        buffered_part.tool_name == "grep"
+                                        and "pattern" in buffered_part.args
+                                    ):
+                                        tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
+                                        if "include_files" in buffered_part.args:
+                                            tool_desc += (
+                                                f", files: '{buffered_part.args['include_files']}'"
+                                            )
+                                    elif (
+                                        buffered_part.tool_name == "list_dir"
+                                        and "directory" in buffered_part.args
+                                    ):
+                                        tool_desc += f" → {buffered_part.args['directory']}"
+                                    elif (
+                                        buffered_part.tool_name == "glob"
+                                        and "pattern" in buffered_part.args
+                                    ):
+                                        tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
+                                await ui.muted(tool_desc)
+                            await ui.muted("=" * 60)
 
                         await execute_tools_parallel(buffered_tasks, tool_callback)
 
@@ -391,10 +392,11 @@ async def _process_tool_calls(
                         )  # Assume 100ms per tool average
                         speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
 
-                        await ui.muted(
-                            f"✅ Parallel batch completed in {elapsed_time:.0f}ms "
-                            f"(~{speedup:.1f}x faster than sequential)\n"
-                        )
+                        if not state_manager.is_plan_mode():
+                            await ui.muted(
+                                f"✅ Parallel batch completed in {elapsed_time:.0f}ms "
+                                f"(~{speedup:.1f}x faster than sequential)\n"
+                            )
 
                         # Reset spinner message back to thinking
                         from tunacode.constants import UI_THINKING_MESSAGE
