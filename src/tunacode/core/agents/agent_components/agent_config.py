@@ -85,6 +85,20 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
 
         # Add plan mode context if in plan mode
         if state_manager.is_plan_mode():
+            # REMOVE all TUNACODE_TASK_COMPLETE instructions from the system prompt
+            system_prompt = system_prompt.replace("TUNACODE_TASK_COMPLETE", "PLAN_MODE_TASK_PLACEHOLDER")
+            # Remove the completion guidance that conflicts with plan mode
+            lines_to_remove = [
+                "When a task is COMPLETE, start your response with: TUNACODE_TASK_COMPLETE",
+                "4. When a task is COMPLETE, start your response with: TUNACODE_TASK_COMPLETE", 
+                "**How to signal completion:**",
+                "TUNACODE_TASK_COMPLETE",
+                "[Your summary of what was accomplished]",
+                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, use TUNACODE_TASK_COMPLETE.",
+                "This prevents wasting iterations and API calls."
+            ]
+            for line in lines_to_remove:
+                system_prompt = system_prompt.replace(line, "")
             plan_mode_override = """
 🔍 PLAN MODE - YOU MUST USE THE present_plan TOOL 🔍
 
@@ -138,19 +152,30 @@ Available tools:
         except Exception as e:
             logger.warning(f"Warning: Failed to load todos: {e}")
 
-        # Create agent with all tools
-        tools_list = [
-            Tool(bash, max_retries=max_retries),
-            Tool(present_plan, max_retries=max_retries),
-            Tool(glob, max_retries=max_retries),
-            Tool(grep, max_retries=max_retries),
-            Tool(list_dir, max_retries=max_retries),
-            Tool(read_file, max_retries=max_retries),
-            Tool(run_command, max_retries=max_retries),
-            Tool(todo_tool._execute, max_retries=max_retries),
-            Tool(update_file, max_retries=max_retries),
-            Tool(write_file, max_retries=max_retries),
-        ]
+        # Create tool list based on mode
+        if state_manager.is_plan_mode():
+            # Plan mode: Only read-only tools + present_plan
+            tools_list = [
+                Tool(present_plan, max_retries=max_retries),
+                Tool(glob, max_retries=max_retries),
+                Tool(grep, max_retries=max_retries),
+                Tool(list_dir, max_retries=max_retries),
+                Tool(read_file, max_retries=max_retries),
+            ]
+        else:
+            # Normal mode: All tools
+            tools_list = [
+                Tool(bash, max_retries=max_retries),
+                Tool(present_plan, max_retries=max_retries),
+                Tool(glob, max_retries=max_retries),
+                Tool(grep, max_retries=max_retries),
+                Tool(list_dir, max_retries=max_retries),
+                Tool(read_file, max_retries=max_retries),
+                Tool(run_command, max_retries=max_retries),
+                Tool(todo_tool._execute, max_retries=max_retries),
+                Tool(update_file, max_retries=max_retries),
+                Tool(write_file, max_retries=max_retries),
+            ]
         
         # Log which tools are being registered
         logger.debug(f"Registering {len(tools_list)} tools for agent in plan_mode={state_manager.is_plan_mode()}")
