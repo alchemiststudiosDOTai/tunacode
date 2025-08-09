@@ -181,6 +181,12 @@ async def _detect_and_handle_text_plan(state_manager, agent_response, original_r
         else:
             response_text = str(agent_response)
         
+        # Skip if agent just returned TUNACODE_TASK_COMPLETE
+        if "TUNACODE_TASK_COMPLETE" in response_text:
+            logger.debug("Agent returned TUNACODE_TASK_COMPLETE instead of calling present_plan")
+            await ui.warning("⚠️ Agent failed to call present_plan tool. Please provide clearer instructions to plan the task.")
+            return
+        
         # Check for plan indicators
         plan_indicators = [
             "plan for", "implementation plan", "here's a plan", "i'll create a plan",

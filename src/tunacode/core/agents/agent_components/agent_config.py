@@ -88,13 +88,17 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             plan_mode_override = """
 🔍 PLAN MODE - YOU MUST USE THE present_plan TOOL 🔍
 
-CRITICAL: You are in Plan Mode. You CANNOT present plans as text responses.
+CRITICAL: You are in Plan Mode. Special rules apply that OVERRIDE normal behavior.
+
+❌ DO NOT USE TUNACODE_TASK_COMPLETE IN PLAN MODE ❌
+Instead of using TUNACODE_TASK_COMPLETE, you MUST call the present_plan tool.
 
 Available tools in Plan Mode:
 - read_file, grep, list_dir, glob: For research only
-- present_plan: THE ONLY WAY TO PRESENT A PLAN (MANDATORY)
+- present_plan: THE ONLY WAY TO COMPLETE A PLANNING TASK (MANDATORY)
 
 ❌ FORBIDDEN ACTIONS:
+- DO NOT use TUNACODE_TASK_COMPLETE
 - DO NOT write plans in text format
 - DO NOT use markdown formatting for plans  
 - DO NOT say "Here's the plan" or similar
@@ -104,23 +108,22 @@ Available tools in Plan Mode:
 ✅ REQUIRED ACTION:
 When ready to present a plan, you MUST call:
 present_plan(
-    title="...",
-    overview="...",
-    steps=[...],
-    files_to_modify=[...],
-    files_to_create=[...],
+    title="Create markdown file highlighting TunaCode functions",
+    overview="Document the key functionalities and features of TunaCode",
+    steps=["Research existing documentation", "Outline structure", "Write content sections", ...],
+    files_to_create=["TUNACODE_FEATURES.md"],
     # optional: risks, tests, success_criteria, etc.
 )
 
-IMPORTANT: Text responses describing plans will be IGNORED.
-Only the present_plan() tool call will be recognized as a plan.
+IMPORTANT: 
+- Text responses will be IGNORED
+- TUNACODE_TASK_COMPLETE will be IGNORED
+- Only present_plan() tool call will be recognized
 
 If the user asks you to "plan" something:
 1. Research using read-only tools if needed
 2. Call present_plan() with structured data
-3. DO NOT write any plan text - just call the tool
-
-The system will handle displaying your plan after you call the tool.
+3. DO NOT write any text or use TUNACODE_TASK_COMPLETE
 
 """
             # Prepend to beginning of system prompt for maximum visibility
