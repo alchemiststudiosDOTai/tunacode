@@ -26,7 +26,12 @@ class PlanCommand(SimpleCommand):
         await ui.info("• Use tools to research and analyze the codebase")
         await ui.info("• Use 'exit_plan_mode' tool to present your plan")
         await ui.info("• Read-only tools: read_file, grep, list_dir, glob")
-        await ui.success("✅ Plan Mode active - indicator will appear above next input")
+        await ui.success("✅ Plan Mode active")
+        
+        # Show Plan Mode indicator
+        from rich.console import Console
+        console = Console()
+        console.print("⏸  PLAN MODE ON", style="bold #40E0D0")
 
 
 class ExitPlanCommand(SimpleCommand):
