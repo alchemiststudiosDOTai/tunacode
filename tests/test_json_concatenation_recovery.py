@@ -80,7 +80,7 @@ class TestSplitConcatenatedJson:
 
     def test_no_valid_json_raises_error(self):
         """Test that no valid JSON raises JSONDecodeError."""
-        json_str = '{invalid}{also invalid}'
+        json_str = "{invalid}{also invalid}"
         with pytest.raises(json.JSONDecodeError):
             split_concatenated_json(json_str)
 
@@ -201,7 +201,7 @@ class TestParseArgs:
         with pytest.raises(ValidationError):
             parse_args('{"invalid": json}')
 
-    @patch('tunacode.cli.repl_components.command_parser.retry_json_parse')
+    @patch("tunacode.cli.repl_components.command_parser.retry_json_parse")
     def test_retry_logic_used(self, mock_retry):
         """Test that retry logic is used for JSON parsing."""
         mock_retry.return_value = {"success": True}
@@ -209,8 +209,8 @@ class TestParseArgs:
         mock_retry.assert_called_once()
         assert result == {"success": True}
 
-    @patch('tunacode.cli.repl_components.command_parser.retry_json_parse')
-    @patch('tunacode.cli.repl_components.command_parser.safe_json_parse')
+    @patch("tunacode.cli.repl_components.command_parser.retry_json_parse")
+    @patch("tunacode.cli.repl_components.command_parser.safe_json_parse")
     def test_concatenated_json_recovery(self, mock_safe_parse, mock_retry):
         """Test that concatenated JSON recovery is attempted."""
         # Simulate retry failing with "Extra data" error
@@ -219,11 +219,13 @@ class TestParseArgs:
 
         result = parse_args('{"first": 1}{"second": 2}')
 
-        mock_safe_parse.assert_called_once_with('{"first": 1}{"second": 2}', allow_concatenated=True)
+        mock_safe_parse.assert_called_once_with(
+            '{"first": 1}{"second": 2}', allow_concatenated=True
+        )
         assert result == {"recovered": True}
 
-    @patch('tunacode.cli.repl_components.command_parser.retry_json_parse')
-    @patch('tunacode.cli.repl_components.command_parser.safe_json_parse')
+    @patch("tunacode.cli.repl_components.command_parser.retry_json_parse")
+    @patch("tunacode.cli.repl_components.command_parser.safe_json_parse")
     def test_concatenated_json_recovery_list_result(self, mock_safe_parse, mock_retry):
         """Test concatenated JSON recovery with list result."""
         mock_retry.side_effect = json.JSONDecodeError("Extra data", "", 10)
@@ -245,7 +247,9 @@ class TestErrorRecovery:
 
         # Should trigger recovery
         json_error = Exception("Invalid JSON: extra data")
-        with patch('tunacode.cli.repl_components.error_recovery.attempt_json_args_recovery') as mock_json_recovery:
+        with patch(
+            "tunacode.cli.repl_components.error_recovery.attempt_json_args_recovery"
+        ) as mock_json_recovery:
             mock_json_recovery.return_value = False
             state_manager.session.messages = []
             result = await attempt_tool_recovery(json_error, state_manager)
@@ -271,7 +275,7 @@ class TestErrorRecovery:
         state_manager.session.messages[-1].parts = [mock_part]
 
         # Mock the tool_handler
-        with patch('tunacode.cli.repl_components.error_recovery.tool_handler') as mock_handler:
+        with patch("tunacode.cli.repl_components.error_recovery.tool_handler") as mock_handler:
             mock_handler.return_value = None
 
             error = Exception("Invalid JSON: extra data")

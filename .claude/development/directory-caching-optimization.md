@@ -65,7 +65,7 @@ Cache hit rate: 100% for pre-indexed directories
 class CodeIndex:
     _instance: Optional['CodeIndex'] = None
     _instance_lock = threading.RLock()
-    
+
     @classmethod
     def get_instance(cls, root_dir: Optional[str] = None) -> 'CodeIndex':
         if cls._instance is None:
@@ -134,7 +134,7 @@ The system gracefully degrades if caching fails:
 Comprehensive test coverage includes:
 
 - Singleton pattern verification
-- Cache hit/miss scenarios  
+- Cache hit/miss scenarios
 - Performance benchmarking
 - Thread safety validation
 - Fallback behavior testing

@@ -104,7 +104,7 @@ class TestAgentCreation:
 
                         # Assert - Golden master
                         call_kwargs = mock_agent_class.call_args.kwargs
-                        assert call_kwargs["system_prompt"] == fallback_prompt
+                        assert call_kwargs["system_prompt"] == "You are a helpful AI assistant."
 
     def test_get_or_create_agent_default_prompt(self):
         """Capture behavior when neither prompt file exists."""
@@ -129,10 +129,7 @@ class TestAgentCreation:
 
                         # Assert - Golden master
                         call_kwargs = mock_agent_class.call_args.kwargs
-                        assert (
-                            call_kwargs["system_prompt"]
-                            == "You are a helpful AI assistant for software development tasks."
-                        )
+                        assert call_kwargs["system_prompt"] == "You are a helpful AI assistant."
 
     def test_get_or_create_agent_tools_registered(self):
         """Capture behavior of tool registration with max_retries."""

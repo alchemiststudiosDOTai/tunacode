@@ -13,7 +13,7 @@ Agent response times were reaching 30+ seconds due to repeated filesystem operat
 Implemented intelligent directory caching using the existing CodeIndex infrastructure:
 
 - **Background pre-warming**: Index built during REPL startup (non-blocking)
-- **Smart caching**: 5-second TTL with automatic cache invalidation  
+- **Smart caching**: 5-second TTL with automatic cache invalidation
 - **Singleton pattern**: Global access to cached directory data
 - **Graceful fallback**: Original behavior when cache unavailable
 
@@ -25,7 +25,7 @@ Implemented intelligent directory caching using the existing CodeIndex infrastru
 
 ### Implementation
 - Modified: `src/tunacode/core/code_index.py` (singleton + public API)
-- Modified: `src/tunacode/cli/repl.py` (background pre-warming)  
+- Modified: `src/tunacode/cli/repl.py` (background pre-warming)
 - Modified: `src/tunacode/tools/list_dir.py` (cache integration)
 
 ### Documentation
@@ -82,7 +82,7 @@ _TUNACODE_CACHE = {}  # {filepath: (content, mtime)}
 # Profile agent performance
 python -m cProfile -o profile.stats src/tunacode/main.py
 
-# Monitor memory usage  
+# Monitor memory usage
 python -m memory_profiler src/tunacode/main.py
 
 # Enable debug logging

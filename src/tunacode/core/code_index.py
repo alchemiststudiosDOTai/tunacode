@@ -19,7 +19,7 @@ class CodeIndex:
     """
 
     # Singleton instance
-    _instance: Optional['CodeIndex'] = None
+    _instance: Optional["CodeIndex"] = None
     _instance_lock = threading.RLock()
 
     # Directories to ignore during indexing
@@ -133,7 +133,7 @@ class CodeIndex:
         self._indexed = False
 
     @classmethod
-    def get_instance(cls, root_dir: Optional[str] = None) -> 'CodeIndex':
+    def get_instance(cls, root_dir: Optional[str] = None) -> "CodeIndex":
         """Get the singleton CodeIndex instance.
 
         Args:

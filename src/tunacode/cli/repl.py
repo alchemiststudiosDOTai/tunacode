@@ -387,11 +387,11 @@ async def warm_code_index():
     """Pre-warm the code index in background for faster directory operations."""
     try:
         from tunacode.core.code_index import CodeIndex
-        
+
         # Build index in thread to avoid blocking
         index = await asyncio.to_thread(lambda: CodeIndex.get_instance())
         await asyncio.to_thread(index.build_index)
-        
+
         logger.debug(f"Code index pre-warmed with {len(index._all_files)} files")
     except Exception as e:
         logger.debug(f"Failed to pre-warm code index: {e}")

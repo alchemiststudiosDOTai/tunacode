@@ -37,9 +37,9 @@ EMOJI_PATTERN = (
     r"|[\U0001F900-\U0001F9FF]"  # Supplemental Symbols & Pictographs
     r"|[\U0001FA00-\U0001FA6F]"  # Chess etc
     r"|[\U0001FA70-\U0001FAFF]"  # Symbols & Pictographs Extended-A
-    r"|[\u2600-\u26FF]"          # Misc symbols
-    r"|[\u2700-\u27BF]"          # Dingbats
-    r"|\uFE0F"                    # Variation Selector-16
+    r"|[\u2600-\u26FF]"  # Misc symbols
+    r"|[\u2700-\u27BF]"  # Dingbats
+    r"|\uFE0F"  # Variation Selector-16
     r")"
 )
 EMOJI_RE = re.compile(EMOJI_PATTERN)
@@ -91,7 +91,9 @@ def scrub_text(text: str) -> str:
 
 def git_branch_and_status():
     try:
-        branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+        branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+        )
     except Exception:
         branch = None
     try:
@@ -104,28 +106,43 @@ def git_branch_and_status():
 def unified_diff_str(orig: str, new: str, path: str) -> str:
     orig_lines = orig.splitlines(keepends=True)
     new_lines = new.splitlines(keepends=True)
-    diff = difflib.unified_diff(orig_lines, new_lines, fromfile=path, tofile=path+" (clean)")
+    diff = difflib.unified_diff(orig_lines, new_lines, fromfile=path, tofile=path + " (clean)")
     return "".join(diff)
 
 
 def main(argv: List[str] = None):
-    ap = argparse.ArgumentParser(description="Scan and optionally remove emoji from repository files")
-    ap.add_argument("--root", default='.', help="Repository root to scan (default: .)")
+    ap = argparse.ArgumentParser(
+        description="Scan and optionally remove emoji from repository files"
+    )
+    ap.add_argument("--root", default=".", help="Repository root to scan (default: .)")
     ap.add_argument("--dry-run", action="store_true", help="Only list matches (no diffs)")
     ap.add_argument("--preview", action="store_true", help="Print unified diffs to stdout")
     ap.add_argument("--apply", action="store_true", help="Apply changes (writes files)")
-    ap.add_argument("--confirm-apply", action="store_true", help="Confirm apply even if on main or dirty")
-    ap.add_argument("--ext", action="append", default=[], help="Additional file extensions to include (e.g. .rst)")
-    ap.add_argument("--exclude-dir", action="append", default=[], help="Additional directories to exclude")
-    ap.add_argument("--whitelist", action="append", default=[], help="Glob patterns to skip (relative)")
-    ap.add_argument("--replace-with", default="", help="Replace emoji with this text instead of removing")
+    ap.add_argument(
+        "--confirm-apply", action="store_true", help="Confirm apply even if on main or dirty"
+    )
+    ap.add_argument(
+        "--ext",
+        action="append",
+        default=[],
+        help="Additional file extensions to include (e.g. .rst)",
+    )
+    ap.add_argument(
+        "--exclude-dir", action="append", default=[], help="Additional directories to exclude"
+    )
+    ap.add_argument(
+        "--whitelist", action="append", default=[], help="Glob patterns to skip (relative)"
+    )
+    ap.add_argument(
+        "--replace-with", default="", help="Replace emoji with this text instead of removing"
+    )
 
     args = ap.parse_args(argv)
     root = pathlib.Path(args.root)
     exts = set(DEFAULT_EXTS)
     for e in args.ext:
-        if not e.startswith('.'):
-            e = '.' + e
+        if not e.startswith("."):
+            e = "." + e
         exts.add(e)
     exclude_dirs = set(DEFAULT_EXCLUDE_DIRS)
     for d in args.exclude_dir:
@@ -139,7 +156,7 @@ def main(argv: List[str] = None):
         if is_whitelisted(f, whitelists):
             continue
         try:
-            text = f.read_text(encoding='utf-8')
+            text = f.read_text(encoding="utf-8")
         except Exception as e:
             print(f"Skipping {f} (read error: {e})", file=sys.stderr)
             continue
@@ -149,7 +166,7 @@ def main(argv: List[str] = None):
                 print(f"=== {f} ===")
                 for m in EMOJI_RE.finditer(text):
                     start, end = m.span()
-                    ctx = text[max(0, start-40):min(len(text), end+40)].replace('\n', ' ')
+                    ctx = text[max(0, start - 40) : min(len(text), end + 40)].replace("\n", " ")
                     print(f"  {m.group(0)!r} -> context: {ctx}")
             else:
                 diff = unified_diff_str(text, new_text, str(f))
@@ -160,15 +177,21 @@ def main(argv: List[str] = None):
                     files_changed += 1
 
     if args.preview and diffs:
-        print('\n\n'.join(diffs))
+        print("\n\n".join(diffs))
 
     if args.apply:
         branch, status = git_branch_and_status()
         if branch in ("main", "master") and not args.confirm_apply:
-            print(f"Refusing to apply on branch '{branch}'. Use --confirm-apply to override.", file=sys.stderr)
+            print(
+                f"Refusing to apply on branch '{branch}'. Use --confirm-apply to override.",
+                file=sys.stderr,
+            )
             sys.exit(2)
         if status and status.strip() and not args.confirm_apply:
-            print("Working tree is not clean. Commit or stash changes before running with --apply, or pass --confirm-apply to force.", file=sys.stderr)
+            print(
+                "Working tree is not clean. Commit or stash changes before running with --apply, or pass --confirm-apply to force.",
+                file=sys.stderr,
+            )
             sys.exit(3)
 
         # Apply changes now (second pass to write files)
@@ -177,19 +200,21 @@ def main(argv: List[str] = None):
             if is_whitelisted(f, whitelists):
                 continue
             try:
-                text = f.read_text(encoding='utf-8')
-            except Exception:
+                text = f.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError, PermissionError):
                 continue
             if EMOJI_RE.search(text):
                 new_text = EMOJI_RE.sub(args.replace_with, text)
                 if new_text != text:
-                    f.write_text(new_text, encoding='utf-8')
+                    f.write_text(new_text, encoding="utf-8")
                     written += 1
-        print(f"Applied changes to {written} files. Please review, git add and commit on your branch.")
+        print(
+            f"Applied changes to {written} files. Please review, git add and commit on your branch."
+        )
 
     if not (args.dry_run or args.preview or args.apply):
         print("No action specified. Use --dry-run, --preview, or --apply. Use --help for details.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

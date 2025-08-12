@@ -54,24 +54,26 @@ class ListDirTool(FileBasedTool):
         # Try to use cached data from CodeIndex first
         try:
             from tunacode.core.code_index import CodeIndex
-            
+
             index = CodeIndex.get_instance()
             cached_entries = index.get_directory_contents(dir_path)
-            
-            if cached_entries is not None:
+
+            if cached_entries:
                 # Filter cached entries based on show_hidden
                 if not show_hidden:
                     cached_entries = [name for name in cached_entries if not name.startswith(".")]
-                
+
                 # Limit entries and format output
                 limited_entries = cached_entries[:max_entries]
-                
+
                 # Return simple format for cached results (names only for speed)
                 if limited_entries:
-                    return f"Files in {dir_path}:\n" + "\n".join(f"  {name}" for name in limited_entries)
+                    return f"Files in {dir_path}:\n" + "\n".join(
+                        f"  {name}" for name in limited_entries
+                    )
                 else:
                     return f"Directory {dir_path} is empty"
-                    
+
         except Exception as e:
             # If CodeIndex fails, fall back to regular scanning
             logger.debug(f"CodeIndex cache miss for {dir_path}: {e}")
@@ -129,6 +131,7 @@ class ListDirTool(FileBasedTool):
         # Update CodeIndex cache with the fresh data
         try:
             from tunacode.core.code_index import CodeIndex
+
             index = CodeIndex.get_instance()
             # Extract just the names for cache storage
             entry_names = [name for name, _, _ in entries]

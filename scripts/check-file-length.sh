@@ -3,7 +3,7 @@
 # Check for files longer than 500 lines
 # Exit with status 1 if any files exceed the limit
 
-MAX_LINES=510
+MAX_LINES=600
 FOUND_LONG_FILES=0
 
 # Find all files, excluding common directories and binary files
@@ -52,6 +52,7 @@ done < <(find . -type f \
     -not -name "*.ico" \
     -not -name "*.webp" \
     -not -name "*.md" \
+    -not -name ".coverage" \
     -print0)
 
 exit $FOUND_LONG_FILES

@@ -30,7 +30,9 @@ async def attempt_json_args_recovery(e: Exception, state_manager: StateManager) 
     error_str = str(e).lower()
 
     # Check if this is a JSON parsing error with tool arguments
-    if not any(keyword in error_str for keyword in ["invalid json", "extra data", "jsondecodeerror"]):
+    if not any(
+        keyword in error_str for keyword in ["invalid json", "extra data", "jsondecodeerror"]
+    ):
         return False
 
     if not state_manager.session.messages:
@@ -63,7 +65,10 @@ async def attempt_json_args_recovery(e: Exception, state_manager: StateManager) 
                             await ui.warning(f"Warning: {MSG_JSON_ARGS_RECOVERY}")
                             logger.info(
                                 f"Successfully recovered tool {part.tool_name} with split JSON args",
-                                extra={"original_args": part.args, "recovered_args": json_objects[0]},
+                                extra={
+                                    "original_args": part.args,
+                                    "recovered_args": json_objects[0],
+                                },
                             )
                             return True
 

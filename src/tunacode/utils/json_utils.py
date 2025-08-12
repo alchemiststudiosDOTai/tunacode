@@ -50,7 +50,7 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> List[
             escape_next = False
             continue
 
-        if char == '\\':
+        if char == "\\":
             escape_next = True
             continue
 
@@ -61,14 +61,14 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> List[
         if in_string:
             continue
 
-        if char == '{':
+        if char == "{":
             if brace_count == 0:
                 start_pos = i
             brace_count += 1
-        elif char == '}':
+        elif char == "}":
             brace_count -= 1
             if brace_count == 0:
-                potential_json = json_string[start_pos:i + 1].strip()
+                potential_json = json_string[start_pos : i + 1].strip()
                 try:
                     parsed = json.loads(potential_json)
                     if isinstance(parsed, dict):
@@ -88,7 +88,9 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> List[
     return objects
 
 
-def validate_tool_args_safety(objects: List[Dict[str, Any]], tool_name: Optional[str] = None) -> bool:
+def validate_tool_args_safety(
+    objects: List[Dict[str, Any]], tool_name: Optional[str] = None
+) -> bool:
     """
     Validate whether it's safe to execute multiple JSON objects for a given tool.
 
@@ -119,7 +121,7 @@ def validate_tool_args_safety(objects: List[Dict[str, Any]], tool_name: Optional
         raise ConcatenatedJSONError(
             f"Multiple JSON objects not safe for tool {tool_name}",
             objects_found=len(objects),
-            tool_name=tool_name
+            tool_name=tool_name,
         )
     else:
         logger.warning(f"Multiple JSON objects detected ({len(objects)}) with unknown tool")
@@ -127,9 +129,7 @@ def validate_tool_args_safety(objects: List[Dict[str, Any]], tool_name: Optional
 
 
 def safe_json_parse(
-    json_string: str,
-    tool_name: Optional[str] = None,
-    allow_concatenated: bool = False
+    json_string: str, tool_name: Optional[str] = None, allow_concatenated: bool = False
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Safely parse JSON with optional concatenated object support.

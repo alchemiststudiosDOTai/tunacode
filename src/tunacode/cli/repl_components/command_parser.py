@@ -20,7 +20,6 @@ from tunacode.utils.retry import retry_json_parse
 logger = logging.getLogger(__name__)
 
 
-
 def parse_args(args) -> ToolArgs:
     """
     Parse tool arguments from a JSON string or dictionary with retry logic.
