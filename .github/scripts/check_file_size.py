@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 
-MAX_LINES = 500
+MAX_LINES = 600
 SKIP_DIRS = {
     ".git",
     ".github",

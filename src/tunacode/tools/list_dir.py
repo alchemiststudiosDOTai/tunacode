@@ -6,6 +6,7 @@ Provides efficient directory listing without using shell commands.
 """
 
 import asyncio
+import logging
 import os
 from pathlib import Path
 from typing import List, Tuple
@@ -13,6 +14,8 @@ from typing import List, Tuple
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
 from tunacode.types import FilePath, ToolResult
+
+logger = logging.getLogger(__name__)
 
 
 class ListDirTool(FileBasedTool):
@@ -48,7 +51,34 @@ class ListDirTool(FileBasedTool):
         if not dir_path.is_dir():
             raise NotADirectoryError(f"Not a directory: {dir_path}")
 
-        # Collect entries in a background thread to prevent blocking the event loop
+        # Try to use cached data from CodeIndex first
+        try:
+            from tunacode.core.code_index import CodeIndex
+
+            index = CodeIndex.get_instance()
+            cached_entries = index.get_directory_contents(dir_path)
+
+            if cached_entries:
+                # Filter cached entries based on show_hidden
+                if not show_hidden:
+                    cached_entries = [name for name in cached_entries if not name.startswith(".")]
+
+                # Limit entries and format output
+                limited_entries = cached_entries[:max_entries]
+
+                # Return simple format for cached results (names only for speed)
+                if limited_entries:
+                    return f"Files in {dir_path}:\n" + "\n".join(
+                        f"  {name}" for name in limited_entries
+                    )
+                else:
+                    return f"Directory {dir_path} is empty"
+
+        except Exception as e:
+            # If CodeIndex fails, fall back to regular scanning
+            logger.debug(f"CodeIndex cache miss for {dir_path}: {e}")
+
+        # Fallback: Collect entries in a background thread to prevent blocking the event loop
         def _scan_directory(path: Path) -> List[Tuple[str, bool, str]]:
             """Synchronous helper that scans a directory and returns entry metadata."""
             collected: List[Tuple[str, bool, str]] = []
@@ -97,6 +127,17 @@ class ListDirTool(FileBasedTool):
 
         # Sort entries: directories first, then files, both alphabetically
         entries.sort(key=lambda x: (not x[1], x[0].lower()))
+
+        # Update CodeIndex cache with the fresh data
+        try:
+            from tunacode.core.code_index import CodeIndex
+
+            index = CodeIndex.get_instance()
+            # Extract just the names for cache storage
+            entry_names = [name for name, _, _ in entries]
+            index.update_directory_cache(dir_path, entry_names)
+        except Exception as e:
+            logger.debug(f"Failed to update CodeIndex cache for {dir_path}: {e}")
 
         # Apply limit after sorting to ensure consistent results
         total_entries = len(entries)

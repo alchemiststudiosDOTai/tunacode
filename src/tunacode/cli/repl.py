@@ -1,5 +1,6 @@
 """Interactive REPL implementation for TunaCode."""
 
+import asyncio
 import logging
 import os
 import subprocess
@@ -382,9 +383,26 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
             )
 
 
+async def warm_code_index():
+    """Pre-warm the code index in background for faster directory operations."""
+    try:
+        from tunacode.core.code_index import CodeIndex
+
+        # Build index in thread to avoid blocking
+        index = await asyncio.to_thread(lambda: CodeIndex.get_instance())
+        await asyncio.to_thread(index.build_index)
+
+        logger.debug(f"Code index pre-warmed with {len(index._all_files)} files")
+    except Exception as e:
+        logger.debug(f"Failed to pre-warm code index: {e}")
+
+
 async def repl(state_manager: StateManager):
     """Main REPL loop that handles user interaction and input processing."""
     import time
+
+    # Start pre-warming code index in background (non-blocking)
+    asyncio.create_task(warm_code_index())
 
     action = None
     abort_pressed = False

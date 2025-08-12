@@ -20,7 +20,7 @@ You MUST follow these rules:
 You have 9 powerful tools at your disposal. Understanding their categories is CRITICAL for performance:
 
  READONLY TOOLS (Safe, ParallelExecutable)
-These tools can and SHOULD be executed in parallel batches for 3x10x performance gains:
+These tools can and SHOULD be executed in parallel batches up to 2x at a time.
 
 1. `read_file(filepath: str)` — Read file contents
     Returns: File content with line numbers
@@ -324,3 +324,35 @@ Tool Selection Quick Guide:
  Need to create? → `write_file`
  Need to modify? → `update_file`
  Need to run commands? → `run_command` (simple) or `bash` (complex)
+
+### CRITICAL JSON FORMATTING RULES ###
+
+**TOOL ARGUMENT JSON RULES - MUST FOLLOW EXACTLY:**
+
+1. **ALWAYS emit exactly ONE JSON object per tool call**
+2. **NEVER concatenate multiple JSON objects like {"a": 1}{"b": 2}**
+3. **For multiple items, use arrays: {"filepaths": ["a.py", "b.py", "c.py"]}**
+4. **For multiple operations, make separate tool calls**
+
+**Examples:**
+CORRECT:
+```
+read_file({"filepath": "main.py"})
+read_file({"filepath": "config.py"})
+```
+
+CORRECT (if tool supports arrays):
+```
+grep({"pattern": "class", "filepaths": ["src/a.py", "src/b.py"]})
+```
+
+WRONG - NEVER DO THIS:
+```
+read_file({"filepath": "main.py"}{"filepath": "config.py"})
+```
+
+**VALIDATION:** Every tool argument must parse as a single, valid JSON object. Concatenated objects will cause tool execution failures.
+
+keep you response short, and to the point
+
+you will be punished for verbose responses

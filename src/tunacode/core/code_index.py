@@ -3,6 +3,7 @@
 import logging
 import os
 import threading
+import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -16,6 +17,10 @@ class CodeIndex:
     This index provides efficient file discovery without relying on
     grep searches that can timeout in large repositories.
     """
+
+    # Singleton instance
+    _instance: Optional["CodeIndex"] = None
+    _instance_lock = threading.RLock()
 
     # Directories to ignore during indexing
     IGNORE_DIRS = {
@@ -121,7 +126,82 @@ class CodeIndex:
         # Cache for directory contents
         self._dir_cache: Dict[Path, List[Path]] = {}
 
+        # Cache freshness tracking
+        self._cache_timestamps: Dict[Path, float] = {}
+        self._cache_ttl = 5.0  # 5 seconds TTL for directory cache
+
         self._indexed = False
+
+    @classmethod
+    def get_instance(cls, root_dir: Optional[str] = None) -> "CodeIndex":
+        """Get the singleton CodeIndex instance.
+
+        Args:
+            root_dir: Root directory to index. Only used on first call.
+
+        Returns:
+            The singleton CodeIndex instance.
+        """
+        if cls._instance is None:
+            with cls._instance_lock:
+                if cls._instance is None:
+                    cls._instance = cls(root_dir)
+        return cls._instance
+
+    @classmethod
+    def reset_instance(cls) -> None:
+        """Reset the singleton instance (for testing)."""
+        with cls._instance_lock:
+            cls._instance = None
+
+    def get_directory_contents(self, path: Path) -> List[str]:
+        """Get cached directory contents if available and fresh.
+
+        Args:
+            path: Directory path to check
+
+        Returns:
+            List of filenames in directory, empty list if not cached/stale
+        """
+        with self._lock:
+            if path not in self._dir_cache:
+                return []
+
+            if not self.is_cache_fresh(path):
+                # Remove stale entry
+                self._dir_cache.pop(path, None)
+                self._cache_timestamps.pop(path, None)
+                return []
+
+            # Return just the filenames, not Path objects
+            return [p.name for p in self._dir_cache[path]]
+
+    def is_cache_fresh(self, path: Path) -> bool:
+        """Check if cached directory data is still fresh.
+
+        Args:
+            path: Directory path to check
+
+        Returns:
+            True if cache is fresh, False if stale or missing
+        """
+        if path not in self._cache_timestamps:
+            return False
+
+        age = time.time() - self._cache_timestamps[path]
+        return age < self._cache_ttl
+
+    def update_directory_cache(self, path: Path, entries: List[str]) -> None:
+        """Update the directory cache with fresh data.
+
+        Args:
+            path: Directory path
+            entries: List of filenames in the directory
+        """
+        with self._lock:
+            # Convert filenames back to Path objects for internal storage
+            self._dir_cache[path] = [Path(path) / entry for entry in entries]
+            self._cache_timestamps[path] = time.time()
 
     def build_index(self, force: bool = False) -> None:
         """Build the file index for the repository.
@@ -152,6 +232,7 @@ class CodeIndex:
         self._class_definitions.clear()
         self._function_definitions.clear()
         self._dir_cache.clear()
+        self._cache_timestamps.clear()
 
     def _should_ignore_path(self, path: Path) -> bool:
         """Check if a path should be ignored during indexing."""
@@ -183,8 +264,9 @@ class CodeIndex:
                         self._index_file(entry)
                         file_list.append(entry)
 
-            # Cache directory contents
+            # Cache directory contents with timestamp
             self._dir_cache[directory] = file_list
+            self._cache_timestamps[directory] = time.time()
 
         except PermissionError:
             logger.debug(f"Permission denied: {directory}")
@@ -351,34 +433,6 @@ class CodeIndex:
                 return sorted([p for p in self._all_files if p.suffix == file_type])
 
             return sorted(self._all_files)
-
-    def get_directory_contents(self, directory: str) -> List[Path]:
-        """Get cached contents of a directory.
-
-        Args:
-            directory: Directory path relative to root
-
-        Returns:
-            List of file paths in the directory.
-        """
-        with self._lock:
-            if not self._indexed:
-                self.build_index()
-
-            dir_path = self.root_dir / directory
-            if dir_path in self._dir_cache:
-                return [p.relative_to(self.root_dir) for p in self._dir_cache[dir_path]]
-
-            # Fallback to scanning if not in cache
-            results = []
-            for file_path in self._all_files:
-                if str(file_path).startswith(directory + os.sep):
-                    # Only include direct children
-                    relative = str(file_path)[len(directory) + 1 :]
-                    if os.sep not in relative:
-                        results.append(file_path)
-
-            return sorted(results)
 
     def find_imports(self, module_name: str) -> List[Path]:
         """Find files that import a specific module.

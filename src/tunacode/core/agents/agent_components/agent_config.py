@@ -1,6 +1,7 @@
 """Agent configuration and creation utilities."""
 
 from pathlib import Path
+from typing import Dict, Tuple
 
 from pydantic_ai import Agent
 
@@ -21,6 +22,10 @@ from tunacode.types import ModelName, PydanticAgent
 
 logger = get_logger(__name__)
 
+# Module-level caches for system prompts
+_PROMPT_CACHE: Dict[str, Tuple[str, float]] = {}
+_TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
+
 
 def get_agent_tool():
     """Lazy import for Agent and Tool to avoid circular imports."""
@@ -30,38 +35,78 @@ def get_agent_tool():
 
 
 def load_system_prompt(base_path: Path) -> str:
-    """Load the system prompt from file."""
+    """Load the system prompt from file with caching."""
     prompt_path = base_path / "prompts" / "system.md"
+    cache_key = str(prompt_path)
+
+    # Check cache with file modification time
     try:
+        if cache_key in _PROMPT_CACHE:
+            cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
+            current_mtime = prompt_path.stat().st_mtime
+            if current_mtime == cached_mtime:
+                return cached_content
+
+        # Load from file and cache
         with open(prompt_path, "r", encoding="utf-8") as f:
-            return f.read().strip()
+            content = f.read().strip()
+        _PROMPT_CACHE[cache_key] = (content, prompt_path.stat().st_mtime)
+        return content
+
     except FileNotFoundError:
         # Fallback to system.txt if system.md not found
         prompt_path = base_path / "prompts" / "system.txt"
+        cache_key = str(prompt_path)
+
         try:
+            if cache_key in _PROMPT_CACHE:
+                cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
+                current_mtime = prompt_path.stat().st_mtime
+                if current_mtime == cached_mtime:
+                    return cached_content
+
             with open(prompt_path, "r", encoding="utf-8") as f:
-                return f.read().strip()
+                content = f.read().strip()
+            _PROMPT_CACHE[cache_key] = (content, prompt_path.stat().st_mtime)
+            return content
+
         except FileNotFoundError:
             # Use a default system prompt if neither file exists
-            return "You are a helpful AI assistant for software development tasks."
+            return "You are a helpful AI assistant."
 
 
 def load_tunacode_context() -> str:
-    """Load TUNACODE.md context if it exists."""
+    """Load TUNACODE.md context if it exists with caching."""
     try:
         tunacode_path = Path.cwd() / "TUNACODE.md"
-        if tunacode_path.exists():
-            tunacode_content = tunacode_path.read_text(encoding="utf-8")
-            if tunacode_content.strip():
-                logger.info("📄 TUNACODE.md located: Loading context...")
-                return "\n\n# Project Context from TUNACODE.md\n" + tunacode_content
-            else:
-                logger.info("📄 TUNACODE.md not found: Using default context")
+        cache_key = str(tunacode_path)
+
+        if not tunacode_path.exists():
+            logger.info("📄 TUNACODE.md not found: Using default context")
+            return ""
+
+        # Check cache with file modification time
+        if cache_key in _TUNACODE_CACHE:
+            cached_content, cached_mtime = _TUNACODE_CACHE[cache_key]
+            current_mtime = tunacode_path.stat().st_mtime
+            if current_mtime == cached_mtime:
+                return cached_content
+
+        # Load from file and cache
+        tunacode_content = tunacode_path.read_text(encoding="utf-8")
+        if tunacode_content.strip():
+            logger.info("📄 TUNACODE.md located: Loading context...")
+            result = "\n\n# Project Context from TUNACODE.md\n" + tunacode_content
+            _TUNACODE_CACHE[cache_key] = (result, tunacode_path.stat().st_mtime)
+            return result
         else:
             logger.info("📄 TUNACODE.md not found: Using default context")
+            _TUNACODE_CACHE[cache_key] = ("", tunacode_path.stat().st_mtime)
+            return ""
+
     except Exception as e:
         logger.debug(f"Error loading TUNACODE.md: {e}")
-    return ""
+        return ""
 
 
 def get_or_create_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
