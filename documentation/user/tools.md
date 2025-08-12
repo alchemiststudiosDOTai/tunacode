@@ -14,7 +14,9 @@ Here are the main tools and what they do:
 *   **`list_dir`**: Lists the files and directories in a specified path.
 *   **`glob`**: Finds files matching a specific pattern (e.g., `*.py`, `src/**/*.js`).
 *   **`grep`**: Searches for a pattern within files (similar to the `grep` command-line utility).
-*   **`bash` / `run_command`**: Executes shell commands.
+- *   **`bash` / `run_command`**: Executes shell commands.
++ *   **`run_command`**: Executes simple shell commands.
++ *   **`bash`**: Executes advanced shell commands with environment control.
 *   **`todo`**: Manages a to-do list for the current task.
 
 ## Safe and Fast Operations
