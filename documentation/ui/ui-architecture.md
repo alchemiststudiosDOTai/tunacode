@@ -247,7 +247,7 @@ class StreamingAgentPanel:
   - `command_parser.py` - Parses command arguments
   - `tool_executor.py` - Handles tool execution with UI
   - `output_display.py` - Agent output formatting
-  - `error_recovery.py` - Error handling and recovery
+  - `error_recovery.py` - Error handling and recovery (includes JSON concatenation recovery)
 
 ### Agent Layer Files
 

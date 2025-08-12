@@ -1,8 +1,9 @@
 """Tests for JSON concatenation recovery functionality."""
 
 import json
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import AsyncMock, Mock, patch
 
 from tunacode.cli.repl_components.command_parser import parse_args
 from tunacode.cli.repl_components.error_recovery import (
@@ -120,7 +121,7 @@ class TestValidateToolArgsSafety:
         objects = [{"file": "a.py", "content": "..."}, {"file": "b.py", "content": "..."}]
         with pytest.raises(ConcatenatedJSONError) as exc_info:
             validate_tool_args_safety(objects, "write_file")
-        
+
         assert exc_info.value.objects_found == 2
         assert exc_info.value.tool_name == "write_file"
 
@@ -129,7 +130,7 @@ class TestValidateToolArgsSafety:
         objects = [{"arg1": "value1"}, {"arg2": "value2"}]
         with pytest.raises(ConcatenatedJSONError) as exc_info:
             validate_tool_args_safety(objects, "unknown_tool")
-        
+
         assert exc_info.value.objects_found == 2
         assert exc_info.value.tool_name == "unknown_tool"
 
@@ -215,9 +216,9 @@ class TestParseArgs:
         # Simulate retry failing with "Extra data" error
         mock_retry.side_effect = json.JSONDecodeError("Extra data", "", 10)
         mock_safe_parse.return_value = {"recovered": True}
-        
+
         result = parse_args('{"first": 1}{"second": 2}')
-        
+
         mock_safe_parse.assert_called_once_with('{"first": 1}{"second": 2}', allow_concatenated=True)
         assert result == {"recovered": True}
 
@@ -227,9 +228,9 @@ class TestParseArgs:
         """Test concatenated JSON recovery with list result."""
         mock_retry.side_effect = json.JSONDecodeError("Extra data", "", 10)
         mock_safe_parse.return_value = [{"first": 1}, {"second": 2}]
-        
+
         result = parse_args('{"first": 1}{"second": 2}')
-        
+
         # Should return first object when list is returned
         assert result == {"first": 1}
 
@@ -241,7 +242,7 @@ class TestErrorRecovery:
     async def test_attempt_tool_recovery_keyword_filtering(self):
         """Test that tool recovery is triggered by correct keywords."""
         state_manager = Mock()
-        
+
         # Should trigger recovery
         json_error = Exception("Invalid JSON: extra data")
         with patch('tunacode.cli.repl_components.error_recovery.attempt_json_args_recovery') as mock_json_recovery:
@@ -249,7 +250,7 @@ class TestErrorRecovery:
             state_manager.session.messages = []
             result = await attempt_tool_recovery(json_error, state_manager)
             mock_json_recovery.assert_called_once()
-        
+
         # Should not trigger recovery
         other_error = Exception("Some other error")
         state_manager.session.messages = []
@@ -262,24 +263,24 @@ class TestErrorRecovery:
         # Setup mock state manager with malformed tool call
         state_manager = Mock()
         state_manager.session.messages = [Mock()]
-        
+
         mock_part = Mock()
         mock_part.tool_name = "read_file"
         mock_part.args = '{"file": "a.py"}{"file": "b.py"}'  # Concatenated JSON
-        
+
         state_manager.session.messages[-1].parts = [mock_part]
-        
+
         # Mock the tool_handler
         with patch('tunacode.cli.repl_components.error_recovery.tool_handler') as mock_handler:
             mock_handler.return_value = None
-            
+
             error = Exception("Invalid JSON: extra data")
             result = await attempt_json_args_recovery(error, state_manager)
-            
+
             # Should have recovered and executed tool
             assert result is True
             mock_handler.assert_called_once()
-            
+
             # Args should be fixed to first object
             assert mock_part.args == {"file": "a.py"}
 
@@ -289,10 +290,10 @@ class TestErrorRecovery:
         state_manager = Mock()
         state_manager.session.messages = [Mock()]
         state_manager.session.messages[-1].parts = [Mock()]  # No tool_name/args
-        
+
         error = Exception("Invalid JSON: extra data")
         result = await attempt_json_args_recovery(error, state_manager)
-        
+
         assert result is False
 
 
@@ -313,7 +314,7 @@ class TestIntegration:
         correct_single = '{"filepath": "main.py"}'
         result = parse_args(correct_single)
         assert result == {"filepath": "main.py"}
-        
+
         # Test that incorrect concatenated format would be handled
         incorrect_concat = '{"filepath": "main.py"}{"filepath": "config.py"}'
         # This should work due to our recovery mechanism
