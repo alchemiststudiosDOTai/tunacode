@@ -21,5 +21,5 @@ jobs:
         run: ruff check --output-format=github .
       - name: Run Ruff (format check only)
         run: ruff format --check .
-      - name: Enforce max file length (500 lines)
+      - name: Enforce max file length (600 lines)
         run: python .github/scripts/check_file_size.py
