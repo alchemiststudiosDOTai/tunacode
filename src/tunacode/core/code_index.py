@@ -17,7 +17,7 @@ class CodeIndex:
     This index provides efficient file discovery without relying on
     grep searches that can timeout in large repositories.
     """
-    
+
     # Singleton instance
     _instance: Optional['CodeIndex'] = None
     _instance_lock = threading.RLock()
@@ -125,7 +125,7 @@ class CodeIndex:
 
         # Cache for directory contents
         self._dir_cache: Dict[Path, List[Path]] = {}
-        
+
         # Cache freshness tracking
         self._cache_timestamps: Dict[Path, float] = {}
         self._cache_ttl = 5.0  # 5 seconds TTL for directory cache
@@ -135,10 +135,10 @@ class CodeIndex:
     @classmethod
     def get_instance(cls, root_dir: Optional[str] = None) -> 'CodeIndex':
         """Get the singleton CodeIndex instance.
-        
+
         Args:
             root_dir: Root directory to index. Only used on first call.
-            
+
         Returns:
             The singleton CodeIndex instance.
         """
@@ -154,46 +154,46 @@ class CodeIndex:
         with cls._instance_lock:
             cls._instance = None
 
-    def get_directory_contents(self, path: Path) -> Optional[List[str]]:
+    def get_directory_contents(self, path: Path) -> List[str]:
         """Get cached directory contents if available and fresh.
-        
+
         Args:
             path: Directory path to check
-            
+
         Returns:
-            List of filenames in directory, or None if not cached/stale
+            List of filenames in directory, empty list if not cached/stale
         """
         with self._lock:
             if path not in self._dir_cache:
-                return None
-                
+                return []
+
             if not self.is_cache_fresh(path):
                 # Remove stale entry
                 self._dir_cache.pop(path, None)
                 self._cache_timestamps.pop(path, None)
-                return None
-                
+                return []
+
             # Return just the filenames, not Path objects
             return [p.name for p in self._dir_cache[path]]
 
     def is_cache_fresh(self, path: Path) -> bool:
         """Check if cached directory data is still fresh.
-        
+
         Args:
             path: Directory path to check
-            
+
         Returns:
             True if cache is fresh, False if stale or missing
         """
         if path not in self._cache_timestamps:
             return False
-            
+
         age = time.time() - self._cache_timestamps[path]
         return age < self._cache_ttl
 
     def update_directory_cache(self, path: Path, entries: List[str]) -> None:
         """Update the directory cache with fresh data.
-        
+
         Args:
             path: Directory path
             entries: List of filenames in the directory
