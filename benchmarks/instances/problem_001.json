@@ -1,0 +1,14 @@
+{
+  "id": "problem_001",
+  "repo": "tunacode_benchmark",
+  "problem_statement": "The string_utils.py module contains a reverse_string() function that works correctly for ASCII text but fails when handling Unicode characters, especially emoji and combining characters. The function uses naive string slicing (text[::-1]) which breaks Unicode surrogate pairs and combining character sequences. This causes the is_palindrome() function that depends on it to also fail for Unicode text. Fix the reverse_string() function to properly handle all Unicode characters while maintaining backward compatibility for ASCII text.",
+  "base_code_path": "base_code/string_utils.py",
+  "test_file": "tests/test_string_utils.py",
+  "expected_patch": "Replace the naive text[::-1] reversal with proper Unicode-aware reversal that preserves grapheme clusters and combining character sequences.",
+  "metadata": {
+    "difficulty": "medium",
+    "category": "string_manipulation",
+    "created_date": "2025-08-12",
+    "tags": ["unicode", "string-processing", "internationalization"]
+  }
+}

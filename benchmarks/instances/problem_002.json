@@ -1,0 +1,14 @@
+{
+  "id": "problem_002",
+  "repo": "tunacode_benchmark",
+  "problem_statement": "The math_utils.py module contains statistical functions with critical edge case bugs. The calculate_mean() function causes a ZeroDivisionError when given an empty list instead of raising a meaningful error. The calculate_median() function causes an IndexError on empty lists. The calculate_variance() function fails on empty lists due to its dependency on the buggy calculate_mean() function. These functions should either handle empty inputs gracefully or raise appropriate ValueError exceptions with descriptive messages. Fix all three functions to properly handle edge cases while maintaining their core functionality for valid inputs.",
+  "base_code_path": "base_code/math_utils.py",
+  "test_file": "tests/test_math_utils.py",
+  "expected_patch": "Add proper input validation and error handling for empty lists in calculate_mean(), calculate_median(), and calculate_variance() functions. Replace generic exceptions with meaningful ValueError messages.",
+  "metadata": {
+    "difficulty": "easy",
+    "category": "mathematical_computation",
+    "created_date": "2025-08-12",
+    "tags": ["statistics", "error-handling", "edge-cases"]
+  }
+}
