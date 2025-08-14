@@ -23,7 +23,7 @@ from .decorators import create_sync_wrapper
 from .logging_compat import ui_logger
 
 # Create console with explicit settings to ensure ANSI codes work properly
-console = Console(force_terminal=True, legacy_windows=False)
+console = Console()
 colors = DotDict(UI_COLORS)
 
 BANNER = """[bold cyan]
