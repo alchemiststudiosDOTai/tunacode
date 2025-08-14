@@ -7,7 +7,7 @@ created by users and shared across teams.
 # Only export the main classes that external code needs
 from .types import (
     CommandSource,
-    SlashCommandMetadata, 
+    SlashCommandMetadata,
     CommandDiscoveryResult,
     ContextInjectionResult,
     SecurityLevel,
@@ -17,9 +17,9 @@ from .types import (
 
 __all__ = [
     "CommandSource",
-    "SlashCommandMetadata", 
+    "SlashCommandMetadata",
     "CommandDiscoveryResult",
-    "ContextInjectionResult", 
+    "ContextInjectionResult",
     "SecurityLevel",
     "SecurityViolation",
     "ValidationResult",
@@ -28,5 +28,5 @@ __all__ = [
 # Other classes can be imported directly when needed:
 # from .command import SlashCommand
 # from .loader import SlashCommandLoader
-# from .processor import MarkdownTemplateProcessor  
+# from .processor import MarkdownTemplateProcessor
 # from .validator import CommandValidator

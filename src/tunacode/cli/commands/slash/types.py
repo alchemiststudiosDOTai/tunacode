@@ -12,15 +12,17 @@ if TYPE_CHECKING:
 
 class CommandSource(Enum):
     """Command source with priority ordering (lower value = higher priority)."""
-    PROJECT_TUNACODE = 1    # Highest priority
-    PROJECT_CLAUDE = 2      # Project fallback
-    USER_TUNACODE = 3       # User primary
-    USER_CLAUDE = 4         # Lowest priority
+
+    PROJECT_TUNACODE = 1  # Highest priority
+    PROJECT_CLAUDE = 2  # Project fallback
+    USER_TUNACODE = 3  # User primary
+    USER_CLAUDE = 4  # Lowest priority
 
 
 class SecurityLevel(Enum):
     """Security validation levels."""
-    STRICT = "strict"      # Minimal commands allowed
+
+    STRICT = "strict"  # Minimal commands allowed
     MODERATE = "moderate"  # Balanced security (default)
     PERMISSIVE = "permissive"  # More commands allowed
 
@@ -28,6 +30,7 @@ class SecurityLevel(Enum):
 @dataclass
 class SlashCommandMetadata:
     """Metadata parsed from YAML frontmatter."""
+
     description: str
     allowed_tools: Optional[List[str]] = None
     timeout: Optional[int] = None
@@ -38,15 +41,17 @@ class SlashCommandMetadata:
 @dataclass
 class CommandDiscoveryResult:
     """Result of command discovery process."""
+
     commands: Dict[str, Any]  # SlashCommand instances
     conflicts: List[Tuple[str, List[Path]]]  # Commands with conflicts
-    errors: List[Tuple[Path, Exception]]     # Files that failed to load
+    errors: List[Tuple[Path, Exception]]  # Files that failed to load
     stats: Dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
 class ContextInjectionResult:
     """Result of template processing with context injection."""
+
     processed_content: str
     included_files: List[Path]
     executed_commands: List[str]
@@ -57,6 +62,7 @@ class ContextInjectionResult:
 @dataclass
 class SecurityViolation:
     """Details about a security violation."""
+
     type: str
     message: str
     command: str
@@ -66,6 +72,7 @@ class SecurityViolation:
 @dataclass
 class ValidationResult:
     """Result of security validation."""
+
     allowed: bool
     violations: List[SecurityViolation]
     sanitized_command: Optional[str] = None
@@ -74,6 +81,7 @@ class ValidationResult:
 @dataclass
 class AuditEntry:
     """Single audit log entry for security monitoring."""
+
     timestamp: datetime
     command_name: str
     user: str
