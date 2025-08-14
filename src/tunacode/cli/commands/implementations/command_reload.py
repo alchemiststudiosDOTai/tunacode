@@ -26,15 +26,15 @@ class CommandReloadCommand(SimpleCommand):
         command_dirs = [
             Path(".tunacode/commands"),
             Path(".claude/commands"),
-            Path.home() / ".tunacode/commands"
+            Path.home() / ".tunacode/commands",
         ]
-        
+
         dirs_exist = any(cmd_dir.exists() for cmd_dir in command_dirs)
-        
+
         if not dirs_exist:
             await ui.info("No commands directory found")
             return
-        
+
         # Reload commands using registry
         if self._command_registry:
             try:
