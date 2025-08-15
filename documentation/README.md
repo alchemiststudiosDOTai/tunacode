@@ -13,11 +13,15 @@ documentation/
 ├── configuration/         # System configuration docs
 │   ├── config-file-example.md
 │   └── logging-configuration.md
-└── development/          # Development practices
-    ├── codebase-hygiene.md
-    ├── hatch-build-system.md
-    ├── performance-optimizations.md
-    └── prompt-principles.md
+├── development/          # Development practices
+│   ├── codebase-hygiene.md
+│   ├── hatch-build-system.md
+|   ├── performance-optimizations.md
+│   └── prompt-principles.md
+│── user/                 # user guides
+    │── getting-started.md
+    │── commands.md
+    │── tools.md
 ```
 
 ## Purpose
