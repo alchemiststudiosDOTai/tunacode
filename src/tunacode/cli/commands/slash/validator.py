@@ -62,7 +62,7 @@ class CommandValidator:
             r"\|\s*bash\b",  # Pipe to bash
             r"`[^`]*`",  # Command substitution
             r"\$\([^)]*\)",  # Command substitution
-            r"&[;&]",  # Command chaining
+            r"(?:;|\|\||&&)",  # Command chaining (;, ||, &&)
             r"[|&]+\s*$",  # Trailing pipes
             r"eval\s+",  # Dynamic evaluation
             r"exec\s+",  # Process replacement
