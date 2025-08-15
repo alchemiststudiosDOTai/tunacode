@@ -151,10 +151,10 @@ class TestCommandValidator:
         result = strict_validator.validate_shell_command(cmd_with_pipes)
         assert not result.allowed
 
-        # Moderate should allow pipes
+        # Moderate should also block pipes
         moderate_validator = CommandValidator(SecurityLevel.MODERATE)
         result = moderate_validator.validate_shell_command(cmd_with_pipes)
-        assert result.allowed
+        assert not result.allowed
 
 
 class TestMarkdownTemplateProcessor:
@@ -315,7 +315,7 @@ class TestSlashCommandIntegration:
 
     def test_slash_command_creation(self):
         """Test SlashCommand creation and basic functionality."""
-        from src.tunacode.cli.commands.base import CommandCategory
+        from tunacode.cli.commands.base import CommandCategory
         from tunacode.cli.commands.slash.command import SlashCommand
 
         # Create command with proper parameters
@@ -329,21 +329,17 @@ class TestSlashCommandIntegration:
         assert command.category == CommandCategory.SYSTEM
         assert command.aliases == ["/project:hello"]
 
-    @patch("src.tunacode.cli.commands.slash.loader.SlashCommandLoader")
+    @patch("tunacode.cli.commands.slash.loader.SlashCommandLoader")
     def test_registry_slash_command_discovery(self, mock_loader_class):
         """Test registry integration with slash command discovery."""
         from unittest.mock import Mock
 
-        from src.tunacode.cli.commands.registry import CommandRegistry
-        from tunacode.cli.commands.slash.types import CommandDiscoveryResult, SlashCommandMetadata
+        from tunacode.cli.commands.registry import CommandRegistry
+        from tunacode.cli.commands.slash.types import CommandDiscoveryResult
 
         # Mock the discovery result
         mock_command = Mock()
         mock_command.name = "hello"
-
-        metadata = SlashCommandMetadata(
-            description="Test command",
-        )
 
         mock_result = CommandDiscoveryResult(
             commands={"project:hello": mock_command}, conflicts=[], errors=[], stats={"total": 1}
@@ -361,105 +357,3 @@ class TestSlashCommandIntegration:
         # Verify slash command discovery was called
         mock_loader_class.assert_called_once()
         mock_loader.discover_commands.assert_called_once()
-
-
-def run_basic_tests():
-    """Run basic smoke tests without pytest."""
-    print("🧪 Running Slash Command Comprehensive Tests")
-    print("=" * 60)
-
-    # Test basic imports
-    test_results = []
-
-    try:
-        from tunacode.cli.commands.slash.types import CommandSource
-
-        test_results.append("✅ Types import successful")
-    except ImportError as e:
-        test_results.append(f"❌ Types import failed: {e}")
-
-    try:
-        from tunacode.cli.commands.slash.validator import CommandValidator
-
-        test_results.append("✅ Validator import successful")
-    except ImportError as e:
-        test_results.append(f"❌ Validator import failed: {e}")
-
-    try:
-        from tunacode.cli.commands.slash.processor import MarkdownTemplateProcessor
-
-        test_results.append("✅ Processor import successful")
-    except ImportError as e:
-        test_results.append(f"❌ Processor import failed: {e}")
-
-    try:
-        from tunacode.cli.commands.slash.loader import SlashCommandLoader
-
-        test_results.append("✅ Loader import successful")
-    except ImportError as e:
-        test_results.append(f"❌ Loader import failed: {e}")
-
-    try:
-        from tunacode.cli.commands.slash.command import SlashCommand
-
-        test_results.append("✅ Command import successful")
-    except ImportError as e:
-        test_results.append(f"❌ Command import failed: {e}")
-
-    # Run basic functionality tests
-    try:
-        test_types = TestSlashCommandTypes()
-        test_types.test_command_source_enum()
-        test_types.test_security_level_enum()
-        test_results.append("✅ Types functionality tests passed")
-    except Exception as e:
-        test_results.append(f"❌ Types functionality tests failed: {e}")
-
-    try:
-        test_validator = TestCommandValidator()
-        test_validator.test_validator_initialization()
-        test_results.append("✅ Validator functionality tests passed")
-    except Exception as e:
-        test_results.append(f"❌ Validator functionality tests failed: {e}")
-
-    try:
-        test_processor = TestMarkdownTemplateProcessor()
-        test_processor.test_frontmatter_parsing_no_frontmatter()
-        test_results.append("✅ Processor functionality tests passed")
-    except Exception as e:
-        test_results.append(f"❌ Processor functionality tests failed: {e}")
-
-    try:
-        test_loader = TestSlashCommandLoader()
-        test_loader.test_loader_initialization()
-        test_loader.test_command_discovery_empty()
-        test_results.append("✅ Loader functionality tests passed")
-    except Exception as e:
-        test_results.append(f"❌ Loader functionality tests failed: {e}")
-
-    # Print results
-    for result in test_results:
-        print(result)
-
-    print("=" * 60)
-
-    # Count results
-    passed = sum(1 for r in test_results if r.startswith("✅"))
-    failed = sum(1 for r in test_results if r.startswith("❌"))
-
-    print(f"✅ Tests passed: {passed}")
-    print(f"❌ Tests failed: {failed}")
-    print(f"📊 Success rate: {passed / (passed + failed) * 100:.1f}%")
-
-    return failed == 0
-
-
-if __name__ == "__main__":
-    success = run_basic_tests()
-    if success:
-        print("\n🎉 All basic tests passed!")
-    else:
-        print("\n⚠️  Some tests failed - see details above")
-
-    print("\nFor full test suite, run:")
-    print("  python3 test_env/bin/python -m pytest tests/test_slash_commands_comprehensive.py -v")

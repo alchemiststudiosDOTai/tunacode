@@ -278,12 +278,10 @@ async def extract_and_execute_tool_calls(
     if not tool_callback:
         return
 
-    # Format 1: {"tool": "name", "args": {...}}
-    await parse_json_tool_calls(text, tool_callback, state_manager)
-
     # Format 2: Tool calls in code blocks
     code_block_pattern = r'```json\s*(\{(?:[^{}]|"[^"]*"|(?:\{[^}]*\}))*"tool"(?:[^{}]|"[^"]*"|(?:\{[^}]*\}))*\})\s*```'
     code_matches = re.findall(code_block_pattern, text, re.MULTILINE | re.DOTALL)
+    remaining_text = re.sub(code_block_pattern, "", text)
 
     for match in code_matches:
         try:
@@ -331,6 +329,9 @@ async def extract_and_execute_tool_calls(
         except (KeyError, Exception) as e:
             if state_manager.session.show_thoughts:
                 await ui.error(f"Error parsing code block tool call: {e!s}")
+
+    # Format 1: {"tool": "name", "args": {...}}
+    await parse_json_tool_calls(remaining_text, tool_callback, state_manager)
 
 
 def patch_tool_messages(

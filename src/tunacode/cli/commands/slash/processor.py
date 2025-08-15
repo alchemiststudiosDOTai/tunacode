@@ -1,13 +1,13 @@
 """Template processing engine for markdown slash commands."""
 
-import glob
 import logging
 import os
 import re
 import subprocess
-import yaml
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
+
+import yaml
 
 from .types import ContextInjectionResult
 from .validator import CommandValidator
@@ -41,26 +41,26 @@ class MarkdownTemplateProcessor:
     def parse_frontmatter(self, content: str) -> Tuple[Optional[Dict], str]:
         """Parse YAML frontmatter from markdown content."""
         if not content.strip().startswith("---"):
-            return None, content
+            return {}, content
 
         try:
             # Split on --- boundaries
             parts = content.split("---", 2)
             if len(parts) < 3:
-                return None, content
+                return {}, content
 
             frontmatter_text = parts[1].strip()
             markdown_content = parts[2].lstrip("\n")
 
             if not frontmatter_text:
-                return None, markdown_content
+                return {}, markdown_content
 
             frontmatter = yaml.safe_load(frontmatter_text)
             return frontmatter, markdown_content
 
         except yaml.YAMLError as e:
             logger.warning(f"Invalid YAML frontmatter: {e}")
-            return None, content
+            return {}, content
 
     def process_template_with_context(
         self, content: str, args: List[str], context: "CommandContext"
