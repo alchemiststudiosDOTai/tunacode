@@ -48,9 +48,7 @@ class TestParseJsonToolCalls:
 
         mock_retry_parse = AsyncMock(side_effect=mock_retry_parse_impl)
 
-        with patch(
-            "tunacode.core.agents.utils.retry_json_parse_async", new=mock_retry_parse
-        ):
+        with patch("tunacode.core.agents.utils.retry_json_parse_async", new=mock_retry_parse):
             text = '{"tool": "bash", "args": {"command": "ls"}}'
 
             tool_callback = AsyncMock()
@@ -272,9 +270,7 @@ class TestRetryBehavior:
 
         mock_parse = AsyncMock(side_effect=mock_parse_impl)
 
-        with patch(
-            "tunacode.core.agents.utils.retry_json_parse_async", new=mock_parse
-        ):
+        with patch("tunacode.core.agents.utils.retry_json_parse_async", new=mock_parse):
             text = '{"tool": "bash", "args": {"command": "echo \'success\'"}}'
 
             tool_callback = AsyncMock()
