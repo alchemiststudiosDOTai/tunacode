@@ -18,6 +18,7 @@ from .base import Command, CommandCategory, CommandSpec, SimpleCommand
 from .implementations import (
     BranchCommand,
     ClearCommand,
+    CommandReloadCommand,
     CompactCommand,
     DumpCommand,
     FixCommand,
@@ -63,4 +64,5 @@ __all__ = [
     "ModelCommand",
     "InitCommand",
     "TodoCommand",
+    "CommandReloadCommand",
 ]

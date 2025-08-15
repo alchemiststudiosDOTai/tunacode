@@ -1,6 +1,7 @@
 """Command implementations for TunaCode CLI."""
 
 # Import all command classes for easy access
+from .command_reload import CommandReloadCommand
 from .conversation import CompactCommand
 from .debug import (
     DumpCommand,
@@ -28,6 +29,7 @@ __all__ = [
     "RefreshConfigCommand",
     "StreamingCommand",
     "UpdateCommand",
+    "CommandReloadCommand",
     # Debug commands
     "YoloCommand",
     "DumpCommand",

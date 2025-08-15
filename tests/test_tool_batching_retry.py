@@ -39,14 +39,16 @@ class TestParseJsonToolCalls:
         # This will simulate a transient failure that succeeds on retry
         parse_attempts = 0
 
-        async def mock_retry_parse(*args, **kwargs):
+        async def mock_retry_parse_impl(*args, **kwargs):
             nonlocal parse_attempts
             parse_attempts += 1
             if parse_attempts < 3:
                 raise json.JSONDecodeError("Expecting value", "", 0)
             return {"tool": "bash", "args": {"command": "ls"}}
 
-        with patch("tunacode.core.agents.utils.retry_json_parse_async", mock_retry_parse):
+        mock_retry_parse = AsyncMock(side_effect=mock_retry_parse_impl)
+
+        with patch("tunacode.core.agents.utils.retry_json_parse_async", new=mock_retry_parse):
             text = '{"tool": "bash", "args": {"command": "ls"}}'
 
             tool_callback = AsyncMock()
@@ -200,7 +202,7 @@ class TestMainIntegration:
     @pytest.mark.asyncio
     async def test_main_handles_tool_batching_error(self):
         """Test that main.py properly handles ToolBatchingJSONError."""
-        from tunacode.core.agents.main import extract_and_execute_tool_calls
+        from tunacode.core.agents.utils import extract_and_execute_tool_calls
 
         # Mock a response with invalid JSON
         mock_part = Mock()
@@ -218,14 +220,8 @@ class TestMainIntegration:
 
         # The error should be caught and logged, not propagated
         # This is tested by checking that the function completes without raising
-        try:
-            # In main.py, the error is caught in a try-except block
+        with pytest.raises(ToolBatchingJSONError):
             await extract_and_execute_tool_calls(mock_part.content, tool_callback, state_manager)
-            # If we get here without the try-except in main.py, it should raise
-            assert False, "Expected ToolBatchingJSONError to be raised"
-        except ToolBatchingJSONError:
-            # This is expected behavior - the error is raised from utils
-            pass
 
 
 class TestRetryBehavior:
@@ -265,14 +261,16 @@ class TestRetryBehavior:
         """Test successful JSON parsing after a few retries."""
         attempt_count = 0
 
-        async def mock_parse(*args, **kwargs):
+        async def mock_parse_impl(*args, **kwargs):
             nonlocal attempt_count
             attempt_count += 1
             if attempt_count < 4:
                 raise json.JSONDecodeError("Transient error", "", 0)
             return {"tool": "bash", "args": {"command": "echo 'success'"}}
 
-        with patch("tunacode.core.agents.utils.retry_json_parse_async", mock_parse):
+        mock_parse = AsyncMock(side_effect=mock_parse_impl)
+
+        with patch("tunacode.core.agents.utils.retry_json_parse_async", new=mock_parse):
             text = '{"tool": "bash", "args": {"command": "echo \'success\'"}}'
 
             tool_callback = AsyncMock()
