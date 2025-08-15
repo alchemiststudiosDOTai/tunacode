@@ -6,12 +6,12 @@ created by users and shared across teams.
 
 # Only export the main classes that external code needs
 from .types import (
-    CommandSource,
-    SlashCommandMetadata,
     CommandDiscoveryResult,
+    CommandSource,
     ContextInjectionResult,
     SecurityLevel,
     SecurityViolation,
+    SlashCommandMetadata,
     ValidationResult,
 )
 

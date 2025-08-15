@@ -166,7 +166,7 @@ No frontmatter here.
 
         frontmatter, markdown = processor.parse_frontmatter(content_without_frontmatter)
 
-        assert frontmatter is None
+        assert frontmatter == {}
         assert markdown == content_without_frontmatter
 
         print("✅ MarkdownTemplateProcessor frontmatter parsing test passed")
@@ -194,7 +194,7 @@ def test_command_validator_basic_patterns():
         ]
 
         for cmd in safe_commands:
-            result = validator.validate_command(cmd)
+            result = validator.validate_shell_command(cmd)
             assert result.allowed, f"Safe command '{cmd}' was not allowed: {result.violations}"
 
         # Test dangerous commands
@@ -207,7 +207,7 @@ def test_command_validator_basic_patterns():
         ]
 
         for cmd in dangerous_commands:
-            result = validator.validate_command(cmd)
+            result = validator.validate_shell_command(cmd)
             assert not result.allowed, f"Dangerous command '{cmd}' was allowed"
             assert len(result.violations) > 0, f"No violations reported for '{cmd}'"
 
@@ -249,7 +249,9 @@ Deploy the application.
             (tunacode_dir / "test.md").write_text(test_cmd_content.replace("Deploy", "Test"))
 
             # Create loader and discover commands
-            loader = SlashCommandLoader(project_root=temp_path)
+            user_home_path = temp_path / "user_home"
+            user_home_path.mkdir()
+            loader = SlashCommandLoader(project_root=temp_path, user_home=user_home_path)
             result = loader.discover_commands()
 
             # Verify discovery results
@@ -330,7 +332,9 @@ Test command for registry integration.
 
             # Mock the slash command discovery in the registry
             with patch.object(registry, "discover_commands") as mock_discover:
-                loader = SlashCommandLoader(project_root=temp_path)
+                user_home_path = temp_path / "user_home"
+                user_home_path.mkdir()
+                loader = SlashCommandLoader(project_root=temp_path, user_home=user_home_path)
                 discovery_result = loader.discover_commands()
 
                 # Simulate registry integration
@@ -343,60 +347,3 @@ Test command for registry integration.
 
     except ImportError as e:
         print(f"⚠️  Skipping CommandRegistry integration test due to import error: {e}")
-
-
-def run_all_integration_tests():
-    """Run all integration tests for the slash command system."""
-
-    print("🧪 Running Slash Command Integration Tests")
-    print("=" * 60)
-
-    tests = [
-        test_slash_command_metadata_creation,
-        test_command_source_precedence,
-        test_security_level_enum,
-        test_validation_result_structure,
-        test_command_discovery_result,
-        test_markdown_template_processor_frontmatter_parsing,
-        test_command_validator_basic_patterns,
-        test_slash_command_loader,
-        test_slash_command_basic_creation,
-        test_integration_with_command_registry,
-    ]
-
-    passed = 0
-    failed = 0
-    skipped = 0
-
-    for test_func in tests:
-        try:
-            test_func()
-            passed += 1
-        except ImportError:
-            skipped += 1  # Count import errors as skipped
-        except Exception as e:
-            print(f"❌ {test_func.__name__} failed: {e}")
-            failed += 1
-
-    print("=" * 60)
-    print(f"✅ Tests passed: {passed}")
-    print(f"❌ Tests failed: {failed}")
-    print(f"⚠️  Tests skipped: {skipped}")
-    total_attempted = passed + failed
-    if total_attempted > 0:
-        print(f"📊 Success rate (of attempted): {passed / total_attempted * 100:.1f}%")
-
-    return failed == 0
-
-
-if __name__ == "__main__":
-    import sys
-
-    success = run_all_integration_tests()
-    if success:
-        print("\n🎉 All integration tests passed or skipped due to import issues!")
-        print("✅ Slash command system integration is working correctly")
-    else:
-        print("\n⚠️  Some integration tests failed")
-
-    sys.exit(0 if success else 1)

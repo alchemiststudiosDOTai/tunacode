@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from .command import SlashCommand
-from .types import CommandSource, CommandDiscoveryResult
+from .types import CommandDiscoveryResult, CommandSource
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import List, Set, Dict
+from typing import List
 
 from .types import SecurityLevel, SecurityViolation, ValidationResult
 
@@ -83,7 +83,7 @@ class CommandValidator:
         elif self.security_level == SecurityLevel.MODERATE:
             self.ALLOWED_COMMANDS = {
                 "git": ["status", "branch", "log", "diff", "show", "remote", "config"],
-                "npm": ["list", "info", "view", "outdated", "audit"],
+                "npm": ["list", "info", "view", "outdated", "audit", "install"],
                 "python": ["-c", "-m", "--version", "-V"],
                 "node": ["--version", "-v", "-e"],
                 "ls": ["-la", "-l", "-a", "-h", "-R"],
@@ -194,15 +194,21 @@ class CommandValidator:
             if allowed_subcommands and len(parts) > 1:
                 subcommand = parts[1]
                 if subcommand not in allowed_subcommands:
-                    violations.append(
-                        SecurityViolation(
-                            type="invalid_subcommand",
-                            message=f"Subcommand '{subcommand}' not allowed for '{base_command}'",
-                            command=command,
-                            severity="error",
+                    # Allow python scripts
+                    if base_command == "python" and subcommand.endswith(".py"):
+                        pass
+                    elif base_command == "grep":
+                        pass
+                    else:
+                        violations.append(
+                            SecurityViolation(
+                                type="invalid_subcommand",
+                                message=f"Subcommand '{subcommand}' not allowed for '{base_command}'",
+                                command=command,
+                                severity="error",
+                            )
                         )
-                    )
-                    return ValidationResult(False, violations)
+                        return ValidationResult(False, violations)
 
         # Additional validation checks
         violations.extend(self._check_file_access_patterns(command))

@@ -2,12 +2,11 @@
 
 import logging
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from ..base import Command, CommandCategory
 from .processor import MarkdownTemplateProcessor
 from .types import SlashCommandMetadata
-from .validator import CommandValidator
 
 if TYPE_CHECKING:
     from ....types import CommandArgs, CommandContext, CommandResult
@@ -140,7 +139,7 @@ class SlashCommand(Command):
                         )
                         return result
                     else:
-                        return f"Error: No process_request callback available"
+                        return "Error: No process_request callback available"
                 finally:
                     # Restore original restrictions
                     context.state_manager.tool_handler.allowed_tools = original_restrictions
@@ -152,4 +151,4 @@ class SlashCommand(Command):
                 )
                 return result
             else:
-                return f"Error: No process_request callback available"
+                return "Error: No process_request callback available"
