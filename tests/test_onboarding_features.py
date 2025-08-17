@@ -121,12 +121,14 @@ class TestTutorialManager:
         mock_state_manager.session.messages = []
         mock_state_manager.session.user_config["settings"]["enable_tutorial"] = True
 
-        # Mock the tutorial completion check
-        with patch('tunacode.tutorial.steps.is_tutorial_completed', return_value=False):
-            manager = TutorialManager(mock_state_manager)
-            should_offer = await manager.should_offer_tutorial()
+        # Mock all the tutorial checks for a genuine new user
+        with patch('tunacode.tutorial.manager.is_tutorial_completed', return_value=False):
+            with patch('tunacode.tutorial.manager.is_tutorial_declined', return_value=False):
+                with patch('tunacode.tutorial.manager.is_first_time_user', return_value=True):
+                    manager = TutorialManager(mock_state_manager)
+                    should_offer = await manager.should_offer_tutorial()
 
-            assert should_offer is True
+                    assert should_offer is True
 
     @pytest.mark.asyncio
     async def test_should_not_offer_tutorial_completed_user(self, mock_state_manager):
@@ -148,6 +150,125 @@ class TestTutorialManager:
             should_offer = await manager.should_offer_tutorial()
 
             assert should_offer is False
+
+    @pytest.mark.asyncio
+    async def test_should_not_offer_tutorial_declined_user(self, mock_state_manager):
+        """Test that tutorial is not offered to users who declined it."""
+        with patch('tunacode.tutorial.manager.is_tutorial_declined', return_value=True):
+            with patch('tunacode.tutorial.manager.is_tutorial_completed', return_value=False):
+                with patch('tunacode.tutorial.manager.is_first_time_user', return_value=True):
+                    manager = TutorialManager(mock_state_manager)
+                    should_offer = await manager.should_offer_tutorial()
+
+                    assert should_offer is False
+
+    @pytest.mark.asyncio
+    async def test_should_not_offer_tutorial_experienced_user(self, mock_state_manager):
+        """Test that tutorial is not offered to experienced users (>7 days)."""
+        with patch('tunacode.tutorial.manager.is_tutorial_completed', return_value=False):
+            with patch('tunacode.tutorial.manager.is_tutorial_declined', return_value=False):
+                with patch('tunacode.tutorial.manager.is_first_time_user', return_value=False):
+                    manager = TutorialManager(mock_state_manager)
+                    should_offer = await manager.should_offer_tutorial()
+
+                    assert should_offer is False
+
+    @pytest.mark.asyncio
+    async def test_should_offer_tutorial_first_time_user(self, mock_state_manager):
+        """Test that tutorial is offered to genuine first-time users."""
+        # Fresh user, no messages yet
+        mock_state_manager.session.messages = []
+
+        with patch('tunacode.tutorial.manager.is_tutorial_completed', return_value=False):
+            with patch('tunacode.tutorial.manager.is_tutorial_declined', return_value=False):
+                with patch('tunacode.tutorial.manager.is_first_time_user', return_value=True):
+                    manager = TutorialManager(mock_state_manager)
+                    should_offer = await manager.should_offer_tutorial()
+
+                    assert should_offer is True
+
+    @pytest.mark.asyncio
+    async def test_tutorial_declined_saves_config(self, mock_state_manager):
+        """Test that declining tutorial saves the declined status."""
+        manager = TutorialManager(mock_state_manager)
+
+        # Mock user input to decline
+        with patch('tunacode.ui.console.input', new_callable=AsyncMock) as mock_input:
+            mock_input.return_value = "n"
+
+            with patch('tunacode.ui.console.panel', new_callable=AsyncMock):
+                with patch('tunacode.ui.console.muted', new_callable=AsyncMock):
+                    with patch('tunacode.utils.user_configuration.save_config') as mock_save:
+                        with patch('tunacode.tutorial.manager.mark_tutorial_declined') as mock_decline:
+                            accepted = await manager.offer_tutorial()
+
+                            assert accepted is False
+                            assert mock_decline.called
+                            assert mock_save.called
+
+
+class TestFirstTimeUserDetection:
+    """Test the first-time user detection logic."""
+
+    def test_is_first_time_user_no_installation_date(self, mock_state_manager):
+        """Test that users without installation date are not considered first-time."""
+        from tunacode.tutorial.steps import is_first_time_user
+
+        # Remove installation date
+        if "first_installation_date" in mock_state_manager.session.user_config["settings"]:
+            del mock_state_manager.session.user_config["settings"]["first_installation_date"]
+
+        assert not is_first_time_user(mock_state_manager)
+
+    def test_is_first_time_user_recent_installation(self, mock_state_manager):
+        """Test that users with recent installation are considered first-time."""
+        from datetime import datetime, timedelta
+
+        from tunacode.tutorial.steps import is_first_time_user
+
+        # Set installation date to 3 days ago
+        recent_date = datetime.now() - timedelta(days=3)
+        mock_state_manager.session.user_config["settings"]["first_installation_date"] = recent_date.isoformat()
+
+        assert is_first_time_user(mock_state_manager)
+
+    def test_is_first_time_user_old_installation(self, mock_state_manager):
+        """Test that users with old installation are not considered first-time."""
+        from datetime import datetime, timedelta
+
+        from tunacode.tutorial.steps import is_first_time_user
+
+        # Set installation date to 30 days ago
+        old_date = datetime.now() - timedelta(days=30)
+        mock_state_manager.session.user_config["settings"]["first_installation_date"] = old_date.isoformat()
+
+        assert not is_first_time_user(mock_state_manager)
+
+    def test_is_first_time_user_invalid_date_format(self, mock_state_manager):
+        """Test that invalid date formats are handled gracefully."""
+        from tunacode.tutorial.steps import is_first_time_user
+
+        # Set invalid installation date
+        mock_state_manager.session.user_config["settings"]["first_installation_date"] = "invalid-date"
+
+        assert not is_first_time_user(mock_state_manager)
+
+    def test_tutorial_declined_tracking(self, mock_state_manager):
+        """Test tutorial declined status tracking."""
+        from tunacode.tutorial.steps import is_tutorial_declined, mark_tutorial_declined
+
+        # Initially not declined
+        assert not is_tutorial_declined(mock_state_manager)
+
+        # Mark as declined
+        mark_tutorial_declined(mock_state_manager)
+
+        # Verify declined status
+        assert is_tutorial_declined(mock_state_manager)
+
+        # Verify declined flag is set
+        settings = mock_state_manager.session.user_config["settings"]
+        assert settings.get("tutorial_declined") is True
 
 
 class TestEnhancedExceptions:

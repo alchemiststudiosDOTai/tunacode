@@ -9,9 +9,12 @@ from .steps import (
     TutorialStepResult,
     create_tutorial_steps,
     get_tutorial_completion_key,
+    is_first_time_user,
     is_tutorial_completed,
+    is_tutorial_declined,
     load_tutorial_progress,
     mark_tutorial_completed,
+    mark_tutorial_declined,
     save_tutorial_progress,
 )
 
@@ -35,8 +38,11 @@ class TutorialManager:
 
     async def should_offer_tutorial(self) -> bool:
         """Determine if we should offer the tutorial to the user."""
-        # Don't offer if already completed
+        # Don't offer if already completed or declined
         if is_tutorial_completed(self.state_manager):
+            return False
+
+        if is_tutorial_declined(self.state_manager):
             return False
 
         # Check if tutorial is enabled in settings
@@ -44,6 +50,10 @@ class TutorialManager:
         tutorial_enabled = settings.get("enable_tutorial", True)
 
         if not tutorial_enabled:
+            return False
+
+        # Only offer to first-time users (installed within last 7 days)
+        if not is_first_time_user(self.state_manager):
             return False
 
         # Check if this is a fresh session (no significant interaction yet)
@@ -75,8 +85,16 @@ class TutorialManager:
 
         if choice in ['n', 'no', 'false']:
             await ui.muted("Tutorial skipped. Use [green]/quickstart[/green] anytime to start it!")
-            # Mark as completed so we don't ask again
-            mark_tutorial_completed(self.state_manager)
+            # Mark as declined so we don't ask again
+            mark_tutorial_declined(self.state_manager)
+
+            # Save the configuration to persist the declined status
+            try:
+                from ..utils import user_configuration
+                user_configuration.save_config(self.state_manager)
+            except Exception as e:
+                logger.warning(f"Failed to save tutorial declined status: {e}")
+
             return False
 
         return True
