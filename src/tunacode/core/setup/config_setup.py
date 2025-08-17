@@ -104,8 +104,6 @@ class ConfigSetup(BaseSetup):
                 console.print("  [bold blue]2[/bold blue] → Quick CLI setup")
                 console.print("  [bold red]3[/bold red] → Exit and setup later")
 
-                from tunacode.ui import console as ui
-
                 choice = await ui.input(
                     "setup_choice",
                     pretext="  → Your choice [1/2/3]: ",

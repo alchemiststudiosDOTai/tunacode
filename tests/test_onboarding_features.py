@@ -131,8 +131,8 @@ class TestTutorialManager:
     @pytest.mark.asyncio
     async def test_should_not_offer_tutorial_completed_user(self, mock_state_manager):
         """Test that tutorial is not offered to users who completed it."""
-        # Mock the tutorial completion check
-        with patch('tunacode.tutorial.steps.is_tutorial_completed', return_value=True):
+        # Mock the tutorial completion check at the manager level
+        with patch('tunacode.tutorial.manager.is_tutorial_completed', return_value=True):
             manager = TutorialManager(mock_state_manager)
             should_offer = await manager.should_offer_tutorial()
 
