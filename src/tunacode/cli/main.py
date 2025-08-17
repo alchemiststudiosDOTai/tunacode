@@ -27,6 +27,7 @@ state_manager = StateManager()
 def main(
     version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
     run_setup: bool = typer.Option(False, "--setup", help="Run setup process."),
+    wizard: bool = typer.Option(False, "--wizard", help="Run interactive setup wizard."),
     baseurl: str = typer.Option(
         None, "--baseurl", help="API base URL (e.g., https://openrouter.ai/api/v1)"
     ),
@@ -60,7 +61,7 @@ def main(
         cli_config = {k: v for k, v in cli_config.items() if v is not None}
 
         try:
-            await setup(run_setup, state_manager, cli_config)
+            await setup(run_setup or wizard, state_manager, cli_config, wizard_mode=wizard)
 
             # Initialize ToolHandler after setup
             tool_handler = ToolHandler(state_manager)

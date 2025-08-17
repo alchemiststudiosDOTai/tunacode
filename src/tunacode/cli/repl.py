@@ -577,6 +577,29 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
 
 
 # ============================================================================
+# TUTORIAL INTEGRATION
+# ============================================================================
+
+
+async def _check_and_offer_tutorial(state_manager: StateManager) -> None:
+    """Check if we should offer the tutorial to first-time users."""
+    try:
+        from tunacode.tutorial import TutorialManager
+
+        tutorial_manager = TutorialManager(state_manager)
+
+        # Check if we should offer the tutorial
+        if await tutorial_manager.should_offer_tutorial():
+            # Offer the tutorial
+            if await tutorial_manager.offer_tutorial():
+                # User accepted, run the tutorial
+                await tutorial_manager.run_tutorial()
+    except Exception as e:
+        # Don't fail the REPL if tutorial has issues
+        logger.warning(f"Tutorial system error: {e}")
+
+
+# ============================================================================
 # MAIN REPL LOOP
 # ============================================================================
 
@@ -602,6 +625,9 @@ async def repl(state_manager: StateManager):
         await ui.success("Ready to assist")
         await ui.line()
         state_manager.session._startup_shown = True
+
+    # Check for first-time user tutorial offer
+    await _check_and_offer_tutorial(state_manager)
 
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 

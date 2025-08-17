@@ -26,7 +26,7 @@ class AgentSetup(BaseSetup):
         """Agent setup should run if an agent is provided."""
         return self.agent is not None
 
-    async def execute(self, _force_setup: bool = False) -> None:
+    async def execute(self, _force_setup: bool = False, _wizard_mode: bool = False) -> None:
         """Initialize the agent with the current model."""
         if self.agent is not None:
             await ui.info(f"Initializing Agent({self.state_manager.session.current_model})")

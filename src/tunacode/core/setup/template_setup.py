@@ -29,7 +29,7 @@ class TemplateSetup(BaseSetup):
         """Run if template directory doesn't exist or force setup is requested."""
         return force_setup or not self.template_dir.exists()
 
-    async def execute(self, force_setup: bool = False) -> None:
+    async def execute(self, force_setup: bool = False, wizard_mode: bool = False) -> None:
         """Create template directory structure."""
         try:
             # Create main template directory

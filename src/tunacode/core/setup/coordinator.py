@@ -22,7 +22,7 @@ class SetupCoordinator:
         """Register a setup step to be run."""
         self.setup_steps.append(step)
 
-    async def run_setup(self, force_setup: bool = False) -> None:
+    async def run_setup(self, force_setup: bool = False, wizard_mode: bool = False) -> None:
         """Run all registered setup steps concurrently if possible."""
         # Run should_run checks sequentially (they may depend on order)
         steps_to_run = []
@@ -39,7 +39,7 @@ class SetupCoordinator:
         from asyncio import gather
 
         try:
-            await gather(*(step.execute(force_setup) for step in steps_to_run))
+            await gather(*(step.execute(force_setup, wizard_mode) for step in steps_to_run))
             # Now validate all sequentially: if any fail, raise error
             for step in steps_to_run:
                 if not await step.validate():
@@ -48,6 +48,11 @@ class SetupCoordinator:
         except Exception as e:
             await ui.error(f"Setup error: {str(e)}")
             raise
+
+    async def run_setup_wizard(self) -> None:
+        """Run setup in interactive wizard mode with enhanced guidance."""
+        await ui.muted("🧙‍♂️ Starting setup wizard...")
+        await self.run_setup(force_setup=True, wizard_mode=True)
 
     def clear_steps(self) -> None:
         """Clear all registered setup steps."""
