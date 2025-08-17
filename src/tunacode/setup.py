@@ -18,7 +18,7 @@ from tunacode.core.setup import (
 from tunacode.core.state import StateManager
 
 
-async def setup(run_setup: bool, state_manager: StateManager, cli_config: dict = None) -> None:
+async def setup(run_setup: bool, state_manager: StateManager, cli_config: dict = None, wizard_mode: bool = False) -> None:
     """
     Setup TunaCode on startup using the new setup coordinator.
 
@@ -26,6 +26,7 @@ async def setup(run_setup: bool, state_manager: StateManager, cli_config: dict =
         run_setup (bool): If True, force run the setup process, resetting current config.
         state_manager (StateManager): The state manager instance.
         cli_config (dict): Optional CLI configuration with baseurl, model, and key.
+        wizard_mode (bool): If True, run setup in interactive wizard mode.
     """
     coordinator = SetupCoordinator(state_manager)
 
@@ -39,7 +40,10 @@ async def setup(run_setup: bool, state_manager: StateManager, cli_config: dict =
     coordinator.register_step(GitSafetySetup(state_manager))
 
     # Run all setup steps
-    await coordinator.run_setup(force_setup=run_setup)
+    if wizard_mode:
+        await coordinator.run_setup_wizard()
+    else:
+        await coordinator.run_setup(force_setup=run_setup)
 
 
 async def setup_agent(agent: Optional[Any], state_manager: StateManager) -> None:

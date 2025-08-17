@@ -24,6 +24,8 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "fallback_response": True,
         "fallback_verbosity": "normal",  # Options: minimal, normal, detailed
         "context_window_size": 200000,
+        "enable_tutorial": True,
+        "enable_streaming": True,
     },
     "mcpServers": {},
 }

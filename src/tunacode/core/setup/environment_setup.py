@@ -26,7 +26,7 @@ class EnvironmentSetup(BaseSetup):
         """Environment setup should always run to set env vars from config."""
         return True
 
-    async def execute(self, force_setup: bool = False) -> None:
+    async def execute(self, force_setup: bool = False, wizard_mode: bool = False) -> None:
         """Set environment variables from the config file."""
         if "env" not in self.state_manager.session.user_config or not isinstance(
             self.state_manager.session.user_config["env"], dict

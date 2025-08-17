@@ -37,7 +37,7 @@ class ConfigSetup(BaseSetup):
         """Config setup should always run to load and merge configuration."""
         return True
 
-    async def execute(self, force_setup: bool = False) -> None:
+    async def execute(self, force_setup: bool = False, wizard_mode: bool = False) -> None:
         """Setup configuration and run onboarding if needed, with config fingerprint fast path."""
         import hashlib
 
@@ -89,28 +89,61 @@ class ConfigSetup(BaseSetup):
                 except ConfigurationError as e:
                     await ui.error(str(e))
                     raise
-                await self._onboarding()
+                if wizard_mode:
+                    await self._onboarding_wizard()
+                else:
+                    await self._onboarding()
             else:
-                # No config found - show CLI usage instead of onboarding
+                # No config found - offer interactive wizard or CLI usage
                 from tunacode.ui.console import console
 
-                console.print("\n[bold red]No configuration found![/bold red]")
-                console.print("\n[bold]Quick Setup:[/bold]")
-                console.print("Configure TunaCode using CLI flags:")
-                console.print("\n[blue]Examples:[/blue]")
-                console.print("  [green]tunacode --model 'openai:gpt-4' --key 'your-key'[/green]")
-                console.print(
-                    "  [green]tunacode --model 'anthropic:claude-3-opus' --key 'your-key'[/green]"
-                )
-                console.print(
-                    "  [green]tunacode --model 'openrouter:anthropic/claude-3.5-sonnet' "
-                    "--key 'your-key' --baseurl 'https://openrouter.ai/api/v1'[/green]"
-                )
-                console.print("\n[yellow]Run 'tunacode --help' for more options[/yellow]\n")
+                console.print("\n[bold cyan]Welcome to TunaCode![/bold cyan]")
+                console.print("\n[bold]First time setup needed.[/bold]")
+                console.print("\n[yellow]Choose your setup method:[/yellow]")
+                console.print("  [bold green]1[/bold green] → Interactive setup wizard (recommended)")
+                console.print("  [bold blue]2[/bold blue] → Quick CLI setup")
+                console.print("  [bold red]3[/bold red] → Exit and setup later")
 
-                raise ConfigurationError(
-                    "No configuration found. Please use CLI flags to configure."
+                from tunacode.ui import console as ui
+
+                choice = await ui.input(
+                    "setup_choice",
+                    pretext="  → Your choice [1/2/3]: ",
+                    state_manager=self.state_manager,
                 )
+                choice = choice.strip()
+
+                if choice in ['1', 'wizard', 'interactive']:
+                    # Run interactive wizard
+                    self.state_manager.session.user_config = DEFAULT_USER_CONFIG.copy()
+                    try:
+                        user_configuration.save_config(self.state_manager)
+                    except ConfigurationError as e:
+                        await ui.error(str(e))
+                        raise
+                    await self._onboarding_wizard()
+                elif choice in ['2', 'cli', 'quick']:
+                    # Show CLI examples
+                    console.print("\n[bold]Quick CLI Setup:[/bold]")
+                    console.print("Configure TunaCode using CLI flags:")
+                    console.print("\n[blue]Examples:[/blue]")
+                    console.print("  [green]tunacode --model 'openai:gpt-4' --key 'your-key'[/green]")
+                    console.print(
+                        "  [green]tunacode --model 'anthropic:claude-3-opus' --key 'your-key'[/green]"
+                    )
+                    console.print(
+                        "  [green]tunacode --model 'openrouter:anthropic/claude-3.5-sonnet' "
+                        "--key 'your-key' --baseurl 'https://openrouter.ai/api/v1'[/green]"
+                    )
+                    console.print("\n[yellow]Run 'tunacode --help' for more options[/yellow]\n")
+
+                    raise ConfigurationError(
+                        "Please restart TunaCode with CLI flags to configure."
+                    )
+                else:
+                    # Exit
+                    console.print("\n[yellow]Setup cancelled. Run TunaCode again when ready to configure.[/yellow]\n")
+                    raise ConfigurationError("Setup cancelled by user.")
 
         if not self.state_manager.session.user_config.get("default_model"):
             raise ConfigurationError(
@@ -185,6 +218,64 @@ class ConfigSetup(BaseSetup):
             await ui.panel(
                 "Setup canceled",
                 "At least one API key is required.",
+                border_style=UI_COLORS["warning"],
+            )
+
+    async def _onboarding_wizard(self):
+        """Enhanced wizard-style onboarding with better guidance and explanations."""
+        initial_config = json.dumps(self.state_manager.session.user_config, sort_keys=True)
+
+        # Welcome and explanation
+        message = (
+            f"Welcome to {APP_NAME}! Let's get you set up quickly.\n\n"
+            "This wizard will help you:\n"
+            "• Choose and configure an AI provider\n"
+            "• Set up your preferred model\n"
+            "• Get you ready to start coding with AI assistance\n\n"
+            "The whole process takes less than 2 minutes."
+        )
+        await ui.panel("🎯 Setup Wizard", message, border_style=UI_COLORS["primary"])
+
+        # Step 1: Enhanced API key collection with provider guidance
+        await self._wizard_step1_provider_selection()
+
+        # Only continue if at least one API key was provided
+        env = self.state_manager.session.user_config.get("env", {})
+        has_api_key = (
+            any(key.endswith("_API_KEY") and env.get(key) for key in env) if env else False
+        )
+
+        if has_api_key:
+            # Step 2: Model selection with recommendations
+            if not self.state_manager.session.user_config.get("default_model"):
+                await self._wizard_step2_model_selection()
+
+            # Step 3: Optional settings
+            await self._wizard_step3_optional_settings()
+
+            # Final setup completion
+            current_config = json.dumps(self.state_manager.session.user_config, sort_keys=True)
+            if initial_config != current_config:
+                try:
+                    user_configuration.save_config(self.state_manager)
+
+                    # Success message with next steps
+                    message = (
+                        f"✅ Setup complete! Configuration saved to:\n"
+                        f"   [bold]{self.config_file}[/bold]\n\n"
+                        "🚀 Ready to start! Try these commands:\n"
+                        "   • [green]/help[/green] - See all available commands\n"
+                        "   • [green]/quickstart[/green] - Quick tutorial\n"
+                        "   • Just type your coding question to get started!"
+                    )
+                    await ui.panel("🎉 Welcome to TunaCode!", message, border_style=UI_COLORS["success"])
+                except ConfigurationError as e:
+                    await ui.error(str(e))
+        else:
+            await ui.panel(
+                "⚠️ Setup Incomplete",
+                "At least one API key is required to use TunaCode.\n"
+                "You can restart the setup anytime with: [green]tunacode --setup[/green]",
                 border_style=UI_COLORS["warning"],
             )
 
@@ -339,3 +430,193 @@ class ConfigSetup(BaseSetup):
             await ui.success(f"Configuration saved to: {self.config_file}")
         except ConfigurationError as e:
             await ui.error(str(e))
+
+    async def _wizard_step1_provider_selection(self):
+        """Wizard step 1: Enhanced provider selection with guidance."""
+        providers_info = {
+            "OpenAI": {
+                "description": "Industry standard with GPT-4 models",
+                "best_for": "General coding, balanced performance",
+                "signup": "https://platform.openai.com/signup",
+                "key_name": "OPENAI_API_KEY"
+            },
+            "Anthropic": {
+                "description": "Advanced Claude models, excellent for coding",
+                "best_for": "Complex reasoning, detailed explanations",
+                "signup": "https://console.anthropic.com/",
+                "key_name": "ANTHROPIC_API_KEY"
+            },
+            "Google": {
+                "description": "Gemini models with fast responses",
+                "best_for": "Quick iterations, code completion",
+                "signup": "https://aistudio.google.com/",
+                "key_name": "GEMINI_API_KEY"
+            },
+            "OpenRouter": {
+                "description": "Access to multiple models via one API",
+                "best_for": "Trying different models, cost optimization",
+                "signup": "https://openrouter.ai/",
+                "key_name": "OPENROUTER_API_KEY"
+            }
+        }
+
+        message = (
+            "🔑 Let's set up your AI provider. Choose one or more:\n\n"
+            "Provider recommendations:\n"
+        )
+        for i, (provider, info) in enumerate(providers_info.items(), 1):
+            message += f"  {i}. [bold]{provider}[/bold] - {info['description']}\n"
+            message += f"     • {info['best_for']}\n"
+
+        message += (
+            "\nYou can configure multiple providers and switch between them later.\n"
+            "We'll help you get API keys from your chosen provider(s)."
+        )
+
+        await ui.panel("🔑 Provider Setup", message, border_style=UI_COLORS["primary"])
+
+        # Get provider selection
+        choice = await ui.input(
+            "provider_choice",
+            pretext="  → Which provider(s)? [1,2,3,4 or names]: ",
+            state_manager=self.state_manager,
+        )
+
+        selected_providers = []
+        for part in choice.split(','):
+            part = part.strip().lower()
+            if part in ['1', 'openai']:
+                selected_providers.append('OpenAI')
+            elif part in ['2', 'anthropic', 'claude']:
+                selected_providers.append('Anthropic')
+            elif part in ['3', 'google', 'gemini']:
+                selected_providers.append('Google')
+            elif part in ['4', 'openrouter']:
+                selected_providers.append('OpenRouter')
+
+        if not selected_providers:
+            selected_providers = ['OpenAI']  # Default fallback
+
+        # Configure API keys for selected providers
+        env_config = self.state_manager.session.user_config.get("env", {})
+
+        for provider in selected_providers:
+            info = providers_info[provider]
+
+            message = (
+                f"📋 Setting up {provider}\n\n"
+                f"📖 {info['description']}\n"
+                f"🎯 Best for: {info['best_for']}\n\n"
+                f"Get your API key: [blue]{info['signup']}[/blue]\n"
+                f"Once you have your key, paste it below:"
+            )
+            await ui.panel(f"🔧 {provider} Setup", message, border_style=UI_COLORS["primary"])
+
+            api_key = await ui.input(
+                f"{provider.lower()}_key",
+                pretext=f"  {provider} API Key: ",
+                is_password=True,
+                state_manager=self.state_manager,
+            )
+
+            if api_key.strip():
+                env_config[info['key_name']] = api_key.strip()
+                await ui.success(f"✅ {provider} configured successfully!")
+            else:
+                await ui.muted(f"⏭️  Skipped {provider} setup")
+
+        self.state_manager.session.user_config["env"] = env_config
+
+    async def _wizard_step2_model_selection(self):
+        """Wizard step 2: Enhanced model selection with recommendations."""
+        message = (
+            "🤖 Now let's choose your default model.\n\n"
+            "Model recommendations based on your providers:\n"
+        )
+
+        # Get configured providers
+        env = self.state_manager.session.user_config.get("env", {})
+        available_providers = []
+
+        if env.get("OPENAI_API_KEY"):
+            available_providers.append("OpenAI")
+            message += "  • [bold]openai:gpt-4o[/bold] - Latest GPT-4, great for coding\n"
+            message += "  • [bold]openai:gpt-4o-mini[/bold] - Faster, more affordable\n"
+
+        if env.get("ANTHROPIC_API_KEY"):
+            available_providers.append("Anthropic")
+            message += "  • [bold]anthropic:claude-3-5-sonnet-20241022[/bold] - Excellent for coding\n"
+            message += "  • [bold]anthropic:claude-3-haiku-20240307[/bold] - Fast responses\n"
+
+        if env.get("GEMINI_API_KEY"):
+            available_providers.append("Google")
+            message += "  • [bold]google-gla:gemini-2.0-flash[/bold] - Fast and capable\n"
+
+        if env.get("OPENROUTER_API_KEY"):
+            available_providers.append("OpenRouter")
+            message += "  • [bold]openrouter:anthropic/claude-3.5-sonnet[/bold] - Top coding model\n"
+            message += "  • [bold]openrouter:openai/gpt-4o[/bold] - Reliable performance\n"
+
+        message += (
+            "\nFormat: provider:model-name\n"
+            "💡 Tip: You can change models anytime with [green]/model[/green] command"
+        )
+
+        await ui.panel("🤖 Model Selection", message, border_style=UI_COLORS["primary"])
+
+        # Get model selection
+        model_choice = await ui.input(
+            "model_selection",
+            pretext="  → Enter model name: ",
+            state_manager=self.state_manager,
+        )
+
+        model_choice = model_choice.strip()
+
+        # Validate provider prefix
+        if ":" not in model_choice:
+            await ui.warning("Adding provider prefix. Using: openai:gpt-4o")
+            model_choice = "openai:gpt-4o"
+
+        self.state_manager.session.user_config["default_model"] = model_choice
+        await ui.success(f"✅ Default model set to: {model_choice}")
+
+    async def _wizard_step3_optional_settings(self):
+        """Wizard step 3: Optional settings configuration."""
+        message = (
+            "⚙️ Optional settings (recommended defaults):\n\n"
+            "• Enable tutorial for first-time users? [Y/n]\n"
+            "• Enable streaming responses? [Y/n]\n"
+            "• Set context window size? [default: 200000]"
+        )
+
+        await ui.panel("⚙️ Optional Settings", message, border_style=UI_COLORS["primary"])
+
+        # Tutorial setting
+        tutorial_choice = await ui.input(
+            "tutorial_setting",
+            pretext="  → Enable tutorial? [Y/n]: ",
+            state_manager=self.state_manager,
+        )
+
+        enable_tutorial = tutorial_choice.strip().lower() not in ['n', 'no', 'false']
+
+        # Streaming setting
+        streaming_choice = await ui.input(
+            "streaming_setting",
+            pretext="  → Enable streaming? [Y/n]: ",
+            state_manager=self.state_manager,
+        )
+
+        enable_streaming = streaming_choice.strip().lower() not in ['n', 'no', 'false']
+
+        # Update settings
+        if "settings" not in self.state_manager.session.user_config:
+            self.state_manager.session.user_config["settings"] = {}
+
+        self.state_manager.session.user_config["settings"].update({
+            "enable_tutorial": enable_tutorial,
+            "enable_streaming": enable_streaming,
+        })
+
+        await ui.success("✅ Settings configured!")

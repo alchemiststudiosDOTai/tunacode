@@ -27,7 +27,7 @@ class BaseSetup(ABC):
         pass
 
     @abstractmethod
-    async def execute(self, _force_setup: bool = False) -> None:
+    async def execute(self, _force_setup: bool = False, _wizard_mode: bool = False) -> None:
         """Execute the setup step."""
         pass
 

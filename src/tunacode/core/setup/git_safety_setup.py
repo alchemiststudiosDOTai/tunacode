@@ -37,7 +37,7 @@ class GitSafetySetup(BaseSetup):
         # Always run unless user has explicitly disabled it
         return not self.state_manager.session.user_config.get("skip_git_safety", False)
 
-    async def execute(self, _force: bool = False) -> None:
+    async def execute(self, _force: bool = False, _wizard_mode: bool = False) -> None:
         """Create a safety branch for TunaCode operations."""
         try:
             # Check if git is installed
