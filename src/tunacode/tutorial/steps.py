@@ -155,3 +155,48 @@ def is_tutorial_completed(state_manager: StateManager) -> bool:
     """Check if the tutorial has been completed."""
     settings = state_manager.session.user_config.get("settings", {})
     return settings.get(get_tutorial_completion_key(), False)
+
+
+def get_tutorial_declined_key() -> str:
+    """Get the config key for storing tutorial declined status."""
+    return "tutorial_declined"
+
+
+def mark_tutorial_declined(state_manager: StateManager) -> None:
+    """Mark the tutorial as declined in user config."""
+    if "settings" not in state_manager.session.user_config:
+        state_manager.session.user_config["settings"] = {}
+
+    state_manager.session.user_config["settings"][get_tutorial_declined_key()] = True
+
+    # Clear any existing progress since it was declined
+    if get_tutorial_progress_key() in state_manager.session.user_config["settings"]:
+        del state_manager.session.user_config["settings"][get_tutorial_progress_key()]
+
+
+def is_tutorial_declined(state_manager: StateManager) -> bool:
+    """Check if the tutorial has been declined."""
+    settings = state_manager.session.user_config.get("settings", {})
+    return settings.get(get_tutorial_declined_key(), False)
+
+
+def is_first_time_user(state_manager: StateManager) -> bool:
+    """Check if this is a first-time user based on installation date."""
+    from datetime import datetime, timedelta
+
+    settings = state_manager.session.user_config.get("settings", {})
+    installation_date_str = settings.get("first_installation_date")
+
+    if not installation_date_str:
+        # No installation date means legacy user, treat as experienced
+        return False
+
+    try:
+        installation_date = datetime.fromisoformat(installation_date_str)
+        now = datetime.now()
+
+        # Consider first-time if installed within last 7 days
+        return (now - installation_date) <= timedelta(days=7)
+    except (ValueError, TypeError):
+        # Invalid date format, treat as experienced user
+        return False

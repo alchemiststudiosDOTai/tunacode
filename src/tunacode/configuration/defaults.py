@@ -26,6 +26,7 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "context_window_size": 200000,
         "enable_tutorial": True,
         "enable_streaming": True,
+        "first_installation_date": None,  # Set during first setup
     },
     "mcpServers": {},
 }

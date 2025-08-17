@@ -82,6 +82,9 @@ class ConfigSetup(BaseSetup):
                 ):
                     self.state_manager.session.user_config = {}
                 self.state_manager.session.user_config = DEFAULT_USER_CONFIG.copy()
+                # Set installation timestamp for first-time user detection
+                from datetime import datetime
+                self.state_manager.session.user_config["settings"]["first_installation_date"] = datetime.now().isoformat()
                 try:
                     user_configuration.save_config(
                         self.state_manager
@@ -114,6 +117,9 @@ class ConfigSetup(BaseSetup):
                 if choice in ['1', 'wizard', 'interactive']:
                     # Run interactive wizard
                     self.state_manager.session.user_config = DEFAULT_USER_CONFIG.copy()
+                    # Set installation timestamp for first-time user detection
+                    from datetime import datetime
+                    self.state_manager.session.user_config["settings"]["first_installation_date"] = datetime.now().isoformat()
                     try:
                         user_configuration.save_config(self.state_manager)
                     except ConfigurationError as e:
