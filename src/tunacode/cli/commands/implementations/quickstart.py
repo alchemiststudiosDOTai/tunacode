@@ -8,6 +8,7 @@ Provides guided introduction to TunaCode for new users.
 import logging
 
 from tunacode.types import CommandContext, CommandResult
+
 from ..base import SimpleCommand
 from ..spec import CommandCategory, CommandSpec
 
