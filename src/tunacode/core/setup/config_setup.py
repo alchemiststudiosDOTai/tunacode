@@ -43,10 +43,10 @@ class ConfigSetup(BaseSetup):
 
         self.state_manager.session.device_id = system.get_device_id()
         loaded_config = user_configuration.load_config()
-        
+
         # Initialize first-time user settings if needed
         user_configuration.initialize_first_time_user(self.state_manager)
-        
+
         # Fast path: if config fingerprint matches last loaded and config is already present, skip reprocessing
         new_fp = None
         if loaded_config:
@@ -83,7 +83,7 @@ class ConfigSetup(BaseSetup):
                     await ui.muted("Running interactive setup wizard")
                 else:
                     await ui.muted("Running setup process, resetting config")
-                    
+
                 # Ensure user_config is properly initialized
                 if (
                     not hasattr(self.state_manager.session, "user_config")
@@ -98,7 +98,7 @@ class ConfigSetup(BaseSetup):
                 except ConfigurationError as e:
                     await ui.error(str(e))
                     raise
-                    
+
                 if wizard_mode:
                     await self._wizard_onboarding()
                 else:
@@ -363,7 +363,7 @@ class ConfigSetup(BaseSetup):
             "🎯 Welcome to TunaCode Setup Wizard!",
             "This guided setup will help you configure TunaCode in under 5 minutes.\n"
             "We'll help you choose a provider, set up your API keys, and configure your preferred model.",
-            border_style=UI_COLORS["primary"]
+            border_style=UI_COLORS["primary"],
         )
 
         # Step 1: Provider selection with detailed guidance
@@ -388,7 +388,7 @@ class ConfigSetup(BaseSetup):
                     f"Configuration saved to: [bold]{self.config_file}[/bold]\n\n"
                     "🚀 You're ready to start using TunaCode!\n"
                     "💡 Use [green]/quickstart[/green] anytime for a tutorial.",
-                    border_style=UI_COLORS["success"]
+                    border_style=UI_COLORS["success"],
                 )
             except ConfigurationError as e:
                 await ui.error(str(e))
@@ -400,26 +400,26 @@ class ConfigSetup(BaseSetup):
                 "name": "OpenAI",
                 "description": "GPT-4, GPT-3.5-turbo models",
                 "signup": "https://platform.openai.com/signup",
-                "key_name": "OPENAI_API_KEY"
+                "key_name": "OPENAI_API_KEY",
             },
             "2": {
                 "name": "Anthropic",
                 "description": "Claude-3.5-sonnet, Claude-3 models",
                 "signup": "https://console.anthropic.com/",
-                "key_name": "ANTHROPIC_API_KEY"
+                "key_name": "ANTHROPIC_API_KEY",
             },
             "3": {
                 "name": "OpenRouter",
                 "description": "Access to multiple models (GPT-4, Claude, Gemini, etc.)",
                 "signup": "https://openrouter.ai/",
-                "key_name": "OPENROUTER_API_KEY"
+                "key_name": "OPENROUTER_API_KEY",
             },
             "4": {
                 "name": "Google",
                 "description": "Gemini models",
                 "signup": "https://ai.google.dev/",
-                "key_name": "GEMINI_API_KEY"
-            }
+                "key_name": "GEMINI_API_KEY",
+            },
         }
 
         message = "Choose your AI provider:\n\n"
@@ -428,18 +428,18 @@ class ConfigSetup(BaseSetup):
         message += "\n💡 OpenRouter is recommended for beginners (access to all models)"
 
         await ui.panel("Provider Selection", message, border_style=UI_COLORS["primary"])
-        
+
         while True:
             choice = await ui.input(
                 "wizard_provider",
                 pretext="  Choose provider (1-4): ",
                 state_manager=self.state_manager,
             )
-            
+
             if choice.strip() in provider_info:
                 selected = provider_info[choice.strip()]
                 self._wizard_selected_provider = selected
-                
+
                 await ui.success(f"Selected: {selected['name']}")
                 await ui.info(f"Sign up at: {selected['signup']}")
                 break
@@ -449,13 +449,13 @@ class ConfigSetup(BaseSetup):
     async def _wizard_step2_api_key_setup(self):
         """Wizard step 2: API key setup with provider-specific guidance."""
         provider = self._wizard_selected_provider
-        
+
         message = f"Enter your {provider['name']} API key:\n\n"
         message += f"📋 Get your key from: {provider['signup']}\n"
         message += "🔒 Your key will be stored securely in your local config"
 
         await ui.panel(f"{provider['name']} API Key", message, border_style=UI_COLORS["primary"])
-        
+
         while True:
             api_key = await ui.input(
                 "wizard_api_key",
@@ -463,13 +463,15 @@ class ConfigSetup(BaseSetup):
                 is_password=True,
                 state_manager=self.state_manager,
             )
-            
+
             if api_key.strip():
                 # Ensure env dict exists
                 if "env" not in self.state_manager.session.user_config:
                     self.state_manager.session.user_config["env"] = {}
-                
-                self.state_manager.session.user_config["env"][provider["key_name"]] = api_key.strip()
+
+                self.state_manager.session.user_config["env"][provider["key_name"]] = (
+                    api_key.strip()
+                )
                 await ui.success("API key saved successfully!")
                 break
             else:
@@ -478,48 +480,48 @@ class ConfigSetup(BaseSetup):
     async def _wizard_step3_model_selection(self):
         """Wizard step 3: Model selection with smart recommendations."""
         provider = self._wizard_selected_provider
-        
+
         # Provide smart recommendations based on provider
         recommendations = {
             "OpenAI": [
                 ("openai:gpt-4o", "Latest GPT-4 model (recommended)"),
                 ("openai:gpt-4-turbo", "Fast GPT-4 variant"),
-                ("openai:gpt-3.5-turbo", "Cost-effective option")
+                ("openai:gpt-3.5-turbo", "Cost-effective option"),
             ],
             "Anthropic": [
                 ("anthropic:claude-3-5-sonnet-20241022", "Latest Claude model (recommended)"),
                 ("anthropic:claude-3-opus-20240229", "Most capable Claude model"),
-                ("anthropic:claude-3-haiku-20240307", "Fast and cost-effective")
+                ("anthropic:claude-3-haiku-20240307", "Fast and cost-effective"),
             ],
             "OpenRouter": [
                 ("openrouter:anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet (recommended)"),
                 ("openrouter:openai/gpt-4o", "GPT-4o via OpenRouter"),
-                ("openrouter:google/gemini-2.0-flash-exp", "Google Gemini 2.0")
+                ("openrouter:google/gemini-2.0-flash-exp", "Google Gemini 2.0"),
             ],
             "Google": [
                 ("google:gemini-2.0-flash-exp", "Latest Gemini model (recommended)"),
                 ("google:gemini-1.5-pro", "Gemini 1.5 Pro"),
-                ("google:gemini-1.5-flash", "Fast Gemini variant")
-            ]
+                ("google:gemini-1.5-flash", "Fast Gemini variant"),
+            ],
         }
 
         models = recommendations.get(provider["name"], [])
         message = f"Choose your default {provider['name']} model:\n\n"
-        
+
         for i, (model_id, description) in enumerate(models, 1):
             message += f"  {i} - {description}\n"
-        
-        message += f"\n💡 You can change this later with [green]/model[/green]"
+
+        message += "\n💡 You can change this later with [green]/model[/green]"
 
         await ui.panel("Model Selection", message, border_style=UI_COLORS["primary"])
-        
+
         while True:
             choice = await ui.input(
                 "wizard_model",
                 pretext=f"  Choose model (1-{len(models)}): ",
                 state_manager=self.state_manager,
             )
-            
+
             try:
                 index = int(choice.strip()) - 1
                 if 0 <= index < len(models):
@@ -540,29 +542,29 @@ class ConfigSetup(BaseSetup):
         message += "\n⏭️  Skip this step to use recommended defaults"
 
         await ui.panel("Optional Settings", message, border_style=UI_COLORS["primary"])
-        
+
         # Ask about tutorial
         tutorial_choice = await ui.input(
             "wizard_tutorial",
             pretext="  Enable tutorial for new users? [Y/n]: ",
             state_manager=self.state_manager,
         )
-        
-        enable_tutorial = tutorial_choice.strip().lower() not in ['n', 'no', 'false']
-        
+
+        enable_tutorial = tutorial_choice.strip().lower() not in ["n", "no", "false"]
+
         if "settings" not in self.state_manager.session.user_config:
             self.state_manager.session.user_config["settings"] = {}
-        
+
         self.state_manager.session.user_config["settings"]["enable_tutorial"] = enable_tutorial
-        
+
         # Ask about streaming
         streaming_choice = await ui.input(
             "wizard_streaming",
             pretext="  Enable response streaming? [Y/n]: ",
             state_manager=self.state_manager,
         )
-        
-        enable_streaming = streaming_choice.strip().lower() not in ['n', 'no', 'false']
+
+        enable_streaming = streaming_choice.strip().lower() not in ["n", "no", "false"]
         self.state_manager.session.user_config["streaming"] = enable_streaming
-        
+
         await ui.info("Optional settings configured!")

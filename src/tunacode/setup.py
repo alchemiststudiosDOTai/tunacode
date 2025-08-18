@@ -18,7 +18,9 @@ from tunacode.core.setup import (
 from tunacode.core.state import StateManager
 
 
-async def setup(run_setup: bool, state_manager: StateManager, cli_config: dict = None, wizard_mode: bool = False) -> None:
+async def setup(
+    run_setup: bool, state_manager: StateManager, cli_config: dict = None, wizard_mode: bool = False
+) -> None:
     """
     Setup TunaCode on startup using the new setup coordinator.
 

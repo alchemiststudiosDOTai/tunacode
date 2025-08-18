@@ -45,10 +45,10 @@ def load_config() -> Optional[UserConfig]:
             # else, update fast path
             _config_fingerprint = new_fp
             _config_cache = loaded
-            
+
             # Initialize onboarding defaults for new configurations
             _ensure_onboarding_defaults(loaded)
-            
+
             return loaded
     except FileNotFoundError:
         return None
@@ -100,16 +100,16 @@ def set_default_model(model_name: ModelName, state_manager: "StateManager") -> b
 def _ensure_onboarding_defaults(config: UserConfig) -> None:
     """Ensure onboarding-related default settings are present in config."""
     from datetime import datetime
-    
+
     if "settings" not in config:
         config["settings"] = {}
-    
+
     settings = config["settings"]
-    
+
     # Set tutorial enabled by default for new users
     if "enable_tutorial" not in settings:
         settings["enable_tutorial"] = True
-    
+
     # Set first installation date if not present (for new installs)
     if "first_installation_date" not in settings:
         settings["first_installation_date"] = datetime.now().isoformat()
@@ -118,18 +118,18 @@ def _ensure_onboarding_defaults(config: UserConfig) -> None:
 def initialize_first_time_user(state_manager: "StateManager") -> None:
     """Initialize first-time user settings and save configuration."""
     from datetime import datetime
-    
+
     # Ensure settings section exists
     if "settings" not in state_manager.session.user_config:
         state_manager.session.user_config["settings"] = {}
-    
+
     settings = state_manager.session.user_config["settings"]
-    
+
     # Only set installation date if it doesn't exist (true first-time)
     if "first_installation_date" not in settings:
         settings["first_installation_date"] = datetime.now().isoformat()
         settings["enable_tutorial"] = True
-        
+
         # Save the updated configuration
         try:
             save_config(state_manager)

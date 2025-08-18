@@ -445,7 +445,7 @@ async def repl(state_manager: StateManager):
     if not hasattr(state_manager.session, "_startup_shown"):
         await ui.success("Ready to assist")
         state_manager.session._startup_shown = True
-        
+
         # Offer tutorial to first-time users
         await _offer_tutorial_if_appropriate(state_manager)
 
@@ -548,9 +548,9 @@ async def _offer_tutorial_if_appropriate(state_manager: StateManager) -> None:
     """Offer tutorial to first-time users if appropriate."""
     try:
         from tunacode.tutorial import TutorialManager
-        
+
         tutorial_manager = TutorialManager(state_manager)
-        
+
         # Check if we should offer tutorial
         if await tutorial_manager.should_offer_tutorial():
             # Offer tutorial to user

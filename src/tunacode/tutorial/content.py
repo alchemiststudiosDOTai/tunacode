@@ -67,7 +67,7 @@ System commands:
         "content": """To get the most out of TunaCode:
 
 🎯 Be specific: "Fix the bug in login.py line 42" vs "fix my code"
-📁 Use file references: "@app.py" to include files in context  
+📁 Use file references: "@app.py" to include files in context
 🔄 Break down large tasks: Ask for step-by-step guidance
 💬 Ask follow-up questions: TunaCode remembers your conversation
 🚀 Experiment: Try different prompts to see what works best
@@ -81,7 +81,7 @@ Remember: TunaCode is here to help you code faster and better!""",
 
 Quick recap:
 ✅ Chat naturally with AI about code
-✅ Use @ to reference files  
+✅ Use @ to reference files
 ✅ Try /help for commands
 ✅ Ask specific questions for better results
 

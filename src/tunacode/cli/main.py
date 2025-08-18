@@ -27,7 +27,9 @@ state_manager = StateManager()
 def main(
     version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
     run_setup: bool = typer.Option(False, "--setup", help="Run setup process."),
-    wizard: bool = typer.Option(False, "--wizard", help="Run interactive setup wizard for guided configuration."),
+    wizard: bool = typer.Option(
+        False, "--wizard", help="Run interactive setup wizard for guided configuration."
+    ),
     baseurl: str = typer.Option(
         None, "--baseurl", help="API base URL (e.g., https://openrouter.ai/api/v1)"
     ),

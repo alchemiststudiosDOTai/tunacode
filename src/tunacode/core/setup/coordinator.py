@@ -44,12 +44,13 @@ class SetupCoordinator:
             for step in steps_to_run:
                 # Check if the step's execute method supports wizard_mode
                 import inspect
+
                 sig = inspect.signature(step.execute)
-                if 'wizard_mode' in sig.parameters:
+                if "wizard_mode" in sig.parameters:
                     execute_tasks.append(step.execute(force_setup, wizard_mode=wizard_mode))
                 else:
                     execute_tasks.append(step.execute(force_setup))
-            
+
             await gather(*execute_tasks)
             # Now validate all sequentially: if any fail, raise error
             for step in steps_to_run:

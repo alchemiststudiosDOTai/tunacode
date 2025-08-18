@@ -8,7 +8,7 @@ Provides guided introduction to TunaCode for new users.
 import logging
 from typing import Any
 
-from ...types import CommandContext
+from ...types import CommandArgs, CommandContext, CommandResult
 from ..base import SimpleCommand
 from ..spec import CommandCategory, CommandSpec
 
@@ -25,7 +25,7 @@ class QuickStartCommand(SimpleCommand):
         category=CommandCategory.SYSTEM,
     )
 
-    async def execute(self, context: CommandContext, **kwargs: Any) -> None:
+    async def execute(self, _args: list[str], context: CommandContext) -> CommandResult:
         """Execute the quickstart tutorial."""
         try:
             from ....tutorial import TutorialManager

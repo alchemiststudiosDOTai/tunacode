@@ -21,14 +21,14 @@ class ConfigurationError(TunaCodeError):
     def __init__(self, message: str, suggested_fix: str = None, help_url: str = None):
         self.suggested_fix = suggested_fix
         self.help_url = help_url
-        
+
         # Build enhanced error message with actionable guidance
         full_message = message
         if suggested_fix:
             full_message += f"\n\n💡 Suggested fix: {suggested_fix}"
         if help_url:
             full_message += f"\n📖 More help: {help_url}"
-            
+
         super().__init__(full_message)
 
 
@@ -45,7 +45,7 @@ class ValidationError(TunaCodeError):
     def __init__(self, message: str, suggested_fix: str = None, valid_examples: list = None):
         self.suggested_fix = suggested_fix
         self.valid_examples = valid_examples or []
-        
+
         # Build enhanced error message with actionable guidance
         full_message = f"Validation failed: {message}"
         if suggested_fix:
@@ -53,7 +53,7 @@ class ValidationError(TunaCodeError):
         if valid_examples:
             examples_text = "\n".join(f"  • {example}" for example in valid_examples)
             full_message += f"\n\n✅ Valid examples:\n{examples_text}"
-            
+
         super().__init__(full_message)
 
 
@@ -62,14 +62,18 @@ class ToolExecutionError(TunaCodeError):
     """Raised when a tool fails to execute."""
 
     def __init__(
-        self, tool_name: ToolName, message: ErrorMessage, original_error: OriginalError = None,
-        suggested_fix: str = None, recovery_commands: list = None
+        self,
+        tool_name: ToolName,
+        message: ErrorMessage,
+        original_error: OriginalError = None,
+        suggested_fix: str = None,
+        recovery_commands: list = None,
     ):
         self.tool_name = tool_name
         self.original_error = original_error
         self.suggested_fix = suggested_fix
         self.recovery_commands = recovery_commands or []
-        
+
         # Build enhanced error message
         full_message = f"Tool '{tool_name}' failed: {message}"
         if suggested_fix:
@@ -77,7 +81,7 @@ class ToolExecutionError(TunaCodeError):
         if recovery_commands:
             commands_text = "\n".join(f"  • {cmd}" for cmd in recovery_commands)
             full_message += f"\n\n🔧 Recovery commands:\n{commands_text}"
-            
+
         super().__init__(full_message)
 
 
@@ -87,15 +91,17 @@ class AgentError(TunaCodeError):
     def __init__(self, message: str, suggested_fix: str = None, troubleshooting_steps: list = None):
         self.suggested_fix = suggested_fix
         self.troubleshooting_steps = troubleshooting_steps or []
-        
+
         # Build enhanced error message
         full_message = f"Agent error: {message}"
         if suggested_fix:
             full_message += f"\n\n💡 Suggested fix: {suggested_fix}"
         if troubleshooting_steps:
-            steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(troubleshooting_steps))
+            steps_text = "\n".join(
+                f"  {i + 1}. {step}" for i, step in enumerate(troubleshooting_steps)
+            )
             full_message += f"\n\n🔍 Troubleshooting steps:\n{steps_text}"
-            
+
         super().__init__(full_message)
 
 
@@ -154,11 +160,13 @@ class FileOperationError(TunaCodeError):
 class OnboardingError(TunaCodeError):
     """Raised when onboarding process encounters issues."""
 
-    def __init__(self, message: str, step: str = None, suggested_fix: str = None, help_command: str = None):
+    def __init__(
+        self, message: str, step: str = None, suggested_fix: str = None, help_command: str = None
+    ):
         self.step = step
         self.suggested_fix = suggested_fix
         self.help_command = help_command
-        
+
         # Build enhanced error message
         full_message = f"Onboarding failed: {message}"
         if step:
@@ -167,7 +175,7 @@ class OnboardingError(TunaCodeError):
             full_message += f"\n\n💡 Suggested fix: {suggested_fix}"
         if help_command:
             full_message += f"\n🆘 For help: {help_command}"
-            
+
         super().__init__(full_message)
 
 
@@ -178,15 +186,15 @@ class ModelConfigurationError(ConfigurationError):
         self.model = model
         self.issue = issue
         self.valid_models = valid_models or []
-        
-        suggested_fix = f"Use --wizard for guided setup or --model with a valid model name"
+
+        suggested_fix = "Use --wizard for guided setup or --model with a valid model name"
         help_url = "https://docs.anthropic.com/en/docs/claude-code"
-        
+
         message = f"Model '{model}' configuration error: {issue}"
         if valid_models:
             examples = valid_models[:3]  # Show first 3 examples
             suggested_fix += f"\n\nValid examples: {', '.join(examples)}"
-            
+
         super().__init__(message, suggested_fix=suggested_fix, help_url=help_url)
 
 
@@ -197,15 +205,15 @@ class SetupValidationError(ValidationError):
         self.validation_type = validation_type
         self.details = details
         self.quick_fixes = quick_fixes or []
-        
+
         suggested_fix = "Run 'tunacode --wizard' for guided setup"
         if quick_fixes:
             suggested_fix = f"Try these quick fixes: {', '.join(quick_fixes)}"
-            
+
         super().__init__(
             f"{validation_type} validation failed: {details}",
             suggested_fix=suggested_fix,
-            valid_examples=["tunacode --wizard", "tunacode --setup", "tunacode --help"]
+            valid_examples=["tunacode --wizard", "tunacode --setup", "tunacode --help"],
         )
 
 
