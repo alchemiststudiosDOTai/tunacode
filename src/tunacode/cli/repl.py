@@ -445,6 +445,9 @@ async def repl(state_manager: StateManager):
     if not hasattr(state_manager.session, "_startup_shown"):
         await ui.success("Ready to assist")
         state_manager.session._startup_shown = True
+        
+        # Offer tutorial to first-time users
+        await _offer_tutorial_if_appropriate(state_manager)
 
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 
@@ -539,3 +542,25 @@ async def repl(state_manager: StateManager):
             except (TypeError, ValueError):
                 pass
         await ui.info(MSG_SESSION_ENDED)
+
+
+async def _offer_tutorial_if_appropriate(state_manager: StateManager) -> None:
+    """Offer tutorial to first-time users if appropriate."""
+    try:
+        from tunacode.tutorial import TutorialManager
+        
+        tutorial_manager = TutorialManager(state_manager)
+        
+        # Check if we should offer tutorial
+        if await tutorial_manager.should_offer_tutorial():
+            # Offer tutorial to user
+            accepted = await tutorial_manager.offer_tutorial()
+            if accepted:
+                # Run tutorial
+                await tutorial_manager.run_tutorial()
+    except ImportError:
+        # Tutorial system not available, silently continue
+        pass
+    except Exception as e:
+        # Don't let tutorial errors crash the REPL
+        logger.warning(f"Tutorial offer failed: {e}")
