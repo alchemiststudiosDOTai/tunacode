@@ -9,8 +9,7 @@ import logging
 
 from tunacode.types import CommandContext, CommandResult
 
-from ..base import SimpleCommand
-from ..spec import CommandCategory, CommandSpec
+from ..base import SimpleCommand, CommandCategory, CommandSpec
 
 logger = logging.getLogger(__name__)
 
