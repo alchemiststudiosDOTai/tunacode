@@ -27,7 +27,7 @@ class CommandReloadCommand(SimpleCommand):
             Path(".tunacode/commands"),
             Path(".claude/commands"),
             Path.home() / ".tunacode/commands",
-            Path.home() / ".claude/commands"
+            Path.home() / ".claude/commands",
         ]
 
         dirs_exist = any(cmd_dir.exists() for cmd_dir in command_dirs)

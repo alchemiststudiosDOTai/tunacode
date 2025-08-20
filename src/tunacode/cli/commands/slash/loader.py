@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from .command import SlashCommand
 from .types import CommandDiscoveryResult, CommandSource
@@ -34,7 +34,7 @@ class SlashCommandLoader:
 
     def discover_commands(self) -> CommandDiscoveryResult:
         """Main discovery method with conflict resolution."""
-        all_commands = {}
+        all_commands: Dict[str, Any] = {}
         conflicts = []
         errors = []
         stats = {"scanned_dirs": 0, "found_files": 0, "loaded_commands": 0}

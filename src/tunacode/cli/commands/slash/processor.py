@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from .types import ContextInjectionResult
 from .validator import CommandValidator
