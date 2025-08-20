@@ -44,7 +44,7 @@ def test_yaml_frontmatter_parsing():
     """Test YAML frontmatter parsing without importing slash modules."""
 
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
 
         # Test frontmatter content
         content = """---
@@ -131,7 +131,7 @@ description: TunaCode test command
 """)
 
         (claude_dir / "test.md").write_text("""---
-description: Claude test command  
+description: Claude test command
 ---
 # Claude Test
 """)

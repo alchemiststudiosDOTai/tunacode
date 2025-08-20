@@ -152,3 +152,6 @@ class SlashCommand(Command):
                 return result
             else:
                 return "Error: No process_request callback available"
+
+        # Default return if no metadata
+        return "Command executed"

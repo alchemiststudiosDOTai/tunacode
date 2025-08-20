@@ -8,7 +8,7 @@ using temporary directories and mock contexts.
 import tempfile
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 
 def test_slash_command_file_discovery():
@@ -140,7 +140,7 @@ def test_slash_command_frontmatter_parsing():
 description: Complex command with all options
 allowed_tools:
   - bash
-  - git 
+  - git
   - docker
 security_level: strict
 timeout: 600
