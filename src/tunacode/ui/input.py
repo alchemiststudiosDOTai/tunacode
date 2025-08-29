@@ -95,6 +95,11 @@ async def multiline_input(
         )
     )
 
+    # Create models registry for auto-completion (lazy loaded)
+    from ..utils.models_registry import ModelsRegistry
+    models_registry = ModelsRegistry()
+    # Note: Registry will be loaded lazily by the completer when needed
+
     # Display input area (Plan Mode indicator is handled dynamically in prompt manager)
     result = await input(
         "multiline",
@@ -102,7 +107,7 @@ async def multiline_input(
         key_bindings=kb,
         multiline=True,
         placeholder=placeholder,
-        completer=create_completer(command_registry),
+        completer=create_completer(command_registry, models_registry),
         lexer=FileReferenceLexer(),
         state_manager=state_manager,
     )
