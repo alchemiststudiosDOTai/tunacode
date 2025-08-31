@@ -83,8 +83,19 @@ def load_system_prompt(base_path: Path) -> str:
             return content
 
         except FileNotFoundError:
-            # Use a default system prompt if neither file exists
-            return "You are a helpful AI assistant."
+            # Use SystemPromptBuilder for dynamic generation with tools
+            try:
+                from tunacode.tools.system_builder import SystemPromptBuilder
+
+                content = SystemPromptBuilder.build_system_prompt(include_tools=True)
+                logger.info(
+                    "Using SystemPromptBuilder for dynamic system prompt with integrated tools"
+                )
+                return content
+            except Exception as e:
+                logger.warning(f"SystemPromptBuilder failed: {e}")
+                # Use a default system prompt if dynamic generation fails
+                return "You are a helpful AI assistant."
 
 
 def load_tunacode_context() -> str:
