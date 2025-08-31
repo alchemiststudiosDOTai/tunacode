@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pytest
 
 from tunacode.tools.decorator import tool_definition
-from tunacode.tools.feature_flags import ToolFeatureFlags
 from tunacode.tools.openai_formatter import OpenAIFormatter
 from tunacode.tools.prompt_generator import PromptGenerator
 from tunacode.tools.registry import ToolCategory, ToolRegistry
@@ -18,12 +17,10 @@ class TestToolSystemIntegration:
     def setup_method(self):
         """Setup for each test."""
         ToolRegistry.clear()
-        ToolFeatureFlags.disable_all_migration()
 
     def teardown_method(self):
         """Cleanup after each test."""
         ToolRegistry.clear()
-        ToolFeatureFlags.disable_all_migration()
 
     def test_end_to_end_tool_workflow(self):
         """Test complete workflow from tool definition to prompt generation."""
@@ -66,35 +63,6 @@ class TestToolSystemIntegration:
 
         # Step 5: Validate format
         assert OpenAIFormatter.validate_format(formatted) is True
-
-    def test_feature_flag_integration(self):
-        """Test that feature flags properly control system behavior."""
-
-        # Register a test tool
-        @tool_definition(
-            name="flag_test_tool",
-            category=ToolCategory.READ_ONLY,
-            description="Tool for testing flags",
-            parameters={"type": "object", "properties": {}},
-        )
-        class FlagTestTool:
-            pass
-
-        # Test with flags disabled (default)
-        assert ToolFeatureFlags.use_unified_registry() is False
-        assert ToolFeatureFlags.use_dynamic_prompts() is False
-
-        # Enable flags
-        ToolFeatureFlags.enable_full_migration()
-        assert ToolFeatureFlags.use_unified_registry() is True
-        assert ToolFeatureFlags.use_dynamic_prompts() is True
-        assert ToolFeatureFlags.disable_xml_loading() is True
-
-        # Test migration status
-        status = ToolFeatureFlags.get_migration_status()
-        assert status["unified_registry"] is True
-        assert status["dynamic_prompts"] is True
-        assert status["xml_disabled"] is True
 
     def test_prompt_generation_with_multiple_tools(self):
         """Test prompt generation with multiple tools in different categories."""
