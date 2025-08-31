@@ -19,7 +19,6 @@ from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import BaseTool
 from tunacode.tools.decorator import tool_definition
 from tunacode.tools.registry import ToolCategory
-from tunacode.tools.xml_helper import load_parameters_schema_from_xml, load_prompt_from_xml
 
 # Configuration
 MAX_RESULTS = 5000  # Maximum files to return
@@ -109,17 +108,11 @@ class GlobTool(BaseTool):
 
     @lru_cache(maxsize=1)
     def _get_base_prompt(self) -> str:
-        """Load and return the base prompt from XML file.
+        """Return the base prompt for glob tool.
 
         Returns:
-            str: The loaded prompt from XML or a default prompt
+            str: The default prompt
         """
-        # Try to load from XML helper
-        prompt = load_prompt_from_xml("glob")
-        if prompt:
-            return prompt
-
-        # Fallback to default prompt
         return """Fast file pattern matching tool
 
 - Supports glob patterns like "**/*.js" or "src/**/*.ts"
@@ -129,12 +122,6 @@ class GlobTool(BaseTool):
     @lru_cache(maxsize=1)
     def _get_parameters_schema(self) -> Dict[str, Any]:
         """Get the parameters schema for the glob tool."""
-        # Try to load from XML helper
-        schema = load_parameters_schema_from_xml("glob")
-        if schema:
-            return schema
-
-        # Fallback to hardcoded schema
         return {
             "type": "object",
             "properties": {

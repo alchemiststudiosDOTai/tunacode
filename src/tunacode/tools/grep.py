@@ -32,7 +32,6 @@ from tunacode.tools.grep_components import (
 )
 from tunacode.tools.grep_components.result_formatter import ResultFormatter
 from tunacode.tools.registry import ToolCategory
-from tunacode.tools.xml_helper import load_parameters_schema_from_xml, load_prompt_from_xml
 from tunacode.utils.ripgrep import RipgrepExecutor
 from tunacode.utils.ripgrep import metrics as ripgrep_metrics
 
@@ -123,17 +122,11 @@ class ParallelGrep(BaseTool):
 
     @lru_cache(maxsize=1)
     def _get_base_prompt(self) -> str:
-        """Load and return the base prompt from XML file.
+        """Return the base prompt for grep tool.
 
         Returns:
-            str: The loaded prompt from XML or a default prompt
+            str: The default prompt
         """
-        # Try to load from XML helper
-        prompt = load_prompt_from_xml("grep")
-        if prompt:
-            return prompt
-
-        # Fallback to default prompt
         return """A powerful search tool built on ripgrep
 
 Usage:
@@ -149,12 +142,6 @@ Usage:
         Returns:
             Dict containing the JSON schema for tool parameters
         """
-        # Try to load from XML helper
-        schema = load_parameters_schema_from_xml("grep")
-        if schema:
-            return schema
-
-        # Fallback to hardcoded schema
         return {
             "type": "object",
             "properties": {
