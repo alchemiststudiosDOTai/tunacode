@@ -16,11 +16,35 @@ import defusedxml.ElementTree as ET
 
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import FilePath, ToolResult
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="ListDir",
+    category=ToolCategory.READ_ONLY,
+    description="Lists files and directories in a given path with type indicators and sorting",
+    parameters={
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "The absolute path to the directory to list",
+            },
+            "ignore": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of glob patterns to ignore",
+            },
+        },
+        "required": ["path"],
+    },
+    example_args={"path": "/home/user/project"},
+    brief="List directory contents efficiently",
+)
 class ListDirTool(FileBasedTool):
     """Tool for listing directory contents without shell commands."""
 

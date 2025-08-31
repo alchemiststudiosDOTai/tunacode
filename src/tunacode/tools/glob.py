@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional, Set, Union
 from tunacode.core.code_index import CodeIndex
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import BaseTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.tools.xml_helper import load_parameters_schema_from_xml, load_prompt_from_xml
 
 # Configuration
@@ -49,6 +51,49 @@ class SortOrder(Enum):
     DEPTH = "depth"  # Sort by path depth (shallow first)
 
 
+@tool_definition(
+    name="glob",
+    category=ToolCategory.READ_ONLY,
+    description="Fast file pattern matching tool using glob patterns with support for multiple extensions and recursive search",
+    parameters={
+        "type": "object",
+        "properties": {
+            "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match (e.g., '*.py', '**/*.{js,ts}')",
+            },
+            "directory": {
+                "type": "string",
+                "description": "Directory to search in",
+                "default": ".",
+            },
+            "recursive": {
+                "type": "boolean",
+                "description": "Whether to search recursively",
+                "default": True,
+            },
+            "include_hidden": {
+                "type": "boolean",
+                "description": "Whether to include hidden files/directories",
+                "default": False,
+            },
+            "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return",
+                "default": 5000,
+            },
+            "sort_by": {
+                "type": "string",
+                "enum": ["modified", "size", "alphabetical", "depth"],
+                "description": "How to sort results",
+                "default": "modified",
+            },
+        },
+        "required": ["pattern"],
+    },
+    example_args={"pattern": "**/*.py", "directory": "src/", "max_results": 100},
+    brief="Find files by glob patterns",
+)
 class GlobTool(BaseTool):
     """Fast file pattern matching tool using glob patterns."""
 

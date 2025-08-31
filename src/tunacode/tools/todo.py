@@ -23,10 +23,39 @@ from tunacode.constants import (
 from tunacode.types import TodoItem, ToolResult, UILogger
 
 from .base import BaseTool
+from .decorator import tool_definition
+from .registry import ToolCategory
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="todo",
+    category=ToolCategory.TASK_MGMT,
+    description="Use this tool to create and manage a structured task list during execution",
+    parameters={
+        "type": "object",
+        "properties": {
+            "todos": {
+                "type": "array",
+                "description": "The updated todo list",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "content": {"type": "string"},
+                        "status": {"type": "string"},
+                    },
+                },
+            },
+        },
+        "required": ["todos"],
+    },
+    example_args={
+        "todos": [{"id": "task1", "content": "Implement feature X", "status": "pending"}]
+    },
+    brief="Manage structured todo lists",
+)
 class TodoTool(BaseTool):
     """Tool for managing todo items from the AI agent."""
 

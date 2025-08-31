@@ -231,6 +231,22 @@ class BaseTool(ABC):
         Returns:
             Dict containing the tool schema in OpenAI function format
         """
+        # Check feature flags
+        from .feature_flags import ToolFeatureFlags
+
+        if ToolFeatureFlags.use_unified_registry():
+            # Try registry first
+            from .registry import ToolRegistry
+
+            definition = ToolRegistry.get(self.tool_name)
+            if definition:
+                return {
+                    "name": definition.name,
+                    "description": definition.description,
+                    "parameters": definition.parameters,
+                }
+
+        # Fall back to existing implementation
         return {
             "name": self.tool_name,
             "description": self.prompt(),

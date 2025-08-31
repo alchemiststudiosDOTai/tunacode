@@ -20,11 +20,42 @@ from pydantic_ai.exceptions import ModelRetry
 from tunacode.constants import MAX_COMMAND_OUTPUT
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import BaseTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import ToolResult
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="Bash",
+    category=ToolCategory.EXECUTE,
+    description="Executes a given bash command in a persistent shell session with optional timeout",
+    parameters={
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": "The command to execute",
+            },
+            "description": {
+                "type": "string",
+                "description": "Clear, concise description of what this command does",
+            },
+            "timeout": {
+                "type": "number",
+                "description": "Optional timeout in milliseconds",
+            },
+            "run_in_background": {
+                "type": "boolean",
+                "description": "Set to true to run this command in the background",
+            },
+        },
+        "required": ["command"],
+    },
+    example_args={"command": "ls -la", "description": "List files in current directory"},
+    brief="Execute shell commands with timeout support",
+)
 class BashTool(BaseTool):
     """Enhanced shell command execution tool with advanced features."""
 

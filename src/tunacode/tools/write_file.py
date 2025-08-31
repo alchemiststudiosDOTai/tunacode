@@ -16,11 +16,34 @@ from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import ToolResult
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="Write",
+    category=ToolCategory.WRITE,
+    description="Writes a file to the local filesystem, fails if file already exists",
+    parameters={
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "The absolute path to the file to write",
+            },
+            "content": {
+                "type": "string",
+                "description": "The content to write to the file",
+            },
+        },
+        "required": ["file_path", "content"],
+    },
+    example_args={"file_path": "/path/to/new_file.py", "content": "print('Hello World')"},
+    brief="Create new files with content",
+)
 class WriteFileTool(FileBasedTool):
     """Tool for writing content to new files."""
 

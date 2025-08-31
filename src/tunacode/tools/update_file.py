@@ -16,11 +16,46 @@ from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import ToolResult
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="Update",
+    category=ToolCategory.WRITE,
+    description="Performs exact string replacements in files for targeted updates",
+    parameters={
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "The absolute path to the file to modify",
+            },
+            "old_string": {
+                "type": "string",
+                "description": "The text to replace",
+            },
+            "new_string": {
+                "type": "string",
+                "description": "The text to replace it with",
+            },
+            "replace_all": {
+                "type": "boolean",
+                "description": "Replace all occurences of old_string",
+            },
+        },
+        "required": ["file_path", "old_string", "new_string"],
+    },
+    example_args={
+        "file_path": "/path/to/file.py",
+        "old_string": "old_code",
+        "new_string": "new_code",
+    },
+    brief="Update files with precise text replacement",
+)
 class UpdateFileTool(FileBasedTool):
     """Tool for updating existing files by replacing text blocks."""
 

@@ -26,12 +26,47 @@ from tunacode.constants import (
 )
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import BaseTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import ToolResult
 from tunacode.utils.security import CommandSecurityError, safe_subprocess_popen
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="Shell",
+    category=ToolCategory.EXECUTE,
+    description="Executes system commands with enhanced control and monitoring capabilities",
+    parameters={
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": "The command to execute",
+            },
+            "cwd": {
+                "type": "string",
+                "description": "Working directory for the command",
+            },
+            "env": {
+                "type": "object",
+                "description": "Additional environment variables",
+            },
+            "timeout": {
+                "type": "integer",
+                "description": "Command timeout in seconds",
+            },
+            "capture_output": {
+                "type": "boolean",
+                "description": "Whether to capture stdout/stderr",
+            },
+        },
+        "required": ["command"],
+    },
+    example_args={"command": "python --version"},
+    brief="Execute system commands safely",
+)
 class RunCommandTool(BaseTool):
     """Tool for running shell commands."""
 

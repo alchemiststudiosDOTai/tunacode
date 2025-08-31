@@ -24,11 +24,38 @@ from tunacode.constants import (
 )
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.base import FileBasedTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import ToolResult
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="Read",
+    category=ToolCategory.READ_ONLY,
+    description="Reads a file from the local filesystem with size limits and proper error handling",
+    parameters={
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "The absolute path to the file to read",
+            },
+            "offset": {
+                "type": "number",
+                "description": "The line number to start reading from",
+            },
+            "limit": {
+                "type": "number",
+                "description": "The number of lines to read",
+            },
+        },
+        "required": ["file_path"],
+    },
+    example_args={"file_path": "/path/to/file.py"},
+    brief="Read file contents safely",
+)
 class ReadFileTool(FileBasedTool):
     """Tool for reading file contents."""
 

@@ -7,12 +7,31 @@ from typing import Any, Dict, List, Optional
 import defusedxml.ElementTree as ET
 
 from tunacode.tools.base import BaseTool
+from tunacode.tools.decorator import tool_definition
+from tunacode.tools.registry import ToolCategory
 from tunacode.types import PlanDoc, PlanPhase, ToolResult
 from tunacode.ui import console as ui
 
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="present_plan",
+    category=ToolCategory.PLANNING,
+    description="Present a plan to the user for approval before execution",
+    parameters={
+        "type": "object",
+        "properties": {
+            "plan": {
+                "type": "string",
+                "description": "The plan to present to the user",
+            },
+        },
+        "required": ["plan"],
+    },
+    example_args={"plan": "Implementation plan for feature X"},
+    brief="Present structured plans for approval",
+)
 class PresentPlanTool(BaseTool):
     """Present a structured implementation plan and request user approval."""
 

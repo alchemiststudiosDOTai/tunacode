@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Union
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import TooBroadPatternError, ToolExecutionError
 from tunacode.tools.base import BaseTool
+from tunacode.tools.decorator import tool_definition
 from tunacode.tools.grep_components import (
     FileFilter,
     PatternMatcher,
@@ -30,6 +31,7 @@ from tunacode.tools.grep_components import (
     SearchResult,
 )
 from tunacode.tools.grep_components.result_formatter import ResultFormatter
+from tunacode.tools.registry import ToolCategory
 from tunacode.tools.xml_helper import load_parameters_schema_from_xml, load_prompt_from_xml
 from tunacode.utils.ripgrep import RipgrepExecutor
 from tunacode.utils.ripgrep import metrics as ripgrep_metrics
@@ -37,6 +39,67 @@ from tunacode.utils.ripgrep import metrics as ripgrep_metrics
 logger = logging.getLogger(__name__)
 
 
+@tool_definition(
+    name="grep",
+    category=ToolCategory.READ_ONLY,
+    description="A powerful search tool built on ripgrep for finding text patterns in files",
+    parameters={
+        "type": "object",
+        "properties": {
+            "pattern": {
+                "type": "string",
+                "description": "Regular expression pattern to search for",
+            },
+            "directory": {
+                "type": "string",
+                "description": "Directory to search in (default: current directory)",
+                "default": ".",
+            },
+            "case_sensitive": {
+                "type": "boolean",
+                "description": "Whether search is case sensitive (default: False)",
+                "default": False,
+            },
+            "use_regex": {
+                "type": "boolean",
+                "description": "Whether pattern is a regular expression (default: False)",
+                "default": False,
+            },
+            "include_files": {
+                "type": "string",
+                "description": "File patterns to include, comma-separated (e.g., '*.py,*.js')",
+            },
+            "exclude_files": {
+                "type": "string",
+                "description": "File patterns to exclude, comma-separated (e.g., '*.pyc,node_modules/*')",
+            },
+            "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return (default: 50)",
+                "default": 50,
+            },
+            "context_lines": {
+                "type": "integer",
+                "description": "Number of context lines before/after matches (default: 2)",
+                "default": 2,
+            },
+            "search_type": {
+                "type": "string",
+                "enum": ["smart", "ripgrep", "python", "hybrid"],
+                "description": "Search strategy to use (default: smart)",
+                "default": "smart",
+            },
+        },
+        "required": ["pattern"],
+    },
+    example_args={
+        "pattern": "class.*Handler",
+        "directory": "src/",
+        "use_regex": True,
+        "include_files": "*.py",
+    },
+    brief="Search file contents with regex patterns",
+)
 class ParallelGrep(BaseTool):
     """Advanced parallel grep tool with multiple search strategies.
 
