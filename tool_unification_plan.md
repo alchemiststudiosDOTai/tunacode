@@ -12,7 +12,11 @@ Unify TunaCode's three-layer tool system (system prompt, XML schemas, Python imp
 - **Key Problem:** Triple maintenance requirement for any tool change
 
 ## 3. Desired End State
-A single decorator-based tool definition system where each tool's name, description, parameters, examples, and category are defined once and automatically generate system prompts, schemas, and maintain execution logic consistency.
+A single decorator-based tool definition system where each tool's name, description, parameters, examples, and category are defined once and automatically generate:
+- OpenAI function calling format schemas with stringified arguments
+- Simplified action-oriented prompts per new_prompt.xml
+- Tool categorization for parallel execution rules
+- Consistent execution logic across all layers
 
 ## 4. What We're NOT Doing
 - Changing the actual tool execution logic
@@ -40,10 +44,11 @@ Build the foundation for unified tool definitions without changing existing beha
   from enum import Enum
 
   class ToolCategory(Enum):
-      READ_ONLY = "read_only"
-      FILE_WRITE = "file_write"
-      SYSTEM = "system"
-      PLANNING = "planning"
+      READ_ONLY = "read_only"  # Parallel-safe tools (Read, Grep, LS, Glob)
+      WRITE = "write"  # File modification tools (Write, Edit, MultiEdit)
+      EXECUTE = "execute"  # System execution (Bash, RunCommand)
+      TASK_MGMT = "task_mgmt"  # Task management (TodoWrite)
+      PLANNING = "planning"  # Planning mode tools (ExitPlanMode)
 
   @dataclass
   class ToolDefinition:
@@ -97,13 +102,25 @@ Generate tool documentation from registry instead of hardcoded system.md content
   ```python
   class PromptGenerator:
       @staticmethod
-      def generate_tool_section(tool: ToolDefinition) -> str:
-          # Generate markdown documentation for tool
-          # Include examples formatted properly
+      def generate_tool_example(tool: ToolDefinition) -> str:
+          """Generate OpenAI function call example per new_prompt.xml format"""
+          example = {
+              "tool_calls": [{
+                  "id": f"call_{tool.name}",
+                  "type": "function",
+                  "function": {
+                      "name": tool.name,
+                      "arguments": json.dumps(tool.example_args)
+                  }
+              }]
+          }
+          return f"```json\n{json.dumps(example, indent=2)}\n```"
 
       @staticmethod
-      def generate_batching_rules() -> str:
-          # Generate batching rules from categories
+      def generate_parallel_rules() -> str:
+          """Generate execution rules for parallel vs sequential tools"""
+          read_only = [t.name for t in ToolRegistry.get_by_category(ToolCategory.READ_ONLY)]
+          return f"Parallel-safe tools: {', '.join(read_only)}"
   ```
 
 - **File:** `src/tunacode/prompts/system_builder.py` (new)
@@ -128,7 +145,56 @@ Generate tool documentation from registry instead of hardcoded system.md content
 
 ---
 
-## Phase 3: Schema Assembly Integration
+## Phase 3: OpenAI Function Format Integration
+
+### Overview
+Implement OpenAI function calling format with stringified arguments per new_prompt.xml.
+
+### Changes Required:
+- **File:** `src/tunacode/tools/openai_formatter.py` (new)
+- **Changes:** Format tools for OpenAI function calls
+  ```python
+  import json
+  from typing import Dict, Any
+
+  class OpenAIFormatter:
+      @staticmethod
+      def format_tool_call(tool_name: str, args: Dict[str, Any]) -> Dict:
+          """Format tool call in OpenAI function format"""
+          return {
+              "tool_calls": [{
+                  "id": f"call_{hash(str(args))[:8]}",
+                  "type": "function",
+                  "function": {
+                      "name": tool_name,
+                      "arguments": json.dumps(args)  # CRITICAL: Stringify args
+                  }
+              }]
+          }
+
+      @staticmethod
+      def parse_tool_response(response: str) -> Dict:
+          """Parse OpenAI format response back to dict"""
+          data = json.loads(response)
+          for call in data.get("tool_calls", []):
+              # Parse stringified arguments
+              call["function"]["arguments"] = json.loads(call["function"]["arguments"])
+          return data
+  ```
+
+### Success Criteria:
+**Automated Verification:**
+- [ ] Format test passes: `python scripts/test_openai_format.py`
+- [ ] Arguments are properly stringified: `python scripts/verify_arg_format.py`
+- [ ] Round-trip parsing works: `hatch run test tests/test_openai_formatter.py`
+
+**Manual Verification:**
+- [ ] Tool calls match new_prompt.xml examples exactly
+- [ ] Arguments field is always a JSON string, not object
+
+---
+
+## Phase 4: Schema Assembly Integration
 
 ### Overview
 Point schema_assembler.py to use registry for consistent parameter definitions.
@@ -182,21 +248,20 @@ Port grep tool as proof of concept to validate the entire flow.
 - **Changes:** Add decorator and consolidate definitions
   ```python
   @tool_definition(
-      name="grep",
+      name="Grep",
       category=ToolCategory.READ_ONLY,
-      description="Search file contents using regular expressions",
+      description="Search text patterns in files",
       parameters={
           "type": "object",
           "properties": {
-              "pattern": {"type": "string", "description": "Regex pattern"},
-              "directory": {"type": "string", "description": "Directory to search", "default": "."}
+              "pattern": {"type": "string", "description": "Regex pattern to search"},
+              "path": {"type": "string", "description": "Directory or file to search", "default": "."},
+              "output_mode": {"type": "string", "enum": ["content", "files_with_matches", "count"], "default": "files_with_matches"}
           },
           "required": ["pattern"]
       },
-      examples=[
-          ("grep('TODO')", "Find all TODO comments"),
-          ("grep('class.*Test')", "Find test classes")
-      ]
+      example_args={"pattern": "class.*Handler", "path": "src/", "output_mode": "content"},
+      brief="Search file contents"
   )
   class GrepTool(BaseTool):
       # Existing implementation unchanged
@@ -312,7 +377,16 @@ Update documentation and expand test coverage for the new system.
 
 ## 8. References
 - Original Analysis: `/home/tuna/tunacode/prompt-xml.md`
+- New Prompt Format: `/home/tuna/tunacode/new_prompt.xml`
 - System Prompt: `src/tunacode/prompts/system.md`
 - Tool Registration: `src/tunacode/core/agents/agent_components/agent_config.py:244-266`
 - XML Files: `src/tunacode/tools/prompts/` (11 files)
 - Base Tool: `src/tunacode/tools/base.py`
+
+## 9. Key Changes from new_prompt.xml
+- **OpenAI Function Format**: All tools must use exact JSON structure with stringified arguments field
+- **Tool Categories**: READ_ONLY (parallel-safe), WRITE, EXECUTE, TASK_MGMT, PLANNING
+- **Action-First**: Tools execute immediately, no "I will" statements
+- **Simplified Examples**: Direct JSON examples instead of verbose descriptions
+- **Parallel Execution**: Read-only tools can be called in single tool_calls array
+- **TUNACODE_TASK_COMPLETE**: Signal for task completion
