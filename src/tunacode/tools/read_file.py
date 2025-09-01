@@ -9,10 +9,7 @@ import asyncio
 import logging
 import os
 from functools import lru_cache
-from pathlib import Path
-from typing import Any, Dict, List
-
-import defusedxml.ElementTree as ET
+from typing import Any, Dict
 
 from tunacode.constants import (
     ERROR_FILE_DECODE,
@@ -65,25 +62,50 @@ class ReadFileTool(FileBasedTool):
 
     @lru_cache(maxsize=1)
     def _get_base_prompt(self) -> str:
-        """Load and return the base prompt from XML file.
+        """Generate micro prompt to steer the agent in new_prompt.xml style.
 
         Returns:
-            str: The loaded prompt from XML or a default prompt
+            str: Micro prompt with OpenAI function calling format
         """
-        try:
-            # Load prompt from XML file
-            prompt_file = Path(__file__).parent / "prompts" / "read_file_prompt.xml"
-            if prompt_file.exists():
-                tree = ET.parse(prompt_file)
-                root = tree.getroot()
-                description = root.find("description")
-                if description is not None:
-                    return description.text.strip()
-        except Exception as e:
-            logger.warning(f"Failed to load XML prompt for read_file: {e}")
+        # Get tool definition from decorator
+        if hasattr(self.__class__, "_tool_definition"):
+            definition = self.__class__._tool_definition
 
-        # Fallback to default prompt
-        return """Reads a file from the local filesystem"""
+            # Build micro prompt in new_prompt.xml style
+            prompt = f"""## Read Tool - File Reading
+
+**Purpose**: {definition.description}
+
+**OpenAI Function Call Format**:
+```json
+{{
+  "tool_calls": [{{
+    "id": "call_read",
+    "type": "function",
+    "function": {{
+      "name": "Read",
+      "arguments": "{{\\"file_path\\": \\"path/to/file.py\\", \\"offset\\": 1, \\"limit\\": 100}}"
+    }}
+  }}]
+}}
+```
+
+**Key Points**:
+- Always use absolute or relative paths from current directory
+- Large files are automatically paginated (2000 lines max)
+- Returns content with line numbers for precise editing
+- Use offset/limit for reading specific sections
+- Binary files return base64 encoded content
+
+**Examples**:
+- Read entire file: `{{"file_path": "src/main.py"}}`
+- Read lines 50-100: `{{"file_path": "src/main.py", "offset": 50, "limit": 50}}`
+- Check config: `{{"file_path": "config.json"}}`
+"""
+            return prompt
+
+        # Fallback if no decorator definition
+        return """Reads a file from the local filesystem with line numbers"""
 
     @lru_cache(maxsize=1)
     def _get_parameters_schema(self) -> Dict[str, Any]:
@@ -92,39 +114,11 @@ class ReadFileTool(FileBasedTool):
         Returns:
             Dict containing the JSON schema for tool parameters
         """
-        # Try to load from XML first
-        try:
-            prompt_file = Path(__file__).parent / "prompts" / "read_file_prompt.xml"
-            if prompt_file.exists():
-                tree = ET.parse(prompt_file)
-                root = tree.getroot()
-                parameters = root.find("parameters")
-                if parameters is not None:
-                    schema: Dict[str, Any] = {"type": "object", "properties": {}, "required": []}
-                    required_fields: List[str] = []
-
-                    for param in parameters.findall("parameter"):
-                        name = param.get("name")
-                        required = param.get("required", "false").lower() == "true"
-                        param_type = param.find("type")
-                        description = param.find("description")
-
-                        if name and param_type is not None:
-                            prop = {
-                                "type": param_type.text.strip(),
-                                "description": description.text.strip()
-                                if description is not None
-                                else "",
-                            }
-
-                            schema["properties"][name] = prop
-                            if required:
-                                required_fields.append(name)
-
-                    schema["required"] = required_fields
-                    return schema
-        except Exception as e:
-            logger.warning(f"Failed to load parameters from XML for read_file: {e}")
+        # Get schema from decorator definition
+        if hasattr(self.__class__, "_tool_definition"):
+            definition = self.__class__._tool_definition
+            if definition.parameters:
+                return definition.parameters
 
         # Fallback to hardcoded schema
         return {
@@ -146,11 +140,11 @@ class ReadFileTool(FileBasedTool):
             "required": ["file_path"],
         }
 
-    async def _execute(self, filepath: str) -> ToolResult:
+    async def _execute(self, file_path: str) -> ToolResult:
         """Read the contents of a file.
 
         Args:
-            filepath: The path to the file to read.
+            file_path: The path to the file to read.
 
         Returns:
             ToolResult: The contents of the file or an error message.
@@ -159,8 +153,8 @@ class ReadFileTool(FileBasedTool):
             Exception: Any file reading errors
         """
         # Add a size limit to prevent reading huge files
-        if os.path.getsize(filepath) > MAX_FILE_SIZE:
-            err_msg = ERROR_FILE_TOO_LARGE.format(filepath=filepath) + MSG_FILE_SIZE_LIMIT
+        if os.path.getsize(file_path) > MAX_FILE_SIZE:
+            err_msg = ERROR_FILE_TOO_LARGE.format(filepath=file_path) + MSG_FILE_SIZE_LIMIT
             if self.ui:
                 await self.ui.error(err_msg)
             raise ToolExecutionError(tool_name=self.tool_name, message=err_msg, original_error=None)
@@ -171,7 +165,7 @@ class ReadFileTool(FileBasedTool):
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
 
-        content: str = await asyncio.to_thread(_read_sync, filepath)
+        content: str = await asyncio.to_thread(_read_sync, file_path)
         return content
 
     async def _handle_error(self, error: Exception, filepath: str = None) -> ToolResult:
@@ -200,19 +194,19 @@ class ReadFileTool(FileBasedTool):
 
 
 # Create the function that maintains the existing interface
-async def read_file(filepath: str) -> str:
+async def read_file(file_path: str) -> str:
     """
     Read the contents of a file.
 
     Args:
-        filepath: The path to the file to read.
+        file_path: The path to the file to read.
 
     Returns:
         str: The contents of the file or an error message.
     """
     tool = ReadFileTool(None)  # No UI for pydantic-ai compatibility
     try:
-        return await tool.execute(filepath)
+        return await tool.execute(file_path)
     except ToolExecutionError as e:
         # Return error message for pydantic-ai compatibility
         return str(e)

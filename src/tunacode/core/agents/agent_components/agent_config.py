@@ -48,7 +48,7 @@ def get_agent_tool():
 
 def load_system_prompt(base_path: Path) -> str:
     """Load the system prompt from file with caching."""
-    prompt_path = base_path / "prompts" / "system.md"
+    prompt_path = base_path / "prompts" / "system.xml"
     cache_key = str(prompt_path)
 
     # Check cache with file modification time
@@ -63,39 +63,17 @@ def load_system_prompt(base_path: Path) -> str:
         with open(prompt_path, "r", encoding="utf-8") as f:
             content = f.read().strip()
         _PROMPT_CACHE[cache_key] = (content, prompt_path.stat().st_mtime)
+
+        # Print system prompt for testing/debugging
+        print(f"LOADING SYSTEM PROMPT FROM: {prompt_path}")
+        print(f"PROMPT CONTENT (first 300 chars):\n{content[:300]}")
+
         return content
 
     except FileNotFoundError:
-        # Fallback to system.txt if system.md not found
-        prompt_path = base_path / "prompts" / "system.txt"
-        cache_key = str(prompt_path)
-
-        try:
-            if cache_key in _PROMPT_CACHE:
-                cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
-                current_mtime = prompt_path.stat().st_mtime
-                if current_mtime == cached_mtime:
-                    return cached_content
-
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-            _PROMPT_CACHE[cache_key] = (content, prompt_path.stat().st_mtime)
-            return content
-
-        except FileNotFoundError:
-            # Use SystemPromptBuilder for dynamic generation with tools
-            try:
-                from tunacode.tools.system_builder import SystemPromptBuilder
-
-                content = SystemPromptBuilder.build_system_prompt(include_tools=True)
-                logger.info(
-                    "Using SystemPromptBuilder for dynamic system prompt with integrated tools"
-                )
-                return content
-            except Exception as e:
-                logger.warning(f"SystemPromptBuilder failed: {e}")
-                # Use a default system prompt if dynamic generation fails
-                return "You are a helpful AI assistant."
+        raise FileNotFoundError(
+            f"System prompt not found at {prompt_path}. Expected system.xml file."
+        )
 
 
 def load_tunacode_context() -> str:
