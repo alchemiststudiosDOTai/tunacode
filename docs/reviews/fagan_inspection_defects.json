@@ -1,0 +1,276 @@
+{
+  "inspection_id": "FAGAN-2025-09-16-001",
+  "artifact": "src/tunacode/core/agents/main.py",
+  "date": "2025-09-16",
+  "total_defects": 24,
+  "defects_by_severity": {
+    "critical": 3,
+    "high": 8,
+    "medium": 9,
+    "low": 4
+  },
+  "defects": [
+    {
+      "id": "DEF-001",
+      "location": "lines 104-476",
+      "seam": "Agent Iteration Loop",
+      "type": "Architecture",
+      "severity": "CRITICAL",
+      "description": "Monolithic process_request function with 372 lines handling multiple responsibilities",
+      "evidence": "Single function spans entire request processing lifecycle",
+      "impact": "Unmaintainable, violates Single Responsibility Principle, difficult to test"
+    },
+    {
+      "id": "DEF-002",
+      "location": "line 134",
+      "seam": "Request ID Generation",
+      "type": "Performance",
+      "severity": "HIGH",
+      "description": "Dynamic import of uuid module inside function body",
+      "evidence": "import uuid statement at line 134 within process_request",
+      "impact": "Performance overhead on every request, violates Python best practices"
+    },
+    {
+      "id": "DEF-003",
+      "location": "lines 138-141",
+      "seam": "Request ID Generation",
+      "type": "Error Handling",
+      "severity": "HIGH",
+      "description": "Silent exception swallowing with bare except clause",
+      "evidence": "except Exception: pass pattern without logging",
+      "impact": "Critical debugging information lost, unpredictable behavior"
+    },
+    {
+      "id": "DEF-004",
+      "location": "lines 29-50",
+      "seam": "Import Structure",
+      "type": "Architecture",
+      "severity": "HIGH",
+      "description": "Massive import list creating tight coupling",
+      "evidence": "21 imports from single agent_components module",
+      "impact": "High coupling, changes ripple through main.py"
+    },
+    {
+      "id": "DEF-005",
+      "location": "multiple locations",
+      "seam": "State Management",
+      "type": "Concurrency",
+      "severity": "HIGH",
+      "description": "Direct state mutation without encapsulation",
+      "evidence": "Multiple state_manager.session.* direct assignments",
+      "impact": "Race conditions, inconsistent state, difficult to debug"
+    },
+    {
+      "id": "DEF-006",
+      "location": "lines 459-475",
+      "seam": "Error Handling",
+      "type": "Error Handling",
+      "severity": "HIGH",
+      "description": "Overly broad exception catching masks specific issues",
+      "evidence": "except Exception as e: generic handler",
+      "impact": "Difficult debugging, inappropriate error recovery"
+    },
+    {
+      "id": "DEF-007",
+      "location": "lines 87-91",
+      "seam": "Utility Functions",
+      "type": "Code Duplication",
+      "severity": "HIGH",
+      "description": "Duplicate get_agent_tool function from utils.py",
+      "evidence": "Identical function exists in utils module",
+      "impact": "Maintenance burden, potential inconsistency"
+    },
+    {
+      "id": "DEF-008",
+      "location": "lines 214, 269, 317, 352",
+      "seam": "UI Integration",
+      "type": "Performance",
+      "severity": "MEDIUM",
+      "description": "Nested function-level imports for UI console",
+      "evidence": "from tunacode.ui import console as ui inside functions",
+      "impact": "Performance overhead, poor organization"
+    },
+    {
+      "id": "DEF-009",
+      "location": "lines 203, 250, 359",
+      "seam": "Business Logic",
+      "type": "Maintainability",
+      "severity": "MEDIUM",
+      "description": "Magic numbers without constants",
+      "evidence": "Hardcoded values: >=1, >=3, +=5",
+      "impact": "Business logic obscured, difficult to configure"
+    },
+    {
+      "id": "DEF-010",
+      "location": "lines 365-418",
+      "seam": "Tool Processing",
+      "type": "Architecture",
+      "severity": "HIGH",
+      "description": "Complex batch processing logic embedded in main flow",
+      "evidence": "50+ lines of tool processing in main function",
+      "impact": "Code duplication, maintenance burden"
+    },
+    {
+      "id": "DEF-011",
+      "location": "lines 54-61",
+      "seam": "Import Structure",
+      "type": "Architecture",
+      "severity": "MEDIUM",
+      "description": "Conditional import pattern for streaming",
+      "evidence": "try/except for PartDeltaEvent imports",
+      "impact": "Runtime behavior differences, unclear dependencies"
+    },
+    {
+      "id": "DEF-012",
+      "location": "line 131",
+      "seam": "Agent Caching",
+      "type": "Resource Management",
+      "severity": "HIGH",
+      "description": "Unbounded agent caching may cause memory leaks",
+      "evidence": "Module-level cache without eviction policy",
+      "impact": "Memory accumulation in long-running processes"
+    },
+    {
+      "id": "DEF-013",
+      "location": "lines 143-151",
+      "seam": "State Initialization",
+      "type": "Architecture",
+      "severity": "MEDIUM",
+      "description": "State reset logic mixed with business logic",
+      "evidence": "State initialization scattered in main function",
+      "impact": "Incomplete initialization, logical errors"
+    },
+    {
+      "id": "DEF-014",
+      "location": "lines 456, 471-472",
+      "seam": "Error Recovery",
+      "type": "Error Handling",
+      "severity": "MEDIUM",
+      "description": "Error patching may cause cascading issues",
+      "evidence": "patch_tool_messages calls during error handling",
+      "impact": "State corruption, unexpected side effects"
+    },
+    {
+      "id": "DEF-015",
+      "location": "lines 156, 429-431",
+      "seam": "Configuration",
+      "type": "Configuration",
+      "severity": "MEDIUM",
+      "description": "Scattered configuration access without validation",
+      "evidence": "Direct nested dictionary access",
+      "impact": "Runtime failures, inconsistent defaults"
+    },
+    {
+      "id": "DEF-016",
+      "location": "lines 405-407",
+      "seam": "Performance Metrics",
+      "type": "Code Quality",
+      "severity": "LOW",
+      "description": "Debug timing calculations in production code",
+      "evidence": "Performance metrics calculation in main flow",
+      "impact": "Code pollution, minor overhead"
+    },
+    {
+      "id": "DEF-017",
+      "location": "lines 235-275",
+      "seam": "Productivity Tracking",
+      "type": "Architecture",
+      "severity": "MEDIUM",
+      "description": "Multiple boolean flags for similar state conditions",
+      "evidence": "iteration_had_tools, unproductive_iterations tracking",
+      "impact": "Complex state logic, potential inconsistencies"
+    },
+    {
+      "id": "DEF-018",
+      "location": "lines 168-169",
+      "seam": "Agent Interface",
+      "type": "Interface",
+      "severity": "MEDIUM",
+      "description": "Assumes specific pydantic_ai.Agent interface",
+      "evidence": "Direct use without type validation",
+      "impact": "Runtime failures with library changes"
+    },
+    {
+      "id": "DEF-019",
+      "location": "lines 466-469",
+      "seam": "Logging",
+      "type": "Monitoring",
+      "severity": "MEDIUM",
+      "description": "Limited logging context for debugging",
+      "evidence": "Basic error logging without request context",
+      "impact": "Difficult to trace issues in production"
+    },
+    {
+      "id": "DEF-020",
+      "location": "lines 300-324",
+      "seam": "User Interaction",
+      "type": "Architecture",
+      "severity": "MEDIUM",
+      "description": "User clarification logic embedded in main flow",
+      "evidence": "25+ lines of UI handling in main function",
+      "impact": "Mixed concerns, difficult to test"
+    },
+    {
+      "id": "DEF-021",
+      "location": "lines 333-361",
+      "seam": "Iteration Control",
+      "type": "Business Logic",
+      "severity": "MEDIUM",
+      "description": "Complex iteration limit extension logic",
+      "evidence": "Dynamic max_iterations adjustment",
+      "impact": "Potential infinite loops, unclear termination"
+    },
+    {
+      "id": "DEF-022",
+      "location": "lines 419-444",
+      "seam": "Fallback Handling",
+      "type": "Error Handling",
+      "severity": "MEDIUM",
+      "description": "Fallback response creation in main function",
+      "evidence": "25+ lines of fallback logic embedded",
+      "impact": "Mixed responsibilities, testing complexity"
+    },
+    {
+      "id": "DEF-023",
+      "location": "lines 66-84",
+      "seam": "API Design",
+      "type": "Interface",
+      "severity": "LOW",
+      "description": "__all__ export list includes unused items",
+      "evidence": "get_agent_tool exported but only used internally",
+      "impact": "Confusing API surface"
+    },
+    {
+      "id": "DEF-024",
+      "location": "lines 94-101",
+      "seam": "Query Satisfaction",
+      "type": "Implementation",
+      "severity": "LOW",
+      "description": "Placeholder function with hardcoded return",
+      "evidence": "check_query_satisfaction always returns True",
+      "impact": "Missing functionality"
+    }
+  ],
+  "summary": {
+    "critical_defects": [
+      "Monolithic process_request function (DEF-001)"
+    ],
+    "high_priority_defects": [
+      "Dynamic imports in function (DEF-002)",
+      "Silent exception swallowing (DEF-003)",
+      "Tight coupling from massive imports (DEF-004)",
+      "Direct state mutation (DEF-005)",
+      "Broad exception handling (DEF-006)",
+      "Code duplication (DEF-007)",
+      "Unbounded caching (DEF-012)",
+      "Embedded batch processing (DEF-010)"
+    ],
+    "recommendations": [
+      "Refactor monolithic function into smaller, focused components",
+      "Move all imports to module level",
+      "Implement proper exception hierarchy and handling",
+      "Encapsulate state management with proper interfaces",
+      "Extract configuration access into dedicated service"
+    ]
+  }
+}
