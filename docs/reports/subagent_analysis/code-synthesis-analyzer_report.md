@@ -45,3 +45,39 @@
 5. Create state management patterns
 
 ## Analysis Complete: No fixes implemented
+
+
+Yes, that line gets the `tool_strict_validation` setting (which defaults to `False`), but the issue is that **even with `strict=False`, pydantic-ai still expects a dictionary object, not a JSON string**.
+
+The problem is happening at the pydantic-ai validation layer before our JSON parsing logic can run.
+
+**Quick fix** - Force `strict=False` explicitly:
+
+````python path=src/tunacode/core/agents/agent_components/agent_config.py mode=EDIT
+        # Force strict=False to handle JSON string arguments
+        tool_strict_validation = False  # Override config temporarily
+````
+
+Or better yet, let's see what the current value is. Can you check your config file at `~/.config/tunacode.json` to see if `tool_strict_validation` is set to `true`?
+
+If it's `true`, that's causing the strict validation that's rejecting JSON strings. Setting it to `false` should fix the immediate issue.
+
+The real fix would be to intercept tool calls and parse JSON strings to objects before pydantic-ai validation, but forcing `strict=False` should stop the retry loops immediately.
+
+
+Yes, that line gets the `tool_strict_validation` setting (which defaults to `False`), but the issue is that **even with `strict=False`, pydantic-ai still expects a dictionary object, not a JSON string**.
+
+The problem is happening at the pydantic-ai validation layer before our JSON parsing logic can run.
+
+**Quick fix** - Force `strict=False` explicitly:
+
+````python path=src/tunacode/core/agents/agent_components/agent_config.py mode=EDIT
+        # Force strict=False to handle JSON string arguments
+        tool_strict_validation = False  # Override config temporarily
+````
+
+Or better yet, let's see what the current value is. Can you check your config file at `~/.config/tunacode.json` to see if `tool_strict_validation` is set to `true`?
+
+If it's `true`, that's causing the strict validation that's rejecting JSON strings. Setting it to `false` should fix the immediate issue.
+
+The real fix would be to intercept tool calls and parse JSON strings to objects before pydantic-ai validation, but forcing `strict=False` should stop the retry loops immediately.
