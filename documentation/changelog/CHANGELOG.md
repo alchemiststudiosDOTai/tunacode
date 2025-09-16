@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.76.1] - 2025-09-16
+
+### Changed
+- Updated documentation 
+- Remove redunt prompt shims
+- Other small clean up 
+
+## [0.0.76] - 2025-09-12
+
+### Added
+- Implemented enum-based state machine for agent completion detection
+- Added comprehensive CLI tool testing framework
+- Enhanced agent loop architecture with robust state transition validation
+- Created memory-bank plan and research files for configuration dashboard
+
+### Changed
+- Enhanced model selection with auto-persistence to user config
+- Improved setup wizard with actionable configuration validation guidance
+- Extracted wizard to separate module for better code organization
+- Updated documentation with model selection info and quickstart guide
+
+### Fixed
+- Fixed model selection persistence across all selection methods
+- Improved error handling for configuration permissions
+- Enhanced UX with clear success/error messaging for model operations
+- Fixed test assertions to match updated system prompt text
+
 ## [0.0.75] - 2025-09-12
 
 ### Changed
