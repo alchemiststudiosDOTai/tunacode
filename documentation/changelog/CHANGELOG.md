@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.76.1] - 2025-09-16
 
 ### Changed
-- Updated documentation 
+- Updated documentation
 - Remove redunt prompt shims
-- Other small clean up 
+- Other small clean up
 
 ## [0.0.76] - 2025-09-12
 
