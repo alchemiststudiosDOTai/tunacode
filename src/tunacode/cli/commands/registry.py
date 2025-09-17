@@ -21,6 +21,7 @@ from .implementations.debug import (
     FixCommand,
     IterationsCommand,
     ParseToolsCommand,
+    ReactCommand,
     ThoughtsCommand,
     YoloCommand,
 )
@@ -144,6 +145,7 @@ class CommandRegistry:
             ClearCommand,
             FixCommand,
             ParseToolsCommand,
+            ReactCommand,
             RefreshConfigCommand,
             StreamingCommand,
             UpdateCommand,

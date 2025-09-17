@@ -27,8 +27,36 @@ _PROMPT_CACHE: Dict[str, Tuple[str, float]] = {}
 _TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
 
 # Module-level cache for agents to persist across requests
-_AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
-_AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
+AgentCacheKey = Tuple[ModelName, str]
+_AGENT_CACHE: Dict[AgentCacheKey, PydanticAgent] = {}
+_AGENT_CACHE_VERSION: Dict[AgentCacheKey, int] = {}
+
+DEFAULT_AGENT_MODE = "default"
+REACT_AGENT_MODE = "react"
+MANAGER_AGENT_MODE = "manager"
+
+PROMPT_TAILS = {
+    REACT_AGENT_MODE: (
+        "You are operating in ReAct mode. Follow Thought → Action → Observation. "
+        "Thought: explain your next move. Action: call a tool or reply `Action: none`. "
+        "Observation: capture the tool result or insight. Conclude with a concise answer."
+    ),
+    MANAGER_AGENT_MODE: (
+        "Coordinate 2-3 independent worker goals that, together, answer the user query. "
+        "Your ENTIRE response MUST be valid JSON with no extra text, comments, or code fences. "
+        'Schema: {"tasks":[{"name":"worker-1","goal":"..."}, ...]}. '
+        "Goals should be specific, tool-ready imperatives that reference the original request. "
+        "Do not add explanations, markdown, or commentary."
+    ),
+}
+
+
+def _normalize_mode(mode: str | None) -> str:
+    return (mode or DEFAULT_AGENT_MODE).lower()
+
+
+def _session_cache_key(model: ModelName, mode: str) -> str:
+    return model if mode == DEFAULT_AGENT_MODE else f"{model}::{mode}"
 
 
 def clear_all_caches():
@@ -121,39 +149,55 @@ def load_tunacode_context() -> str:
         return ""
 
 
-def get_or_create_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
-    """Get existing agent or create new one for the specified model."""
+def get_or_create_agent(
+    model: ModelName,
+    state_manager: StateManager,
+    *,
+    mode: str | None = None,
+) -> PydanticAgent:
+    """Get existing agent or create new one for the specified model and mode."""
     import logging
 
     logger = logging.getLogger(__name__)
 
+    normalized_mode = _normalize_mode(mode)
+    session_key = _session_cache_key(model, normalized_mode)
+    cache_key = (model, normalized_mode)
+
     # Check session-level cache first (for backward compatibility with tests)
-    if model in state_manager.session.agents:
+    if normalized_mode == DEFAULT_AGENT_MODE and model in state_manager.session.agents:
         logger.debug(f"Using session-cached agent for model {model}")
         return state_manager.session.agents[model]
+    if session_key in state_manager.session.agents:
+        logger.debug(f"Using session-cached agent for key {session_key}")
+        return state_manager.session.agents[session_key]
 
     # Check module-level cache
-    if model in _AGENT_CACHE:
+    if cache_key in _AGENT_CACHE:
         # Verify cache is still valid (check for config changes)
         current_version = hash(
             (
                 state_manager.is_plan_mode(),
                 str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
                 str(state_manager.session.user_config.get("mcpServers", {})),
+                normalized_mode,
             )
         )
-        if _AGENT_CACHE_VERSION.get(model) == current_version:
-            logger.debug(f"Using module-cached agent for model {model}")
-            state_manager.session.agents[model] = _AGENT_CACHE[model]
-            return _AGENT_CACHE[model]
+        if _AGENT_CACHE_VERSION.get(cache_key) == current_version:
+            logger.debug(f"Using module-cached agent for {cache_key}")
+            state_manager.session.agents[session_key] = _AGENT_CACHE[cache_key]
+            return _AGENT_CACHE[cache_key]
         else:
             logger.debug(f"Cache invalidated for model {model} due to config change")
-            del _AGENT_CACHE[model]
-            del _AGENT_CACHE_VERSION[model]
+            del _AGENT_CACHE[cache_key]
+            del _AGENT_CACHE_VERSION[cache_key]
 
-    if model not in _AGENT_CACHE:
+    if cache_key not in _AGENT_CACHE:
         logger.debug(
-            f"Creating new agent for model {model}, plan_mode={state_manager.is_plan_mode()}"
+            "Creating new agent for model %s, plan_mode=%s, mode=%s",
+            model,
+            state_manager.is_plan_mode(),
+            normalized_mode,
         )
         max_retries = state_manager.session.user_config.get("settings", {}).get("max_retries", 3)
 
@@ -249,7 +293,9 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
         )
 
         # Create tool list based on mode
-        if state_manager.is_plan_mode():
+        if normalized_mode == MANAGER_AGENT_MODE:
+            tools_list = []
+        elif state_manager.is_plan_mode():
             # Plan mode: Only read-only tools + present_plan
             tools_list = [
                 Tool(present_plan, max_retries=max_retries, strict=tool_strict_validation),
@@ -273,6 +319,9 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                 Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
             ]
 
+        if normalized_mode in PROMPT_TAILS:
+            system_prompt = f"{system_prompt}\n\n{PROMPT_TAILS[normalized_mode]}"
+
         # Log which tools are being registered
         logger.debug(
             f"Creating agent: plan_mode={state_manager.is_plan_mode()}, tools={len(tools_list)}"
@@ -294,8 +343,8 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
         )
 
         # Store in both caches
-        _AGENT_CACHE[model] = agent
-        _AGENT_CACHE_VERSION[model] = hash(
+        _AGENT_CACHE[cache_key] = agent
+        _AGENT_CACHE_VERSION[cache_key] = hash(
             (
                 state_manager.is_plan_mode(),
                 str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
@@ -305,8 +354,21 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                     )
                 ),
                 str(state_manager.session.user_config.get("mcpServers", {})),
+                normalized_mode,
             )
         )
-        state_manager.session.agents[model] = agent
+        state_manager.session.agents[session_key] = agent
 
-    return _AGENT_CACHE[model]
+    return _AGENT_CACHE[cache_key]
+
+
+def get_or_create_react_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
+    """Convenience wrapper for creating a ReAct-mode agent."""
+
+    return get_or_create_agent(model, state_manager, mode=REACT_AGENT_MODE)
+
+
+def get_or_create_manager_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
+    """Convenience wrapper for creating a manager/coordinator agent."""
+
+    return get_or_create_agent(model, state_manager, mode=MANAGER_AGENT_MODE)

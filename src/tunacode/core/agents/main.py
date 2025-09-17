@@ -54,6 +54,7 @@ except Exception:  # pragma: no cover
 
 # Agent components (collapse to a single module import to reduce coupling)
 from . import agent_components as ac  # noqa: E402
+from .react_loop import run_react_loop
 
 # Configure logging
 logger = get_logger(__name__)
@@ -88,6 +89,7 @@ get_batch_description = ac.get_batch_description
 # -----------------------
 __all__ = [
     "process_request",
+    "process_react_request",
     "get_mcp_servers",
     "ToolBuffer",
     "check_task_completion",
@@ -418,6 +420,19 @@ async def check_query_satisfaction(
 ) -> bool:
     """Legacy hook for compatibility; completion still signaled via DONE marker."""
     return True
+
+
+async def process_react_request(
+    message: str,
+    model: ModelName,
+    state_manager: StateManager,
+) -> dict[str, Any]:
+    state = StateFacade(state_manager)
+    _init_context(state, fallback_enabled=False)
+    state.reset_for_new_request()
+    state.set_original_query_once(message)
+    thought_logger = ui.muted if state.show_thoughts else None
+    return await run_react_loop(message, model, state_manager, thought_log=thought_logger)
 
 
 async def process_request(

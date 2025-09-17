@@ -2,6 +2,7 @@
 
 from typing import List
 
+from ....core.agents import process_react_request
 from ....types import CommandContext
 from ....ui import console as ui
 from ..base import CommandCategory, CommandSpec, SimpleCommand
@@ -72,6 +73,49 @@ class ThoughtsCommand(SimpleCommand):
 
         status = "ON" if state.show_thoughts else "OFF"
         await ui.success(f"Thought display {status}")
+
+
+class ReactCommand(SimpleCommand):
+    """Run the ReAct manager/worker loop for a prompt."""
+
+    spec = CommandSpec(
+        name="react",
+        aliases=["/react"],
+        description="Execute the ReAct loop with manager + workers",
+        category=CommandCategory.DEBUG,
+    )
+
+    async def execute(self, args: List[str], context: CommandContext) -> None:
+        prompt = " ".join(args).strip()
+        if not prompt:
+            await ui.error("Usage: /react <prompt>")
+            return
+
+        state_manager = context.state_manager
+        model = state_manager.session.current_model
+
+        await ui.info(f"Running ReAct loop with model {model}")
+        await ui.muted("Waiting for manager plan and worker completions...")
+
+        try:
+            result = await process_react_request(prompt, model, state_manager)
+        except Exception as exc:  # pragma: no cover - surfaced to CLI
+            await ui.error(f"ReAct loop failed: {exc}")
+            raise
+
+        plan_text = (result.get("plan") or "").strip()
+        final_output = (result.get("final") or "").strip()
+
+        if plan_text:
+            await ui.panel("Manager Plan", plan_text, border_style="magenta")
+        else:
+            await ui.muted("Manager plan is empty.")
+
+        if not final_output:
+            final_output = "TUNACODE DONE: ReAct loop completed with no synthesized answer."
+
+        await ui.panel("Final Answer", final_output, border_style="green")
+        await ui.success("ReAct loop complete")
 
 
 class IterationsCommand(SimpleCommand):

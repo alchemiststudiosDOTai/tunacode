@@ -2,7 +2,11 @@
 
 from tunacode.ui.tool_descriptions import get_batch_description
 
-from .agent_config import get_or_create_agent
+from .agent_config import (
+    get_or_create_agent,
+    get_or_create_manager_agent,
+    get_or_create_react_agent,
+)
 from .agent_helpers import (
     create_empty_response_message,
     create_fallback_response,
@@ -26,6 +30,8 @@ from .tool_executor import execute_tools_parallel
 
 __all__ = [
     "get_or_create_agent",
+    "get_or_create_react_agent",
+    "get_or_create_manager_agent",
     "extract_and_execute_tool_calls",
     "parse_json_tool_calls",
     "get_model_messages",

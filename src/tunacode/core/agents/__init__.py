@@ -20,11 +20,13 @@ from .main import (
     check_query_satisfaction,
     get_agent_tool,
     get_mcp_servers,
+    process_react_request,
     process_request,
 )
 
 __all__ = [
     "process_request",
+    "process_react_request",
     "get_or_create_agent",
     "extract_and_execute_tool_calls",
     "parse_json_tool_calls",
