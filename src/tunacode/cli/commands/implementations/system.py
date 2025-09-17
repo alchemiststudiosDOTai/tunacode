@@ -40,7 +40,7 @@ class ClearCommand(SimpleCommand):
 
     async def execute(self, args: List[str], context: CommandContext) -> None:
         # Patch any orphaned tool calls before clearing
-        from tunacode.core.agents.main import patch_tool_messages
+        from tunacode.core.agents import patch_tool_messages
 
         patch_tool_messages("Conversation cleared", context.state_manager)
 

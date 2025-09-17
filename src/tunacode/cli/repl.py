@@ -15,7 +15,7 @@ from pydantic_ai.exceptions import UnexpectedModelBehavior
 from tunacode.configuration.models import ModelRegistry
 from tunacode.constants import DEFAULT_CONTEXT_WINDOW
 from tunacode.core.agents import main as agent
-from tunacode.core.agents.main import patch_tool_messages
+from tunacode.core.agents import patch_tool_messages
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
 from tunacode.core.token_usage.cost_calculator import CostCalculator
 from tunacode.core.token_usage.usage_tracker import UsageTracker

@@ -122,7 +122,7 @@ class FixCommand(SimpleCommand):
     )
 
     async def execute(self, args: List[str], context: CommandContext) -> None:
-        from tunacode.core.agents.main import patch_tool_messages
+        from tunacode.core.agents import patch_tool_messages
 
         # Count current messages
         before_count = len(context.state_manager.session.messages)
@@ -152,7 +152,7 @@ class ParseToolsCommand(SimpleCommand):
     )
 
     async def execute(self, args: List[str], context: CommandContext) -> None:
-        from tunacode.core.agents.main import extract_and_execute_tool_calls
+        from tunacode.core.agents import extract_and_execute_tool_calls
 
         # Find the last model response in messages
         messages = context.state_manager.session.messages

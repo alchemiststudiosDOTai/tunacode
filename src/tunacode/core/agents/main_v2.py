@@ -14,11 +14,10 @@ Refactored 2025-09-16 per inspection FAGAN-2025-09-16-001:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Tuple, Any, Dict
-
 import time
 import uuid
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
 
 from pydantic_ai import Agent
 
