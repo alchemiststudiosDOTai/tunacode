@@ -25,6 +25,8 @@ The refactored agent entry point (`main_v2.py`) provides much cleaner structure 
 ### Phase 0 – Documentation & Scaffolding (current)
 - Document failure points (done).
 - Define target public API surface for `tunacode.core.agents` package.
+- Record completed hotfix: CLI imports for `patch_tool_messages` and `extract_and_execute_tool_calls` now point to
+  `tunacode.core.agents.agent_components`, resolving the post-refactor `ImportError`s.
 
 ### Phase 1 – Public API Alignment
 - Update `tunacode.core.agents.__init__` to explicitly export supported entry points (`process_request`, `get_or_create_agent`, `patch_tool_messages`, etc.).
