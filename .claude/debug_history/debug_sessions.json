@@ -32,6 +32,20 @@
         "memory-bank/research/main_agent_refactor_plan.md"
       ],
       "notes": "Main agent refactoring implementation session. No bugs investigated - focused on architecture changes with compatibility shims."
+    },
+    {
+      "id": "main-agent-integration-20250917-141518",
+      "time": "2025-09-17T14:15:18",
+      "branch": "main-agent-refactor",
+      "base": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "head": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "changed_files": [
+        "src/tunacode/core/agents/main.py",
+        "src/tunacode/core/agents/main_v2.py",
+        "src/tunacode/cli/repl_components/error_recovery.py",
+        "memory-bank/research/main_agent_refactor_plan.md"
+      ],
+      "notes": "Enhanced tool recovery and error handling in main agent modules. No bugs investigated - focused on improving error recovery mechanisms and API exports."
     }
   ]
 }

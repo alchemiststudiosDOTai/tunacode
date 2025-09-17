@@ -1,0 +1,1 @@
+0455acc claude-caretaker: KB sync (main-agent-integration-20250917-123100)

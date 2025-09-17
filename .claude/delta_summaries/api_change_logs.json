@@ -12,6 +12,18 @@
         "API exports realigned for tool recovery patches",
         "CLI imports adjusted to work with new agent structure"
       ]
+    },
+    {
+      "id": "main-agent-integration-20250917-141518",
+      "time": "2025-09-17T14:15:18",
+      "branch": "main-agent-refactor",
+      "base": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "head": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "bullets": [
+        "Exported attempt_tool_recovery function from both main agent modules",
+        "Updated __all__ lists to include new error recovery exports",
+        "Enhanced process_request error handling with improved tool recovery"
+      ]
     }
   ]
 }

@@ -1,0 +1,29 @@
+src/tunacode/core/agents/main.py:
+- Line 131: attempt_tool_recovery function
+- Line 39-55: Import updates
+- Line 119-127: __all__ exports
+- Line 138-147: RequestContext class
+- Line 361-375: _finalize_buffered_tasks
+- Line 425-441: process_request function (tool recovery section)
+- Line 493-512: process_request error handling
+- Line 506-531: Exception handling improvements
+- Line 525-549: Tool recovery logic
+- Line 542-568: Tool execution section
+- Line 556-584: Post-tool execution
+- Line 571-607: Final exception handling
+
+src/tunacode/core/agents/main_v2.py:
+- Line 39-55: Import updates
+- Line 72-82: __all__ exports
+- Line 91-99: RequestContext class
+- Line 315-329: _finalize_buffered_tasks
+- Line 362-378: process_request function (tool recovery section)
+- Line 429-447: process_request error handling
+- Line 442-471: Exception handling improvements
+- Line 461-485: Tool recovery logic
+- Line 478-504: Tool execution section
+- Line 492-520: Post-tool execution
+- Line 502-532: Final exception handling
+
+src/tunacode/cli/repl_components/error_recovery.py:
+- Single line addition

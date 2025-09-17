@@ -39,16 +39,19 @@ from tunacode.types import (
 try:
     from tunacode.ui import console as ui  # rich-style helpers with async methods
 except Exception:  # pragma: no cover - UI is optional
+
     class _NoopUI:  # minimal no-op shim
         async def muted(self, *_: Any, **__: Any) -> None: ...
         async def warning(self, *_: Any, **__: Any) -> None: ...
         async def success(self, *_: Any, **__: Any) -> None: ...
         async def update_spinner_message(self, *_: Any, **__: Any) -> None: ...
+
     ui = _NoopUI()  # type: ignore
 
 # Streaming parts (keep guarded import but avoid per-iteration imports)
 try:
     from pydantic_ai.messages import PartDeltaEvent, TextPartDelta  # type: ignore
+
     STREAMING_AVAILABLE = True
 except Exception:  # pragma: no cover
     PartDeltaEvent = None  # type: ignore
@@ -72,8 +75,8 @@ __all__ = [
 # -----------------------
 # Constants & Defaults
 # -----------------------
-DEFAULT_MAX_ITERATIONS = 15          # replaces magic numbers
-UNPRODUCTIVE_LIMIT = 3               # iterations without tool use before forcing action
+DEFAULT_MAX_ITERATIONS = 15  # replaces magic numbers
+UNPRODUCTIVE_LIMIT = 3  # iterations without tool use before forcing action
 FALLBACK_VERBOSITY_DEFAULT = "normal"
 DEBUG_METRICS_DEFAULT = False
 
@@ -91,6 +94,7 @@ class RequestContext:
 
 class StateFacade:
     """Thin wrapper to centralize session mutations and reads."""
+
     def __init__(self, state_manager: StateManager) -> None:
         self.sm = state_manager
 
@@ -315,8 +319,11 @@ async def _finalize_buffered_tasks(
     try:
         sequential_estimate = len(buffered_tasks) * 100.0
         speedup = (sequential_estimate / elapsed_ms) if elapsed_ms > 0 else 1.0
-        await ui.muted(f"Final batch completed in {elapsed_ms:.0f}ms (~{speedup:.1f}x faster than sequential)\n")
+        await ui.muted(
+            f"Final batch completed in {elapsed_ms:.0f}ms (~{speedup:.1f}x faster than sequential)\n"
+        )
         from tunacode.constants import UI_THINKING_MESSAGE  # local import OK (rare path)
+
         await ui.update_spinner_message(UI_THINKING_MESSAGE, state.sm)
     except Exception:
         logger.debug("UI batch epilogue failed (non-fatal)", exc_info=True)
@@ -362,7 +369,9 @@ async def process_request(
     state_manager: StateManager,
     tool_callback: Optional[ToolCallback] = None,
     streaming_callback: Optional[Callable[[str], Awaitable[None]]] = None,
-    usage_tracker: Optional[UsageTrackerProtocol] = None,  # currently passed through to _process_node
+    usage_tracker: Optional[
+        UsageTrackerProtocol
+    ] = None,  # currently passed through to _process_node
     fallback_enabled: bool = True,
 ) -> AgentRun:
     """
@@ -429,7 +438,10 @@ async def process_request(
                     unproductive_iterations += 1
 
                 # Force action if no tool usage for several iterations
-                if unproductive_iterations >= UNPRODUCTIVE_LIMIT and not response_state.task_completed:
+                if (
+                    unproductive_iterations >= UNPRODUCTIVE_LIMIT
+                    and not response_state.task_completed
+                ):
                     await _force_action_if_unproductive(
                         message,
                         unproductive_iterations,
@@ -442,10 +454,14 @@ async def process_request(
 
                 # Optional debug progress
                 if state.show_thoughts:
-                    await ui.muted(f"\nITERATION: {i}/{ctx.max_iterations} (Request ID: {ctx.request_id})")
+                    await ui.muted(
+                        f"\nITERATION: {i}/{ctx.max_iterations} (Request ID: {ctx.request_id})"
+                    )
                     tool_summary = ac.get_tool_summary(getattr(state.sm.session, "tool_calls", []))
                     if tool_summary:
-                        summary_str = ", ".join(f"{name}: {count}" for name, count in tool_summary.items())
+                        summary_str = ", ".join(
+                            f"{name}: {count}" for name, count in tool_summary.items()
+                        )
                         await ui.muted(f"TOOLS USED: {summary_str}")
 
                 # Ask for clarification if agent requested it
@@ -461,7 +477,9 @@ async def process_request(
 
                 # Reaching iteration cap → ask what to do next (no auto-extend by default)
                 if i >= ctx.max_iterations and not response_state.task_completed:
-                    _, tools_str = ac.create_progress_summary(getattr(state.sm.session, "tool_calls", []))
+                    _, tools_str = ac.create_progress_summary(
+                        getattr(state.sm.session, "tool_calls", [])
+                    )
                     if tools_str == "No tools used yet":
                         tools_str = "No tools used"
 
@@ -478,7 +496,9 @@ async def process_request(
                     )
                     ac.create_user_message(extend_content, state.sm)
                     if state.show_thoughts:
-                        await ui.muted(f"\nITERATION LIMIT: Awaiting user guidance at {ctx.max_iterations} iterations")
+                        await ui.muted(
+                            f"\nITERATION LIMIT: Awaiting user guidance at {ctx.max_iterations} iterations"
+                        )
                     response_state.awaiting_user_guidance = True
                     # Do not auto-increase max_iterations here (avoid infinite loops)
 
@@ -492,7 +512,9 @@ async def process_request(
                 ac.patch_tool_messages("Task incomplete", state_manager=state_manager)
                 response_state.has_final_synthesis = True
                 comprehensive_output = _build_fallback_output(i, ctx.max_iterations, state)
-                wrapper = ac.AgentRunWrapper(agent_run, ac.SimpleResult(comprehensive_output), response_state)
+                wrapper = ac.AgentRunWrapper(
+                    agent_run, ac.SimpleResult(comprehensive_output), response_state
+                )
                 return wrapper
 
             # Normal path: return a wrapper that carries response_state
@@ -502,11 +524,21 @@ async def process_request(
         raise
     except ToolBatchingJSONError as e:
         logger.error("Tool batching JSON error [req=%s]: %s", ctx.request_id, e, exc_info=True)
-        ac.patch_tool_messages(f"Tool batching failed: {str(e)[:100]}...", state_manager=state_manager)
+        ac.patch_tool_messages(
+            f"Tool batching failed: {str(e)[:100]}...", state_manager=state_manager
+        )
         raise
     except Exception as e:
         # Attach request/iteration context for observability
         safe_iter = getattr(state_manager.session, "current_iteration", "?")
-        logger.error("Error in process_request [req=%s iter=%s]: %s", ctx.request_id, safe_iter, e, exc_info=True)
-        ac.patch_tool_messages(f"Request processing failed: {str(e)[:100]}...", state_manager=state_manager)
+        logger.error(
+            "Error in process_request [req=%s iter=%s]: %s",
+            ctx.request_id,
+            safe_iter,
+            e,
+            exc_info=True,
+        )
+        ac.patch_tool_messages(
+            f"Request processing failed: {str(e)[:100]}...", state_manager=state_manager
+        )
         raise

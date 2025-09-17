@@ -28,6 +28,19 @@
         "Fixed tool recovery alignment with new agent exports",
         "Added documentation for testing cadence and CLI hotfixes"
       ]
+    },
+    {
+      "id": "main-agent-integration-20250917-141518",
+      "time": "2025-09-17T14:15:18",
+      "branch": "main-agent-refactor",
+      "base": "0455acc",
+      "head": "0455acc",
+      "bullets": [
+        "Enhanced tool recovery mechanisms in both main agent modules",
+        "Improved exception handling in process_request function",
+        "Added error recovery exports for better error handling integration",
+        "Updated REPL error recovery components"
+      ]
     }
   ]
 }

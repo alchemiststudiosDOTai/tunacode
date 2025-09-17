@@ -131,6 +131,7 @@ async def attempt_tool_recovery(e: Exception, state_manager: StateManager) -> bo
         )
 
         try:
+
             def tool_callback_with_state(tool_part, _node):
                 return tool_handler(tool_part, state_manager)
 

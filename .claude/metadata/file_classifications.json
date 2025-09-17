@@ -60,6 +60,11 @@
       "type": "documentation",
       "category": "plan",
       "classification": "implementation"
+    },
+    "src/tunacode/cli/repl_components/error_recovery.py": {
+      "type": "source",
+      "category": "repl",
+      "classification": "implementation"
     }
   }
 }
