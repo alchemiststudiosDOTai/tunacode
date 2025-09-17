@@ -6,13 +6,19 @@ Handles agent creation, configuration, and request processing.
 CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle management
 """
 
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+import time
+import uuid
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
 
 from pydantic_ai import Agent
 
 if TYPE_CHECKING:
     from pydantic_ai import Tool  # noqa: F401
 
+from tunacode.constants import UI_THINKING_MESSAGE
+from tunacode.core.agents.utils import get_agent_tool
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
@@ -63,6 +69,133 @@ except ImportError:
 # Configure logging
 logger = get_logger(__name__)
 
+# Iteration control constants
+DEFAULT_MAX_ITERATIONS = 15
+EMPTY_RESPONSE_THRESHOLD = 1
+NO_PROGRESS_ITERATION_THRESHOLD = 3
+ITERATION_EXTENSION_INCREMENT = 5
+FAILURE_INDICATORS = ("error", "unable", "cannot", "can't", "failed")
+
+
+@dataclass
+class RequestContext:
+    """Ephemeral request-level counters and diagnostics."""
+
+    message: str
+    request_id: str
+    max_iterations: int
+    iteration_index: int = 1
+    last_completed_iteration: int = 0
+    unproductive_iterations: int = 0
+    last_productive_iteration: int = 0
+
+    def record_tool_activity(self, used_tools: bool) -> None:
+        """Track whether the current iteration executed any tools."""
+
+        if used_tools:
+            self.unproductive_iterations = 0
+            self.last_productive_iteration = self.iteration_index
+        else:
+            self.unproductive_iterations += 1
+
+    def should_force_action(self) -> bool:
+        """Determine if we should inject a forced-action prompt."""
+
+        return self.unproductive_iterations >= NO_PROGRESS_ITERATION_THRESHOLD
+
+    def reset_unproductive_counter(self) -> None:
+        """Reset the no-progress counter after injecting guidance."""
+
+        self.unproductive_iterations = 0
+
+    def build_force_action_prompt(self) -> str:
+        """Create the corrective message for unproductive iterations."""
+
+        return f"""ALERT: No tools executed for {self.unproductive_iterations} iterations.
+
+Last productive iteration: {self.last_productive_iteration}
+Current iteration: {self.iteration_index}/{self.max_iterations}
+Task: {self.message[:200]}...
+
+You're describing actions but not executing them. You MUST:
+
+1. If task is COMPLETE: Start response with TUNACODE DONE:
+2. If task needs work: Execute a tool RIGHT NOW (grep, read_file, bash, etc.)
+3. If stuck: Explain the specific blocker
+
+NO MORE DESCRIPTIONS. Take ACTION or mark COMPLETE."""
+
+    def reached_iteration_limit(self, task_completed: bool) -> bool:
+        """Check if we've hit the iteration cap without finishing."""
+
+        return self.iteration_index >= self.max_iterations and not task_completed
+
+    def extend_iteration_limit(self) -> None:
+        """Extend the iteration budget when the user approves."""
+
+        self.max_iterations += ITERATION_EXTENSION_INCREMENT
+
+    def mark_iteration_complete(self) -> None:
+        """Record that the current iteration has finished."""
+
+        self.last_completed_iteration = self.iteration_index
+        self.iteration_index += 1
+
+    @property
+    def executed_iterations(self) -> int:
+        """Return the count of fully executed iterations."""
+
+        return self.last_completed_iteration
+
+
+class SessionController:
+    """Encapsulate session mutations for better observability."""
+
+    def __init__(self, state_manager: StateManager):
+        self._state_manager = state_manager
+
+    @property
+    def session(self):
+        return self._state_manager.session
+
+    def reset_for_request(self) -> None:
+        self._state_manager.reset_request_tracking()
+        self._state_manager.ensure_batch_counter()
+
+    def attach_request(self, request_id: str) -> None:
+        try:
+            self._state_manager.set_request_context(request_id)
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.debug("Unable to attach request id to session: %s", exc, exc_info=True)
+
+    def remember_original_query(self, message: str) -> None:
+        self._state_manager.remember_original_query(message)
+
+    def update_iteration(self, iteration_index: int) -> None:
+        self._state_manager.update_iteration(iteration_index)
+
+    def increment_empty_responses(self) -> int:
+        return self._state_manager.increment_empty_response_counter()
+
+    def reset_empty_responses(self) -> None:
+        self._state_manager.reset_empty_response_counter()
+
+    def get_max_iterations(self) -> int:
+        settings = self.session.user_config.get("settings", {})
+        return int(settings.get("max_iterations", DEFAULT_MAX_ITERATIONS))
+
+    def show_thoughts(self) -> bool:
+        return bool(self.session.show_thoughts)
+
+
+@lru_cache(maxsize=1)
+def _get_ui_console():
+    """Memoized accessor for the console module to avoid repeated imports."""
+
+    from tunacode.ui import console as ui
+
+    return ui
+
 __all__ = [
     "ToolBuffer",
     "check_task_completion",
@@ -84,21 +217,29 @@ __all__ = [
 ]
 
 
-def get_agent_tool() -> tuple[type[Agent], type["Tool"]]:
-    """Lazy import for Agent and Tool to avoid circular imports."""
-    from pydantic_ai import Agent, Tool
-
-    return Agent, Tool
-
-
 async def check_query_satisfaction(
     agent: Agent,
     original_query: str,
     response: str,
     state_manager: StateManager,
 ) -> bool:
-    """Check if the response satisfies the original query."""
-    return True  # Completion decided via DONE marker in RESPONSE
+    """Evaluate whether an agent response satisfies the user's request."""
+
+    completion_detected, _ = check_task_completion(response)
+    if completion_detected:
+        return True
+
+    if state_manager.is_plan_mode():
+        return False
+
+    normalized = response.strip().lower()
+    if not normalized:
+        return False
+
+    if any(indicator in normalized for indicator in FAILURE_INDICATORS):
+        return False
+
+    return True
 
 
 async def process_request(
@@ -127,218 +268,288 @@ async def process_request(
     Returns:
         AgentRun or wrapper with result
     """
-    # Get or create agent for the model
+
     agent = get_or_create_agent(model, state_manager)
 
-    # Create a unique request ID for debugging
-    import uuid
+    session_controller = SessionController(state_manager)
+    session_controller.reset_for_request()
 
-    request_id = str(uuid.uuid4())[:8]
-    # Attach request_id to session for downstream logging/context
-    try:
-        state_manager.session.request_id = request_id
-    except Exception:
-        pass
+    request_id = _generate_request_id()
+    session_controller.attach_request(request_id)
+    session_controller.remember_original_query(message)
 
-    # Reset state for new request
-    state_manager.session.current_iteration = 0
-    state_manager.session.iteration_count = 0
-    state_manager.session.tool_calls = []
+    request_context = RequestContext(
+        message=message,
+        request_id=request_id,
+        max_iterations=session_controller.get_max_iterations(),
+    )
 
-    # Initialize batch counter if not exists
-    if not hasattr(state_manager.session, "batch_counter"):
-        state_manager.session.batch_counter = 0
-
-    # Create tool buffer for parallel execution
     tool_buffer = ToolBuffer()
-
-    # Track iterations and productivity
-    max_iterations = state_manager.session.user_config.get("settings", {}).get("max_iterations", 15)
-    unproductive_iterations = 0
-    last_productive_iteration = 0
-
-    # Track response state
     response_state = ResponseState()
 
     try:
-        # Get message history from session messages
-        # Create a copy of the message history to avoid modifying the original
-        message_history = list(state_manager.session.messages)
+        message_history = list(session_controller.session.messages)
 
         async with agent.iter(message, message_history=message_history) as agent_run:
-            # Process nodes iteratively
-            i = 1
-            async for node in agent_run:
-                state_manager.session.current_iteration = i
-                state_manager.session.iteration_count = i
+            await _process_agent_run(
+                agent_run,
+                agent,
+                request_context,
+                session_controller,
+                state_manager,
+                tool_buffer,
+                response_state,
+                tool_callback,
+                streaming_callback,
+                usage_tracker,
+            )
 
-                # Handle token-level streaming for model request nodes
-                Agent, _ = get_agent_tool()
-                if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
-                    await stream_model_request_node(
-                        node,
-                        agent_run.ctx,
-                        state_manager,
-                        streaming_callback,
-                        request_id,
-                        i,
-                    )
+            return await _finalize_agent_run(
+                agent_run,
+                request_context,
+                response_state,
+                state_manager,
+                tool_buffer,
+                tool_callback,
+                fallback_enabled,
+            )
 
-                empty_response, empty_reason = await _process_node(
-                    node,
-                    tool_callback,
+    except UserAbortError:
+        raise
+    except ToolBatchingJSONError as exc:
+        logger.error("Tool batching JSON error: %s", exc, exc_info=True)
+        patch_tool_messages(
+            f"Tool batching failed: {str(exc)[:100]}...", state_manager=state_manager
+        )
+        raise
+    except Exception as exc:
+        safe_iter = getattr(session_controller.session, "current_iteration", "?")
+        logger.error(
+            "Error in process_request [req=%s iter=%s]: %s",
+            request_id,
+            safe_iter,
+            exc,
+            exc_info=True,
+        )
+        patch_tool_messages(
+            f"Request processing failed: {str(exc)[:100]}...", state_manager=state_manager
+        )
+        raise
+
+
+async def _process_agent_run(
+    agent_run: AgentRun,
+    agent: Agent,
+    request_context: RequestContext,
+    session_controller: SessionController,
+    state_manager: StateManager,
+    tool_buffer: ToolBuffer,
+    response_state: ResponseState,
+    tool_callback: Optional[ToolCallback],
+    streaming_callback: Optional[Callable[[str], Awaitable[None]]],
+    usage_tracker: Optional[UsageTrackerProtocol],
+) -> None:
+    async for node in agent_run:
+        session_controller.update_iteration(request_context.iteration_index)
+
+        if streaming_callback and STREAMING_AVAILABLE and Agent.is_model_request_node(node):
+            await stream_model_request_node(
+                node,
+                agent_run.ctx,
+                state_manager,
+                streaming_callback,
+                request_context.request_id,
+                request_context.iteration_index,
+            )
+
+        empty_response, empty_reason = await _process_node(
+            node,
+            tool_callback,
+            state_manager,
+            tool_buffer,
+            streaming_callback,
+            usage_tracker,
+            response_state,
+        )
+
+        if empty_response:
+            empty_count = session_controller.increment_empty_responses()
+            if empty_count >= EMPTY_RESPONSE_THRESHOLD:
+                await _handle_empty_response(
+                    request_context,
+                    empty_reason,
                     state_manager,
-                    tool_buffer,
-                    streaming_callback,
-                    usage_tracker,
-                    response_state,
+                    session_controller,
                 )
+                session_controller.reset_empty_responses()
+        else:
+            session_controller.reset_empty_responses()
 
-                # Handle empty response
-                if empty_response:
-                    if not hasattr(state_manager.session, "consecutive_empty_responses"):
-                        state_manager.session.consecutive_empty_responses = 0
-                    state_manager.session.consecutive_empty_responses += 1
+        if getattr(getattr(node, "result", None), "output", None):
+            response_state.has_user_response = True
 
-                    if state_manager.session.consecutive_empty_responses >= 1:
-                        force_action_content = create_empty_response_message(
-                            message,
-                            empty_reason,
-                            state_manager.session.tool_calls,
-                            i,
-                            state_manager,
-                        )
-                        create_user_message(force_action_content, state_manager)
+        iteration_had_tools = _detect_tool_usage(node)
+        request_context.record_tool_activity(iteration_had_tools)
 
-                        if state_manager.session.show_thoughts:
-                            from tunacode.ui import console as ui
+        if request_context.should_force_action() and not response_state.task_completed:
+            await _handle_no_progress(request_context, state_manager, session_controller)
+            request_context.reset_unproductive_counter()
 
-                            await ui.warning(
-                                "\nEMPTY RESPONSE FAILURE - AGGRESSIVE RETRY TRIGGERED"
-                            )
-                            await ui.muted(f"   Reason: {empty_reason}")
-                            await ui.muted(
-                                f"   Recent tools: {get_recent_tools_context(state_manager.session.tool_calls)}"
-                            )
-                            await ui.muted("   Injecting retry guidance prompt")
+        if session_controller.show_thoughts():
+            await _emit_iteration_diagnostics(request_context, session_controller)
 
-                        state_manager.session.consecutive_empty_responses = 0
-                else:
-                    if hasattr(state_manager.session, "consecutive_empty_responses"):
-                        state_manager.session.consecutive_empty_responses = 0
+        if response_state.awaiting_user_guidance:
+            await _handle_user_clarification(request_context, state_manager, session_controller)
 
-                if hasattr(node, "result") and node.result and hasattr(node.result, "output"):
-                    if node.result.output:
-                        response_state.has_user_response = True
+        if response_state.task_completed:
+            request_context.mark_iteration_complete()
+            if session_controller.show_thoughts():
+                ui = _get_ui_console()
+                await ui.success("Task completed successfully")
+            break
 
-                # Track productivity - check if any tools were used in this iteration
-                iteration_had_tools = False
-                if hasattr(node, "model_response"):
-                    for part in node.model_response.parts:
-                        if hasattr(part, "part_kind") and part.part_kind == "tool-call":
-                            iteration_had_tools = True
-                            break
+        if request_context.reached_iteration_limit(response_state.task_completed):
+            await _handle_iteration_extension(request_context, state_manager, session_controller)
+            request_context.extend_iteration_limit()
+            response_state.awaiting_user_guidance = True
 
-                if iteration_had_tools:
-                    # Reset unproductive counter
-                    unproductive_iterations = 0
-                    last_productive_iteration = i
-                else:
-                    # Increment unproductive counter
-                    unproductive_iterations += 1
+        request_context.mark_iteration_complete()
 
-                # After 3 unproductive iterations, force action
-                if unproductive_iterations >= 3 and not response_state.task_completed:
-                    no_progress_content = f"""ALERT: No tools executed for {unproductive_iterations} iterations.
 
-Last productive iteration: {last_productive_iteration}
-Current iteration: {i}/{max_iterations}
-Task: {message[:200]}...
+async def _finalize_agent_run(
+    agent_run: AgentRun,
+    request_context: RequestContext,
+    response_state: ResponseState,
+    state_manager: StateManager,
+    tool_buffer: ToolBuffer,
+    tool_callback: Optional[ToolCallback],
+    fallback_enabled: bool,
+) -> AgentRun:
+    await _flush_tool_buffer(tool_buffer, tool_callback, state_manager)
 
-You're describing actions but not executing them. You MUST:
+    executed_iterations = request_context.executed_iterations
 
-1. If task is COMPLETE: Start response with TUNACODE DONE:
-2. If task needs work: Execute a tool RIGHT NOW (grep, read_file, bash, etc.)
-3. If stuck: Explain the specific blocker
+    if (
+        fallback_enabled
+        and not response_state.has_user_response
+        and not response_state.task_completed
+        and executed_iterations >= request_context.max_iterations
+    ):
+        patch_tool_messages("Task incomplete", state_manager=state_manager)
+        response_state.has_final_synthesis = True
 
-NO MORE DESCRIPTIONS. Take ACTION or mark COMPLETE."""
+        verbosity = state_manager.session.user_config.get("settings", {}).get(
+            "fallback_verbosity", "normal"
+        )
+        fallback = create_fallback_response(
+            executed_iterations,
+            request_context.max_iterations,
+            state_manager.session.tool_calls,
+            state_manager.session.messages,
+            verbosity,
+        )
+        comprehensive_output = format_fallback_output(fallback)
+        return AgentRunWrapper(agent_run, SimpleResult(comprehensive_output), response_state)
 
-                    create_user_message(no_progress_content, state_manager)
+    return AgentRunWithState(agent_run, response_state)
 
-                    if state_manager.session.show_thoughts:
-                        from tunacode.ui import console as ui
 
-                        await ui.warning(
-                            f"NO PROGRESS: {unproductive_iterations} iterations without tool usage"
-                        )
+async def _handle_empty_response(
+    request_context: RequestContext,
+    empty_reason: Optional[str],
+    state_manager: StateManager,
+    session_controller: SessionController,
+) -> None:
+    reason = empty_reason or "No response generated"
+    force_action_content = create_empty_response_message(
+        request_context.message,
+        reason,
+        session_controller.session.tool_calls,
+        request_context.iteration_index,
+        state_manager,
+    )
+    create_user_message(force_action_content, state_manager)
 
-                    unproductive_iterations = 0
+    if session_controller.show_thoughts():
+        ui = _get_ui_console()
+        await ui.warning("\nEMPTY RESPONSE FAILURE - AGGRESSIVE RETRY TRIGGERED")
+        await ui.muted(f"   Reason: {reason}")
+        await ui.muted(
+            "\nSEEKING CLARIFICATION: Asking user for guidance on task progress"
+        )
+        await ui.muted("   Injecting retry guidance prompt")
 
-                # REMOVED: Recursive satisfaction check that caused empty responses
-                # The agent now decides completion using a DONE marker
-                # This eliminates recursive agent calls and gives control back to the agent
 
-                # Store original query for reference
-                if not hasattr(state_manager.session, "original_query"):
-                    state_manager.session.original_query = message
+async def _handle_no_progress(
+    request_context: RequestContext,
+    state_manager: StateManager,
+    session_controller: SessionController,
+) -> None:
+    create_user_message(request_context.build_force_action_prompt(), state_manager)
 
-                # Display iteration progress if thoughts are enabled
-                if state_manager.session.show_thoughts:
-                    from tunacode.ui import console as ui
+    if session_controller.show_thoughts():
+        ui = _get_ui_console()
+        await ui.warning(
+            f"NO PROGRESS: {request_context.unproductive_iterations} iterations without tool usage"
+        )
 
-                    await ui.muted(f"\nITERATION: {i}/{max_iterations} (Request ID: {request_id})")
 
-                    # Show summary of tools used so far
-                    if state_manager.session.tool_calls:
-                        tool_summary = get_tool_summary(state_manager.session.tool_calls)
-                        summary_str = ", ".join(
-                            [f"{name}: {count}" for name, count in tool_summary.items()]
-                        )
-                        await ui.muted(f"TOOLS USED: {summary_str}")
+async def _emit_iteration_diagnostics(
+    request_context: RequestContext, session_controller: SessionController
+) -> None:
+    ui = _get_ui_console()
+    await ui.muted(
+        f"\nITERATION: {request_context.iteration_index}/{request_context.max_iterations} "
+        f"(Request ID: {request_context.request_id})"
+    )
 
-                # User clarification: Ask user for guidance when explicitly awaiting
-                if response_state.awaiting_user_guidance:
-                    _, tools_used_str = create_progress_summary(state_manager.session.tool_calls)
+    if session_controller.session.tool_calls:
+        tool_summary = get_tool_summary(session_controller.session.tool_calls)
+        summary_str = ", ".join([f"{name}: {count}" for name, count in tool_summary.items()])
+        await ui.muted(f"TOOLS USED: {summary_str}")
 
-                    clarification_content = f"""I need clarification to continue.
 
-Original request: {getattr(state_manager.session, "original_query", "your request")}
+async def _handle_user_clarification(
+    request_context: RequestContext,
+    state_manager: StateManager,
+    session_controller: SessionController,
+) -> None:
+    _, tools_used_str = create_progress_summary(session_controller.session.tool_calls)
+    original_query = session_controller.session.original_query or request_context.message
+
+    clarification_content = f"""I need clarification to continue.
+
+Original request: {original_query}
 
 Progress so far:
-- Iterations: {i}
+- Iterations: {request_context.iteration_index}
 - Tools used: {tools_used_str}
 
 If the task is complete, I should respond with TUNACODE DONE:
 Otherwise, please provide specific guidance on what to do next."""
 
-                    create_user_message(clarification_content, state_manager)
+    create_user_message(clarification_content, state_manager)
 
-                    if state_manager.session.show_thoughts:
-                        from tunacode.ui import console as ui
+    if session_controller.show_thoughts():
+        ui = _get_ui_console()
+        await ui.muted(
+            "\nSEEKING CLARIFICATION: Asking user for guidance on task progress"
+        )
 
-                        await ui.muted(
-                            "\nSEEKING CLARIFICATION: Asking user for guidance on task progress"
-                        )
 
-                    response_state.awaiting_user_guidance = True
+async def _handle_iteration_extension(
+    request_context: RequestContext,
+    state_manager: StateManager,
+    session_controller: SessionController,
+) -> None:
+    _, tools_str = create_progress_summary(session_controller.session.tool_calls)
+    tools_str = tools_str if tools_str != "No tools used yet" else "No tools used"
 
-                # Check if task is explicitly completed
-                if response_state.task_completed:
-                    if state_manager.session.show_thoughts:
-                        from tunacode.ui import console as ui
-
-                        await ui.success("Task completed successfully")
-                    break
-
-                if i >= max_iterations and not response_state.task_completed:
-                    _, tools_str = create_progress_summary(state_manager.session.tool_calls)
-                    tools_str = tools_str if tools_str != "No tools used yet" else "No tools used"
-
-                    extend_content = f"""I've reached the iteration limit ({max_iterations}).
+    extend_content = f"""I've reached the iteration limit ({request_context.max_iterations}).
 
 Progress summary:
 - Tools used: {tools_str}
-- Iterations completed: {i}
+- Iterations completed: {request_context.iteration_index}
 
 The task appears incomplete. Would you like me to:
 1. Continue working (I can extend the limit)
@@ -347,129 +558,84 @@ The task appears incomplete. Would you like me to:
 
 Please let me know how to proceed."""
 
-                    create_user_message(extend_content, state_manager)
+    create_user_message(extend_content, state_manager)
 
-                    if state_manager.session.show_thoughts:
-                        from tunacode.ui import console as ui
-
-                        await ui.muted(
-                            f"\nITERATION LIMIT: Asking user for guidance at {max_iterations} iterations"
-                        )
-
-                    max_iterations += 5
-                    response_state.awaiting_user_guidance = True
-
-                # Increment iteration counter
-                i += 1
-
-            # Final flush: execute any remaining buffered read-only tools
-            if tool_callback and tool_buffer.has_tasks():
-                import time
-
-                from tunacode.ui import console as ui
-
-                buffered_tasks = tool_buffer.flush()
-                start_time = time.time()
-
-                # Update spinner message for final batch execution
-                tool_names = [part.tool_name for part, _ in buffered_tasks]
-                batch_msg = get_batch_description(len(buffered_tasks), tool_names)
-                await ui.update_spinner_message(
-                    f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
-                )
-
-                await ui.muted("\n" + "=" * 60)
-                await ui.muted(
-                    f"FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools"
-                )
-                await ui.muted("=" * 60)
-
-                for idx, (part, node) in enumerate(buffered_tasks, 1):
-                    tool_desc = f"  [{idx}] {part.tool_name}"
-                    if hasattr(part, "args") and isinstance(part.args, dict):
-                        if part.tool_name == "read_file" and "file_path" in part.args:
-                            tool_desc += f" → {part.args['file_path']}"
-                        elif part.tool_name == "grep" and "pattern" in part.args:
-                            tool_desc += f" → pattern: '{part.args['pattern']}'"
-                            if "include_files" in part.args:
-                                tool_desc += f", files: '{part.args['include_files']}'"
-                        elif part.tool_name == "list_dir" and "directory" in part.args:
-                            tool_desc += f" → {part.args['directory']}"
-                        elif part.tool_name == "glob" and "pattern" in part.args:
-                            tool_desc += f" → pattern: '{part.args['pattern']}'"
-                    await ui.muted(tool_desc)
-                await ui.muted("=" * 60)
-
-                await execute_tools_parallel(buffered_tasks, tool_callback)
-
-                elapsed_time = (time.time() - start_time) * 1000
-                sequential_estimate = len(buffered_tasks) * 100
-                speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
-
-                await ui.muted(
-                    f"Final batch completed in {elapsed_time:.0f}ms "
-                    f"(~{speedup:.1f}x faster than sequential)\n"
-                )
-
-                # Reset spinner back to thinking
-                from tunacode.constants import UI_THINKING_MESSAGE
-
-                await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
-
-            # If we need to add a fallback response, create a wrapper
-            if (
-                not response_state.has_user_response
-                and not response_state.task_completed
-                and i >= max_iterations
-                and fallback_enabled
-            ):
-                patch_tool_messages("Task incomplete", state_manager=state_manager)
-                response_state.has_final_synthesis = True
-
-                verbosity = state_manager.session.user_config.get("settings", {}).get(
-                    "fallback_verbosity", "normal"
-                )
-                fallback = create_fallback_response(
-                    i,
-                    max_iterations,
-                    state_manager.session.tool_calls,
-                    state_manager.session.messages,
-                    verbosity,
-                )
-                comprehensive_output = format_fallback_output(fallback)
-
-                wrapper = AgentRunWrapper(
-                    agent_run, SimpleResult(comprehensive_output), response_state
-                )
-                return wrapper
-
-            # For non-fallback cases, we still need to handle the response_state
-            # Create a minimal wrapper just to add response_state
-            state_wrapper = AgentRunWithState(agent_run, response_state)
-            return state_wrapper
-
-    except UserAbortError:
-        raise
-    except ToolBatchingJSONError as e:
-        logger.error(f"Tool batching JSON error: {e}", exc_info=True)
-        # Patch orphaned tool messages with error
-        patch_tool_messages(f"Tool batching failed: {str(e)[:100]}...", state_manager=state_manager)
-        # Re-raise to be handled by caller
-        raise
-    except Exception as e:
-        # Include request context to aid debugging
-        safe_iter = (
-            state_manager.session.current_iteration
-            if hasattr(state_manager.session, "current_iteration")
-            else "?"
+    if session_controller.show_thoughts():
+        ui = _get_ui_console()
+        await ui.muted(
+            f"\nITERATION LIMIT: Asking user for guidance at {request_context.max_iterations} iterations"
         )
-        logger.error(
-            f"Error in process_request [req={request_id} iter={safe_iter}]: {e}",
-            exc_info=True,
-        )
-        # Patch orphaned tool messages with generic error
-        patch_tool_messages(
-            f"Request processing failed: {str(e)[:100]}...", state_manager=state_manager
-        )
-        # Re-raise to be handled by caller
-        raise
+
+
+async def _flush_tool_buffer(
+    tool_buffer: ToolBuffer,
+    tool_callback: Optional[ToolCallback],
+    state_manager: StateManager,
+) -> None:
+    if not tool_callback or not tool_buffer.has_tasks():
+        return
+
+    ui = _get_ui_console()
+    buffered_tasks = tool_buffer.flush()
+    start_time = time.time()
+
+    tool_names = [getattr(part, "tool_name", "") for part, _ in buffered_tasks]
+    batch_msg = get_batch_description(len(buffered_tasks), tool_names)
+    await ui.update_spinner_message(
+        f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
+    )
+
+    await ui.muted("\n" + "=" * 60)
+    await ui.muted(
+        f"FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools"
+    )
+    await ui.muted("=" * 60)
+
+    for idx, (part, _) in enumerate(buffered_tasks, 1):
+        tool_name = getattr(part, "tool_name", "unknown")
+        tool_desc = f"  [{idx}] {tool_name}"
+        if hasattr(part, "args") and isinstance(part.args, dict):
+            args = part.args
+            if tool_name == "read_file" and "file_path" in args:
+                tool_desc += f" → {args['file_path']}"
+            elif tool_name == "grep" and "pattern" in args:
+                tool_desc += f" → pattern: '{args['pattern']}'"
+                if "include_files" in args:
+                    tool_desc += f", files: '{args['include_files']}'"
+            elif tool_name == "list_dir" and "directory" in args:
+                tool_desc += f" → {args['directory']}"
+            elif tool_name == "glob" and "pattern" in args:
+                tool_desc += f" → pattern: '{args['pattern']}'"
+        await ui.muted(tool_desc)
+    await ui.muted("=" * 60)
+
+    await execute_tools_parallel(buffered_tasks, tool_callback)
+
+    elapsed_time = (time.time() - start_time) * 1000
+    sequential_estimate = len(buffered_tasks) * 100
+    speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
+
+    await ui.muted(
+        f"Final batch completed in {elapsed_time:.0f}ms (~{speedup:.1f}x faster than sequential)\n"
+    )
+
+    await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
+
+
+def _detect_tool_usage(node: Any) -> bool:
+    model_response = getattr(node, "model_response", None)
+    if not model_response:
+        return False
+
+    parts = getattr(model_response, "parts", None)
+    if not parts:
+        return False
+
+    for part in parts:
+        if getattr(part, "part_kind", None) == "tool-call":
+            return True
+    return False
+
+
+def _generate_request_id() -> str:
+    return str(uuid.uuid4())[:8]

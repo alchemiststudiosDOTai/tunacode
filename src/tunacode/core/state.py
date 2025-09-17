@@ -59,6 +59,10 @@ class SessionState:
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     iteration_count: int = 0
     current_iteration: int = 0
+    consecutive_empty_responses: int = 0
+    request_id: Optional[str] = None
+    original_query: Optional[str] = None
+    batch_counter: int = 0
     # Track streaming state to prevent spinner conflicts
     is_streaming_active: bool = False
     # Track streaming panel reference for tool handler access
@@ -205,6 +209,46 @@ class StateManager:
     def is_plan_mode(self) -> bool:
         """Check if currently in plan mode."""
         return self._session.plan_mode
+
+    # ------------------------------------------------------------------
+    # Request lifecycle helpers
+    # ------------------------------------------------------------------
+
+    def set_request_context(self, request_id: str) -> None:
+        """Attach the current request identifier to the session."""
+        self._session.request_id = request_id
+
+    def reset_request_tracking(self) -> None:
+        """Reset per-request counters before starting a new request."""
+        self._session.current_iteration = 0
+        self._session.iteration_count = 0
+        self._session.tool_calls = []
+        self._session.consecutive_empty_responses = 0
+
+    def update_iteration(self, iteration_index: int) -> None:
+        """Update iteration counters in a consistent manner."""
+        self._session.current_iteration = iteration_index
+        self._session.iteration_count = iteration_index
+
+    def increment_empty_response_counter(self) -> int:
+        """Increment and return the consecutive empty response count."""
+        self._session.consecutive_empty_responses += 1
+        return self._session.consecutive_empty_responses
+
+    def reset_empty_response_counter(self) -> None:
+        """Reset the consecutive empty response counter."""
+        self._session.consecutive_empty_responses = 0
+
+    def ensure_batch_counter(self) -> None:
+        """Ensure the batch counter attribute exists for the session."""
+        # The dataclass sets a default, but tests may mutate the object
+        if not hasattr(self._session, "batch_counter") or self._session.batch_counter is None:
+            self._session.batch_counter = 0
+
+    def remember_original_query(self, message: str) -> None:
+        """Persist the original user query for downstream diagnostics."""
+        if not self._session.original_query:
+            self._session.original_query = message
 
     def set_current_plan(self, plan: PlanDoc) -> None:
         """Set the current plan data."""

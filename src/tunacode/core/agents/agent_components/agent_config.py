@@ -1,10 +1,12 @@
 """Agent configuration and creation utilities."""
 
+from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Tuple
 
 from pydantic_ai import Agent
 
+from tunacode.core.agents.utils import get_agent_tool
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.services.mcp import get_mcp_servers
@@ -27,8 +29,9 @@ _PROMPT_CACHE: Dict[str, Tuple[str, float]] = {}
 _TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
 
 # Module-level cache for agents to persist across requests
-_AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
+_AGENT_CACHE: "OrderedDict[ModelName, PydanticAgent]" = OrderedDict()
 _AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
+MAX_AGENT_CACHE_SIZE = 5
 
 
 def clear_all_caches():
@@ -37,14 +40,6 @@ def clear_all_caches():
     _TUNACODE_CACHE.clear()
     _AGENT_CACHE.clear()
     _AGENT_CACHE_VERSION.clear()
-
-
-def get_agent_tool():
-    """Lazy import for Agent and Tool to avoid circular imports."""
-    from pydantic_ai import Tool
-
-    return Agent, Tool
-
 
 def load_system_prompt(base_path: Path) -> str:
     """Load the system prompt from file with caching."""
@@ -144,8 +139,10 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         )
         if _AGENT_CACHE_VERSION.get(model) == current_version:
             logger.debug(f"Using module-cached agent for model {model}")
-            state_manager.session.agents[model] = _AGENT_CACHE[model]
-            return _AGENT_CACHE[model]
+            cached_agent = _AGENT_CACHE.pop(model)
+            _AGENT_CACHE[model] = cached_agent
+            state_manager.session.agents[model] = cached_agent
+            return cached_agent
         else:
             logger.debug(f"Cache invalidated for model {model} due to config change")
             del _AGENT_CACHE[model]
@@ -294,8 +291,7 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
         )
 
         # Store in both caches
-        _AGENT_CACHE[model] = agent
-        _AGENT_CACHE_VERSION[model] = hash(
+        current_version = hash(
             (
                 state_manager.is_plan_mode(),
                 str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
@@ -307,6 +303,11 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )
+        _AGENT_CACHE[model] = agent
+        _AGENT_CACHE_VERSION[model] = current_version
+        while len(_AGENT_CACHE) > MAX_AGENT_CACHE_SIZE:
+            evicted_model, _ = _AGENT_CACHE.popitem(last=False)
+            _AGENT_CACHE_VERSION.pop(evicted_model, None)
         state_manager.session.agents[model] = agent
 
     return _AGENT_CACHE[model]
