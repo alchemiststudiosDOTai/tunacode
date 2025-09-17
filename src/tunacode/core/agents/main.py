@@ -434,7 +434,8 @@ async def process_request(
     CLAUDE_ANCHOR[process-request-entry]: Main entry point for all agent requests
     """
     state = StateFacade(state_manager)
-    ctx = _init_context(state, fallback_enabled=fallback_enabled)
+    fallback_config_enabled = bool(state.get_setting("settings.fallback_response", True))
+    ctx = _init_context(state, fallback_enabled=fallback_enabled and fallback_config_enabled)
     state.reset_for_new_request()
     state.set_original_query_once(message)
 

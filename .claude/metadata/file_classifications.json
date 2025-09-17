@@ -40,6 +40,26 @@
       "type": "source",
       "category": "agent",
       "classification": "implementation"
+    },
+    "src/tunacode/core/agents/main.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "interface"
+    },
+    "tests/characterization/agent/test_process_request.py": {
+      "type": "test",
+      "category": "agent",
+      "classification": "test"
+    },
+    "memory-bank/research/main_agent_refactor_plan.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
+    },
+    "docs/reviews/main_agent_refactor_plan.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
     }
   }
 }

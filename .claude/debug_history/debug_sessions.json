@@ -18,6 +18,20 @@
         "src/tunacode/core/agents/main_v2.py"
       ],
       "notes": "Documentation and analysis session for main agent refactor preparation. No bugs investigated."
+    },
+    {
+      "id": "main-agent-integration-20250917-123100",
+      "time": "2025-09-17T12:31:00",
+      "branch": "main-agent-refactor",
+      "base": "2433ad7",
+      "head": "66f49f2",
+      "changed_files": [
+        "docs/reviews/main_agent_refactor_plan.md",
+        "src/tunacode/core/agents/main.py",
+        "tests/characterization/agent/test_process_request.py",
+        "memory-bank/research/main_agent_refactor_plan.md"
+      ],
+      "notes": "Main agent refactoring implementation session. No bugs investigated - focused on architecture changes with compatibility shims."
     }
   ]
 }
