@@ -1,0 +1,8 @@
+Key hunks from git diff:
+- Major deletion of old .claude/ agent documentation files (agents/, commands/ directories)
+- Refactoring of .claude/ directory structure (moved anchors.json to memory_anchors/)
+- Addition of new debug_history, delta_summaries, metadata, patterns, qa directories
+- Changes to main.py agent with significant refactoring (791 lines changed)
+- Addition of new main_v2.py agent implementation (544 new lines)
+- Updates to CLI components and error handling
+- Documentation updates including Fagan inspection reports

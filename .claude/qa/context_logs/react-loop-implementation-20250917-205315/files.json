@@ -1,0 +1,50 @@
+[
+  {
+    "path": ".claude/MEMORY_ANCHOR_SPEC.md",
+    "status": "D"
+  },
+  {
+    "path": ".claude/NEXT_PR_RULES.md",
+    "status": "D"
+  },
+  {
+    "path": ".claude/README.md",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/cli/commands/implementations/debug.py",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/cli/commands/registry.py",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/core/agents/__init__.py",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/core/agents/agent_components/__init__.py",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/core/agents/agent_config.py",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/core/agents/main.py",
+    "status": "M"
+  },
+  {
+    "path": "src/tunacode/core/agents/react_loop.py",
+    "status": "A"
+  },
+  {
+    "path": "memory-bank/plan/2025-09-17_17-15-00_react_loop_agent_implementation.md",
+    "status": "A"
+  },
+  {
+    "path": "memory-bank/research/2025-09-17_17-14-35_react_loop_agent_research.md",
+    "status": "A"
+  }
+]

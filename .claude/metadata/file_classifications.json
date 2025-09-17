@@ -65,6 +65,41 @@
       "type": "source",
       "category": "repl",
       "classification": "implementation"
+    },
+    "src/tunacode/core/agents/react_loop.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "implementation"
+    },
+    "memory-bank/plan/2025-09-17_17-15-00_react_loop_agent_implementation.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
+    },
+    "memory-bank/research/2025-09-17_17-14-35_react_loop_agent_research.md": {
+      "type": "documentation",
+      "category": "research",
+      "classification": "implementation"
+    },
+    "src/tunacode/cli/commands/implementations/debug.py": {
+      "type": "source",
+      "category": "command",
+      "classification": "implementation"
+    },
+    "src/tunacode/cli/commands/registry.py": {
+      "type": "source",
+      "category": "command",
+      "classification": "interface"
+    },
+    "src/tunacode/core/agents/agent_components/__init__.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "interface"
+    },
+    "src/tunacode/core/agents/agent_config.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "implementation"
     }
   }
 }

@@ -1,0 +1,5 @@
+f6f71e8 feat: complete main agent refactor with enhanced error handling and tool recovery
+5a264e6 docs: update documentation and remove obsolete agent file
+ef9525a docs: add comprehensive Fagan inspection analysis for main.py
+011acc9 Sync local changes with remote on branch master
+9a63cc1 docs: update CHANGELOG.md with versions 0.0.76 and 0.0.76.1
