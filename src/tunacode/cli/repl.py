@@ -238,7 +238,7 @@ async def _handle_plan_approval(state_manager, original_request=None):
                 action()
                 if key == "a" and original_request:
                     await ui.info("🚀 Executing implementation...")
-                    await process_request(
+                    await execute_repl_request(
                         _transform_to_implementation_request(original_request),
                         state_manager,
                         output=True,
@@ -259,16 +259,16 @@ _command_registry.register_all_default_commands()
 
 async def _handle_command(command: str, state_manager: StateManager) -> CommandResult:
     """Handles a command string using the command registry."""
-    context = CommandContext(state_manager=state_manager, process_request=process_request)
+    context = CommandContext(state_manager=state_manager, process_request=execute_repl_request)
     try:
-        _command_registry.set_process_request_callback(process_request)
+        _command_registry.set_process_request_callback(execute_repl_request)
         return await _command_registry.execute(command, context)
     except ValidationError as e:
         await ui.error(str(e))
         return None
 
 
-async def process_request(text: str, state_manager: StateManager, output: bool = True):
+async def execute_repl_request(text: str, state_manager: StateManager, output: bool = True):
     """Process input using the agent, handling cancellation safely."""
     import uuid
 
@@ -412,6 +412,10 @@ async def process_request(text: str, state_manager: StateManager, output: bool =
             )
 
 
+# Backwards compatibility: exported name expected by external integrations/tests
+process_request = execute_repl_request
+
+
 async def warm_code_index():
     """Pre-warm the code index in background for faster directory operations."""
     try:
@@ -533,7 +537,7 @@ async def repl(state_manager: StateManager):
                 state_manager.session.operation_cancelled = False
 
             state_manager.session.current_task = get_app().create_background_task(
-                process_request(line, state_manager)
+                execute_repl_request(line, state_manager)
             )
             await state_manager.session.current_task
 

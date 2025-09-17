@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tunacode.cli.repl import process_request
+from tunacode.cli.repl import execute_repl_request
 from tunacode.types import SimpleResult
 
 
@@ -43,7 +43,7 @@ class TestAgentOutputFormatting:
             mock_process.return_value = mock_response
             with patch("tunacode.cli.repl.ui.agent", new_callable=AsyncMock) as mock_ui_agent:
                 # Act
-                await process_request("Review my code", state_manager, output=True)
+                await execute_repl_request("Review my code", state_manager, output=True)
 
                 # Assert - UI should NOT be called since JSON output is filtered
                 mock_ui_agent.assert_not_called()
@@ -65,7 +65,7 @@ class TestAgentOutputFormatting:
             mock_process.return_value = mock_response
             with patch("tunacode.cli.repl.ui.agent", new_callable=AsyncMock) as mock_ui_agent:
                 # Act
-                await process_request("Review my code", state_manager, output=True)
+                await execute_repl_request("Review my code", state_manager, output=True)
 
                 # Assert - Clean text should be displayed
                 mock_ui_agent.assert_called_once_with(expected_output)
@@ -102,7 +102,7 @@ These changes will improve code maintainability and user experience."""
             mock_process.return_value = mock_response
             with patch("tunacode.cli.repl.ui.agent", new_callable=AsyncMock) as mock_ui_agent:
                 # Act
-                await process_request("Review my JavaScript code", state_manager, output=True)
+                await execute_repl_request("Review my JavaScript code", state_manager, output=True)
 
                 # Assert - Formatted text should be displayed
                 mock_ui_agent.assert_called_once_with(expected_output)

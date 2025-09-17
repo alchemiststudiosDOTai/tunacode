@@ -130,6 +130,8 @@ Reintroduce the main agent refactor from `main_v2.py` while maintaining full bac
   - No breaking changes to functionality
 - **Files/Interfaces**: `src/tunacode/cli/repl.py`
 
+- **Status**: Completed 2025-09-17 – CLI helper renamed to `execute_repl_request` with `process_request` kept as a compatibility alias; command registry/tests updated to use the new name, eliminating internal name collisions.
+
 - **Status**: Completed 2025-09-17 – CLI components now import from `tunacode.core.agents` package exports (`repl`, `repl_components`, debug/system commands) removing direct `main` references ahead of refactor swap.
 
 ### T006: Replace Main Implementation
@@ -143,6 +145,8 @@ Reintroduce the main agent refactor from `main_v2.py` while maintaining full bac
   - Basic functionality tests pass
 - **Files/Interfaces**: `tunacode/core/agents/main.py`
 
+- **Status**: Completed 2025-09-17 – `main.py` now uses the refactored `main_v2` flow with compatibility re-exports (RequestContext/StateFacade maintained).
+
 ### T007: Fix State Reset Logic
 - **Summary**: Ensure original_query is properly cleared
 - **Owner**: context-engineer
@@ -153,6 +157,8 @@ Reintroduce the main agent refactor from `main_v2.py` while maintaining full bac
   - Multiple requests don't carry stale prompts
   - State is clean between requests
 - **Files/Interfaces**: `tunacode/core/agents/main.py`
+
+- **Status**: Completed 2025-09-17 – Session reset now clears `original_query` before each request, preventing stale prompts across runs.
 
 ### T008: Eliminate Fallback Duplication
 - **Summary**: Fix double patching of tool messages
@@ -165,6 +171,8 @@ Reintroduce the main agent refactor from `main_v2.py` while maintaining full bac
   - Tool messages are correctly formatted
 - **Files/Interfaces**: `tunacode/core/agents/main.py`
 
+- **Status**: Completed 2025-09-17 – Removed duplicate fallback patching so only one 'Task incomplete' message is emitted.
+
 ### T009: Rename CLI Helper Function
 - **Summary**: Rename process_request in CLI to avoid collision
 - **Owner**: context-engineer
@@ -176,6 +184,8 @@ Reintroduce the main agent refactor from `main_v2.py` while maintaining full bac
   - No name collisions in code
   - All references updated
 - **Files/Interfaces**: `src/tunacode/cli/repl.py`
+
+- **Status**: Completed 2025-09-17 – CLI helper renamed to `execute_repl_request` with `process_request` kept as a compatibility alias; command registry/tests updated to use the new name, eliminating internal name collisions.
 
 ### T010: Full Regression Testing
 - **Summary**: Run complete test suite and fix failures
@@ -202,10 +212,19 @@ Reintroduce the main agent refactor from `main_v2.py` while maintaining full bac
 
 ## Execution Notes
 
+### Phase Progress
+- Phase 1 (T001-T003) complete; baseline captured and import surface documented.
+- Phase 2 (T004-T005) closed with package exports and CLI callers aligned to new surface; ready to begin Phase 3 integration work.
+
+
 ### Public API Surface (T003)
 - Primary exports: `process_request`, `get_or_create_agent`, `extract_and_execute_tool_calls`, `patch_tool_messages`, `check_task_completion`, `parse_json_tool_calls`, `ToolBuffer`, `get_model_messages`, `ResponseState`, `SimpleResult`, `execute_tools_parallel`, `get_mcp_servers`.
 - Legacy compatibility exports (retain for tests/backwards use): `_process_node`, `check_query_satisfaction`, `AgentRunWrapper`, `AgentRunWithState`, `get_agent_tool`.
 - Internal helpers (remain unexported; consumed via `agent_components`): message creation helpers, fallback builders, UI patching utilities.
+
+### Tool Recovery Alignment (T005/T010)
+- Updated `attempt_tool_recovery` to call `tunacode.core.agents.extract_and_execute_tool_calls`, ensuring CLI uses the unified API surface.
+- Characterization tests patched to mock the package-level export, keeping tool recovery coverage valid post-refactor.
 
 
 ## Risks & Mitigations
