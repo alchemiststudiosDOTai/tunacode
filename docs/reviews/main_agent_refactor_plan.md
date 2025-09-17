@@ -33,19 +33,16 @@ The refactored agent entry point (`main_v2.py`) provides much cleaner structure 
 - Refactor runtime callers (CLI, commands) to import from package root rather than `.main`.
 - Provide temporary compatibility shim or clear migration path for tests.
 
+
 ### Phase 2 – Refactor Reintroduction
 - Replace `main.py` contents with the `main_v2.py` implementation.
 - Ensure the refactored module re-exports necessary helpers or delegates to `agent_components` via package-level API.
 - Fix state reset logic (`original_query` clear) and fallback duplication.
 
-### Phase 3 – Testing & Validation
-- Add CLI import smoke test to catch missing exports.
-- Add characterization test ensuring CLI `process_request` still accepts `tool_callback`, `streaming_callback`, etc.
-- Run existing characterization suite to confirm behavior matches golden outputs.
-
-### Phase 4 – Cleanup
-- Remove temporary shims if any.
-- Update documentation to reflect the new public API and refactored structure.
+### Testing Cadence (applies to every phase)
+- Run `hatch run test` before making code changes to capture the current baseline.
+- After applied updates, run `hatch run test` again to detect regressions.
+- If failures arise, update or add tests before proceeding to the next phase.
 
 ## Open Questions / Decisions Needed
 - Should CLI rename its helper to avoid name collision with agent coroutine? (Recommended for clarity.)
