@@ -3,13 +3,7 @@
 Main agent functionality and coordination for the TunaCode CLI.
 Handles agent creation, configuration, and request processing.
 
-Refactored 2025-09-16 per inspection FAGAN-2025-09-16-001:
-- Split monolith into focused helpers
-- No dynamic imports
-- No silent exception swallowing
-- Reduced tight coupling to agent_components
-- Encapsulated session mutations
-- Bounded, explicit iteration policy
+CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle management
 """
 
 from __future__ import annotations
