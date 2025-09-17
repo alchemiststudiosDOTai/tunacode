@@ -61,6 +61,7 @@ class TestProcessRequest:
                 self.nodes = nodes
                 self.result = None
                 self._index = 0
+                self.ctx = MagicMock()
 
             async def __aenter__(self):
                 return self

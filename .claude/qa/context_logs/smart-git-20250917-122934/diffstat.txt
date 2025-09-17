@@ -1,0 +1,9 @@
+8 files changed, 1776 insertions(+)
+docs/reports/subagent_analysis/code-synthesis-analyzer_report.md |  83 +++
+docs/reports/subagent_analysis/codebase-analyzer_report.md  |  60 ++
+docs/reviews/FAGAN_PLAN.md                         |  83 +++
+docs/reviews/agent_seams.md                        | 660 +++++++++++++++++++++
+docs/reviews/fagan_inspection_defects.json         | 276 +++++++++
+docs/reviews/fagan_inspection_summary.md           |  84 +++
+docs/reviews/main_agent_refactor_issues.md         |  17 +
+src/tunacode/core/agents/main_v2.py                | 513 ++++++++++++++++

@@ -9,7 +9,7 @@ from asyncio.exceptions import CancelledError
 
 from prompt_toolkit.application import run_in_terminal
 
-from tunacode.core.agents.main import patch_tool_messages
+from tunacode.core.agents import patch_tool_messages
 from tunacode.core.tool_handler import ToolHandler
 from tunacode.exceptions import UserAbortError
 from tunacode.types import StateManager

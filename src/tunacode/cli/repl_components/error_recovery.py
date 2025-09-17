@@ -6,6 +6,7 @@ Error recovery utilities for the REPL.
 
 import logging
 
+import tunacode.core.agents as agent_api
 from tunacode.types import StateManager
 from tunacode.ui import console as ui
 
@@ -130,13 +131,12 @@ async def attempt_tool_recovery(e: Exception, state_manager: StateManager) -> bo
         )
 
         try:
-            from tunacode.core.agents.main import extract_and_execute_tool_calls
 
             def tool_callback_with_state(tool_part, _node):
                 return tool_handler(tool_part, state_manager)
 
             # This function now returns the number of tools found
-            tools_found = await extract_and_execute_tool_calls(
+            tools_found = await agent_api.extract_and_execute_tool_calls(
                 content_to_parse, tool_callback_with_state, state_manager
             )
 

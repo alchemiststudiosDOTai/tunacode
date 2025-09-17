@@ -1,0 +1,7 @@
+[
+  "D docs/reviews/main_agent_refactor_plan.md",
+  "M src/tunacode/core/agents/main.py",
+  "M tests/characterization/agent/test_process_request.py",
+  "A memory-bank/research/main_agent_refactor_plan.md",
+  "A vendor/"
+]

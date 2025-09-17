@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "files": {
+    "docs/reports/subagent_analysis/code-synthesis-analyzer_report.md": {
+      "type": "documentation",
+      "category": "analysis",
+      "classification": "implementation"
+    },
+    "docs/reports/subagent_analysis/codebase-analyzer_report.md": {
+      "type": "documentation",
+      "category": "analysis",
+      "classification": "implementation"
+    },
+    "docs/reviews/FAGAN_PLAN.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
+    },
+    "docs/reviews/agent_seams.md": {
+      "type": "documentation",
+      "category": "analysis",
+      "classification": "implementation"
+    },
+    "docs/reviews/fagan_inspection_defects.json": {
+      "type": "data",
+      "category": "defects",
+      "classification": "implementation"
+    },
+    "docs/reviews/fagan_inspection_summary.md": {
+      "type": "documentation",
+      "category": "analysis",
+      "classification": "implementation"
+    },
+    "docs/reviews/main_agent_refactor_issues.md": {
+      "type": "documentation",
+      "category": "issues",
+      "classification": "implementation"
+    },
+    "src/tunacode/core/agents/main_v2.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "implementation"
+    },
+    "src/tunacode/core/agents/main.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "interface"
+    },
+    "tests/characterization/agent/test_process_request.py": {
+      "type": "test",
+      "category": "agent",
+      "classification": "test"
+    },
+    "memory-bank/research/main_agent_refactor_plan.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
+    },
+    "docs/reviews/main_agent_refactor_plan.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
+    },
+    "src/tunacode/cli/repl_components/error_recovery.py": {
+      "type": "source",
+      "category": "repl",
+      "classification": "implementation"
+    }
+  }
+}

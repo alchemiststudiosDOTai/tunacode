@@ -1,0 +1,22 @@
+{
+  "session": "main-agent-integration-20250917-141518",
+  "baseline": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+  "head": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+  "files": [
+    {"path": ".claude/debug_history/debug_sessions.json", "status": "M"},
+    {"path": ".claude/delta_summaries/api_change_logs.json", "status": "M"},
+    {"path": ".claude/delta_summaries/behavior_changes.json", "status": "M"},
+    {"path": ".claude/metadata/file_classifications.json", "status": "M"},
+    {"path": ".claude/patterns/canonical_patterns/backward_compatibility_refactor.md", "status": "M"},
+    {"path": ".claude/qa/context_logs/main-agent-integration-20250917-123100/commits.txt", "status": "M"},
+    {"path": ".claude/qa/context_logs/main-agent-integration-20250917-123100/diffstat.txt", "status": "M"},
+    {"path": ".claude/qa/context_logs/main-agent-integration-20250917-123100/files.json", "status": "M"},
+    {"path": ".claude/qa/context_logs/main-agent-integration-20250917-123100/hunks.txt", "status": "M"},
+    {"path": ".claude/qa/reasoning_docs/main-agent-integration-20250917-123100.md", "status": "M"},
+    {"path": "src/tunacode/cli/repl_components/error_recovery.py", "status": "M"},
+    {"path": "src/tunacode/core/agents/main.py", "status": "M"},
+    {"path": "src/tunacode/core/agents/main_v2.py", "status": "M"},
+    {"path": "memory-bank/research/main_agent_refactor_plan.md", "status": "??"},
+    {"path": "vendor/", "status": "???"}
+  ]
+}

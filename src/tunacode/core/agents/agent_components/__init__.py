@@ -1,5 +1,7 @@
 """Agent components package for modular agent functionality."""
 
+from tunacode.ui.tool_descriptions import get_batch_description
+
 from .agent_config import get_or_create_agent
 from .agent_helpers import (
     create_empty_response_message,
@@ -17,6 +19,7 @@ from .message_handler import get_model_messages, patch_tool_messages
 from .node_processor import _process_node
 from .response_state import ResponseState
 from .result_wrapper import AgentRunWithState, AgentRunWrapper, SimpleResult
+from .streaming import stream_model_request_node
 from .task_completion import check_task_completion
 from .tool_buffer import ToolBuffer
 from .tool_executor import execute_tools_parallel
@@ -44,4 +47,6 @@ __all__ = [
     "get_tool_description",
     "get_tool_summary",
     "get_user_prompt_part_class",
+    "stream_model_request_node",
+    "get_batch_description",
 ]

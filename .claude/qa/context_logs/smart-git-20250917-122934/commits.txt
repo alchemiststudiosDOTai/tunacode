@@ -1,0 +1,5 @@
+2433ad7 docs: capture main agent refactor blockers
+d88c959 chore: snapshot before main agent refactor
+5a264e6 docs: update documentation and remove obsolete agent file
+ef9525a docs: add comprehensive Fagan inspection analysis for main.py
+011acc9 Sync local changes with remote on branch master

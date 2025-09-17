@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "sessions": [
+    {
+      "id": "smart-git-20250917-122934",
+      "time": "2025-09-17T12:29:34",
+      "branch": "main-agent-refactor",
+      "base": "011acc9",
+      "head": "2433ad7",
+      "changed_files": [
+        "docs/reports/subagent_analysis/code-synthesis-analyzer_report.md",
+        "docs/reports/subagent_analysis/codebase-analyzer_report.md",
+        "docs/reviews/FAGAN_PLAN.md",
+        "docs/reviews/agent_seams.md",
+        "docs/reviews/fagan_inspection_defects.json",
+        "docs/reviews/fagan_inspection_summary.md",
+        "docs/reviews/main_agent_refactor_issues.md",
+        "src/tunacode/core/agents/main_v2.py"
+      ],
+      "notes": "Documentation and analysis session for main agent refactor preparation. No bugs investigated."
+    },
+    {
+      "id": "main-agent-integration-20250917-123100",
+      "time": "2025-09-17T12:31:00",
+      "branch": "main-agent-refactor",
+      "base": "2433ad7",
+      "head": "66f49f2",
+      "changed_files": [
+        "docs/reviews/main_agent_refactor_plan.md",
+        "src/tunacode/core/agents/main.py",
+        "tests/characterization/agent/test_process_request.py",
+        "memory-bank/research/main_agent_refactor_plan.md"
+      ],
+      "notes": "Main agent refactoring implementation session. No bugs investigated - focused on architecture changes with compatibility shims."
+    },
+    {
+      "id": "main-agent-integration-20250917-141518",
+      "time": "2025-09-17T14:15:18",
+      "branch": "main-agent-refactor",
+      "base": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "head": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "changed_files": [
+        "src/tunacode/core/agents/main.py",
+        "src/tunacode/core/agents/main_v2.py",
+        "src/tunacode/cli/repl_components/error_recovery.py",
+        "memory-bank/research/main_agent_refactor_plan.md"
+      ],
+      "notes": "Enhanced tool recovery and error handling in main agent modules. No bugs investigated - focused on improving error recovery mechanisms and API exports."
+    }
+  ]
+}

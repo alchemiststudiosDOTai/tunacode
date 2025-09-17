@@ -1,0 +1,6 @@
+66f49f2 feat: integrate refactored main agent with compatibility shims
+d58bb31 fix: align tool recovery patches with new agent exports
+5cc0cb6 chore: align agent api exports and CLI usage
+ac20881 docs: add testing cadence to refactor plan
+cfaefb8 docs: note CLI import hotfix in refactor plan
+ced31af docs: outline phased main agent refactor plan

@@ -131,7 +131,7 @@ async def test_process_request_tool_recovery_logic(
             repl_mod.agent, "process_request", new=AsyncMock(side_effect=Exception(error_message))
         ),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
-        patch("tunacode.core.agents.main.extract_and_execute_tool_calls", extract_tool_calls_mock),
+        patch("tunacode.core.agents.extract_and_execute_tool_calls", extract_tool_calls_mock),
         patch("tunacode.cli.repl.run_in_terminal", new=AsyncMock()),
         patch.object(repl_mod, "patch_tool_messages"),
     ):
@@ -185,7 +185,7 @@ async def test_process_request_tool_recovery_no_messages():
             new=AsyncMock(side_effect=Exception("tool call failed")),
         ),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
-        patch("tunacode.core.agents.main.extract_and_execute_tool_calls", extract_tool_calls_mock),
+        patch("tunacode.core.agents.extract_and_execute_tool_calls", extract_tool_calls_mock),
         patch("tunacode.cli.repl.run_in_terminal", new=AsyncMock()),
         patch.object(repl_mod, "patch_tool_messages"),
     ):
@@ -230,7 +230,7 @@ async def test_process_request_tool_recovery_no_parts():
             new=AsyncMock(side_effect=Exception("function call error")),
         ),
         patch("tunacode.utils.text_utils.expand_file_refs", return_value=("test input", [])),
-        patch("tunacode.core.agents.main.extract_and_execute_tool_calls", extract_tool_calls_mock),
+        patch("tunacode.core.agents.extract_and_execute_tool_calls", extract_tool_calls_mock),
         patch("tunacode.cli.repl.run_in_terminal", new=AsyncMock()),
         patch.object(repl_mod, "patch_tool_messages"),
     ):

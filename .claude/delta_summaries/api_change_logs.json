@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "sessions": [
+    {
+      "id": "main-agent-integration-20250917-123100",
+      "time": "2025-09-17T12:31:00",
+      "branch": "main-agent-refactor",
+      "base": "2433ad7bdf3b14eb8dab4d9749f35a6a61ba1740",
+      "head": "66f49f2f4c9f7d0b9c8a7d6e5f4c3b2a19876543",
+      "bullets": [
+        "Main agent refactored with backward compatibility shims",
+        "API exports realigned for tool recovery patches",
+        "CLI imports adjusted to work with new agent structure"
+      ]
+    },
+    {
+      "id": "main-agent-integration-20250917-141518",
+      "time": "2025-09-17T14:15:18",
+      "branch": "main-agent-refactor",
+      "base": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "head": "0455acc7536d3c49f021f6055f6c6f8a7a959b06",
+      "bullets": [
+        "Exported attempt_tool_recovery function from both main agent modules",
+        "Updated __all__ lists to include new error recovery exports",
+        "Enhanced process_request error handling with improved tool recovery"
+      ]
+    }
+  ]
+}
