@@ -340,10 +340,14 @@ class TestProcessNode:
         response_state = ResponseState()
         tool_callback = AsyncMock()
 
-        with patch("tunacode.ui.console.update_spinner_message", new_callable=AsyncMock), patch(
-            "tunacode.ui.console.muted",
-            new_callable=AsyncMock,
-        ), patch("tunacode.ui.console.warning", new_callable=AsyncMock):
+        with (
+            patch("tunacode.ui.console.update_spinner_message", new_callable=AsyncMock),
+            patch(
+                "tunacode.ui.console.muted",
+                new_callable=AsyncMock,
+            ),
+            patch("tunacode.ui.console.warning", new_callable=AsyncMock),
+        ):
             # Populate buffer with the read-only tool
             await _process_node(
                 tool_node,

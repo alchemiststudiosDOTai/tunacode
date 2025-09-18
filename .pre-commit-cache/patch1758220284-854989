@@ -6,7 +6,7 @@ index efb29f7..bb646c8 100644
      },
      {
        "path": "src/tunacode/core/agents/agent_components/agent_config.py",
-+      
++
        "components": ["get_react_agents", "_REACT_AGENT_CACHE"],
        "purpose": "ReAct agent configuration and caching"
      }
@@ -151,9 +151,9 @@ index 80fc23c..72b45cd 100644
 --- a/src/tunacode/core/agents/agent_components/node_processor.py
 +++ b/src/tunacode/core/agents/agent_components/node_processor.py
 @@ -15,6 +15,9 @@ from .truncation_checker import check_for_truncation
- 
+
  logger = get_logger(__name__)
- 
+
 +TOOL_CALL_ARG_BEGIN = "<|tool_call_argument_begin|>"
 +TOOL_CALL_ARG_END = "<|tool_call_argument_end|>"
 +
@@ -163,7 +163,7 @@ index 80fc23c..72b45cd 100644
 @@ -184,6 +187,23 @@ async def _process_node(
                  combined_content = " ".join(all_content_parts).strip()
                  appears_truncated = check_for_truncation(combined_content)
- 
+
 +                # Detect truncated tool-call argument streams (e.g., provider cut off after begin marker)
 +                if (
 +                    TOOL_CALL_ARG_BEGIN in combined_content
@@ -189,25 +189,25 @@ index 6101433..4b24d08 100644
 --- a/src/tunacode/core/agents/main.py
 +++ b/src/tunacode/core/agents/main.py
 @@ -8,7 +8,6 @@ CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle mana
- 
+
  from __future__ import annotations
- 
+
 -import json
  import time
  import uuid
  from dataclasses import dataclass
 @@ -55,6 +54,7 @@ except Exception:  # pragma: no cover
- 
+
  # Agent components (collapse to a single module import to reduce coupling)
  from . import agent_components as ac  # noqa: E402
 +from .react_pattern import ReactCoordinator
- 
+
  # Configure logging
  logger = get_logger(__name__)
 @@ -200,209 +200,6 @@ class StateFacade:
          setattr(self.sm.session, "consecutive_empty_responses", 0)
- 
- 
+
+
 -# -----------------------
 -# ReAct coordination helpers
 -# -----------------------
@@ -411,8 +411,8 @@ index 6101433..4b24d08 100644
 -            await ui.muted(f"[react] {message}")
 -        except Exception:  # pragma: no cover - UI logging is best-effort
 -            logger.debug("ReAct thought logging failed", exc_info=True)
- 
- 
+
+
  # -----------------------
 @@ -672,6 +469,7 @@ async def process_request(
                  evaluator_agent,
@@ -425,7 +425,7 @@ index 6101433..4b24d08 100644
 @@ -763,11 +561,10 @@ async def process_request(
                      await _ask_for_clarification(i, state)
                      # Keep the flag set; downstream logic can react to new user input
- 
+
 -                if react_coordinator:
 +                if react_coordinator and not response_state.task_completed:
                      observation_text = _node_output_text(node)

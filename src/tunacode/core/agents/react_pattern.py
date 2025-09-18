@@ -50,6 +50,12 @@ class ReactCoordinator:
 
     async def bootstrap(self, query: str) -> None:
         """Prime the loop with an initial plan message."""
+        # Debug: Log what query the REACT coordinator receives
+        logger.debug(f"REACT coordinator received query (first 200 chars): {repr(query[:200])}")
+        if "@" in query and "FILE REFERENCE" not in query:
+            logger.warning(
+                f"REACT coordinator received unexpanded file reference: {repr(query[:100])}"
+            )
         await self._generate_plan(query)
 
     async def observe_step(self, query: str, observation: str, *, can_continue: bool) -> None:

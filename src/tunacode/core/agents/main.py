@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
 
 from pydantic_ai import Agent
 
@@ -54,6 +54,7 @@ except Exception:  # pragma: no cover
 # Agent components (collapse to a single module import to reduce coupling)
 from . import agent_components as ac  # noqa: E402
 from .react_pattern import ReactCoordinator
+from .state_facade import StateFacade
 
 # Configure logging
 logger = get_logger(__name__)
@@ -84,6 +85,7 @@ get_recent_tools_context = ac.get_recent_tools_context
 get_tool_summary = ac.get_tool_summary
 get_batch_description = ac.get_batch_description
 flush_buffered_read_only_tools = ac.flush_buffered_read_only_tools
+ToolFlushCoordinator = ac.ToolFlushCoordinator
 
 # -----------------------
 # Module exports
@@ -115,6 +117,7 @@ __all__ = [
     "get_agent_tool",
     "check_query_satisfaction",
     "flush_buffered_read_only_tools",
+    "ToolFlushCoordinator",
 ]
 
 # -----------------------
@@ -136,71 +139,6 @@ class RequestContext:
     max_iterations: int
     debug_metrics: bool
     fallback_enabled: bool
-
-
-class StateFacade:
-    """Thin wrapper to centralize session mutations and reads."""
-
-    def __init__(self, state_manager: StateManager) -> None:
-        self.sm = state_manager
-
-    # ---- safe getters ----
-    def get_setting(self, dotted: str, default: Any) -> Any:
-        cfg: Dict[str, Any] = getattr(self.sm.session, "user_config", {}) or {}
-        node = cfg
-        for key in dotted.split("."):
-            if not isinstance(node, dict) or key not in node:
-                return default
-            node = node[key]
-        return node
-
-    @property
-    def show_thoughts(self) -> bool:
-        return bool(getattr(self.sm.session, "show_thoughts", False))
-
-    @property
-    def messages(self) -> list:
-        return list(getattr(self.sm.session, "messages", []))
-
-    # ---- safe setters ----
-    def set_request_id(self, req_id: str) -> None:
-        try:
-            self.sm.session.request_id = req_id
-        except AttributeError:
-            logger.warning("Session missing 'request_id' attribute; unable to set (req=%s)", req_id)
-
-    def reset_for_new_request(self) -> None:
-        """Reset/initialize fields needed for a new run."""
-        # Keep all assignments here to avoid scattered mutations across the codebase.
-        setattr(self.sm.session, "current_iteration", 0)
-        setattr(self.sm.session, "iteration_count", 0)
-        setattr(self.sm.session, "tool_calls", [])
-        # Counter used by other subsystems; initialize if absent
-        if not hasattr(self.sm.session, "batch_counter"):
-            setattr(self.sm.session, "batch_counter", 0)
-        # Track empty response streaks
-        setattr(self.sm.session, "consecutive_empty_responses", 0)
-        # Always reset original query so subsequent requests don't leak prompts
-        setattr(self.sm.session, "original_query", "")
-
-    def set_original_query_once(self, q: str) -> None:
-        if not getattr(self.sm.session, "original_query", None):
-            setattr(self.sm.session, "original_query", q)
-
-    # ---- progress helpers ----
-    def set_iteration(self, i: int) -> None:
-        setattr(self.sm.session, "current_iteration", i)
-        setattr(self.sm.session, "iteration_count", i)
-
-    def increment_empty_response(self) -> int:
-        v = int(getattr(self.sm.session, "consecutive_empty_responses", 0)) + 1
-        setattr(self.sm.session, "consecutive_empty_responses", v)
-        return v
-
-    def clear_empty_response(self) -> None:
-        setattr(self.sm.session, "consecutive_empty_responses", 0)
-
-
 
 
 # -----------------------
@@ -244,14 +182,35 @@ async def _maybe_stream_node_tokens(
     streaming_cb: Optional[Callable[[str], Awaitable[None]]],
     request_id: str,
     iteration_index: int,
+    tool_buffer: Optional[ToolBuffer] = None,
+    tool_callback: Optional[ToolCallback] = None,
+    flush_coordinator: Optional[ToolFlushCoordinator] = None,
 ) -> None:
+    is_model_request = False
+    try:
+        is_model_request = Agent.is_model_request_node(node)  # type: ignore[attr-defined]
+    except Exception:
+        is_model_request = False
+
+    if is_model_request and (not streaming_cb or not STREAMING_AVAILABLE):
+        if flush_coordinator is not None:
+            await flush_coordinator.ensure_before_request("pre-request:non-streaming")
+
     if not streaming_cb or not STREAMING_AVAILABLE:
         return
 
     # Delegate to component streaming helper (already optimized)
-    if Agent.is_model_request_node(node):  # type: ignore[attr-defined]
+    if is_model_request:
         await ac.stream_model_request_node(
-            node, agent_run_ctx, state_manager, streaming_cb, request_id, iteration_index
+            node,
+            agent_run_ctx,
+            state_manager,
+            streaming_cb,
+            request_id,
+            iteration_index,
+            tool_buffer,
+            tool_callback,
+            flush_coordinator,
         )
 
 
@@ -332,14 +291,10 @@ async def _ask_for_clarification(i: int, state: StateFacade) -> None:
 
 
 async def _finalize_buffered_tasks(
-    tool_buffer: ToolBuffer,
-    tool_callback: Optional[ToolCallback],
+    flush_coordinator: ToolFlushCoordinator,
     state: StateFacade,
 ) -> None:
-    executed = await flush_buffered_read_only_tools(
-        tool_buffer,
-        tool_callback,
-        state.sm,
+    executed = await flush_coordinator.flush(
         origin="final-batch",
         detailed=True,
         banner="FINAL BATCH",
@@ -428,7 +383,9 @@ async def process_request(
     state.set_original_query_once(message)
 
     react_coordinator: Optional[ReactCoordinator] = None
-    if not state_manager.is_plan_mode():
+    react_enabled = bool(state.get_setting("settings.enable_react", False))
+    # TEMPORARY: Disable REACT to test file tagging without REACT interference unless explicitly enabled
+    if react_enabled and not state_manager.is_plan_mode():
         try:
             planner_agent, evaluator_agent = get_react_agents(model, state_manager)
             react_coordinator = ReactCoordinator(
@@ -439,8 +396,8 @@ async def process_request(
                 ui_helper=ui,
             )
             await react_coordinator.bootstrap(message)
-        except Exception:
-            logger.debug("ReAct loop initialization skipped", exc_info=True)
+        except Exception as e:
+            logger.warning(f"ReAct loop initialization failed: {e}", exc_info=True)
             react_coordinator = None
 
     # Acquire agent (no local caching here; rely on upstream policies)
@@ -451,6 +408,8 @@ async def process_request(
 
     # Per-request trackers
     tool_buffer = ToolBuffer()
+    # CLAUDE_ANCHOR[tool-flush-coordinator-8f1d0e2a]: Serializes buffered tool execution + validation
+    flush_coordinator = ToolFlushCoordinator(state_manager, tool_buffer, tool_callback)
     response_state = ResponseState()
     unproductive_iterations = 0
     last_productive_iteration = 0
@@ -463,7 +422,15 @@ async def process_request(
 
                 # Optional token streaming
                 await _maybe_stream_node_tokens(
-                    node, agent_run.ctx, state_manager, streaming_callback, ctx.request_id, i
+                    node,
+                    agent_run.ctx,
+                    state_manager,
+                    streaming_callback,
+                    ctx.request_id,
+                    i,
+                    tool_buffer,
+                    tool_callback,
+                    flush_coordinator,
                 )
 
                 # Core node processing (delegated to components)
@@ -475,16 +442,12 @@ async def process_request(
                     streaming_callback,
                     usage_tracker,
                     response_state,
+                    flush_coordinator,
                 )
 
                 # Handle empty response (aggressive retry prompt)
                 if empty_response:
-                    await flush_buffered_read_only_tools(
-                        tool_buffer,
-                        tool_callback,
-                        state_manager,
-                        origin="empty-response",
-                    )
+                    await flush_coordinator.flush(origin="empty-response")
                     if state.increment_empty_response() >= 1:
                         await _handle_empty_response(message, empty_reason, i, state)
                         state.clear_empty_response()
@@ -507,12 +470,7 @@ async def process_request(
                     unproductive_iterations >= UNPRODUCTIVE_LIMIT
                     and not response_state.task_completed
                 ):
-                    await flush_buffered_read_only_tools(
-                        tool_buffer,
-                        tool_callback,
-                        state_manager,
-                        origin="unproductive-retry",
-                    )
+                    await flush_coordinator.flush(origin="unproductive-retry")
                     await _force_action_if_unproductive(
                         message,
                         unproductive_iterations,
@@ -543,8 +501,7 @@ async def process_request(
                 if react_coordinator and not response_state.task_completed:
                     observation_text = _node_output_text(node)
                     can_continue = (
-                        not response_state.awaiting_user_guidance
-                        and i < ctx.max_iterations
+                        not response_state.awaiting_user_guidance and i < ctx.max_iterations
                     )
                     await react_coordinator.observe_step(
                         message,
@@ -560,12 +517,7 @@ async def process_request(
 
                 # Reaching iteration cap → ask what to do next (no auto-extend by default)
                 if i >= ctx.max_iterations and not response_state.task_completed:
-                    await flush_buffered_read_only_tools(
-                        tool_buffer,
-                        tool_callback,
-                        state_manager,
-                        origin="iteration-cap",
-                    )
+                    await flush_coordinator.flush(origin="iteration-cap")
                     _, tools_str = create_progress_summary(
                         getattr(state.sm.session, "tool_calls", [])
                     )
@@ -594,7 +546,10 @@ async def process_request(
                 i += 1
 
             # Final buffered read-only tasks (batch)
-            await _finalize_buffered_tasks(tool_buffer, tool_callback, state)
+            await _finalize_buffered_tasks(flush_coordinator, state)
+
+            # SAFETY NET: Ensure all tool calls have responses before returning
+            patch_tool_messages("Tool execution completed", state_manager=state_manager)
 
             # Build fallback synthesis if needed
             if _should_build_fallback(response_state, i, ctx.max_iterations, ctx.fallback_enabled):

@@ -152,7 +152,7 @@ The truncation guard logic (`node_processor.py:191-205`) is behaving as designed
 # From constants.py
 READ_ONLY_TOOLS = [ToolName.READ_FILE, ToolName.GREP, ToolName.LIST_DIR, ToolName.GLOB, ToolName.EXIT_PLAN_MODE]
 
-# From node_processor.py  
+# From node_processor.py
 TOOL_CALL_ARG_BEGIN = "<|tool_call_argument_begin|>"
 TOOL_CALL_ARG_END = "<|tool_call_argument_end|>"
 ```

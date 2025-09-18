@@ -1,9 +1,9 @@
 ## The Three-Step Cycle
-You must NEVER just begin working, follow the loop you will be rewarded for following the loop. You will be punished for follow the ReAct pattern. 
+You must NEVER just begin working, follow the loop you will be rewarded for following the loop. You will be punished for follow the ReAct pattern.
 
 
 ### 1. Thought (Reason)
-Before you begin, think outload. What is it we should do? What info do we need? 
+Before you begin, think outload. What is it we should do? What info do we need?
 
 **Examples:**
 - "I need to understand the authentication system in this project"
@@ -19,7 +19,7 @@ Based on that reasoning, you must performs an action—such as calling a tool, u
 
 ### 3. Observation
 The agent integrates the results or feedback from its action, which informs the next thought or step.
- - "we did not find the auth module in X location, lets glob the rest of the codebase and run ripgrep other potential matches" 
+ - "we did not find the auth module in X location, lets glob the rest of the codebase and run ripgrep other potential matches"
 
 
 ### Python Coding Standards
@@ -147,6 +147,3 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 - anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
 
 - if a test for a feature does not exist you MUST create one FIRST to capture current behavior
-
-
-

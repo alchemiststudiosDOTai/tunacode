@@ -11,6 +11,10 @@ from typing import Awaitable, Callable, Optional
 
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
+from tunacode.types import ToolCallback
+
+from .flush_coordinator import ToolFlushCoordinator
+from .tool_buffer import ToolBuffer
 
 # Import streaming types with fallback for older versions
 try:  # pragma: no cover - import guard for pydantic_ai streaming types
@@ -33,6 +37,9 @@ async def stream_model_request_node(
     streaming_callback: Optional[Callable[[str], Awaitable[None]]],
     request_id: str,
     iteration_index: int,
+    tool_buffer: Optional[ToolBuffer] = None,
+    tool_callback: Optional[ToolCallback] = None,
+    flush_coordinator: Optional[ToolFlushCoordinator] = None,
 ) -> None:
     """Stream token deltas for a model request node with detailed instrumentation.
 
@@ -46,6 +53,9 @@ async def stream_model_request_node(
     # Gracefully handle streaming errors from LLM provider
     for attempt in range(2):  # simple retry once, then degrade gracefully
         try:
+            if flush_coordinator is not None:
+                await flush_coordinator.ensure_before_request("pre-request:streaming")
+
             async with node.stream(agent_run_ctx) as request_stream:
                 # Initialize per-node debug accumulators
                 state_manager.session._debug_raw_stream_accum = ""
@@ -245,7 +255,27 @@ async def stream_model_request_node(
             # Successful streaming; exit retry loop
             break
         except Exception as stream_err:
-            # Log with context and optionally notify UI, then retry once
+            # Just flush buffered tools and let pydantic-ai handle the rest
+            if tool_buffer is not None and tool_callback is not None:
+                try:
+                    if flush_coordinator is not None:
+                        await flush_coordinator.flush(origin="stream-retry")
+                    else:
+                        from .buffer_flush import flush_buffered_read_only_tools
+
+                        await flush_buffered_read_only_tools(
+                            tool_buffer,
+                            tool_callback,
+                            state_manager,
+                            origin="stream-retry",
+                        )
+                except Exception:
+                    logger.debug(
+                        "Buffered tool flush during streaming retry failed (non-fatal)",
+                        exc_info=True,
+                    )
+
+            # Let pydantic-ai handle the retry naturally - don't interfere
             logger.warning(
                 "Streaming error (attempt %s/2) req=%s iter=%s: %s",
                 attempt + 1,
@@ -254,10 +284,6 @@ async def stream_model_request_node(
                 stream_err,
                 exc_info=True,
             )
-            if getattr(state_manager.session, "show_thoughts", False):
-                from tunacode.ui import console as ui
-
-                await ui.warning("Streaming failed; retrying once then falling back")
 
             # On second failure, degrade gracefully (no streaming)
             if attempt == 1:

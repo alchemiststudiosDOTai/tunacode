@@ -414,7 +414,7 @@ Fix the race condition where tool call buffering conflicts with Pydantic-AI API 
 ### Context-Synthesis Subagent
 For analyzing code relationships and integration points
 
-### Codebase-Analyzer Subagent  
+### Codebase-Analyzer Subagent
 For detailed analysis of current implementation patterns
 
 ## Final Gate

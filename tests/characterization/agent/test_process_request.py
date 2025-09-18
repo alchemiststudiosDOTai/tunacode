@@ -375,7 +375,7 @@ class TestProcessRequest:
             ) as mock_process:
                 mock_process.return_value = (True, "empty")
                 with patch(
-                    "tunacode.core.agents.main.flush_buffered_read_only_tools",
+                    "tunacode.core.agents.main.ToolFlushCoordinator.flush",
                     side_effect=mock_flush,
                 ) as mock_flush_fn:
                     with patch(
@@ -412,16 +412,19 @@ class TestProcessRequest:
             call_order.append("force")
             assert call_order[-2] == "flush:unproductive-retry"
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent), patch(
-            "tunacode.core.agents.main.UNPRODUCTIVE_LIMIT",
-            1,
+        with (
+            patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent),
+            patch(
+                "tunacode.core.agents.main.UNPRODUCTIVE_LIMIT",
+                1,
+            ),
         ):
             with patch(
                 "tunacode.core.agents.main._process_node", new_callable=AsyncMock
             ) as mock_process:
                 mock_process.return_value = (False, None)
                 with patch(
-                    "tunacode.core.agents.main.flush_buffered_read_only_tools",
+                    "tunacode.core.agents.main.ToolFlushCoordinator.flush",
                     side_effect=mock_flush,
                 ) as mock_flush_fn:
                     with patch(
@@ -431,7 +434,7 @@ class TestProcessRequest:
                         with patch(
                             "tunacode.core.agents.main._force_action_if_unproductive",
                             side_effect=mock_force,
-                        ) as mock_force_fn:
+                        ):
                             await process_request(
                                 "openai:gpt-4",
                                 message,
@@ -475,7 +478,7 @@ class TestProcessRequest:
             ) as mock_process:
                 mock_process.return_value = (False, None)
                 with patch(
-                    "tunacode.core.agents.main.flush_buffered_read_only_tools",
+                    "tunacode.core.agents.main.ToolFlushCoordinator.flush",
                     side_effect=mock_flush,
                 ) as mock_flush_fn:
                     with patch(

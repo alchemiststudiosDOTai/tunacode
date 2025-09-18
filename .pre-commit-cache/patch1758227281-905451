@@ -1,0 +1,296 @@
+diff --git a/.claude/semantic_index/intent_mappings.json b/.claude/semantic_index/intent_mappings.json
+index bb646c8..bb60408 100644
+--- a/.claude/semantic_index/intent_mappings.json
++++ b/.claude/semantic_index/intent_mappings.json
+@@ -10,7 +10,7 @@
+     },
+     {
+       "path": "src/tunacode/core/agents/agent_components/agent_config.py",
+-
++
+       "components": ["get_react_agents", "_REACT_AGENT_CACHE"],
+       "purpose": "ReAct agent configuration and caching"
+     }
+@@ -38,4 +38,4 @@
+     "react_agents": "Module-level cache with version invalidation",
+     "main_agent": "Dual cache (session + module) with config hash validation"
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/.pre-commit-cache/patch1758220284-854989 b/.pre-commit-cache/patch1758220284-854989
+index 0ab9486..a14120f 100644
+--- a/.pre-commit-cache/patch1758220284-854989
++++ b/.pre-commit-cache/patch1758220284-854989
+@@ -6,7 +6,7 @@ index efb29f7..bb646c8 100644
+      },
+      {
+        "path": "src/tunacode/core/agents/agent_components/agent_config.py",
+-+
+++
+        "components": ["get_react_agents", "_REACT_AGENT_CACHE"],
+        "purpose": "ReAct agent configuration and caching"
+      }
+@@ -151,9 +151,9 @@ index 80fc23c..72b45cd 100644
+ --- a/src/tunacode/core/agents/agent_components/node_processor.py
+ +++ b/src/tunacode/core/agents/agent_components/node_processor.py
+ @@ -15,6 +15,9 @@ from .truncation_checker import check_for_truncation
+-
++
+  logger = get_logger(__name__)
+-
++
+ +TOOL_CALL_ARG_BEGIN = "<|tool_call_argument_begin|>"
+ +TOOL_CALL_ARG_END = "<|tool_call_argument_end|>"
+ +
+@@ -163,7 +163,7 @@ index 80fc23c..72b45cd 100644
+ @@ -184,6 +187,23 @@ async def _process_node(
+                  combined_content = " ".join(all_content_parts).strip()
+                  appears_truncated = check_for_truncation(combined_content)
+-
++
+ +                # Detect truncated tool-call argument streams (e.g., provider cut off after begin marker)
+ +                if (
+ +                    TOOL_CALL_ARG_BEGIN in combined_content
+@@ -189,25 +189,25 @@ index 6101433..4b24d08 100644
+ --- a/src/tunacode/core/agents/main.py
+ +++ b/src/tunacode/core/agents/main.py
+ @@ -8,7 +8,6 @@ CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle mana
+-
++
+  from __future__ import annotations
+-
++
+ -import json
+  import time
+  import uuid
+  from dataclasses import dataclass
+ @@ -55,6 +54,7 @@ except Exception:  # pragma: no cover
+-
++
+  # Agent components (collapse to a single module import to reduce coupling)
+  from . import agent_components as ac  # noqa: E402
+ +from .react_pattern import ReactCoordinator
+-
++
+  # Configure logging
+  logger = get_logger(__name__)
+ @@ -200,209 +200,6 @@ class StateFacade:
+          setattr(self.sm.session, "consecutive_empty_responses", 0)
+-
+-
++
++
+ -# -----------------------
+ -# ReAct coordination helpers
+ -# -----------------------
+@@ -411,8 +411,8 @@ index 6101433..4b24d08 100644
+ -            await ui.muted(f"[react] {message}")
+ -        except Exception:  # pragma: no cover - UI logging is best-effort
+ -            logger.debug("ReAct thought logging failed", exc_info=True)
+-
+-
++
++
+  # -----------------------
+ @@ -672,6 +469,7 @@ async def process_request(
+                  evaluator_agent,
+@@ -425,7 +425,7 @@ index 6101433..4b24d08 100644
+ @@ -763,11 +561,10 @@ async def process_request(
+                      await _ask_for_clarification(i, state)
+                      # Keep the flag set; downstream logic can react to new user input
+-
++
+ -                if react_coordinator:
+ +                if react_coordinator and not response_state.task_completed:
+                      observation_text = _node_output_text(node)
+diff --git a/AGENTS.md b/AGENTS.md
+index 942f96b..a91627b 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,9 +1,9 @@
+ ## The Three-Step Cycle
+-You must NEVER just begin working, follow the loop you will be rewarded for following the loop. You will be punished for follow the ReAct pattern.
++You must NEVER just begin working, follow the loop you will be rewarded for following the loop. You will be punished for follow the ReAct pattern.
+
+
+ ### 1. Thought (Reason)
+-Before you begin, think outload. What is it we should do? What info do we need?
++Before you begin, think outload. What is it we should do? What info do we need?
+
+ **Examples:**
+ - "I need to understand the authentication system in this project"
+@@ -19,7 +19,7 @@ Based on that reasoning, you must performs an action—such as calling a tool, u
+
+ ### 3. Observation
+ The agent integrates the results or feedback from its action, which informs the next thought or step.
+- - "we did not find the auth module in X location, lets glob the rest of the codebase and run ripgrep other potential matches"
++ - "we did not find the auth module in X location, lets glob the rest of the codebase and run ripgrep other potential matches"
+
+
+ ### Python Coding Standards
+@@ -147,6 +147,3 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
+ - anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
+
+ - if a test for a feature does not exist you MUST create one FIRST to capture current behavior
+-
+-
+-
+diff --git a/memory-bank/plan/2025-09-18_13-29-20_tool_call_buffer_race_condition_fix.md b/memory-bank/plan/2025-09-18_13-29-20_tool_call_buffer_race_condition_fix.md
+index a8c5737..5b09d4e 100644
+--- a/memory-bank/plan/2025-09-18_13-29-20_tool_call_buffer_race_condition_fix.md
++++ b/memory-bank/plan/2025-09-18_13-29-20_tool_call_buffer_race_condition_fix.md
+@@ -414,7 +414,7 @@ Fix the race condition where tool call buffering conflicts with Pydantic-AI API
+ ### Context-Synthesis Subagent
+ For analyzing code relationships and integration points
+
+-### Codebase-Analyzer Subagent
++### Codebase-Analyzer Subagent
+ For detailed analysis of current implementation patterns
+
+ ## Final Gate
+@@ -425,4 +425,4 @@ For detailed analysis of current implementation patterns
+
+ **Validation Gates**: 4 gates (Design → Test Plan → Quality → Pre-deploy)
+
+-**Next Command**: `/execute "/root/tunacode/memory-bank/plan/2025-09-18_13-29-20_tool_call_buffer_race_condition_fix.md"`
+\ No newline at end of file
++**Next Command**: `/execute "/root/tunacode/memory-bank/plan/2025-09-18_13-29-20_tool_call_buffer_race_condition_fix.md"`
+diff --git a/memory-bank/research/2025-09-18_13-18-41_model_iteration_2_tool_call_buffer_issue.md b/memory-bank/research/2025-09-18_13-18-41_model_iteration_2_tool_call_buffer_issue.md
+index f246392..a9cad6c 100644
+--- a/memory-bank/research/2025-09-18_13-18-41_model_iteration_2_tool_call_buffer_issue.md
++++ b/memory-bank/research/2025-09-18_13-18-41_model_iteration_2_tool_call_buffer_issue.md
+@@ -152,7 +152,7 @@ The truncation guard logic (`node_processor.py:191-205`) is behaving as designed
+ # From constants.py
+ READ_ONLY_TOOLS = [ToolName.READ_FILE, ToolName.GREP, ToolName.LIST_DIR, ToolName.GLOB, ToolName.EXIT_PLAN_MODE]
+
+-# From node_processor.py
++# From node_processor.py
+ TOOL_CALL_ARG_BEGIN = "<|tool_call_argument_begin|>"
+ TOOL_CALL_ARG_END = "<|tool_call_argument_end|>"
+ ```
+diff --git a/memory-bank/research/2025-09-18_17-03-42_react_no_output_issue.md b/memory-bank/research/2025-09-18_17-03-42_react_no_output_issue.md
+index e91a816..43a482b 100644
+--- a/memory-bank/research/2025-09-18_17-03-42_react_no_output_issue.md
++++ b/memory-bank/research/2025-09-18_17-03-42_react_no_output_issue.md
+@@ -9,7 +9,7 @@ Investigate why the ReAct feedback loop shows "no output" in the first two steps
+
+ ## Methodology
+ - Analyzed ReactCoordinator implementation and output flow
+-- Examined planner and evaluator agent configuration and prompts
++- Examined planner and evaluator agent configuration and prompts
+ - Investigated state management and process_request integration
+ - Studied feedback loop integration and iteration handling
+
+@@ -183,5 +183,5 @@ if observation.strip():
+ 4. Verify existing functionality remains intact
+
+ ---
+-**Git Commit:** 245b7c4953c29512ced3a40bebca03f0090cded3
+-**Research ID:** react-no-output-investigation-001
+\ No newline at end of file
++**Git Commit:** 245b7c4953c29512ced3a40bebca03f0090cded3
++**Research ID:** react-no-output-investigation-001
+diff --git a/src/tunacode/core/agents/agent_components/streaming.py b/src/tunacode/core/agents/agent_components/streaming.py
+index 9eb07c6..0fe7b26 100644
+--- a/src/tunacode/core/agents/agent_components/streaming.py
++++ b/src/tunacode/core/agents/agent_components/streaming.py
+@@ -11,6 +11,9 @@ from typing import Awaitable, Callable, Optional
+
+ from tunacode.core.logging.logger import get_logger
+ from tunacode.core.state import StateManager
++from tunacode.types import ToolCallback
++
++from .tool_buffer import ToolBuffer
+
+ # Import streaming types with fallback for older versions
+ try:  # pragma: no cover - import guard for pydantic_ai streaming types
+@@ -33,6 +36,8 @@ async def stream_model_request_node(
+     streaming_callback: Optional[Callable[[str], Awaitable[None]]],
+     request_id: str,
+     iteration_index: int,
++    tool_buffer: Optional[ToolBuffer] = None,
++    tool_callback: Optional[ToolCallback] = None,
+ ) -> None:
+     """Stream token deltas for a model request node with detailed instrumentation.
+
+@@ -245,6 +250,21 @@ async def stream_model_request_node(
+             # Successful streaming; exit retry loop
+             break
+         except Exception as stream_err:
++            if tool_buffer is not None and tool_callback is not None:
++                try:
++                    from .buffer_flush import flush_buffered_read_only_tools
++
++                    await flush_buffered_read_only_tools(
++                        tool_buffer,
++                        tool_callback,
++                        state_manager,
++                        origin="stream-retry",
++                    )
++                except Exception:
++                    logger.debug(
++                        "Buffered tool flush during streaming retry failed (non-fatal)",
++                        exc_info=True,
++                    )
+             # Log with context and optionally notify UI, then retry once
+             logger.warning(
+                 "Streaming error (attempt %s/2) req=%s iter=%s: %s",
+diff --git a/src/tunacode/core/agents/main.py b/src/tunacode/core/agents/main.py
+index c86d8d9..ebb6b70 100644
+--- a/src/tunacode/core/agents/main.py
++++ b/src/tunacode/core/agents/main.py
+@@ -244,6 +244,8 @@ async def _maybe_stream_node_tokens(
+     streaming_cb: Optional[Callable[[str], Awaitable[None]]],
+     request_id: str,
+     iteration_index: int,
++    tool_buffer: Optional[ToolBuffer] = None,
++    tool_callback: Optional[ToolCallback] = None,
+ ) -> None:
+     if not streaming_cb or not STREAMING_AVAILABLE:
+         return
+@@ -251,7 +253,14 @@ async def _maybe_stream_node_tokens(
+     # Delegate to component streaming helper (already optimized)
+     if Agent.is_model_request_node(node):  # type: ignore[attr-defined]
+         await ac.stream_model_request_node(
+-            node, agent_run_ctx, state_manager, streaming_cb, request_id, iteration_index
++            node,
++            agent_run_ctx,
++            state_manager,
++            streaming_cb,
++            request_id,
++            iteration_index,
++            tool_buffer,
++            tool_callback,
+         )
+
+
+@@ -463,7 +472,14 @@ async def process_request(
+
+                 # Optional token streaming
+                 await _maybe_stream_node_tokens(
+-                    node, agent_run.ctx, state_manager, streaming_callback, ctx.request_id, i
++                    node,
++                    agent_run.ctx,
++                    state_manager,
++                    streaming_callback,
++                    ctx.request_id,
++                    i,
++                    tool_buffer,
++                    tool_callback,
+                 )
+
+                 # Core node processing (delegated to components)
+diff --git a/tests/characterization/agent/test_process_request.py b/tests/characterization/agent/test_process_request.py
+index 5705aaa..218eeb7 100644
+--- a/tests/characterization/agent/test_process_request.py
++++ b/tests/characterization/agent/test_process_request.py
+@@ -431,7 +431,7 @@ class TestProcessRequest:
+                         with patch(
+                             "tunacode.core.agents.main._force_action_if_unproductive",
+                             side_effect=mock_force,
+-                        ) as mock_force_fn:
++                        ):
+                             await process_request(
+                                 "openai:gpt-4",
+                                 message,

@@ -9,6 +9,7 @@ from tunacode.types import AgentState, UsageTrackerProtocol
 from tunacode.ui.tool_descriptions import get_batch_description, get_tool_description
 
 from .buffer_flush import flush_buffered_read_only_tools
+from .flush_coordinator import ToolFlushCoordinator
 from .response_state import ResponseState
 from .task_completion import check_task_completion
 from .tool_buffer import ToolBuffer
@@ -39,6 +40,7 @@ async def _process_node(
     streaming_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     usage_tracker: Optional[UsageTrackerProtocol] = None,
     response_state: Optional[ResponseState] = None,
+    flush_coordinator: Optional[ToolFlushCoordinator] = None,
 ) -> Tuple[bool, Optional[str]]:
     """Process a single node from the agent response.
 
@@ -197,12 +199,15 @@ async def _process_node(
                         for part in node.model_response.parts
                     )
                 ):
-                    await flush_buffered_read_only_tools(
-                        tool_buffer,
-                        buffering_callback,
-                        state_manager,
-                        origin="truncation-guard",
-                    )
+                    if flush_coordinator is not None:
+                        await flush_coordinator.flush(origin="truncation-guard")
+                    else:
+                        await flush_buffered_read_only_tools(
+                            tool_buffer,
+                            buffering_callback,
+                            state_manager,
+                            origin="truncation-guard",
+                        )
 
                     appears_truncated = True
                     empty_response_detected = True

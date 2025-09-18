@@ -41,6 +41,19 @@
         "Added error recovery exports for better error handling integration",
         "Updated REPL error recovery components"
       ]
+    },
+    {
+      "id": "tool-execution-20250918-184500",
+      "time": "2025-09-18T18:45:00",
+      "branch": "react-shim-tunacode",
+      "base": "bad6ec0",
+      "head": "local-worktree",
+      "bullets": [
+        "Added ToolFlushCoordinator and ToolExecutionValidator to serialize buffered tool execution",
+        "Hooked coordinator into streaming retries and non-stream request flow to guarantee tool-return parity",
+        "Updated characterization tests to assert coordinator-based flushing semantics",
+        "Documented reliability fix in buffered tool flush notes"
+      ]
     }
   ]
 }
