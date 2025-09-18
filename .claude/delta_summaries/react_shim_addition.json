@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "change_type": "feature_addition",
+  "component": "react-shim",
+  "timestamp": "2025-09-18",
+  "summary": "Added ReAct feedback loop to main agent for enhanced decision making",
+  "files_modified": [
+    "src/tunacode/core/agents/main.py",
+    "src/tunacode/core/agents/agent_components/agent_config.py"
+  ],
+  "api_changes": [
+    {
+      "type": "addition",
+      "component": "ReactCoordinator",
+      "methods": ["bootstrap", "observe_step", "_generate_plan", "_evaluate_step"]
+    },
+    {
+      "type": "addition",
+      "component": "ReactLoopSnapshot",
+      "purpose": "State tracking for feedback loop"
+    },
+    {
+      "type": "addition",
+      "component": "get_react_agents",
+      "location": "agent_config.py"
+    }
+  ],
+  "behavior_changes": [
+    {
+      "description": "Main agent now receives step-by-step guidance from planner/evaluator loop",
+      "impact": "enhanced"
+    },
+    {
+      "description": "Automatic cache invalidation for react agents on config changes",
+      "impact": "performance"
+    },
+    {
+      "description": "Graceful degradation when react agents fail",
+      "impact": "reliability"
+    }
+  ],
+  "reasoning": "ReAct pattern provides structured decision making without blocking main agent functionality"
+}

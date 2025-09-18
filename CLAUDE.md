@@ -1,3 +1,15 @@
+### Python Coding Standards
+
+- always use the .venv
+- Use type hints (PEP 484) for all function signatures
+- Prefer f-strings (PEP 498) over %-formatting or .format()
+- Use pathlib.Path instead of os.path for filesystem operations
+- Structure imports: stdlib → third-party → local (PEP 8)
+- Use dataclasses (PEP 557) for simple data containers
+- Prefer context managers (with) for resource handling
+- Use structural pattern matching (PEP 634) for complex
+- run ruff frequently for both linting and formatting
+- we ONLY use UIV
 
 ### Workflow
 Make this repository perfectly optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely:
@@ -102,17 +114,7 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 
 - always be on the side of safety, if you have any question consult the user
 
-### Python Coding Standards
 
-- always use the .venv
-- Use type hints (PEP 484) for all function signatures
-- Prefer f-strings (PEP 498) over %-formatting or .format()
-- Use pathlib.Path instead of os.path for filesystem operations
-- Structure imports: stdlib → third-party → local (PEP 8)
-- Use dataclasses (PEP 557) for simple data containers
-- Prefer context managers (with) for resource handling
-- Use structural pattern matching (PEP 634) for complex
-- run ruff frequently for both linting and formatting
 
 ### Testing
 

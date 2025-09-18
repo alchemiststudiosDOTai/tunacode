@@ -255,7 +255,9 @@ class ReactCoordinator:
         else:
             feedback_lines = [f"REACT FEEDBACK STEP {step_label}: (no feedback)"]
         if evaluation.status == "done":
-            feedback_lines.append("Evaluator believes the task is satisfied. Provide a final answer if appropriate.")
+            feedback_lines.append(
+                "Evaluator believes the task is satisfied. Provide a final answer if appropriate."
+            )
 
         create_user_message("\n".join(feedback_lines), self._state.sm)
         self._snapshot.last_feedback = feedback_text or evaluation.feedback
@@ -401,6 +403,8 @@ class ReactCoordinator:
             await ui.muted(f"[react] {message}")
         except Exception:  # pragma: no cover - UI logging is best-effort
             logger.debug("ReAct thought logging failed", exc_info=True)
+
+
 # -----------------------
 # Helper functions
 # -----------------------

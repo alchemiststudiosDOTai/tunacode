@@ -46,6 +46,16 @@
       "category": "agent",
       "classification": "interface"
     },
+    "src/tunacode/core/agents/agent_components/agent_config.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "implementation"
+    },
+    "documentation/agent/react-loop-practical-guide.md": {
+      "type": "documentation",
+      "category": "agent",
+      "classification": "implementation"
+    },
     "tests/characterization/agent/test_process_request.py": {
       "type": "test",
       "category": "agent",

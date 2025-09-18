@@ -53,7 +53,9 @@ def get_agent_tool():
     return Agent, Tool
 
 
-def get_react_agents(model: ModelName, state_manager: StateManager) -> Tuple[PydanticAgent, PydanticAgent]:
+def get_react_agents(
+    model: ModelName, state_manager: StateManager
+) -> Tuple[PydanticAgent, PydanticAgent]:
     """Provide cached planner and evaluator agents for the ReAct feedback loop."""
 
     Agent, _ = get_agent_tool()
@@ -63,7 +65,9 @@ def get_react_agents(model: ModelName, state_manager: StateManager) -> Tuple[Pyd
         (
             state_manager.is_plan_mode(),
             str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
-            str(state_manager.session.user_config.get("settings", {}).get("react_prompt_version", 1)),
+            str(
+                state_manager.session.user_config.get("settings", {}).get("react_prompt_version", 1)
+            ),
             str(state_manager.session.user_config.get("mcpServers", {})),
         )
     )

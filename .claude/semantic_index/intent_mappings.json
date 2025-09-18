@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "component": "react-shim",
+  "intent": "ReAct feedback loop implementation for enhanced agent decision making",
+  "files": [
+    {
+      "path": "src/tunacode/core/agents/main.py",
+      "components": ["ReactCoordinator", "ReactLoopSnapshot", "ReactEvaluation"],
+      "purpose": "Main coordination logic for ReAct loop"
+    },
+    {
+      "path": "src/tunacode/core/agents/agent_components/agent_config.py",
+      "components": ["get_react_agents", "_REACT_AGENT_CACHE"],
+      "purpose": "ReAct agent configuration and caching"
+    }
+  ],
+  "relationships": [
+    {
+      "from": "ReactCoordinator",
+      "to": "process_request",
+      "type": "orchestrates",
+      "description": "Coordinates planner/evaluator agents to guide main agent"
+    },
+    {
+      "from": "get_react_agents",
+      "to": "ReactCoordinator",
+      "type": "provides",
+      "description": "Supplies cached planner and evaluator agents"
+    }
+  ],
+  "key_constants": {
+    "REACT_MAX_STEPS": 4,
+    "UNPRODUCTIVE_LIMIT": 3,
+    "DEFAULT_MAX_ITERATIONS": 15
+  },
+  "cache_strategies": {
+    "react_agents": "Module-level cache with version invalidation",
+    "main_agent": "Dual cache (session + module) with config hash validation"
+  }
+}
