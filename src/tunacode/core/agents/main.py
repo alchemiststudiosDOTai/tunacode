@@ -259,6 +259,7 @@ class ReactCoordinator:
 
         create_user_message("\n".join(feedback_lines), self._state.sm)
         self._snapshot.last_feedback = feedback_text or evaluation.feedback
+        await self._log_thought(" | ".join(feedback_lines))
 
         if evaluation.status == "done":
             self._snapshot.enabled = False
@@ -292,6 +293,7 @@ class ReactCoordinator:
         create_user_message("\n".join(message_lines), self._state.sm)
         self._snapshot.step_index = next_step
         self._snapshot.last_plan = plan_text
+        await self._log_thought(" | ".join(message_lines))
 
     async def _evaluate_step(self, query: str, observation: str) -> Optional[ReactEvaluation]:
         prompt = self._build_evaluator_prompt(query, observation)
@@ -391,6 +393,14 @@ class ReactCoordinator:
             feedback = str(data.get("feedback", feedback)).strip() or feedback
 
         return status, feedback
+
+    async def _log_thought(self, message: str) -> None:
+        if not self._state.show_thoughts:
+            return
+        try:
+            await ui.muted(f"[react] {message}")
+        except Exception:  # pragma: no cover - UI logging is best-effort
+            logger.debug("ReAct thought logging failed", exc_info=True)
 # -----------------------
 # Helper functions
 # -----------------------
