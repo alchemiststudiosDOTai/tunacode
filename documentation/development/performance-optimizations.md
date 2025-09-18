@@ -52,6 +52,19 @@ _TUNACODE_CACHE = {}  # {filepath: (content, mtime)}
 ### Implementation
 - Modified: `src/tunacode/core/agents/agent_components/agent_config.py`
 
+## Buffered Tool Flush Coordination (2025-09-18)
+
+### Problem
+Buffered read-only tool calls were only drained during a narrow truncation-guard path, leaving outstanding `tool_call_id`s when other retry flows (empty responses, unproductive nudges, iteration caps) fired. The next provider request then failed with `invalid_request_error`.
+
+### Solution
+- Extracted flushing into `buffer_flush.py` for reuse across agent components
+- Invoked the shared flush helper before every retry message injection in `process_request`
+- Added characterization tests covering empty/truncation/unproductive/iteration-limit retries
+
+### Result
+All retry paths now reconcile buffered read-only calls before the next model request, eliminating the race and keeping the agent’s conversation history consistent with the API contract.
+
 ## Future Optimization Opportunities
 
 ### High Impact, Low Effort

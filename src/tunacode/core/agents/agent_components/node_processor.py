@@ -8,12 +8,16 @@ from tunacode.core.state import StateManager
 from tunacode.types import AgentState, UsageTrackerProtocol
 from tunacode.ui.tool_descriptions import get_batch_description, get_tool_description
 
+from .buffer_flush import flush_buffered_read_only_tools
 from .response_state import ResponseState
 from .task_completion import check_task_completion
 from .tool_buffer import ToolBuffer
 from .truncation_checker import check_for_truncation
 
 logger = get_logger(__name__)
+
+TOOL_CALL_ARG_BEGIN = "<|tool_call_argument_begin|>"
+TOOL_CALL_ARG_END = "<|tool_call_argument_end|>"
 
 # Import streaming types with fallback for older versions
 try:
@@ -183,6 +187,30 @@ async def _process_node(
             if all_content_parts:
                 combined_content = " ".join(all_content_parts).strip()
                 appears_truncated = check_for_truncation(combined_content)
+
+                # Detect truncated tool-call argument streams (e.g., provider cut off after begin marker)
+                if (
+                    TOOL_CALL_ARG_BEGIN in combined_content
+                    and TOOL_CALL_ARG_END not in combined_content
+                    and not any(
+                        hasattr(part, "part_kind") and part.part_kind == "tool-call"
+                        for part in node.model_response.parts
+                    )
+                ):
+                    await flush_buffered_read_only_tools(
+                        tool_buffer,
+                        buffering_callback,
+                        state_manager,
+                        origin="truncation-guard",
+                    )
+
+                    appears_truncated = True
+                    empty_response_detected = True
+                    has_non_empty_content = False
+                    if state_manager.session.show_thoughts:
+                        await ui.warning(
+                            "⚠️ TRUNCATED TOOL CALL DETECTED - missing argument end marker"
+                        )
 
             # If we only got empty content and no tool calls, we should NOT consider this a valid response
             # This prevents the agent from stopping when it gets empty responses

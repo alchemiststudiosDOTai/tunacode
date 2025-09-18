@@ -8,8 +8,6 @@ CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle mana
 
 from __future__ import annotations
 
-import json
-import time
 import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
@@ -55,6 +53,7 @@ except Exception:  # pragma: no cover
 
 # Agent components (collapse to a single module import to reduce coupling)
 from . import agent_components as ac  # noqa: E402
+from .react_pattern import ReactCoordinator
 
 # Configure logging
 logger = get_logger(__name__)
@@ -84,6 +83,7 @@ format_fallback_output = ac.format_fallback_output
 get_recent_tools_context = ac.get_recent_tools_context
 get_tool_summary = ac.get_tool_summary
 get_batch_description = ac.get_batch_description
+flush_buffered_read_only_tools = ac.flush_buffered_read_only_tools
 
 # -----------------------
 # Module exports
@@ -114,6 +114,7 @@ __all__ = [
     "get_tool_summary",
     "get_agent_tool",
     "check_query_satisfaction",
+    "flush_buffered_read_only_tools",
 ]
 
 # -----------------------
@@ -200,209 +201,6 @@ class StateFacade:
         setattr(self.sm.session, "consecutive_empty_responses", 0)
 
 
-# -----------------------
-# ReAct coordination helpers
-# -----------------------
-@dataclass(slots=True)
-class ReactLoopSnapshot:
-    step_index: int = 0
-    last_feedback: Optional[str] = None
-    last_plan: Optional[str] = None
-    enabled: bool = True
-
-
-@dataclass(slots=True)
-class ReactEvaluation:
-    status: str
-    feedback: str
-
-
-class ReactCoordinator:
-    """Lightweight planner/evaluator loop that nudges the primary agent."""
-
-    def __init__(
-        self,
-        planner: Agent,
-        evaluator: Agent,
-        state: StateFacade,
-        *,
-        max_steps: int,
-    ) -> None:
-        self._planner = planner
-        self._evaluator = evaluator
-        self._state = state
-        self._max_steps = max_steps
-        self._snapshot = ReactLoopSnapshot()
-
-    async def bootstrap(self, query: str) -> None:
-        """Prime the loop with an initial plan message."""
-        await self._generate_plan(query)
-
-    async def observe_step(self, query: str, observation: str, *, can_continue: bool) -> None:
-        """Record an observation, provide feedback, and queue the next plan if needed."""
-
-        if not self._snapshot.enabled:
-            return
-
-        evaluation = await self._evaluate_step(query, observation)
-        if evaluation is None:
-            return
-
-        step_label = max(self._snapshot.step_index, 1)
-        feedback_text = (evaluation.feedback or "").strip()
-        if feedback_text:
-            feedback_lines = [f"REACT FEEDBACK STEP {step_label}: {feedback_text}"]
-        else:
-            feedback_lines = [f"REACT FEEDBACK STEP {step_label}: (no feedback)"]
-        if evaluation.status == "done":
-            feedback_lines.append(
-                "Evaluator believes the task is satisfied. Provide a final answer if appropriate."
-            )
-
-        create_user_message("\n".join(feedback_lines), self._state.sm)
-        self._snapshot.last_feedback = feedback_text or evaluation.feedback
-        await self._log_thought(" | ".join(feedback_lines))
-
-        if evaluation.status == "done":
-            self._snapshot.enabled = False
-            return
-
-        if can_continue:
-            await self._generate_plan(query)
-
-    async def _generate_plan(self, query: str) -> None:
-        if not self._snapshot.enabled:
-            return
-
-        next_step = self._snapshot.step_index + 1
-        if next_step > self._max_steps:
-            self._snapshot.enabled = False
-            return
-
-        prompt = self._build_plan_prompt(query)
-        response_text = await self._call_agent(self._planner, prompt)
-        if not response_text:
-            return
-
-        plan_text, rationale = self._parse_plan_response(response_text)
-        if not plan_text:
-            return
-
-        message_lines = [f"REACT PLAN STEP {next_step}: {plan_text.strip()}"]
-        if rationale:
-            message_lines.append(f"Reasoning: {rationale.strip()}")
-
-        create_user_message("\n".join(message_lines), self._state.sm)
-        self._snapshot.step_index = next_step
-        self._snapshot.last_plan = plan_text
-        await self._log_thought(" | ".join(message_lines))
-
-    async def _evaluate_step(self, query: str, observation: str) -> Optional[ReactEvaluation]:
-        prompt = self._build_evaluator_prompt(query, observation)
-        response_text = await self._call_agent(self._evaluator, prompt)
-        if not response_text:
-            return None
-
-        status, feedback = self._parse_evaluation_response(response_text)
-        return ReactEvaluation(status=status, feedback=feedback)
-
-    async def _call_agent(self, agent: Agent, prompt: str) -> Optional[str]:
-        try:
-            if hasattr(agent, "run") and callable(getattr(agent, "run")):
-                result = await agent.run(prompt)
-            elif hasattr(agent, "arun") and callable(getattr(agent, "arun")):
-                result = await agent.arun(prompt)
-            elif hasattr(agent, "apredict") and callable(getattr(agent, "apredict")):
-                result = await agent.apredict(prompt)
-            else:
-                return None
-        except Exception:  # pragma: no cover - defensive against provider failures
-            logger.debug("ReAct helper agent invocation failed", exc_info=True)
-            self._snapshot.enabled = False
-            return None
-
-        return self._extract_output_text(result)
-
-    @staticmethod
-    def _extract_output_text(result: Any) -> Optional[str]:
-        if result is None:
-            return None
-        if isinstance(result, str):
-            return result
-        if hasattr(result, "output"):
-            output = getattr(result, "output")
-            return output if isinstance(output, str) else str(output)
-        if isinstance(result, dict):
-            if "output" in result:
-                output = result["output"]
-                return output if isinstance(output, str) else str(output)
-            return json.dumps(result)
-        return str(result)
-
-    def _build_plan_prompt(self, query: str) -> str:
-        feedback = self._snapshot.last_feedback or "None yet"
-        return (
-            "User query: "
-            f"{query}\n"
-            "Latest evaluator feedback: "
-            f"{feedback}\n"
-            "Propose the next tiny actionable step only.\n"
-            "Reply as JSON with keys 'plan' and 'rationale'."
-        )
-
-    def _build_evaluator_prompt(self, query: str, observation: str) -> str:
-        plan = self._snapshot.last_plan or "No explicit plan recorded"
-        return (
-            "User query: "
-            f"{query}\n"
-            "Planned action: "
-            f"{plan}\n"
-            "Primary agent observation/output: "
-            f"{observation or 'No observable output'}\n"
-            "Decide if the goal is satisfied.\n"
-            "Reply as JSON with keys 'status' ('continue' or 'done') and 'feedback'."
-        )
-
-    @staticmethod
-    def _parse_plan_response(text: str) -> tuple[str, str]:
-        clean_text = text.strip()
-        try:
-            data = json.loads(clean_text)
-        except json.JSONDecodeError:
-            return clean_text, ""
-
-        if isinstance(data, dict):
-            plan = str(data.get("plan", "")).strip()
-            rationale = str(data.get("rationale", "")).strip()
-            return plan or clean_text, rationale
-        return clean_text, ""
-
-    @staticmethod
-    def _parse_evaluation_response(text: str) -> tuple[str, str]:
-        clean_text = text.strip()
-        status = "continue"
-        feedback = clean_text
-
-        try:
-            data = json.loads(clean_text)
-        except json.JSONDecodeError:
-            return status, feedback
-
-        if isinstance(data, dict):
-            parsed_status = str(data.get("status", status)).lower()
-            if parsed_status in {"continue", "done", "complete"}:
-                status = "done" if parsed_status in {"done", "complete"} else "continue"
-            feedback = str(data.get("feedback", feedback)).strip() or feedback
-
-        return status, feedback
-
-    async def _log_thought(self, message: str) -> None:
-        if not self._state.show_thoughts:
-            return
-        try:
-            await ui.muted(f"[react] {message}")
-        except Exception:  # pragma: no cover - UI logging is best-effort
-            logger.debug("ReAct thought logging failed", exc_info=True)
 
 
 # -----------------------
@@ -538,56 +336,22 @@ async def _finalize_buffered_tasks(
     tool_callback: Optional[ToolCallback],
     state: StateFacade,
 ) -> None:
-    if not tool_callback or not tool_buffer.has_tasks():
-        return
+    executed = await flush_buffered_read_only_tools(
+        tool_buffer,
+        tool_callback,
+        state.sm,
+        origin="final-batch",
+        detailed=True,
+        banner="FINAL BATCH",
+    )
 
-    buffered_tasks = tool_buffer.flush()
+    if executed:
+        try:
+            from tunacode.constants import UI_THINKING_MESSAGE  # local import OK (rare path)
 
-    # Cosmetic UI around batch (kept but isolated here)
-    try:
-        tool_names = [part.tool_name for part, _ in buffered_tasks]
-        batch_msg = get_batch_description(len(buffered_tasks), tool_names)
-        await ui.update_spinner_message(f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state.sm)
-        await ui.muted("\n" + "=" * 60)
-        await ui.muted(f"FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools")
-        await ui.muted("=" * 60)
-        for idx, (part, _node) in enumerate(buffered_tasks, 1):
-            tool_desc = f"  [{idx}] {getattr(part, 'tool_name', 'tool')}"
-            args = getattr(part, "args", {})
-            if isinstance(args, dict):
-                if part.tool_name == "read_file" and "file_path" in args:
-                    tool_desc += f" → {args['file_path']}"
-                elif part.tool_name == "grep" and "pattern" in args:
-                    tool_desc += f" → pattern: '{args['pattern']}'"
-                    if "include_files" in args:
-                        tool_desc += f", files: '{args['include_files']}'"
-                elif part.tool_name == "list_dir" and "directory" in args:
-                    tool_desc += f" → {args['directory']}"
-                elif part.tool_name == "glob" and "pattern" in args:
-                    tool_desc += f" → pattern: '{args['pattern']}'"
-            await ui.muted(tool_desc)
-        await ui.muted("=" * 60)
-    except Exception:
-        # UI is best-effort; never fail request because of display
-        logger.debug("UI batch prelude failed (non-fatal)", exc_info=True)
-
-    # Execute
-    start = time.time()
-    await execute_tools_parallel(buffered_tasks, tool_callback)
-    elapsed_ms = (time.time() - start) * 1000
-
-    # Post metrics (best-effort)
-    try:
-        sequential_estimate = len(buffered_tasks) * 100.0
-        speedup = (sequential_estimate / elapsed_ms) if elapsed_ms > 0 else 1.0
-        await ui.muted(
-            f"Final batch completed in {elapsed_ms:.0f}ms (~{speedup:.1f}x faster than sequential)\n"
-        )
-        from tunacode.constants import UI_THINKING_MESSAGE  # local import OK (rare path)
-
-        await ui.update_spinner_message(UI_THINKING_MESSAGE, state.sm)
-    except Exception:
-        logger.debug("UI batch epilogue failed (non-fatal)", exc_info=True)
+            await ui.update_spinner_message(UI_THINKING_MESSAGE, state.sm)
+        except Exception:
+            logger.debug("UI batch epilogue failed (non-fatal)", exc_info=True)
 
 
 def _should_build_fallback(
@@ -672,6 +436,7 @@ async def process_request(
                 evaluator_agent,
                 state,
                 max_steps=min(REACT_MAX_STEPS, ctx.max_iterations),
+                ui_helper=ui,
             )
             await react_coordinator.bootstrap(message)
         except Exception:
@@ -714,6 +479,12 @@ async def process_request(
 
                 # Handle empty response (aggressive retry prompt)
                 if empty_response:
+                    await flush_buffered_read_only_tools(
+                        tool_buffer,
+                        tool_callback,
+                        state_manager,
+                        origin="empty-response",
+                    )
                     if state.increment_empty_response() >= 1:
                         await _handle_empty_response(message, empty_reason, i, state)
                         state.clear_empty_response()
@@ -736,6 +507,12 @@ async def process_request(
                     unproductive_iterations >= UNPRODUCTIVE_LIMIT
                     and not response_state.task_completed
                 ):
+                    await flush_buffered_read_only_tools(
+                        tool_buffer,
+                        tool_callback,
+                        state_manager,
+                        origin="unproductive-retry",
+                    )
                     await _force_action_if_unproductive(
                         message,
                         unproductive_iterations,
@@ -763,11 +540,10 @@ async def process_request(
                     await _ask_for_clarification(i, state)
                     # Keep the flag set; downstream logic can react to new user input
 
-                if react_coordinator:
+                if react_coordinator and not response_state.task_completed:
                     observation_text = _node_output_text(node)
                     can_continue = (
-                        not response_state.task_completed
-                        and not response_state.awaiting_user_guidance
+                        not response_state.awaiting_user_guidance
                         and i < ctx.max_iterations
                     )
                     await react_coordinator.observe_step(
@@ -784,6 +560,12 @@ async def process_request(
 
                 # Reaching iteration cap → ask what to do next (no auto-extend by default)
                 if i >= ctx.max_iterations and not response_state.task_completed:
+                    await flush_buffered_read_only_tools(
+                        tool_buffer,
+                        tool_callback,
+                        state_manager,
+                        origin="iteration-cap",
+                    )
                     _, tools_str = create_progress_summary(
                         getattr(state.sm.session, "tool_calls", [])
                     )

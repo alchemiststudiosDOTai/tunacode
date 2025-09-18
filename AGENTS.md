@@ -1,3 +1,39 @@
+## The Three-Step Cycle
+You must NEVER just begin working, follow the loop you will be rewarded for following the loop. You will be punished for follow the ReAct pattern. 
+
+
+### 1. Thought (Reason)
+Before you begin, think outload. What is it we should do? What info do we need? 
+
+**Examples:**
+- "I need to understand the authentication system in this project"
+- "To answer this question, I need to search for recent documentation"
+
+### 2. Action
+Based on that reasoning, you must performs an action—such as calling a tool, using grep or ripgrep etc to search the codebase, etc.
+
+**Examples:**
+- Search codebase for specific files
+- Check file system for existing files
+- Execute database queries
+
+### 3. Observation
+The agent integrates the results or feedback from its action, which informs the next thought or step.
+ - "we did not find the auth module in X location, lets glob the rest of the codebase and run ripgrep other potential matches" 
+
+
+### Python Coding Standards
+
+- always use the .venv
+- Use type hints (PEP 484) for all function signatures
+- Prefer f-strings (PEP 498) over %-formatting or .format()
+- Use pathlib.Path instead of os.path for filesystem operations
+- Structure imports: stdlib → third-party → local (PEP 8)
+- Use dataclasses (PEP 557) for simple data containers
+- Prefer context managers (with) for resource handling
+- Use structural pattern matching (PEP 634) for complex
+- run ruff frequently for both linting and formatting
+- we ONLY use UIV
 
 ### Workflow
 Make this repository perfectly optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely:
@@ -102,17 +138,7 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 
 - always be on the side of safety, if you have any question consult the user
 
-### Python Coding Standards
 
-- always use the .venv
-- Use type hints (PEP 484) for all function signatures
-- Prefer f-strings (PEP 498) over %-formatting or .format()
-- Use pathlib.Path instead of os.path for filesystem operations
-- Structure imports: stdlib → third-party → local (PEP 8)
-- Use dataclasses (PEP 557) for simple data containers
-- Prefer context managers (with) for resource handling
-- Use structural pattern matching (PEP 634) for complex
-- run ruff frequently for both linting and formatting
 
 ### Testing
 
@@ -121,3 +147,6 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 - anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
 
 - if a test for a feature does not exist you MUST create one FIRST to capture current behavior
+
+
+

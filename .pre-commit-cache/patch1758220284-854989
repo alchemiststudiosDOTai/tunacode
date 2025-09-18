@@ -1,0 +1,438 @@
+diff --git a/.claude/semantic_index/intent_mappings.json b/.claude/semantic_index/intent_mappings.json
+index efb29f7..bb646c8 100644
+--- a/.claude/semantic_index/intent_mappings.json
++++ b/.claude/semantic_index/intent_mappings.json
+@@ -10,6 +10,7 @@
+     },
+     {
+       "path": "src/tunacode/core/agents/agent_components/agent_config.py",
++      
+       "components": ["get_react_agents", "_REACT_AGENT_CACHE"],
+       "purpose": "ReAct agent configuration and caching"
+     }
+@@ -37,4 +38,4 @@
+     "react_agents": "Module-level cache with version invalidation",
+     "main_agent": "Dual cache (session + module) with config hash validation"
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/TUNACODE.md b/TUNACODE.md
+deleted file mode 100644
+index 3e1e205..0000000
+--- a/TUNACODE.md
++++ /dev/null
+@@ -1,123 +0,0 @@
+-
+-### Workflow
+-Make this repository perfectly optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely:
+-
+-### Directory Structure
+-
+-```
+-claude/
+-├── metadata/
+-│   ├── dependency_graphs/
+-│   ├── file_classifications.json (implementation vs. interface)
+-│   └── intent_classifications.json
+-├── semantic_index/
+-│   ├── function_call_graphs.json
+-│   ├── intent_mappings.json
+-│   └── type_relationships.json
+-├── debug_history/
+-│   ├── error_solution_logs.json (categorized by component and error type)
+-│   └── context_and_versions.json
+-├── patterns/
+-│   ├── canonical_patterns/
+-│   ├── empirical_interface_patterns/
+-│   └── reliability_metrics.json
+-├── cheatsheets/
+-│   └── component_cheatsheets.md (quick-reference guides, known pitfalls, Claude-specific behaviors)
+-├── qa/
+-│   ├── solved_problems/
+-│   ├── context_logs/
+-│   └── reasoning_docs/
+-├── debug_history/
+-│   └── debug_sessions.json (error→solution pairs, context, code versions)
+-├── docs_model_friendly/
+-│   ├── component_purpose.md
+-│   └── component_relationships.md
+-├── delta_summaries/
+-│   ├── api_change_logs.json
+-│   ├── behavior_changes.json
+-│   └── reasoning_logs/
+-└── memory_anchors/
+-    ├── anchors.json (UUID-based anchors with semantic structure)
+-
+-To perfectly optimize this repository for you and future instances of Claude working with it, implement the following explicit instructions:
+-
+-1. **Claude-specific Metadata Directory**
+-   - Maintain normalized metadata about the codebase, including dependency graphs, file types (implementation/interface), and intent classifications.
+-
+-2. **Semantic Code Indexing**
+-   - Create a semantic index with intent classification and pre-analyzed semantic relationships.
+-   - Document detailed function-to-function call graphs and intent mappings.
+-
+-3. **Debug History Database**
+-   - Log all debugging sessions explicitly, including error-solution pairs, context, code versions, and categorization by component/error type.
+-
+-4. **Pattern and Industry Database**
+-   - Provide canonical implementation patterns and empirical interface examples.
+-   - Include explicit reliability metrics for assessing robustness.
+-
+-4. **Component-specific Cheat Sheets**
+-   - Create quick-reference guides documenting common operations, pitfalls, edge cases, and Claude-specific behaviors clearly.
+-
+-5. **Queries-and-Answers Database**
+-   - Store solved queries explicitly indexed by component, file, error type, with context and detailed reasoning.
+-
+-6. **Claude-specific Model-Friendly Documentation**
+-   - Include clear, explicit documentation on component purposes and relationships optimized for Claude.
+-
+-7. **Delta Summaries**
+-   - Clearly document semantic change logs, highlighting API changes, behavior shifts, and reasoning behind these changes.
+-
+-7. **Explicit Memory Anchors**
+-   - Embed special "memory anchor" comments with UUID-based identifiers and semantic structure for easy and precise future reference.
+-
+-Implementing these changes ensures an optimized, efficient, and highly actionable Claude-specific repository structure for current and future Claude interactions
+-
+-- **CRITICAL: WORKTREE REQUIREMENT** - When user requests a worktree, you MUST:
+-  1. Create the worktree with `git worktree add -b branch-name ../dirname`
+-  2. If access is blocked, immediately ask: "I cannot access the worktree directory. Should I: a) Work in a subdirectory instead, b) Use a branch in the main directory, or c) Another solution?"
+-  3. NEVER proceed without a worktree if user specifically requested one
+-
+-- before any updates make a git commit rollback point, clearly labeled for future agents
+-
+-- the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
+-
+-- pre-commit hooks can NOT be skipped, you will be punished for skipping the
+-
+-
+-- grep documentation and .claude as needed BOTH of these have a README.md that ahs a direcoty map, you MUST read these before any bigger grep or context searches
+-
+-- in general gather as much context as needed, unless specified by the user
+-
+-- this is the most important part of this prompt: Synthesis context aggressively and heuristically AS NEEDED ONLY You can deploy the appropriate subagent for complex tasks agents list below
+-
+-### Documentation
+-
+-- update the documents @documentation and in .claude after any update.
+-
+-- use the subagent tech-docs-maintainer to update the documentation you MUST instruct the subagent to keep doc updates short you will be PUNISHED for not telling the documentation agent to keep it to only the most distilled information
+-
+-- always follow best practices with git commits naming and gh cli workflows
+-
+-- commit frequently
+-
+-- always be on the side of safety, if you have any question consult the user
+-
+-### Python Coding Standards
+-
+-- always use the .venv
+-- Use type hints (PEP 484) for all function signatures
+-- Prefer f-strings (PEP 498) over %-formatting or .format()
+-- Use pathlib.Path instead of os.path for filesystem operations
+-- Structure imports: stdlib → third-party → local (PEP 8)
+-- Use dataclasses (PEP 557) for simple data containers
+-- Prefer context managers (with) for resource handling
+-- Use structural pattern matching (PEP 634) for complex
+-- run ruff frequently for both linting and formatting
+-
+-### Testing
+-
+-- "hatch run test" command for testing suite
+-
+-- anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
+-
+-- if a test for a feature does not exist you MUST create one FIRST to capture current behavior
+diff --git a/src/tunacode/core/agents/agent_components/node_processor.py b/src/tunacode/core/agents/agent_components/node_processor.py
+index 80fc23c..72b45cd 100644
+--- a/src/tunacode/core/agents/agent_components/node_processor.py
++++ b/src/tunacode/core/agents/agent_components/node_processor.py
+@@ -15,6 +15,9 @@ from .truncation_checker import check_for_truncation
+ 
+ logger = get_logger(__name__)
+ 
++TOOL_CALL_ARG_BEGIN = "<|tool_call_argument_begin|>"
++TOOL_CALL_ARG_END = "<|tool_call_argument_end|>"
++
+ # Import streaming types with fallback for older versions
+ try:
+     from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+@@ -184,6 +187,23 @@ async def _process_node(
+                 combined_content = " ".join(all_content_parts).strip()
+                 appears_truncated = check_for_truncation(combined_content)
+ 
++                # Detect truncated tool-call argument streams (e.g., provider cut off after begin marker)
++                if (
++                    TOOL_CALL_ARG_BEGIN in combined_content
++                    and TOOL_CALL_ARG_END not in combined_content
++                    and not any(
++                        hasattr(part, "part_kind") and part.part_kind == "tool-call"
++                        for part in node.model_response.parts
++                    )
++                ):
++                    appears_truncated = True
++                    empty_response_detected = True
++                    has_non_empty_content = False
++                    if state_manager.session.show_thoughts:
++                        await ui.warning(
++                            "⚠️ TRUNCATED TOOL CALL DETECTED - missing argument end marker"
++                        )
++
+             # If we only got empty content and no tool calls, we should NOT consider this a valid response
+             # This prevents the agent from stopping when it gets empty responses
+             if not has_non_empty_content and not any(
+diff --git a/src/tunacode/core/agents/main.py b/src/tunacode/core/agents/main.py
+index 6101433..4b24d08 100644
+--- a/src/tunacode/core/agents/main.py
++++ b/src/tunacode/core/agents/main.py
+@@ -8,7 +8,6 @@ CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle mana
+ 
+ from __future__ import annotations
+ 
+-import json
+ import time
+ import uuid
+ from dataclasses import dataclass
+@@ -55,6 +54,7 @@ except Exception:  # pragma: no cover
+ 
+ # Agent components (collapse to a single module import to reduce coupling)
+ from . import agent_components as ac  # noqa: E402
++from .react_pattern import ReactCoordinator
+ 
+ # Configure logging
+ logger = get_logger(__name__)
+@@ -200,209 +200,6 @@ class StateFacade:
+         setattr(self.sm.session, "consecutive_empty_responses", 0)
+ 
+ 
+-# -----------------------
+-# ReAct coordination helpers
+-# -----------------------
+-@dataclass(slots=True)
+-class ReactLoopSnapshot:
+-    step_index: int = 0
+-    last_feedback: Optional[str] = None
+-    last_plan: Optional[str] = None
+-    enabled: bool = True
+-
+-
+-@dataclass(slots=True)
+-class ReactEvaluation:
+-    status: str
+-    feedback: str
+-
+-
+-class ReactCoordinator:
+-    """Lightweight planner/evaluator loop that nudges the primary agent."""
+-
+-    def __init__(
+-        self,
+-        planner: Agent,
+-        evaluator: Agent,
+-        state: StateFacade,
+-        *,
+-        max_steps: int,
+-    ) -> None:
+-        self._planner = planner
+-        self._evaluator = evaluator
+-        self._state = state
+-        self._max_steps = max_steps
+-        self._snapshot = ReactLoopSnapshot()
+-
+-    async def bootstrap(self, query: str) -> None:
+-        """Prime the loop with an initial plan message."""
+-        await self._generate_plan(query)
+-
+-    async def observe_step(self, query: str, observation: str, *, can_continue: bool) -> None:
+-        """Record an observation, provide feedback, and queue the next plan if needed."""
+-
+-        if not self._snapshot.enabled:
+-            return
+-
+-        evaluation = await self._evaluate_step(query, observation)
+-        if evaluation is None:
+-            return
+-
+-        step_label = max(self._snapshot.step_index, 1)
+-        feedback_text = (evaluation.feedback or "").strip()
+-        if feedback_text:
+-            feedback_lines = [f"REACT FEEDBACK STEP {step_label}: {feedback_text}"]
+-        else:
+-            feedback_lines = [f"REACT FEEDBACK STEP {step_label}: (no feedback)"]
+-        if evaluation.status == "done":
+-            feedback_lines.append(
+-                "Evaluator believes the task is satisfied. Provide a final answer if appropriate."
+-            )
+-
+-        create_user_message("\n".join(feedback_lines), self._state.sm)
+-        self._snapshot.last_feedback = feedback_text or evaluation.feedback
+-        await self._log_thought(" | ".join(feedback_lines))
+-
+-        if evaluation.status == "done":
+-            self._snapshot.enabled = False
+-            return
+-
+-        if can_continue:
+-            await self._generate_plan(query)
+-
+-    async def _generate_plan(self, query: str) -> None:
+-        if not self._snapshot.enabled:
+-            return
+-
+-        next_step = self._snapshot.step_index + 1
+-        if next_step > self._max_steps:
+-            self._snapshot.enabled = False
+-            return
+-
+-        prompt = self._build_plan_prompt(query)
+-        response_text = await self._call_agent(self._planner, prompt)
+-        if not response_text:
+-            return
+-
+-        plan_text, rationale = self._parse_plan_response(response_text)
+-        if not plan_text:
+-            return
+-
+-        message_lines = [f"REACT PLAN STEP {next_step}: {plan_text.strip()}"]
+-        if rationale:
+-            message_lines.append(f"Reasoning: {rationale.strip()}")
+-
+-        create_user_message("\n".join(message_lines), self._state.sm)
+-        self._snapshot.step_index = next_step
+-        self._snapshot.last_plan = plan_text
+-        await self._log_thought(" | ".join(message_lines))
+-
+-    async def _evaluate_step(self, query: str, observation: str) -> Optional[ReactEvaluation]:
+-        prompt = self._build_evaluator_prompt(query, observation)
+-        response_text = await self._call_agent(self._evaluator, prompt)
+-        if not response_text:
+-            return None
+-
+-        status, feedback = self._parse_evaluation_response(response_text)
+-        return ReactEvaluation(status=status, feedback=feedback)
+-
+-    async def _call_agent(self, agent: Agent, prompt: str) -> Optional[str]:
+-        try:
+-            if hasattr(agent, "run") and callable(getattr(agent, "run")):
+-                result = await agent.run(prompt)
+-            elif hasattr(agent, "arun") and callable(getattr(agent, "arun")):
+-                result = await agent.arun(prompt)
+-            elif hasattr(agent, "apredict") and callable(getattr(agent, "apredict")):
+-                result = await agent.apredict(prompt)
+-            else:
+-                return None
+-        except Exception:  # pragma: no cover - defensive against provider failures
+-            logger.debug("ReAct helper agent invocation failed", exc_info=True)
+-            self._snapshot.enabled = False
+-            return None
+-
+-        return self._extract_output_text(result)
+-
+-    @staticmethod
+-    def _extract_output_text(result: Any) -> Optional[str]:
+-        if result is None:
+-            return None
+-        if isinstance(result, str):
+-            return result
+-        if hasattr(result, "output"):
+-            output = getattr(result, "output")
+-            return output if isinstance(output, str) else str(output)
+-        if isinstance(result, dict):
+-            if "output" in result:
+-                output = result["output"]
+-                return output if isinstance(output, str) else str(output)
+-            return json.dumps(result)
+-        return str(result)
+-
+-    def _build_plan_prompt(self, query: str) -> str:
+-        feedback = self._snapshot.last_feedback or "None yet"
+-        return (
+-            "User query: "
+-            f"{query}\n"
+-            "Latest evaluator feedback: "
+-            f"{feedback}\n"
+-            "Propose the next tiny actionable step only.\n"
+-            "Reply as JSON with keys 'plan' and 'rationale'."
+-        )
+-
+-    def _build_evaluator_prompt(self, query: str, observation: str) -> str:
+-        plan = self._snapshot.last_plan or "No explicit plan recorded"
+-        return (
+-            "User query: "
+-            f"{query}\n"
+-            "Planned action: "
+-            f"{plan}\n"
+-            "Primary agent observation/output: "
+-            f"{observation or 'No observable output'}\n"
+-            "Decide if the goal is satisfied.\n"
+-            "Reply as JSON with keys 'status' ('continue' or 'done') and 'feedback'."
+-        )
+-
+-    @staticmethod
+-    def _parse_plan_response(text: str) -> tuple[str, str]:
+-        clean_text = text.strip()
+-        try:
+-            data = json.loads(clean_text)
+-        except json.JSONDecodeError:
+-            return clean_text, ""
+-
+-        if isinstance(data, dict):
+-            plan = str(data.get("plan", "")).strip()
+-            rationale = str(data.get("rationale", "")).strip()
+-            return plan or clean_text, rationale
+-        return clean_text, ""
+-
+-    @staticmethod
+-    def _parse_evaluation_response(text: str) -> tuple[str, str]:
+-        clean_text = text.strip()
+-        status = "continue"
+-        feedback = clean_text
+-
+-        try:
+-            data = json.loads(clean_text)
+-        except json.JSONDecodeError:
+-            return status, feedback
+-
+-        if isinstance(data, dict):
+-            parsed_status = str(data.get("status", status)).lower()
+-            if parsed_status in {"continue", "done", "complete"}:
+-                status = "done" if parsed_status in {"done", "complete"} else "continue"
+-            feedback = str(data.get("feedback", feedback)).strip() or feedback
+-
+-        return status, feedback
+-
+-    async def _log_thought(self, message: str) -> None:
+-        if not self._state.show_thoughts:
+-            return
+-        try:
+-            await ui.muted(f"[react] {message}")
+-        except Exception:  # pragma: no cover - UI logging is best-effort
+-            logger.debug("ReAct thought logging failed", exc_info=True)
+ 
+ 
+ # -----------------------
+@@ -672,6 +469,7 @@ async def process_request(
+                 evaluator_agent,
+                 state,
+                 max_steps=min(REACT_MAX_STEPS, ctx.max_iterations),
++                ui_helper=ui,
+             )
+             await react_coordinator.bootstrap(message)
+         except Exception:
+@@ -763,11 +561,10 @@ async def process_request(
+                     await _ask_for_clarification(i, state)
+                     # Keep the flag set; downstream logic can react to new user input
+ 
+-                if react_coordinator:
++                if react_coordinator and not response_state.task_completed:
+                     observation_text = _node_output_text(node)
+                     can_continue = (
+-                        not response_state.task_completed
+-                        and not response_state.awaiting_user_guidance
++                        not response_state.awaiting_user_guidance
+                         and i < ctx.max_iterations
+                     )
+                     await react_coordinator.observe_step(

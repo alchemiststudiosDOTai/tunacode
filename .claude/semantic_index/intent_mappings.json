@@ -10,6 +10,7 @@
     },
     {
       "path": "src/tunacode/core/agents/agent_components/agent_config.py",
+      
       "components": ["get_react_agents", "_REACT_AGENT_CACHE"],
       "purpose": "ReAct agent configuration and caching"
     }

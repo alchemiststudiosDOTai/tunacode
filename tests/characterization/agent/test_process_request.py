@@ -4,6 +4,7 @@ These tests capture the CURRENT behavior of the main request processing function
 """
 
 from contextlib import asynccontextmanager
+from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -343,6 +344,155 @@ class TestProcessRequest:
                     # Assert - Golden master
                     assert self.state_manager.session.iteration_count == 3
                     assert iteration_values == [1, 2, 3]  # 1-indexed
+
+    async def test_flushes_buffer_before_empty_retry(self):
+        """Ensure buffered tools flush before empty-response retry message."""
+
+        message = "Needs retry"
+        nodes = [MockNode()]
+        mock_agent = MagicMock()
+        mock_agent_run = self.create_mock_agent_run(nodes)
+
+        @asynccontextmanager
+        async def mock_iter(msg, message_history):
+            yield mock_agent_run
+
+        mock_agent.iter = mock_iter
+
+        call_order: list[tuple[str, Optional[str]]] = []
+
+        async def mock_flush(*args, **kwargs):
+            call_order.append(("flush", kwargs.get("origin")))
+            return False
+
+        async def mock_handle(*args, **kwargs):
+            call_order.append(("handle", None))
+            assert call_order[0] == ("flush", "empty-response")
+
+        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+            with patch(
+                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+            ) as mock_process:
+                mock_process.return_value = (True, "empty")
+                with patch(
+                    "tunacode.core.agents.main.flush_buffered_read_only_tools",
+                    side_effect=mock_flush,
+                ) as mock_flush_fn:
+                    with patch(
+                        "tunacode.core.agents.main._handle_empty_response",
+                        side_effect=mock_handle,
+                    ) as mock_handle_fn:
+                        await process_request("openai:gpt-4", message, self.state_manager)
+
+        assert mock_flush_fn.call_count >= 1
+        assert mock_handle_fn.call_count == 1
+        assert ("flush", "empty-response") in call_order
+
+    async def test_flushes_buffer_before_unproductive_retry(self):
+        """Ensure buffered tools flush before unproductive-iteration guidance."""
+
+        message = "Take action"
+        nodes = [MockNode() for _ in range(2)]
+        mock_agent = MagicMock()
+        mock_agent_run = self.create_mock_agent_run(nodes)
+
+        @asynccontextmanager
+        async def mock_iter(msg, message_history):
+            yield mock_agent_run
+
+        mock_agent.iter = mock_iter
+
+        call_order: list[str] = []
+
+        async def mock_flush(*args, **kwargs):
+            call_order.append(f"flush:{kwargs.get('origin')}")
+            return False
+
+        async def mock_force(*args, **kwargs):
+            call_order.append("force")
+            assert call_order[-2] == "flush:unproductive-retry"
+
+        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent), patch(
+            "tunacode.core.agents.main.UNPRODUCTIVE_LIMIT",
+            1,
+        ):
+            with patch(
+                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+            ) as mock_process:
+                mock_process.return_value = (False, None)
+                with patch(
+                    "tunacode.core.agents.main.flush_buffered_read_only_tools",
+                    side_effect=mock_flush,
+                ) as mock_flush_fn:
+                    with patch(
+                        "tunacode.core.agents.main._iteration_had_tool_use",
+                        return_value=False,
+                    ):
+                        with patch(
+                            "tunacode.core.agents.main._force_action_if_unproductive",
+                            side_effect=mock_force,
+                        ) as mock_force_fn:
+                            await process_request(
+                                "openai:gpt-4",
+                                message,
+                                self.state_manager,
+                            )
+
+        assert "flush:unproductive-retry" in call_order
+        assert mock_flush_fn.call_count >= 1
+        assert any(
+            call_order[idx : idx + 2] == ["flush:unproductive-retry", "force"]
+            for idx in range(len(call_order) - 1)
+        )
+
+    async def test_flushes_buffer_before_iteration_limit_prompt(self):
+        """Ensure buffered tools flush before iteration-cap prompt."""
+
+        self.state_manager.session.user_config["settings"]["max_iterations"] = 1
+        message = "Long task"
+        nodes = [MockNode() for _ in range(2)]
+        mock_agent = MagicMock()
+        mock_agent_run = self.create_mock_agent_run(nodes)
+
+        @asynccontextmanager
+        async def mock_iter(msg, message_history):
+            yield mock_agent_run
+
+        mock_agent.iter = mock_iter
+
+        call_order: list[str] = []
+
+        async def mock_flush(*args, **kwargs):
+            call_order.append(f"flush:{kwargs.get('origin')}")
+            return False
+
+        def mock_create_user_message(*args, **kwargs):
+            call_order.append("user-message")
+
+        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+            with patch(
+                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+            ) as mock_process:
+                mock_process.return_value = (False, None)
+                with patch(
+                    "tunacode.core.agents.main.flush_buffered_read_only_tools",
+                    side_effect=mock_flush,
+                ) as mock_flush_fn:
+                    with patch(
+                        "tunacode.core.agents.main.create_user_message",
+                        side_effect=mock_create_user_message,
+                    ) as mock_create_msg:
+                        await process_request(
+                            "openai:gpt-4",
+                            message,
+                            self.state_manager,
+                        )
+
+        assert "flush:iteration-cap" in call_order
+        assert mock_flush_fn.call_count >= 1
+        assert mock_create_msg.call_count >= 1
+        first_user_idx = call_order.index("user-message")
+        assert "flush:iteration-cap" in call_order[:first_user_idx]
 
     async def test_process_request_message_history_copy(self):
         """Capture behavior of message history copying."""

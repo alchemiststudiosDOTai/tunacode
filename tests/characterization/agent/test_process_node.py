@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from tunacode.core.agents.agent_components import _process_node
+from tunacode.core.agents.agent_components import ResponseState, ToolBuffer, _process_node
 
 pytestmark = pytest.mark.asyncio
 
@@ -60,6 +60,10 @@ class TestProcessNode:
         self.state_manager.session.tool_calls = []
         self.state_manager.session.files_in_context = set()
         self.state_manager.session.current_iteration = 1
+        self.state_manager.session.spinner = None
+        self.state_manager.session.batch_counter = 0
+        self.state_manager.session.consecutive_empty_responses = 0
+        self.state_manager.is_plan_mode = Mock(return_value=False)
 
     async def test_process_node_with_request(self):
         """Capture behavior when node has request."""
@@ -319,3 +323,48 @@ class TestProcessNode:
 
         # None args becomes empty dict
         assert self.state_manager.session.tool_calls[1]["args"] == {}
+
+    async def test_buffer_persists_after_truncation_guard(self):
+        """Capture current behavior when truncated guard triggers with buffered tools."""
+        # Arrange
+        tool_call = MockPart(
+            part_kind="tool-call",
+            tool_name="grep",
+            args={"pattern": "TODO"},
+            tool_call_id="tool-buffered",
+        )
+        tool_node = MockNode(model_response=MockModelResponse([tool_call]))
+        truncated_text = MockPart(content="the<|tool_call_argument_begin|>")
+        truncated_node = MockNode(model_response=MockModelResponse([truncated_text]))
+        tool_buffer = ToolBuffer()
+        response_state = ResponseState()
+        tool_callback = AsyncMock()
+
+        with patch("tunacode.ui.console.update_spinner_message", new_callable=AsyncMock), patch(
+            "tunacode.ui.console.muted",
+            new_callable=AsyncMock,
+        ), patch("tunacode.ui.console.warning", new_callable=AsyncMock):
+            # Populate buffer with the read-only tool
+            await _process_node(
+                tool_node,
+                tool_callback,
+                self.state_manager,
+                tool_buffer,
+                response_state=response_state,
+            )
+
+            # Act - truncated content response
+            empty_response, reason = await _process_node(
+                truncated_node,
+                tool_callback,
+                self.state_manager,
+                tool_buffer,
+                response_state=response_state,
+            )
+
+        # Assert - Golden master captures current bug
+        assert empty_response is True
+        assert reason == "truncated"
+        assert not tool_buffer.has_tasks()
+        tool_callback.assert_awaited()
+        assert tool_callback.await_count == 1
