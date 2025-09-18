@@ -23,12 +23,17 @@ from tunacode.types import ModelName, PydanticAgent
 logger = get_logger(__name__)
 
 # Module-level caches for system prompts
+# System prompt caches
 _PROMPT_CACHE: Dict[str, Tuple[str, float]] = {}
 _TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
 
 # Module-level cache for agents to persist across requests
 _AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
+
+# Dedicated caches for lightweight ReAct helper agents (planner & evaluator)
+_REACT_AGENT_CACHE: Dict[Tuple[ModelName, str], PydanticAgent] = {}
+_REACT_AGENT_VERSION: Dict[Tuple[ModelName, str], int] = {}
 
 
 def clear_all_caches():
@@ -37,6 +42,8 @@ def clear_all_caches():
     _TUNACODE_CACHE.clear()
     _AGENT_CACHE.clear()
     _AGENT_CACHE_VERSION.clear()
+    _REACT_AGENT_CACHE.clear()
+    _REACT_AGENT_VERSION.clear()
 
 
 def get_agent_tool():
@@ -44,6 +51,56 @@ def get_agent_tool():
     from pydantic_ai import Tool
 
     return Agent, Tool
+
+
+def get_react_agents(model: ModelName, state_manager: StateManager) -> Tuple[PydanticAgent, PydanticAgent]:
+    """Provide cached planner and evaluator agents for the ReAct feedback loop."""
+
+    Agent, _ = get_agent_tool()
+
+    # Ensure changes to core config invalidate helper caches alongside main agent cache
+    cache_version = hash(
+        (
+            state_manager.is_plan_mode(),
+            str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
+            str(state_manager.session.user_config.get("settings", {}).get("react_prompt_version", 1)),
+            str(state_manager.session.user_config.get("mcpServers", {})),
+        )
+    )
+
+    def _ensure_agent(role: str, prompt: str) -> PydanticAgent:
+        key = (model, role)
+        version = _REACT_AGENT_VERSION.get(key)
+        if key in _REACT_AGENT_CACHE and version == cache_version:
+            return _REACT_AGENT_CACHE[key]
+
+        agent = Agent(
+            model=model,
+            system_prompt=prompt,
+            tools=[],
+            mcp_servers=get_mcp_servers(state_manager),
+        )
+        _REACT_AGENT_CACHE[key] = agent
+        _REACT_AGENT_VERSION[key] = cache_version
+        return agent
+
+    planner_prompt = (
+        "You are the planner in a tight ReAct loop.\n"
+        "Given the user's query, propose the next tiny actionable step the primary agent should take.\n"
+        "Factor in any evaluator feedback provided.\n"
+        "Reply as JSON with keys 'plan' (string) and 'rationale' (string). Keep responses brief."
+    )
+
+    evaluator_prompt = (
+        "You are the evaluator in a tight ReAct loop.\n"
+        "Assess whether the latest observation from the primary agent satisfies the user's query.\n"
+        "Respond as JSON with keys: 'status' ('continue' or 'done') and 'feedback' (string guidance)."
+    )
+
+    planner = _ensure_agent("react_planner", planner_prompt)
+    evaluator = _ensure_agent("react_evaluator", evaluator_prompt)
+
+    return planner, evaluator
 
 
 def load_system_prompt(base_path: Path) -> str:
