@@ -5,12 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.76.1] - 2025-09-16
+## [0.0.76.2] - 2025-09-19
+
+### Added
+- **React Tool Auto-Snapshot System** - Comprehensive refactoring with automatic snapshot every 2 iterations (max 5)
+- **ReAct Shim Support** - Added metadata, semantic indexing, and memory anchors for ReAct coordination
+- **Enhanced Session State** - Added react_forced_calls counter and react_guidance tracking
+- **Model-Friendly Documentation** - Created comprehensive component documentation in .claude/docs_model_friendly/
 
 ### Changed
-- Updated documentation
-- Remove redunt prompt shims
-- Other small clean up
+- **React Tool Integration** - Removed from registered tool list, now forced automatically with LLM guidance injection
+- **Repository Structure** - Removed redundant agents.md submodule and restructured TODO.md
+- **Agent Configuration** - Enhanced context loading with react_guidance injection and system prompt updates
+
+### Fixed
+- **React Scratchpad Consistency** - Ensured consistent maintenance without requiring explicit LLM tool selection
+- **Documentation Clarity** - Improved readability and removed confusing submodule references
 
 ## [0.0.76] - 2025-09-12
 
