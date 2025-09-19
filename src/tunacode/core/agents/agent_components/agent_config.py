@@ -13,9 +13,9 @@ from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
 from tunacode.tools.present_plan import create_present_plan_tool
+from tunacode.tools.react import ReactTool
 from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
-from tunacode.tools.react import ReactTool
 from tunacode.tools.todo import TodoTool
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
@@ -258,7 +258,7 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                 Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(react_tool.execute, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(react_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
             ]
         else:
@@ -271,7 +271,7 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                 Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(run_command, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(react_tool.execute, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(react_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(todo_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
