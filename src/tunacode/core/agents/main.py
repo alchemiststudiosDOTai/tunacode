@@ -58,30 +58,7 @@ from . import agent_components as ac  # noqa: E402
 # Configure logging
 logger = get_logger(__name__)
 
-# -----------------------
-# Backwards-compatible exports (rely on agent_components)
-# -----------------------
-ToolBuffer = ac.ToolBuffer
-ResponseState = ac.ResponseState
-AgentRunWrapper = ac.AgentRunWrapper
-AgentRunWithState = ac.AgentRunWithState
-SimpleResult = ac.SimpleResult
-check_task_completion = ac.check_task_completion
-extract_and_execute_tool_calls = ac.extract_and_execute_tool_calls
-parse_json_tool_calls = ac.parse_json_tool_calls
-get_model_messages = ac.get_model_messages
-patch_tool_messages = ac.patch_tool_messages
-get_or_create_agent = ac.get_or_create_agent
-_process_node = ac._process_node  # noqa: SLF001 - intentionally re-exported for compatibility
-execute_tools_parallel = ac.execute_tools_parallel
-create_empty_response_message = ac.create_empty_response_message
-create_fallback_response = ac.create_fallback_response
-create_progress_summary = ac.create_progress_summary
-create_user_message = ac.create_user_message
-format_fallback_output = ac.format_fallback_output
-get_recent_tools_context = ac.get_recent_tools_context
-get_tool_summary = ac.get_tool_summary
-get_batch_description = ac.get_batch_description
+
 
 # -----------------------
 # Module exports

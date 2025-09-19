@@ -12,7 +12,7 @@ from tunacode.context import (
     get_directory_structure,
     get_git_status,
 )
-from tunacode.core.agents.main import get_or_create_agent
+from tunacode.core.agents.agent_components import get_or_create_agent
 from tunacode.core.state import StateManager
 
 
