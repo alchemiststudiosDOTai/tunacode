@@ -1,4 +1,5 @@
 name: Publish to PyPI
+# Fixed: Use direct ruff commands instead of hatch scripts
 
 "on":
   release:
