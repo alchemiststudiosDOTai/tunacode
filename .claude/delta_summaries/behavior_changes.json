@@ -2,6 +2,18 @@
   "version": 1,
   "sessions": [
     {
+      "id": "publish-workflow-cache-bust-20250105-000000",
+      "time": "2025-01-05T00:00:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Renamed GitHub Actions release workflow to publish-release.yml to invalidate cached definitions",
+        "Added CLAUDE_ANCHOR note for future agents on Ruff-based release pipeline",
+        "Documented new workflow path across developer and Claude metadata docs"
+      ]
+    },
+    {
       "id": "react-tool-introduction-20250120-000001",
       "time": "2025-01-20T00:00:01",
       "branch": "master",

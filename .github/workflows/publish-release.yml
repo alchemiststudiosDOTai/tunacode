@@ -1,7 +1,9 @@
 name: Publish to PyPI
-# Fixed: Use direct ruff commands instead of hatch scripts
+run-name: Publish ${{ github.ref_name }}
+# Renamed in v0.0.76.2 to invalidate any stale workflow cache on GitHub Actions.
+# CLAUDE_ANCHOR[publish-workflow-9d7fb121-2f47-4f31-9856-67e25f2c4834]: Ensure releases execute Ruff lint/test pipeline after cache bust.
 
-"on":
+on:
   release:
     types: [published]
   workflow_dispatch:

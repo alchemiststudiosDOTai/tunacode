@@ -2,6 +2,31 @@
   "version": 1,
   "sessions": [
     {
+      "id": "publish-workflow-cache-bust-20250105-000000",
+      "time": "2025-01-05T00:00:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "reasoning": {
+        "problem": "GitHub Actions release runs still executed the stale workflow that called hatch lint scripts, blocking v0.0.76.2 publish attempts.",
+        "why_change": "Renaming the workflow forces GitHub to reload the definition so the Ruff lint + format checks added by the last maintainer actually run.",
+        "solution": "Move publish-v2.yml to publish-release.yml, add a CLAUDE_ANCHOR explaining the cache bust, and point all docs at the new location.",
+        "benefits": [
+          "Ensures PyPI releases pick up the Ruff-based lint/test pipeline",
+          "Reduces risk of future cache drift by documenting the rename",
+          "Improves discoverability via updated developer docs"
+        ],
+        "risks": [
+          "Existing GitHub UI links to the old workflow stop working",
+          "Future agents might forget why the rename happened"
+        ],
+        "mitigations": [
+          "Added CLAUDE memory anchor and doc note calling out the rename",
+          "Workflow retains identical job name so status checks remain recognizable"
+        ]
+      }
+    },
+    {
       "id": "triple-redundancy-removal-20250919-115649",
       "time": "2025-09-19T11:56:49",
       "branch": "master",

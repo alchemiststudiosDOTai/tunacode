@@ -2,6 +2,8 @@
 
 This document describes the automated publishing workflow for TunaCode CLI to PyPI.
 
+> tech-docs-maintainer (short): Workflow renamed to `publish-release.yml` so GitHub Actions reruns the Ruff lint/test pipeline when releases fire.
+
 ## Overview
 
 The project uses GitHub Actions to automatically publish releases to PyPI when a new release tag is created. The workflow is triggered by GitHub releases and handles version consistency, building, testing, and publishing.
@@ -33,7 +35,7 @@ The project uses GitHub Actions to automatically publish releases to PyPI when a
 
 ### Workflow Steps
 
-The publishing workflow (`.github/workflows/publish.yml`) performs these steps:
+The publishing workflow (`.github/workflows/publish-release.yml`) performs these steps:
 
 1. **Checkout Code**: Checks out the repository at the release tag
 2. **Setup Python**: Configures the Python environment
@@ -80,7 +82,7 @@ If publishing fails with authentication errors:
 
 ### Workflow Configuration
 
-The workflow is configured in `.github/workflows/publish.yml` and:
+The workflow is configured in `.github/workflows/publish-release.yml` and:
 - Triggers on GitHub release events
 - Uses API token authentication (preferred method)
 - Validates version consistency before building

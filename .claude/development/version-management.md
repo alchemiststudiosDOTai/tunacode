@@ -22,7 +22,9 @@ This system ensures consistent, automated releases with proper version control a
 - Work with git tags but serve different purposes
 
 ### 3. GitHub Actions Workflow
-**File:** `.github/workflows/publish.yml`
+**File:** `.github/workflows/publish-release.yml`
+
+> tech-docs-maintainer (short): File renamed to force GitHub Actions to pick up Ruff-based release steps.
 
 **Triggers:**
 - Automatic: When creating a GitHub release

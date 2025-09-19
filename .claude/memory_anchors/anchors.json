@@ -143,6 +143,14 @@
       "kind": "line",
       "description": "React guidance becomes system prompt for next LLM call",
       "status": "active"
+    },
+    {
+      "anchor_key": "publish-workflow-9d7fb121-2f47-4f31-9856-67e25f2c4834",
+      "path": ".github/workflows/publish-release.yml",
+      "line": 4,
+      "kind": "line",
+      "description": "Renamed release workflow so GitHub Actions executes the Ruff lint/test pipeline without cached definitions",
+      "status": "active"
     }
   ]
 }

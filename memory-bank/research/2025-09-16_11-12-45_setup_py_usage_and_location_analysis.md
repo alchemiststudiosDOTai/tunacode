@@ -136,7 +136,7 @@ The migration to pyproject.toml is complete and functional:
 
 ### Documentation
 - `.claude/development/model-updates-2025.md` - Migration context
-- `.github/workflows/publish.yml` - CI/CD build pipeline
+- `.github/workflows/publish-release.yml` - CI/CD build pipeline
 - `memory-bank/research/` - Historical research documents
 
 ### Git Commits

@@ -2,6 +2,23 @@
   "version": 1,
   "sessions": [
     {
+      "id": "publish-workflow-cache-bust-20250105-000000",
+      "time": "2025-01-05T00:00:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "changed_files": [
+        ".github/workflows/publish-release.yml",
+        ".claude/development/version-management.md",
+        ".claude/memory_anchors/anchors.json",
+        ".claude/delta_summaries/behavior_changes.json",
+        ".claude/delta_summaries/reasoning_logs.json",
+        "documentation/development/publishing-workflow.md",
+        "memory-bank/research/2025-09-16_11-12-45_setup_py_usage_and_location_analysis.md"
+      ],
+      "notes": "Release pipeline fix: renamed publish workflow to publish-release.yml, added memory anchor, and synced docs so GitHub Actions stops using cached hatch lint job."
+    },
+    {
       "id": "smart-git-20250917-122934",
       "time": "2025-09-17T12:29:34",
       "branch": "main-agent-refactor",
