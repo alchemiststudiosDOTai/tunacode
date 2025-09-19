@@ -14,15 +14,18 @@
         "benefits": [
           "Ensures PyPI releases pick up the Ruff-based lint/test pipeline",
           "Reduces risk of future cache drift by documenting the rename",
-          "Improves discoverability via updated developer docs"
+          "Improves discoverability via updated developer docs",
+          "Pinning to Python 3.12 avoids Hatch's 3.13 --filter crash during tests"
         ],
         "risks": [
           "Existing GitHub UI links to the old workflow stop working",
-          "Future agents might forget why the rename happened"
+          "Future agents might forget why the rename happened",
+          "Python pin could lag behind future runtime upgrades"
         ],
         "mitigations": [
           "Added CLAUDE memory anchor and doc note calling out the rename",
-          "Workflow retains identical job name so status checks remain recognizable"
+          "Workflow retains identical job name so status checks remain recognizable",
+          "Documented the Python pin rationale in developer docs"
         ]
       }
     },

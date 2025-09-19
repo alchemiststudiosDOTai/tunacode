@@ -10,7 +10,8 @@
       "bullets": [
         "Renamed GitHub Actions release workflow to publish-release.yml to invalidate cached definitions",
         "Added CLAUDE_ANCHOR note for future agents on Ruff-based release pipeline",
-        "Documented new workflow path across developer and Claude metadata docs"
+        "Documented new workflow path across developer and Claude metadata docs",
+        "Pinned workflow Python runtime to 3.12 to avoid Hatch --filter sentinel crash on 3.13"
       ]
     },
     {

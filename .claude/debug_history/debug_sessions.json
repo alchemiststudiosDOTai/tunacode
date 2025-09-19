@@ -16,7 +16,7 @@
         "documentation/development/publishing-workflow.md",
         "memory-bank/research/2025-09-16_11-12-45_setup_py_usage_and_location_analysis.md"
       ],
-      "notes": "Release pipeline fix: renamed publish workflow to publish-release.yml, added memory anchor, and synced docs so GitHub Actions stops using cached hatch lint job."
+      "notes": "Release pipeline fix: renamed publish workflow to publish-release.yml, added memory anchor, synced docs, and pinned Python 3.12 so Hatch test runs avoid the 3.13 --filter sentinel bug."
     },
     {
       "id": "smart-git-20250917-122934",

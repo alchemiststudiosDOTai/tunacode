@@ -149,7 +149,7 @@
       "path": ".github/workflows/publish-release.yml",
       "line": 4,
       "kind": "line",
-      "description": "Renamed release workflow so GitHub Actions executes the Ruff lint/test pipeline without cached definitions",
+      "description": "Renamed release workflow so GitHub Actions executes the Ruff lint/test pipeline without cached definitions and pins Python 3.12 for Hatch stability",
       "status": "active"
     }
   ]

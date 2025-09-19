@@ -38,7 +38,7 @@ The project uses GitHub Actions to automatically publish releases to PyPI when a
 The publishing workflow (`.github/workflows/publish-release.yml`) performs these steps:
 
 1. **Checkout Code**: Checks out the repository at the release tag
-2. **Setup Python**: Configures the Python environment
+2. **Setup Python**: Configures Python 3.12 (3.13 currently breaks Hatch's filter parsing)
 3. **Install Dependencies**: Installs build tools (hatch, twine, uv)
 4. **Version Check**: Validates that tag version matches code versions
 5. **Linting**: Runs code quality checks with ruff
