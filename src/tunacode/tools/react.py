@@ -75,9 +75,7 @@ class ReactTool(BaseTool):
             self.state_manager.clear_react_scratchpad()
             return "React scratchpad cleared"
 
-        raise ModelRetry(
-            "Invalid react action. Use one of: think, observe, get, clear"
-        )
+        raise ModelRetry("Invalid react action. Use one of: think, observe, get, clear")
 
     def _format_entry(self, item: Dict[str, Any]) -> str:
         if item["type"] == "think":

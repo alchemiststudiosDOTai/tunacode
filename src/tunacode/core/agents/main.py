@@ -251,7 +251,11 @@ async def _maybe_force_react_snapshot(
             detail = ""
             if tool_name == "grep" and isinstance(args, dict):
                 pattern = args.get("pattern")
-                detail = f"Review grep results for pattern '{pattern}'" if pattern else "Review grep results"
+                detail = (
+                    f"Review grep results for pattern '{pattern}'"
+                    if pattern
+                    else "Review grep results"
+                )
             elif tool_name == "read_file" and isinstance(args, dict):
                 path = args.get("filepath") or args.get("file_path")
                 detail = f"Extract key notes from {path}" if path else "Summarize read_file output"
@@ -265,7 +269,9 @@ async def _maybe_force_react_snapshot(
         )
         state_manager.session.react_guidance.append(guidance_entry)
         if len(state_manager.session.react_guidance) > FORCED_REACT_LIMIT:
-            state_manager.session.react_guidance = state_manager.session.react_guidance[-FORCED_REACT_LIMIT:]
+            state_manager.session.react_guidance = state_manager.session.react_guidance[
+                -FORCED_REACT_LIMIT:
+            ]
 
         if agent_run_ctx is not None:
             ctx_messages = getattr(agent_run_ctx, "messages", None)
