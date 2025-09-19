@@ -401,10 +401,6 @@ async def process_request(
     # Prepare history snapshot
     message_history = _prepare_message_history(state)
 
-    # Patch any orphaned tool calls before starting the agent iteration
-    # This prevents OpenAI from rejecting requests due to tool calls without responses
-    patch_tool_messages("Tool call completed in previous iteration", state_manager)
-
     # Per-request trackers
     tool_buffer = ToolBuffer()
     response_state = ResponseState()

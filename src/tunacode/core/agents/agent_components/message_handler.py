@@ -105,8 +105,11 @@ def patch_tool_messages_in_history(
 ) -> None:
     """Patch a pydantic-ai run message history with synthetic ToolReturnPart for orphan tool-calls.
 
-    This mirrors patch_tool_messages but operates on the agent's internal message_history
-    (ctx.state.message_history) so the provider receives tool messages before the next request.
+    This operates on the agent's internal message_history (ctx.state.message_history) 
+    so the provider receives tool messages before the next request.
+    
+    IMPORTANT: Synthetic returns are inserted immediately after their matching tool_calls
+    to ensure proper message ordering for OpenAI API compliance.
     """
     if not message_history:
         return
@@ -114,35 +117,50 @@ def patch_tool_messages_in_history(
     # Late import to avoid strong coupling in test stubs
     ModelRequest, ToolReturnPart, _ = get_model_messages()
 
-    # Collect tool calls and existing tool returns
-    tool_calls: dict[ToolCallId, ToolName] = {}
+    # Collect tool calls and existing tool returns with their positions
+    tool_calls: dict[ToolCallId, tuple[ToolName, int]] = {}  # tool_call_id -> (tool_name, msg_idx)
     tool_returns: set[ToolCallId] = set()
     retry_prompts: set[ToolCallId] = set()
 
-    for msg in message_history:
+    for msg_idx, msg in enumerate(message_history):
         if hasattr(msg, "parts"):
             for part in msg.parts:
                 if getattr(part, "tool_call_id", None):
                     if getattr(part, "part_kind", None) == "tool-call":
-                        tool_calls[part.tool_call_id] = getattr(part, "tool_name", "tool")
+                        tool_calls[part.tool_call_id] = (
+                            getattr(part, "tool_name", "tool"), 
+                            msg_idx
+                        )
                     elif getattr(part, "part_kind", None) == "tool-return":
                         tool_returns.add(part.tool_call_id)
                     elif getattr(part, "part_kind", None) == "retry-prompt":
                         retry_prompts.add(part.tool_call_id)
 
-    for tool_call_id, tool_name in list(tool_calls.items()):
-        if tool_call_id not in tool_returns and tool_call_id not in retry_prompts:
-            message_history.append(
-                ModelRequest(
-                    parts=[
-                        ToolReturnPart(
-                            tool_name=tool_name,
-                            content=error_message,
-                            tool_call_id=tool_call_id,
-                            timestamp=datetime.now(timezone.utc),
-                            part_kind="tool-return",
-                        )
-                    ],
-                    kind="request",
+    # Insert synthetic returns immediately after their matching tool calls
+    # Process in reverse order to maintain correct indices during insertion
+    orphaned_calls = [
+        (tool_call_id, tool_name, msg_idx)
+        for tool_call_id, (tool_name, msg_idx) in tool_calls.items()
+        if tool_call_id not in tool_returns and tool_call_id not in retry_prompts
+    ]
+    
+    # Sort by message index in reverse order to avoid index shifting issues
+    orphaned_calls.sort(key=lambda x: x[2], reverse=True)
+    
+    for tool_call_id, tool_name, msg_idx in orphaned_calls:
+        synthetic_return = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name=tool_name,
+                    content=error_message,
+                    tool_call_id=tool_call_id,
+                    timestamp=datetime.now(timezone.utc),
+                    part_kind="tool-return",
                 )
-            )
+            ],
+            kind="request",
+        )
+        
+        # Insert immediately after the message containing the tool call
+        # This ensures proper adjacency for OpenAI API compliance
+        message_history.insert(msg_idx + 1, synthetic_return)
