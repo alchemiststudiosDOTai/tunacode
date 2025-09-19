@@ -258,7 +258,12 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                 Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(react_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(
+                    react_tool._execute,
+                    max_retries=max_retries,
+                    strict=tool_strict_validation,
+                    name="react",
+                ),
                 Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
             ]
         else:
@@ -271,7 +276,12 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
                 Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(run_command, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(react_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(
+                    react_tool._execute,
+                    max_retries=max_retries,
+                    strict=tool_strict_validation,
+                    name="react",
+                ),
                 Tool(todo_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
