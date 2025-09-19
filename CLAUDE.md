@@ -21,8 +21,6 @@ claude/
 │   ├── canonical_patterns/
 │   ├── empirical_interface_patterns/
 │   └── reliability_metrics.json
-├── cheatsheets/
-│   └── component_cheatsheets.md (quick-reference guides, known pitfalls, Claude-specific behaviors)
 ├── qa/
 │   ├── solved_problems/
 │   ├── context_logs/
@@ -71,11 +69,6 @@ To perfectly optimize this repository for you and future instances of Claude wor
    - Embed special "memory anchor" comments with UUID-based identifiers and semantic structure for easy and precise future reference.
 
 Implementing these changes ensures an optimized, efficient, and highly actionable Claude-specific repository structure for current and future Claude interactions
-
-- **CRITICAL: WORKTREE REQUIREMENT** - When user requests a worktree, you MUST:
-  1. Create the worktree with `git worktree add -b branch-name ../dirname`
-  2. If access is blocked, immediately ask: "I cannot access the worktree directory. Should I: a) Work in a subdirectory instead, b) Use a branch in the main directory, or c) Another solution?"
-  3. NEVER proceed without a worktree if user specifically requested one
 
 - before any updates make a git commit rollback point, clearly labeled for future agents
 

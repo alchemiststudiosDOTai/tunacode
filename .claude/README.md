@@ -14,8 +14,6 @@
 │   ├── canonical_patterns/
 │   ├── empirical_interface_patterns/
 │   └── reliability_metrics.json
-├── cheatsheets/
-│   └── component_cheatsheets.md (quick-reference guides, known pitfalls, Claude-specific behaviors)
 ├── qa/
 │   ├── solved_problems/
 │   ├── context_logs/

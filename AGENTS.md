@@ -1,6 +1,6 @@
 
 ### Workflow
-Make this repository perfectly optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely:
+you MUST make this repository optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely
 
 ### Directory Structure
 
@@ -21,8 +21,6 @@ claude/
 │   ├── canonical_patterns/
 │   ├── empirical_interface_patterns/
 │   └── reliability_metrics.json
-├── cheatsheets/
-│   └── component_cheatsheets.md (quick-reference guides, known pitfalls, Claude-specific behaviors)
 ├── qa/
 │   ├── solved_problems/
 │   ├── context_logs/
@@ -72,11 +70,6 @@ To perfectly optimize this repository for you and future instances of Claude wor
 
 Implementing these changes ensures an optimized, efficient, and highly actionable Claude-specific repository structure for current and future Claude interactions
 
-- **CRITICAL: WORKTREE REQUIREMENT** - When user requests a worktree, you MUST:
-  1. Create the worktree with `git worktree add -b branch-name ../dirname`
-  2. If access is blocked, immediately ask: "I cannot access the worktree directory. Should I: a) Work in a subdirectory instead, b) Use a branch in the main directory, or c) Another solution?"
-  3. NEVER proceed without a worktree if user specifically requested one
-
 - before any updates make a git commit rollback point, clearly labeled for future agents
 
 - the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
@@ -121,3 +114,5 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 - anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
 
 - if a test for a feature does not exist you MUST create one FIRST to capture current behavior
+- then make a test for the feature the test should fail
+- then build it with TDD red -> green -> blue
