@@ -52,6 +52,8 @@ class SessionState:
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Optional[Any] = None
     todos: list[TodoItem] = field(default_factory=list)
+    # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
+    react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
     # Operation state tracking
     operation_cancelled: bool = False
     # Enhanced tracking for thoughts display
@@ -173,6 +175,17 @@ class StateManager:
 
     def clear_todos(self) -> None:
         self._session.todos = []
+
+    # React scratchpad helpers
+    def get_react_scratchpad(self) -> dict[str, Any]:
+        return self._session.react_scratchpad
+
+    def append_react_entry(self, entry: dict[str, Any]) -> None:
+        timeline = self._session.react_scratchpad.setdefault("timeline", [])
+        timeline.append(entry)
+
+    def clear_react_scratchpad(self) -> None:
+        self._session.react_scratchpad = {"timeline": []}
 
     def reset_session(self) -> None:
         """Reset the session to a fresh state."""

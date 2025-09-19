@@ -74,6 +74,14 @@
         "semantic_role": "Tool batching optimizer",
         "buffering_logic": "Groups read-only tools, executes write tools immediately",
         "performance_benefit": "Significant speedup for multiple read operations"
+      },
+      "ReactTool.execute": {
+        "file": "src/tunacode/tools/react.py",
+        "intent": "SCRATCHPAD_TRACKING",
+        "purpose": "Record think/observe notes and expose session scratchpad controls",
+        "semantic_role": "Lightweight ReAct scratchpad interface",
+        "capabilities": ["think", "observe", "get", "clear"],
+        "state_dependency": "Operates on StateManager.react_scratchpad"
       }
     },
     "node_processing": {

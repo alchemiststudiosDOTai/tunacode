@@ -1,0 +1,23 @@
+<tool>
+  <description>
+    Record a ReAct-style think/observe timeline, retrieve it, or clear it for the current session.
+  </description>
+  <parameters>
+    <parameter name="action" required="true">
+      <type>string</type>
+      <description>One of think, observe, get, clear.</description>
+    </parameter>
+    <parameter name="thoughts" required="false">
+      <type>string</type>
+      <description>Reasoning text for think entries.</description>
+    </parameter>
+    <parameter name="next_action" required="false">
+      <type>string</type>
+      <description>Planned action to pair with think entries.</description>
+    </parameter>
+    <parameter name="result" required="false">
+      <type>string</type>
+      <description>Observation details for observe entries.</description>
+    </parameter>
+  </parameters>
+</tool>

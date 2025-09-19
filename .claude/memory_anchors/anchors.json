@@ -118,6 +118,14 @@
       "symbol": "ParallelGrep",
       "description": "Main grep implementation with timeout handling",
       "status": "active"
+    },
+    {
+      "anchor_key": "react-tool-entry",
+      "path": "src/tunacode/tools/react.py",
+      "line": 18,
+      "kind": "module",
+      "description": "ReactTool implementation capturing think/observe scratchpad entries",
+      "status": "active"
     }
   ]
 }

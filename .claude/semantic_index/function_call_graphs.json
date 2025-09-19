@@ -156,6 +156,11 @@
           "name": "mcp_integration",
           "function": "get_mcp_servers",
           "purpose": "Integrate Model Context Protocol servers"
+        },
+        {
+          "name": "react_tool",
+          "function": "ReactTool.execute",
+          "purpose": "Expose ReAct scratchpad recording as read-only tool"
         }
       ]
     },

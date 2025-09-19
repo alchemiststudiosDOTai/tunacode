@@ -130,6 +130,21 @@
       "type": "source",
       "category": "repl",
       "classification": "implementation"
+    },
+    "src/tunacode/tools/react.py": {
+      "type": "source",
+      "category": "tools",
+      "classification": "implementation"
+    },
+    "src/tunacode/tools/prompts/react_prompt.xml": {
+      "type": "prompt",
+      "category": "tools",
+      "classification": "interface"
+    },
+    "tests/unit/test_react_tool.py": {
+      "type": "test",
+      "category": "tools",
+      "classification": "test"
     }
   }
 }

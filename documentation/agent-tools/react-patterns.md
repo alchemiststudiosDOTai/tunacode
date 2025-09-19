@@ -52,3 +52,9 @@ def react_agent_loop(goal: str):
 ```
 
 This pattern is fundamental to building reliable, explainable AI agents that can handle complex, multi-step tasks while maintaining clear reasoning trails.
+
+## TunaCode Implementation Notes *(tech-docs-maintainer — keep concise)*
+
+- `src/tunacode/tools/react.py` introduces `ReactTool` for recording `think`/`observe` steps against `StateManager.react_scratchpad`.
+- Agents register the tool as read-only so sessions can retrieve (`action="get"`) or reset (`action="clear"`) scratchpad state without mutating the workspace.
+- Prompt metadata resides in `src/tunacode/tools/prompts/react_prompt.xml` with inline fallbacks to guarantee schema availability.
