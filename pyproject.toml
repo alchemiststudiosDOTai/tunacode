@@ -185,10 +185,7 @@ clean = "python -c \"import shutil, pathlib; dirs=['build', 'dist']; [shutil.rmt
 
 # Linting & Formatting
 lint = "ruff check . && ruff format ."
-lint-check = [
-    "ruff check .",
-    "ruff format --check .",
-]
+lint-check = "ruff check . && ruff format --check ."
 
 # Dead code analysis
 vulture = "python -m vulture --config pyproject.toml"
