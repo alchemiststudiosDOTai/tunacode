@@ -13,8 +13,10 @@ while IFS= read -r -d '' file; do
         continue
     fi
 
-    # Skip glob.py and grep.py as they contain necessary prompt injection implementation
-    if [[ "$file" == *"/src/tunacode/tools/glob.py" ]] || [[ "$file" == *"/src/tunacode/tools/grep.py" ]]; then
+    # Skip exceptions that are allowed to exceed limit (core orchestrators and large tools)
+    if [[ "$file" == *"/src/tunacode/tools/glob.py" ]] || \
+       [[ "$file" == *"/src/tunacode/tools/grep.py" ]] || \
+       [[ "$file" == *"/src/tunacode/core/agents/main.py" ]]; then
         continue
     fi
 

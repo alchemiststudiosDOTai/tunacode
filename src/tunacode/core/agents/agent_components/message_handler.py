@@ -98,3 +98,51 @@ def patch_tool_messages(
                     kind="request",
                 )
             )
+
+
+def patch_tool_messages_in_history(
+    message_history: list, error_message: ErrorMessage = "Tool operation failed"
+) -> None:
+    """Patch a pydantic-ai run message history with synthetic ToolReturnPart for orphan tool-calls.
+
+    This mirrors patch_tool_messages but operates on the agent's internal message_history
+    (ctx.state.message_history) so the provider receives tool messages before the next request.
+    """
+    if not message_history:
+        return
+
+    # Late import to avoid strong coupling in test stubs
+    ModelRequest, ToolReturnPart, _ = get_model_messages()
+
+    # Collect tool calls and existing tool returns
+    tool_calls: dict[ToolCallId, ToolName] = {}
+    tool_returns: set[ToolCallId] = set()
+    retry_prompts: set[ToolCallId] = set()
+
+    for msg in message_history:
+        if hasattr(msg, "parts"):
+            for part in msg.parts:
+                if getattr(part, "tool_call_id", None):
+                    if getattr(part, "part_kind", None) == "tool-call":
+                        tool_calls[part.tool_call_id] = getattr(part, "tool_name", "tool")
+                    elif getattr(part, "part_kind", None) == "tool-return":
+                        tool_returns.add(part.tool_call_id)
+                    elif getattr(part, "part_kind", None) == "retry-prompt":
+                        retry_prompts.add(part.tool_call_id)
+
+    for tool_call_id, tool_name in list(tool_calls.items()):
+        if tool_call_id not in tool_returns and tool_call_id not in retry_prompts:
+            message_history.append(
+                ModelRequest(
+                    parts=[
+                        ToolReturnPart(
+                            tool_name=tool_name,
+                            content=error_message,
+                            tool_call_id=tool_call_id,
+                            timestamp=datetime.now(timezone.utc),
+                            part_kind="tool-return",
+                        )
+                    ],
+                    kind="request",
+                )
+            )

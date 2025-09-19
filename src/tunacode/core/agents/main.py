@@ -433,6 +433,21 @@ async def process_request(
                     response_state,
                 )
 
+                # For OpenAI-style models: inject synthetic ToolReturnPart into the agent run context
+                # for any orphan tool calls (no return, no retry prompt) before the next request.
+                try:
+                    from .agent_components.message_handler import (
+                        patch_tool_messages_in_history as _patch_ctx,
+                    )
+
+                    _patch_ctx(
+                        agent_run.ctx.state.message_history,  # type: ignore[attr-defined]
+                        "Tool call completed with no output",
+                    )
+                except Exception:
+                    # Non-fatal; continue normally
+                    pass
+
                 # Handle empty response (aggressive retry prompt)
                 if empty_response:
                     await flush_buffered_read_only_tools(
