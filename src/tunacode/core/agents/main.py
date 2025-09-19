@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
-from tunacode.services.mcp import get_mcp_servers  # re-exported by design
+from tunacode.services.mcp import get_mcp_servers  # noqa: F401 - re-exported by design
 from tunacode.types import (
     AgentRun,
     ModelName,
@@ -85,37 +85,7 @@ get_tool_summary = ac.get_tool_summary
 get_batch_description = ac.get_batch_description
 flush_buffered_read_only_tools = ac.flush_buffered_read_only_tools
 
-# -----------------------
-# Module exports
-# -----------------------
-__all__ = [
-    "process_request",
-    "get_mcp_servers",
-    "ToolBuffer",
-    "check_task_completion",
-    "extract_and_execute_tool_calls",
-    "parse_json_tool_calls",
-    "get_model_messages",
-    "patch_tool_messages",
-    "get_or_create_agent",
-    "get_react_agents",
-    "_process_node",
-    "ResponseState",
-    "SimpleResult",
-    "AgentRunWrapper",
-    "AgentRunWithState",
-    "execute_tools_parallel",
-    "create_empty_response_message",
-    "create_fallback_response",
-    "create_progress_summary",
-    "create_user_message",
-    "format_fallback_output",
-    "get_recent_tools_context",
-    "get_tool_summary",
-    "get_agent_tool",
-    "check_query_satisfaction",
-    "flush_buffered_read_only_tools",
-]
+## Note: Public re-exports are defined in tunacode.core.agents.__init__
 
 # -----------------------
 # Constants & Defaults
@@ -199,8 +169,6 @@ class StateFacade:
 
     def clear_empty_response(self) -> None:
         setattr(self.sm.session, "consecutive_empty_responses", 0)
-
-
 
 
 # -----------------------
@@ -368,22 +336,6 @@ def _should_build_fallback(
     )
 
 
-def _build_fallback_output(
-    iter_idx: int,
-    max_iterations: int,
-    state: StateFacade,
-) -> str:
-    verbosity = state.get_setting("settings.fallback_verbosity", FALLBACK_VERBOSITY_DEFAULT)
-    fallback = create_fallback_response(
-        iter_idx,
-        max_iterations,
-        getattr(state.sm.session, "tool_calls", []),
-        getattr(state.sm.session, "messages", []),
-        verbosity,
-    )
-    return format_fallback_output(fallback)
-
-
 # -----------------------
 # Public API
 # -----------------------
@@ -448,6 +400,10 @@ async def process_request(
 
     # Prepare history snapshot
     message_history = _prepare_message_history(state)
+
+    # Patch any orphaned tool calls before starting the agent iteration
+    # This prevents OpenAI from rejecting requests due to tool calls without responses
+    patch_tool_messages("Tool call completed in previous iteration", state_manager)
 
     # Per-request trackers
     tool_buffer = ToolBuffer()
@@ -543,8 +499,7 @@ async def process_request(
                 if react_coordinator and not response_state.task_completed:
                     observation_text = _node_output_text(node)
                     can_continue = (
-                        not response_state.awaiting_user_guidance
-                        and i < ctx.max_iterations
+                        not response_state.awaiting_user_guidance and i < ctx.max_iterations
                     )
                     await react_coordinator.observe_step(
                         message,
@@ -600,7 +555,17 @@ async def process_request(
             if _should_build_fallback(response_state, i, ctx.max_iterations, ctx.fallback_enabled):
                 patch_tool_messages("Task incomplete", state_manager=state_manager)
                 response_state.has_final_synthesis = True
-                comprehensive_output = _build_fallback_output(i, ctx.max_iterations, state)
+                verbosity = state.get_setting(
+                    "settings.fallback_verbosity", FALLBACK_VERBOSITY_DEFAULT
+                )
+                fallback = create_fallback_response(
+                    i,
+                    ctx.max_iterations,
+                    getattr(state.sm.session, "tool_calls", []),
+                    getattr(state.sm.session, "messages", []),
+                    verbosity,
+                )
+                comprehensive_output = format_fallback_output(fallback)
                 wrapper = AgentRunWrapper(
                     agent_run, SimpleResult(comprehensive_output), response_state
                 )

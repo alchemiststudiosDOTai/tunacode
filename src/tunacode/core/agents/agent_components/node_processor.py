@@ -354,6 +354,24 @@ async def _display_raw_api_response(node: Any, ui: Any) -> None:
             await ui.muted(f" TEXT PART: {content[:200]}{'...' if len(content) > 200 else ''}")
 
 
+def _requires_strict_tool_pairing(state_manager: StateManager) -> bool:
+    """Return True when the downstream provider enforces tool_call -> tool_return pairing.
+
+    We detect OpenAI-style models via the model identifier, which may look like:
+    - "openai:gpt-4.1"
+    - "openrouter:openai/gpt-4.1" (provider router with OpenAI downstream)
+    """
+    try:
+        model_name = (getattr(state_manager.session, "current_model", "") or "").lower()
+        return (
+            ("openai:" in model_name)
+            or ("openai/" in model_name)
+            or model_name.startswith("openai")
+        )
+    except Exception:
+        return False
+
+
 async def _process_tool_calls(
     node: Any,
     tool_callback: Optional[Callable],
@@ -379,7 +397,12 @@ async def _process_tool_calls(
                     await ui.muted("STATE → TOOL_EXECUTION (executing tools)")
             if tool_callback:
                 # Check if this is a read-only tool that can be batched
-                if tool_buffer is not None and part.tool_name in READ_ONLY_TOOLS:
+                strict_pairing = _requires_strict_tool_pairing(state_manager)
+                if (
+                    tool_buffer is not None
+                    and part.tool_name in READ_ONLY_TOOLS
+                    and not strict_pairing
+                ):
                     # Add to buffer instead of executing immediately
                     tool_buffer.add(part, node)
 
@@ -395,6 +418,8 @@ async def _process_tool_calls(
                             f"⏸️ BUFFERED: {part.tool_name} (will execute in parallel batch)"
                         )
                 else:
+                    # If strict pairing is required, ensure any buffered tools are executed first
+                    # so that every tool_call has a matching tool_return before the next request.
                     # Write/execute tool - process any buffered reads first
                     if tool_buffer is not None and tool_buffer.has_tasks():
                         import time
@@ -478,9 +503,9 @@ async def _process_tool_calls(
 
                         await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
 
-                    # Now execute the write/execute tool
+                    # Now execute the current tool immediately
                     if state_manager.session.show_thoughts:
-                        await ui.warning(f"⚠️ SEQUENTIAL: {part.tool_name} (write/execute tool)")
+                        await ui.warning(f"⚠️ SEQUENTIAL: {part.tool_name} (immediate execution)")
 
                     # Update spinner for sequential tool
                     tool_args = getattr(part, "args", {}) if hasattr(part, "args") else {}

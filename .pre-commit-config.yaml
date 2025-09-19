@@ -75,14 +75,14 @@ repos:
       # UV-managed standalone tools (not in hatch environments)
       - id: dead-imports
         name: Check for unused imports in changed files
-        entry: uv run unimport --check --diff --exclude "venv/*" --gitignore
+        entry: uvx -q unimport --check --diff --exclude "venv/*" --gitignore
         language: system
         files: \.py$
         stages: [pre-commit]
 
       - id: vulture-changed
         name: Check for dead code in changed files
-        entry: uv run vulture --min-confidence 80 src/ scripts/utils/vulture_whitelist.py
+        entry: uvx -q vulture --min-confidence 80 src/ scripts/utils/vulture_whitelist.py
         language: system
         files: \.py$
         exclude: ^(tests/|test_)

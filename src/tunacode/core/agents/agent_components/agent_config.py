@@ -199,7 +199,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         current_version = hash(
             (
                 state_manager.is_plan_mode(),
-                str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
+                "0",  # max_retries disabled for OpenAI compatibility
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )
@@ -216,6 +216,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         logger.debug(
             f"Creating new agent for model {model}, plan_mode={state_manager.is_plan_mode()}"
         )
+        # Use configured tool retry behavior (tools themselves do not raise ModelRetry)
         max_retries = state_manager.session.user_config.get("settings", {}).get("max_retries", 3)
 
         # Lazy import Agent and Tool

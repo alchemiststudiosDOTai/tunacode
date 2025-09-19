@@ -1,17 +1,23 @@
 """Base tool class for all TunaCode tools.
 
 This module provides a base class that implements common patterns
-for all tools including error handling, UI logging, and ModelRetry support.
+for all tools including error handling, UI logging, and structured responses.
 """
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from pydantic_ai.exceptions import ModelRetry
-
 from tunacode.core.logging.logger import get_logger
 from tunacode.exceptions import FileOperationError, ToolExecutionError
-from tunacode.types import FilePath, ToolName, ToolResult, UILogger
+from tunacode.types import (
+    ErrorCodes,
+    FilePath,
+    ToolName,
+    ToolResult,
+    UILogger,
+    error_response,
+    success_response,
+)
 
 
 class BaseTool(ABC):
@@ -28,20 +34,16 @@ class BaseTool(ABC):
         self._prompt_cache: Optional[str] = None
         self._context: Dict[str, Any] = {}
 
-    async def execute(self, *args, **kwargs) -> ToolResult:
+    async def execute(self, *args, **kwargs) -> Dict[str, Any]:
         """Execute the tool with error handling and logging.
 
         This method wraps the tool-specific logic with:
         - UI logging of the operation
-        - Exception handling (except ModelRetry and ToolExecutionError)
-        - Consistent error message formatting
+        - Structured error handling
+        - OpenAI-compatible response format
 
         Returns:
-            str: Success message
-
-        Raises:
-            ModelRetry: Re-raised to guide the LLM
-            ToolExecutionError: Raised for all other errors with structured information
+            Dict[str, Any]: Structured response with 'ok' field and either 'data' or 'error'
         """
         try:
             msg = f"{self.tool_name}({self._format_args(*args, **kwargs)})"
@@ -49,19 +51,25 @@ class BaseTool(ABC):
                 await self.ui.info(msg)
             self.logger.info(msg)
             result = await self._execute(*args, **kwargs)
-            return result
-        except ModelRetry as e:
-            # Log as warning and re-raise for pydantic-ai
+            return success_response(result)
+        except ToolExecutionError as e:
+            # Convert to structured error response
             if self.ui:
                 await self.ui.warning(str(e))
-            self.logger.warning(f"ModelRetry: {e}")
-            raise
-        except ToolExecutionError:
-            # Already properly formatted, just re-raise
-            raise
+            self.logger.warning(f"Tool execution error: {e}")
+            return error_response(
+                code=getattr(e, "error_code", ErrorCodes.INTERNAL_ERROR),
+                message=str(e),
+                hint=getattr(e, "suggested_fix", None),
+            )
         except Exception as e:
-            # Handle any other exceptions
-            await self._handle_error(e, *args, **kwargs)
+            # Handle any other exceptions as structured errors
+            error_msg = await self._handle_error(e, *args, **kwargs)
+            return error_response(
+                code=ErrorCodes.INTERNAL_ERROR,
+                message=error_msg or str(e),
+                hint="Check the logs for more details",
+            )
 
     @property
     @abstractmethod
@@ -84,15 +92,15 @@ class BaseTool(ABC):
         """
         pass
 
-    async def _handle_error(self, error: Exception, *args, **kwargs) -> ToolResult:
-        """Handle errors by logging and raising proper exceptions.
+    async def _handle_error(self, error: Exception, *args, **kwargs) -> str:
+        """Handle errors by logging and returning error message.
 
         Args:
             error: The exception that was raised
             *args, **kwargs: Original arguments for context
 
-        Raises:
-            ToolExecutionError: Always raised with structured error information
+        Returns:
+            str: Error message for structured response
         """
         # Format error message for display
         err_msg = f"Error {self._get_error_context(*args, **kwargs)}: {error}"
@@ -100,8 +108,8 @@ class BaseTool(ABC):
             await self.ui.error(err_msg)
         self.logger.error(err_msg)
 
-        # Raise proper exception instead of returning string
-        raise ToolExecutionError(tool_name=self.tool_name, message=str(error), original_error=error)
+        # Return error message for structured response
+        return err_msg
 
     def _format_args(self, *args, **kwargs) -> str:
         """Format arguments for display in UI logging.
@@ -287,13 +295,13 @@ class FileBasedTool(BaseTool):
             return f"handling file '{filepath}'"
         return super()._get_error_context(*args, **kwargs)
 
-    async def _handle_error(self, error: Exception, *args, **kwargs) -> ToolResult:
+    async def _handle_error(self, error: Exception, *args, **kwargs) -> str:
         """Handle file-specific errors.
 
         Overrides base class to create FileOperationError for file-related issues.
 
-        Raises:
-            ToolExecutionError: Always raised with structured error information
+        Returns:
+            str: Error message for structured response
         """
         filepath = args[0] if args else kwargs.get("filepath", "unknown")
 
@@ -312,10 +320,8 @@ class FileBasedTool(BaseTool):
             if self.ui:
                 await self.ui.error(err_msg)
 
-            # Raise ToolExecutionError with the file error
-            raise ToolExecutionError(
-                tool_name=self.tool_name, message=str(file_error), original_error=file_error
-            )
+            # Return error message for structured response
+            return err_msg
 
         # For non-file errors, use the base class handling
-        await super()._handle_error(error, *args, **kwargs)
+        return await super()._handle_error(error, *args, **kwargs)

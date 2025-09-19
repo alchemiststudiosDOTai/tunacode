@@ -68,9 +68,7 @@ async def flush_buffered_read_only_tools(
                 await ui.muted(tool_desc)
             await ui.muted("=" * 60)
         elif state_manager.session.show_thoughts:
-            await ui.muted(
-                f"⚡ {origin}: executing {len(buffered_tasks)} buffered read-only tools"
-            )
+            await ui.muted(f"⚡ {origin}: executing {len(buffered_tasks)} buffered read-only tools")
     except Exception:  # pragma: no cover - UI best effort
         logger.debug("Buffered tool flush UI failed (non-fatal)", exc_info=True)
 

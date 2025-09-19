@@ -412,9 +412,12 @@ class TestProcessRequest:
             call_order.append("force")
             assert call_order[-2] == "flush:unproductive-retry"
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent), patch(
-            "tunacode.core.agents.main.UNPRODUCTIVE_LIMIT",
-            1,
+        with (
+            patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent),
+            patch(
+                "tunacode.core.agents.main.UNPRODUCTIVE_LIMIT",
+                1,
+            ),
         ):
             with patch(
                 "tunacode.core.agents.main._process_node", new_callable=AsyncMock
@@ -431,7 +434,7 @@ class TestProcessRequest:
                         with patch(
                             "tunacode.core.agents.main._force_action_if_unproductive",
                             side_effect=mock_force,
-                        ) as mock_force_fn:
+                        ) as mock_force_fn:  # noqa: F841 - used to assert context manager behavior
                             await process_request(
                                 "openai:gpt-4",
                                 message,

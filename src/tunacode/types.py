@@ -41,6 +41,87 @@ except ImportError:
     ModelResponse = Any  # type: ignore[misc]
 
 
+# Tool response types for OpenAI compatibility
+@dataclass
+class ToolError:
+    """Structured error information for tool failures."""
+
+    code: str
+    message: str
+    hint: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class ToolSuccess:
+    """Structured success response for tool operations."""
+
+    data: Any
+    metadata: Optional[Dict[str, Any]] = None
+
+
+def success_response(data: Any, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Create a successful tool response.
+
+    Args:
+        data: The successful result data
+        metadata: Optional metadata about the operation
+
+    Returns:
+        Structured success response
+    """
+    response = {"ok": True, "data": data}
+    if metadata:
+        response["metadata"] = metadata
+    return response
+
+
+def error_response(
+    code: str, message: str, hint: Optional[str] = None, details: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Create an error tool response.
+
+    Args:
+        code: Error code (e.g., "FILE_NOT_FOUND", "PERMISSION_DENIED")
+        message: Human-readable error message
+        hint: Optional hint for how to fix the error
+        details: Optional additional error details
+
+    Returns:
+        Structured error response
+    """
+    error_obj: Dict[str, Any] = {"code": code, "message": message}
+    if hint:
+        error_obj["hint"] = hint
+    if details:
+        error_obj["details"] = details
+
+    return {"ok": False, "error": error_obj}
+
+
+class ErrorCodes:
+    """Standard error codes for tool operations."""
+
+    # File operations
+    FILE_NOT_FOUND = "FILE_NOT_FOUND"
+    FILE_EXISTS = "FILE_EXISTS"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+    INVALID_PATH = "INVALID_PATH"
+
+    # Command execution
+    COMMAND_FAILED = "COMMAND_FAILED"
+    COMMAND_NOT_FOUND = "COMMAND_NOT_FOUND"
+    TIMEOUT = "TIMEOUT"
+
+    # Validation
+    INVALID_ARGUMENTS = "INVALID_ARGUMENTS"
+    MISSING_REQUIRED = "MISSING_REQUIRED"
+
+    # General
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+    NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
+
+
 @dataclass
 class TodoItem:
     id: str

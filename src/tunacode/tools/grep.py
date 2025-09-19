@@ -376,7 +376,9 @@ Usage:
                 self._executor, run_enhanced_ripgrep
             )
         except TooBroadPatternError:
-            raise
+            # If ripgrep path exceeded the first-match deadline, return empty
+            # so the caller can gracefully fallback to the Python search path.
+            return []
 
     async def _python_search_filtered(
         self, pattern: str, candidates: List[Path], config: SearchConfig
