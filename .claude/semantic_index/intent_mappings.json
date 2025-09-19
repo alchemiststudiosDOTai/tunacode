@@ -80,8 +80,26 @@
         "intent": "SCRATCHPAD_TRACKING",
         "purpose": "Record think/observe notes and expose session scratchpad controls",
         "semantic_role": "Lightweight ReAct scratchpad interface",
-        "capabilities": ["think", "observe", "get", "clear"],
-        "state_dependency": "Operates on StateManager.react_scratchpad"
+        "capabilities": [
+          "think",
+          "observe",
+          "get",
+          "clear"
+        ],
+        "state_dependency": "Operates on StateManager.react_scratchpad",
+        "policy": "forced snapshots every two iterations"
+      },
+      "ForcedReactSnapshot": {
+        "file": "src/tunacode/core/agents/main.py",
+        "intent": "AUTO_SCRATCHPAD_LOGGING",
+        "purpose": "Schedule react snapshots and inject guidance system prompt into the next LLM request",
+        "semantic_role": "Iteration hook that drives ReactTool and injects guidance",
+        "capabilities": [
+          "interval=2",
+          "limit=5",
+          "inject_system_prompt"
+        ],
+        "state_dependency": "increments SessionState.react_forced_calls"
       }
     },
     "node_processing": {
@@ -158,7 +176,10 @@
         "intent": "MESSAGE_COMPATIBILITY",
         "purpose": "Provide compatibility layer for message classes across environments",
         "semantic_role": "Message class fallback provider",
-        "fallbacks": ["SystemPromptPart", "UserPromptPart"],
+        "fallbacks": [
+          "SystemPromptPart",
+          "UserPromptPart"
+        ],
         "environment_adaptation": "Works with both real and test environments"
       }
     },
@@ -196,7 +217,12 @@
         "intent": "STATE_ENUMERATION",
         "purpose": "Define agent processing states as enum",
         "semantic_role": "State type definitions",
-        "values": ["USER_INPUT", "ASSISTANT", "TOOL_EXECUTION", "RESPONSE"],
+        "values": [
+          "USER_INPUT",
+          "ASSISTANT",
+          "TOOL_EXECUTION",
+          "RESPONSE"
+        ],
         "transition_rules": "Pre-defined valid transitions between states"
       },
       "PlanPhase": {
@@ -204,7 +230,12 @@
         "intent": "PLAN_ENUMERATION",
         "purpose": "Define plan mode phases as enum",
         "semantic_role": "Plan phase type definitions",
-        "values": ["PLANNING_RESEARCH", "PLANNING_DRAFT", "PLAN_READY", "REVIEW_DECISION"]
+        "values": [
+          "PLANNING_RESEARCH",
+          "PLANNING_DRAFT",
+          "PLAN_READY",
+          "REVIEW_DECISION"
+        ]
       }
     }
   },

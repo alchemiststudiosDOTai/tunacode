@@ -37,7 +37,7 @@
     {
       "anchor_key": "process-request-entry",
       "path": "src/tunacode/core/agents/main.py",
-      "line": 162,
+      "line": 411,
       "kind": "function",
       "symbol": "process_request",
       "description": "Main entry point for all agent requests",
@@ -71,7 +71,7 @@
     {
       "anchor_key": "session-state",
       "path": "src/tunacode/core/state.py",
-      "line": 32,
+      "line": 33,
       "kind": "class",
       "symbol": "SessionState",
       "description": "Core session state container",
@@ -80,7 +80,7 @@
     {
       "anchor_key": "state-manager",
       "path": "src/tunacode/core/state.py",
-      "line": 98,
+      "line": 109,
       "kind": "class",
       "symbol": "StateManager",
       "description": "Main state manager singleton",
@@ -125,6 +125,23 @@
       "line": 18,
       "kind": "module",
       "description": "ReactTool implementation capturing think/observe scratchpad entries",
+      "status": "active"
+    },
+    {
+      "anchor_key": "react-forced-call",
+      "path": "src/tunacode/core/agents/main.py",
+      "line": 209,
+      "kind": "function",
+      "symbol": "_maybe_force_react_snapshot",
+      "description": "Auto snapshot helper injecting guidance into LLM context",
+      "status": "active"
+    },
+    {
+      "anchor_key": "react-system-injection",
+      "path": "src/tunacode/core/agents/main.py",
+      "line": 278,
+      "kind": "line",
+      "description": "React guidance becomes system prompt for next LLM call",
       "status": "active"
     }
   ]

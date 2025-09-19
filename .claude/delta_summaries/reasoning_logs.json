@@ -94,11 +94,12 @@
       "reasoning": {
         "problem": "Agents lacked a lightweight way to persist ReAct think/observe notes across tool calls without polluting todos or external files.",
         "why_change": "Provide a minimal scratchpad that models can query during a run while keeping implementation surface tiny and read-only.",
-        "solution": "Introduce `ReactTool` backed by `StateManager.react_scratchpad`, expose think/observe/get/clear actions, and register it in read-only tool set.",
+        "solution": "Introduce `ReactTool` backed by `StateManager.react_scratchpad`, expose think/observe/get/clear actions, force snapshots every two iterations (up to five), and inject those summaries directly into the agent conversation so the model must consider them.",
         "benefits": [
           "Enables session-scoped reasoning traces without file writes",
           "Keeps API surface minimal and follows existing BaseTool patterns",
-          "Supports plan mode because tool is categorized as read-only"
+          "Guarantees periodic scratchpad updates without requiring the planner to choose the tool",
+          "Ensures guidance is surfaced to the model by auto-injecting summary prompts"
         ],
         "risks": [
           "Potential schema drift if XML prompt missing",

@@ -10,7 +10,8 @@
       "bullets": [
         "Added react tool for lightweight think/observe scratchpad tracking",
         "Extended SessionState with react_scratchpad timeline helpers",
-        "Registered react as read-only tool in agent configuration"
+        "Process request now auto-calls react every two iterations (max five) instead of exposing the tool to the planner",
+        "Forced snapshots inject concise guidance into the conversation, and when /thoughts are enabled the guidance is echoed for visibility"
       ]
     },
     {

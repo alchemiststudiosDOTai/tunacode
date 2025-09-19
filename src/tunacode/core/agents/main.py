@@ -24,6 +24,7 @@ from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
 from tunacode.services.mcp import get_mcp_servers  # re-exported by design
+from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
     ModelName,
@@ -55,8 +56,8 @@ except Exception:  # pragma: no cover
     TextPartDelta = None  # type: ignore
     STREAMING_AVAILABLE = False
 
-# Agent components (collapse to a single module import to reduce coupling)
-from . import agent_components as ac  # noqa: E402
+# Agent components (flattned to a single module import to reduce coupling)
+from . import agent_components as ac  
 
 # Configure logging
 logger = get_logger(__name__)
@@ -75,10 +76,12 @@ __all__ = [
 # -----------------------
 # Constants & Defaults
 # -----------------------
-DEFAULT_MAX_ITERATIONS = 15  # replaces magic numbers
+DEFAULT_MAX_ITERATIONS = 15
 UNPRODUCTIVE_LIMIT = 3  # iterations without tool use before forcing action
 FALLBACK_VERBOSITY_DEFAULT = "normal"
 DEBUG_METRICS_DEFAULT = False
+FORCED_REACT_INTERVAL = 2
+FORCED_REACT_LIMIT = 5
 
 
 # -----------------------
@@ -129,6 +132,8 @@ class StateFacade:
         setattr(self.sm.session, "current_iteration", 0)
         setattr(self.sm.session, "iteration_count", 0)
         setattr(self.sm.session, "tool_calls", [])
+        setattr(self.sm.session, "react_forced_calls", 0)
+        setattr(self.sm.session, "react_guidance", [])
         # Counter used by other subsystems; initialize if absent
         if not hasattr(self.sm.session, "batch_counter"):
             setattr(self.sm.session, "batch_counter", 0)
@@ -203,6 +208,82 @@ def _iteration_had_tool_use(node: Any) -> bool:
             if getattr(part, "part_kind", None) == "tool-call":
                 return True
     return False
+
+
+async def _maybe_force_react_snapshot(
+    iteration: int,
+    state_manager: StateManager,
+    react_tool: ReactTool,
+    show_debug: bool,
+    agent_run_ctx: Any | None = None,
+) -> None:
+    """CLAUDE_ANCHOR[react-forced-call]: Auto-log reasoning every two turns."""
+
+    if iteration < FORCED_REACT_INTERVAL or iteration % FORCED_REACT_INTERVAL != 0:
+        return
+
+    forced_calls = getattr(state_manager.session, "react_forced_calls", 0)
+    if forced_calls >= FORCED_REACT_LIMIT:
+        return
+
+    try:
+        await react_tool.execute(
+            action="think",
+            thoughts=f"Auto snapshot after iteration {iteration}",
+            next_action="continue",
+        )
+        state_manager.session.react_forced_calls = forced_calls + 1
+        timeline = state_manager.session.react_scratchpad.get("timeline", [])
+        latest = timeline[-1] if timeline else {"thoughts": "?", "next_action": "?"}
+        summary = latest.get("thoughts", "")
+        tool_calls = getattr(state_manager.session, "tool_calls", [])
+        if tool_calls:
+            last_tool = tool_calls[-1]
+            tool_name = last_tool.get("tool", "tool")
+            args = last_tool.get("args", {})
+            if isinstance(args, str):
+                try:
+                    import json
+
+                    args = json.loads(args)
+                except (ValueError, TypeError):
+                    args = {}
+            detail = ""
+            if tool_name == "grep" and isinstance(args, dict):
+                pattern = args.get("pattern")
+                detail = f"Review grep results for pattern '{pattern}'" if pattern else "Review grep results"
+            elif tool_name == "read_file" and isinstance(args, dict):
+                path = args.get("filepath") or args.get("file_path")
+                detail = f"Extract key notes from {path}" if path else "Summarize read_file output"
+            else:
+                detail = f"Act on {tool_name} findings"
+        else:
+            detail = "Plan your first lookup"
+        guidance_entry = (
+            f"React snapshot {forced_calls + 1}/{FORCED_REACT_LIMIT} at iteration {iteration}:"
+            f" {summary}. Next: {detail}"
+        )
+        state_manager.session.react_guidance.append(guidance_entry)
+        if len(state_manager.session.react_guidance) > FORCED_REACT_LIMIT:
+            state_manager.session.react_guidance = state_manager.session.react_guidance[-FORCED_REACT_LIMIT:]
+
+        if agent_run_ctx is not None:
+            ctx_messages = getattr(agent_run_ctx, "messages", None)
+            if isinstance(ctx_messages, list):
+                ModelRequest, _, SystemPromptPart = ac.get_model_messages()
+                system_part = SystemPromptPart(
+                    content=f"[React Guidance] {guidance_entry}",
+                    part_kind="system-prompt",
+                )
+                # CLAUDE_ANCHOR[react-system-injection]
+                # Append synthetic system message so LLM receives react guidance next turn
+                # This mutates the active run context so the very next model prompt includes the guidance
+                ctx_messages.append(ModelRequest(parts=[system_part], kind="request"))
+
+        if show_debug:
+            await ui.muted("\n[react → LLM] BEGIN\n" + guidance_entry + "\n[react → LLM] END\n")
+    except Exception:
+        logger.debug("Forced react snapshot failed", exc_info=True)
 
 
 async def _handle_empty_response(
@@ -412,6 +493,7 @@ async def process_request(
     response_state = ac.ResponseState()
     unproductive_iterations = 0
     last_productive_iteration = 0
+    react_tool = ReactTool(state_manager=state_manager)
 
     try:
         async with agent.iter(message, message_history=message_history) as agent_run:
@@ -468,6 +550,14 @@ async def process_request(
                         state,
                     )
                     unproductive_iterations = 0  # reset after nudge
+
+                await _maybe_force_react_snapshot(
+                    i,
+                    state_manager,
+                    react_tool,
+                    state.show_thoughts,
+                    agent_run.ctx,
+                )
 
                 # Optional debug progress
                 if state.show_thoughts:

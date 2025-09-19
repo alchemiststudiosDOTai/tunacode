@@ -54,6 +54,8 @@ class SessionState:
     todos: list[TodoItem] = field(default_factory=list)
     # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
     react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
+    react_forced_calls: int = 0
+    react_guidance: list[str] = field(default_factory=list)
     # Operation state tracking
     operation_cancelled: bool = False
     # Enhanced tracking for thoughts display

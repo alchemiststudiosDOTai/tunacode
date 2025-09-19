@@ -204,6 +204,13 @@
           ],
           "cleared_by": [
             "StateManager.clear_react_scratchpad"
+          ],
+          "tracked_by": [
+            "SessionState.react_forced_calls"
+          ],
+          "consumed_by": [
+            "create_user_message injections",
+            "Agent graph message history"
           ]
         },
         "structure": {
@@ -218,7 +225,9 @@
               "type",
               "result"
             ]
-          }
+          },
+          "forced_calls": "Integer counter limiting auto snapshots to five",
+          "guidance": "List of injected guidance strings surfaced to the model"
         }
       }
     },

@@ -56,5 +56,6 @@ This pattern is fundamental to building reliable, explainable AI agents that can
 ## TunaCode Implementation Notes *(tech-docs-maintainer — keep concise)*
 
 - `src/tunacode/tools/react.py` introduces `ReactTool` for recording `think`/`observe` steps against `StateManager.react_scratchpad`.
-- Agents register the tool as read-only so sessions can retrieve (`action="get"`) or reset (`action="clear"`) scratchpad state without mutating the workspace.
+- Core agent logic (`src/tunacode/core/agents/main.py`) now forces an auto snapshot every two iterations (maximum five times) instead of exposing the tool for free-form selection.
+- When `/thoughts` are enabled, each forced snapshot is echoed to the console so iteration-level logging stays visible (e.g., `[react] Auto snapshot 2/5 …`).
 - Prompt metadata resides in `src/tunacode/tools/prompts/react_prompt.xml` with inline fallbacks to guarantee schema availability.

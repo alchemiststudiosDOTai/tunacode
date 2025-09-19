@@ -56,11 +56,12 @@
       "changed_files": [
         "src/tunacode/tools/react.py",
         "src/tunacode/core/state.py",
-        "src/tunacode/constants.py",
+        "src/tunacode/core/agents/main.py",
         "src/tunacode/core/agents/agent_components/agent_config.py",
+        "documentation/agent-tools/react-patterns.md",
         "tests/unit/test_react_tool.py"
       ],
-      "notes": "Introduced lightweight ReactTool scratchpad; covered with unit test and updated state helpers."
+      "notes": "ReactTool scratchpad now auto-logs every two iterations (max five) with /thoughts output; removed from default tool list, updated docs/tests/state helpers."
     }
   ]
 }

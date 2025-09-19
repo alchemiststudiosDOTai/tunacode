@@ -75,9 +75,9 @@
       "base": "current",
       "head": "current",
       "bullets": [
-        "ADDED react tool to read-only tool set for ReAct scratchpad logging",
+        "ADDED react tool for ReAct scratchpad logging",
         "EXTENDED StateManager API with react_scratchpad helpers",
-        "NO breaking changes \u2013 new tool optional for agents"
+        "REMOVED react from registered tool list; process_request now issues up to five auto snapshots every two iterations"
       ]
     }
   ]

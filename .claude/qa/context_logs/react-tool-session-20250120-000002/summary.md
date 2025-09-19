@@ -1,6 +1,6 @@
 # React Tool Session Snapshot
 
-- Added `ReactTool` to capture ReAct scratchpad interactions via `react` tool name.
-- Extended `StateManager` with `react_scratchpad` helpers for think/observe timeline management.
-- Registered tool as read-only in agent configuration; kept prompt and schema minimal.
-- Covered behavior with `tests/unit/test_react_tool.py` capturing think→observe sequence.
+- `ReactTool` captures ReAct scratchpad interactions while the agent now auto-invokes it every two iterations (up to five snapshots) via `_maybe_force_react_snapshot`, injecting each summary back into the conversation.
+- `SessionState` tracks both the scratchpad timeline and a `react_forced_calls` ceiling so forced usage stays bounded per request.
+- React is no longer registered as a selectable tool; documentation updated to reflect the forced snapshot workflow.
+- `tests/unit/test_react_tool.py` covers both manual think/observe usage and the periodic auto snapshot helper.

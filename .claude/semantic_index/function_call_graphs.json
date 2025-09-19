@@ -44,6 +44,12 @@
           "to": "_force_action_if_unproductive",
           "type": "recovery",
           "purpose": "Force agent action when stuck in unproductive loops"
+        },
+        {
+          "from": "process_request",
+          "to": "_maybe_force_react_snapshot",
+          "type": "instrumentation",
+          "purpose": "Force react scratchpad updates every two iterations (max five)"
         }
       ]
     },
@@ -54,37 +60,56 @@
           "name": "agent_config",
           "entry": "get_or_create_agent",
           "purpose": "Agent creation and configuration with system prompt caching",
-          "dependencies": ["system prompt loading", "MCP server integration", "tool registration"]
+          "dependencies": [
+            "system prompt loading",
+            "MCP server integration",
+            "tool registration"
+          ]
         },
         {
           "name": "node_processor",
           "entry": "_process_node",
           "purpose": "Core processing logic for agent responses",
-          "dependencies": ["tool execution", "completion detection", "state management"]
+          "dependencies": [
+            "tool execution",
+            "completion detection",
+            "state management"
+          ]
         },
         {
           "name": "response_state",
           "entry": "ResponseState",
           "purpose": "State management using enum-based state machine",
-          "dependencies": ["state_transition", "AgentState enum"]
+          "dependencies": [
+            "state_transition",
+            "AgentState enum"
+          ]
         },
         {
           "name": "task_completion",
           "entry": "check_task_completion",
           "purpose": "Detect task completion markers in responses",
-          "dependencies": ["regex patterns", "content cleaning"]
+          "dependencies": [
+            "regex patterns",
+            "content cleaning"
+          ]
         },
         {
           "name": "tool_buffer",
           "entry": "ToolBuffer",
           "purpose": "Buffer read-only tools for parallel execution",
-          "dependencies": ["tool_executor", "READ_ONLY_TOOLS constant"]
+          "dependencies": [
+            "tool_executor",
+            "READ_ONLY_TOOLS constant"
+          ]
         },
         {
           "name": "streaming",
           "entry": "stream_model_request_node",
           "purpose": "Token streaming for real-time responses",
-          "dependencies": ["pydantic_ai streaming APIs"]
+          "dependencies": [
+            "pydantic_ai streaming APIs"
+          ]
         }
       ]
     },
@@ -115,19 +140,28 @@
       "description": "Enhanced state machine for agent processing",
       "states": {
         "USER_INPUT": {
-          "transitions_to": ["ASSISTANT"],
+          "transitions_to": [
+            "ASSISTANT"
+          ],
           "purpose": "Initial state - user prompt received"
         },
         "ASSISTANT": {
-          "transitions_to": ["TOOL_EXECUTION", "RESPONSE"],
+          "transitions_to": [
+            "TOOL_EXECUTION",
+            "RESPONSE"
+          ],
           "purpose": "Reasoning/deciding phase"
         },
         "TOOL_EXECUTION": {
-          "transitions_to": ["RESPONSE"],
+          "transitions_to": [
+            "RESPONSE"
+          ],
           "purpose": "Tool execution phase"
         },
         "RESPONSE": {
-          "transitions_to": ["ASSISTANT"],
+          "transitions_to": [
+            "ASSISTANT"
+          ],
           "purpose": "Handling results, may complete or loop"
         }
       },
@@ -158,9 +192,9 @@
           "purpose": "Integrate Model Context Protocol servers"
         },
         {
-          "name": "react_tool",
-          "function": "ReactTool.execute",
-          "purpose": "Expose ReAct scratchpad recording as read-only tool"
+          "name": "react_snapshot",
+          "function": "_maybe_force_react_snapshot",
+          "purpose": "Auto invoke ReactTool every two iterations (max five)"
         }
       ]
     },
@@ -190,6 +224,35 @@
           "function": "parse_json_tool_calls",
           "trigger": "Structured tool calling failures",
           "action": "Parse and execute JSON-formatted tool calls"
+        }
+      ]
+    },
+    "react_tool_flow": {
+      "description": "Reactive scratchpad auto logging",
+      "flow": [
+        {
+          "step": 1,
+          "component": "_maybe_force_react_snapshot",
+          "function": "auto snapshot",
+          "purpose": "Invoke ReactTool with think action every two iterations up to five times"
+        },
+        {
+          "step": 2,
+          "component": "ReactTool",
+          "function": "execute",
+          "purpose": "Record think entry on react_scratchpad"
+        },
+        {
+          "step": 3,
+          "component": "StateManager",
+          "function": "react_forced_calls",
+          "purpose": "Track number of forced snapshots to enforce limit"
+        },
+        {
+          "step": 4,
+          "component": "create_user_message",
+          "function": "inject guidance",
+          "purpose": "Inject guidance as system prompt to influence next LLM turn"
         }
       ]
     }
