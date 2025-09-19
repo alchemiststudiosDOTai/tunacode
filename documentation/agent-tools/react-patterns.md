@@ -40,14 +40,14 @@ def react_agent_loop(goal: str):
     while not goal_achieved(goal, context):
         # Reasoning step
         thought = reason_about_current_state(goal, context)
-        
+
         # Action step
         action = determine_next_action(thought, context)
         result = execute_action(action)
-        
+
         # Observation step
         context = update_context(context, action, result)
-        
+
     return context
 ```
 

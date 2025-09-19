@@ -57,7 +57,7 @@ except Exception:  # pragma: no cover
     STREAMING_AVAILABLE = False
 
 # Agent components (flattned to a single module import to reduce coupling)
-from . import agent_components as ac  
+from . import agent_components as ac
 
 # Configure logging
 logger = get_logger(__name__)
