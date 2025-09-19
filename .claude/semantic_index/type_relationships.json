@@ -21,7 +21,7 @@
             "file": "src/tunacode/core/agents/agent_components/result_wrapper.py"
           },
           {
-            "name": "AgentRunWrapper", 
+            "name": "AgentRunWrapper",
             "purpose": "Wrapper for fallback responses with synthesis",
             "file": "src/tunacode/core/agents/agent_components/result_wrapper.py"
           }
@@ -53,7 +53,7 @@
         "purpose": "Enumeration of agent processing states",
         "values": {
           "USER_INPUT": "Initial state - user prompt received",
-          "ASSISTANT": "Reasoning/deciding phase", 
+          "ASSISTANT": "Reasoning/deciding phase",
           "TOOL_EXECUTION": "Tool execution phase",
           "RESPONSE": "Handling results, may complete or loop"
         },
@@ -312,7 +312,7 @@
           "integration": "state_machine, response_tracking"
         },
         "PlanPhase": {
-          "domain": "planning_workflow", 
+          "domain": "planning_workflow",
           "purpose": "Manage plan creation phases",
           "integration": "plan_mode, task_management"
         }

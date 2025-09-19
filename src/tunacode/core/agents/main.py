@@ -62,7 +62,6 @@ from . import agent_components as ac  # noqa: E402
 logger = get_logger(__name__)
 
 
-
 # -----------------------
 # Module exports
 # -----------------------
@@ -542,7 +541,9 @@ async def process_request(
         raise
     except ToolBatchingJSONError as e:
         logger.error("Tool batching JSON error [req=%s]: %s", ctx.request_id, e, exc_info=True)
-        ac.patch_tool_messages(f"Tool batching failed: {str(e)[:100]}...", state_manager=state_manager)
+        ac.patch_tool_messages(
+            f"Tool batching failed: {str(e)[:100]}...", state_manager=state_manager
+        )
         raise
     except Exception as e:
         # Attach request/iteration context for observability

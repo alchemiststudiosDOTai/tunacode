@@ -263,7 +263,3 @@ async def parse_json_tool_calls(
         except Exception as e:
             if state_manager.session.show_thoughts:
                 await ui.error(f"Error executing fallback tool {tool_name}: {e!s}")
-
-
-
-

@@ -54,7 +54,9 @@ This file provides guidance to AI assistants.
                 get_or_create_agent("openai:gpt-4", state_manager)
 
                 # Check that the logger was called with the expected message
-                mock_logger.info.assert_called_with(f"📄 {GUIDE_FILE_NAME} located: Loading context...")
+                mock_logger.info.assert_called_with(
+                    f"📄 {GUIDE_FILE_NAME} located: Loading context..."
+                )
 
         finally:
             os.chdir(original_cwd)
