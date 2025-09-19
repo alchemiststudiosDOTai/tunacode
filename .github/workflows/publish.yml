@@ -57,7 +57,9 @@ jobs:
           fi
 
       - name: Lint
-        run: hatch run lint-check
+        run: |
+          ruff check .
+          ruff format --check .
 
       - name: Test
         run: hatch run test
