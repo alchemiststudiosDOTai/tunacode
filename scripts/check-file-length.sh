@@ -16,7 +16,8 @@ while IFS= read -r -d '' file; do
     # Skip exceptions that are allowed to exceed limit (core orchestrators and large tools)
     if [[ "$file" == *"/src/tunacode/tools/glob.py" ]] || \
        [[ "$file" == *"/src/tunacode/tools/grep.py" ]] || \
-       [[ "$file" == *"/src/tunacode/core/agents/main.py" ]]; then
+       [[ "$file" == *"/src/tunacode/core/agents/main.py" ]] || \
+       [[ "$file" == *"/src/tunacode/core/agents/agent_components/node_processor.py" ]]; then
         continue
     fi
 

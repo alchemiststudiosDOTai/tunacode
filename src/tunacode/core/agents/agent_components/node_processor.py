@@ -1,6 +1,7 @@
 """Node processing functionality for agent responses."""
 
 import json
+import json as _json
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from tunacode.core.logging.logger import get_logger
@@ -346,12 +347,27 @@ async def _display_raw_api_response(node: Any, ui: Any) -> None:
             if content.startswith('{"thought"'):
                 continue
 
-            # Skip tool result content
-            if hasattr(part, "part_kind") and part.part_kind == "tool-return":
-                continue
-
             # Display text part
             await ui.muted(f" TEXT PART: {content[:200]}{'...' if len(content) > 200 else ''}")
+
+        # When thoughts are enabled, also expose tool-return content in a concise way
+        if hasattr(part, "part_kind") and part.part_kind == "tool-return":
+            try:
+                # Attempt to pretty print JSON-like content; fall back to str
+                c = part.content
+                if isinstance(c, (dict, list)):
+                    c_pretty = _json.dumps(c, indent=2, ensure_ascii=False)
+                else:
+                    c_pretty = str(c)
+                header = (
+                    f" TOOL RETURN: name={getattr(part, 'tool_name', '<unknown>')} "
+                    f"id={getattr(part, 'tool_call_id', '<none>')}"
+                )
+                await ui.muted(header)
+                await ui.muted(c_pretty)
+            except Exception:
+                # Best-effort logging; don't break flow
+                pass
 
 
 def _requires_strict_tool_pairing(state_manager: StateManager) -> bool:
@@ -390,6 +406,34 @@ async def _process_tool_calls(
     for part in node.model_response.parts:
         if hasattr(part, "part_kind") and part.part_kind == "tool-call":
             is_processing_tools = True
+            # Detailed tool-call logging when thoughts are enabled
+            if state_manager.session.show_thoughts:
+                try:
+                    args_obj = getattr(part, "args", {})
+                    if isinstance(args_obj, str) and args_obj:
+                        try:
+                            args_pretty = _json.dumps(
+                                _json.loads(args_obj), indent=2, ensure_ascii=False
+                            )
+                        except Exception:
+                            args_pretty = args_obj
+                    elif isinstance(args_obj, (dict, list)):
+                        args_pretty = _json.dumps(args_obj, indent=2, ensure_ascii=False)
+                    else:
+                        args_pretty = str(args_obj)
+
+                    details = {
+                        "tool": getattr(part, "tool_name", "<unknown>"),
+                        "tool_call_id": getattr(part, "tool_call_id", "<none>"),
+                    }
+                    await ui.muted("\n" + "-" * 60)
+                    await ui.muted(
+                        f"TOOL CALL → name={details['tool']} id={details['tool_call_id']}"
+                    )
+                    await ui.muted(args_pretty)
+                    await ui.muted("-" * 60)
+                except Exception:
+                    pass
             # Transition to TOOL_EXECUTION on first tool call
             if response_state and response_state.can_transition_to(AgentState.TOOL_EXECUTION):
                 response_state.transition_to(AgentState.TOOL_EXECUTION)
