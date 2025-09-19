@@ -1,0 +1,350 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "generated_date": "2025-09-19",
+    "description": "Type relationships and interface definitions for TunaCode agent system - documents the semantic relationships between types after the major refactor"
+  },
+  "type_relationships": {
+    "core_agent_types": {
+      "AgentRun": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Represents a single agent execution run",
+        "relationships": {
+          "wraps": ["pydantic_ai.RunContext"],
+          "enhanced_by": ["AgentRunWithState", "AgentRunWrapper"],
+          "contains": ["ResponseState"]
+        },
+        "variants": [
+          {
+            "name": "AgentRunWithState",
+            "purpose": "Normal run with enhanced response state tracking",
+            "file": "src/tunacode/core/agents/agent_components/result_wrapper.py"
+          },
+          {
+            "name": "AgentRunWrapper", 
+            "purpose": "Wrapper for fallback responses with synthesis",
+            "file": "src/tunacode/core/agents/agent_components/result_wrapper.py"
+          }
+        ]
+      },
+      "ResponseState": {
+        "definition": "src/tunacode/core/agents/agent_components/response_state.py",
+        "purpose": "Enhanced state tracking using enum-based state machine",
+        "relationships": {
+          "implements": ["Legacy boolean flags interface"],
+          "contains": ["AgentStateMachine"],
+          "transitions": ["AgentState enum"],
+          "used_by": ["AgentRun", "process_request"]
+        },
+        "dual_interface": {
+          "modern": "AgentStateMachine with enum states",
+          "legacy": "Boolean flags for backward compatibility"
+        },
+        "state_management": {
+          "current_state": "AgentState enum",
+          "completion_detection": "Integrated with state machine",
+          "thread_safety": "Through AgentStateMachine"
+        }
+      }
+    },
+    "state_machine_types": {
+      "AgentState": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Enumeration of agent processing states",
+        "values": {
+          "USER_INPUT": "Initial state - user prompt received",
+          "ASSISTANT": "Reasoning/deciding phase", 
+          "TOOL_EXECUTION": "Tool execution phase",
+          "RESPONSE": "Handling results, may complete or loop"
+        },
+        "relationships": {
+          "used_by": ["AgentStateMachine", "ResponseState"],
+          "transitions": ["AGENT_TRANSITION_RULES"],
+          "completion_state": "RESPONSE with completion_detected=true"
+        }
+      },
+      "AgentStateMachine": {
+        "definition": "src/tunacode/core/agents/agent_components/state_transition.py",
+        "purpose": "Thread-safe state machine for agent transitions",
+        "relationships": {
+          "manages": ["AgentState"],
+          "validates": ["StateTransitionRules"],
+          "contained_in": ["ResponseState"],
+          "ensures": ["thread_safety", "valid_transitions"]
+        },
+        "thread_safety": "Reentrant lock (threading.RLock)",
+        "error_handling": "InvalidStateTransitionError for invalid transitions"
+      },
+      "StateTransitionRules": {
+        "definition": "src/tunacode/core/agents/agent_components/state_transition.py",
+        "purpose": "Defines valid state transitions for the agent",
+        "relationships": {
+          "used_by": ["AgentStateMachine"],
+          "defines": ["valid_transitions"],
+          "prevents": ["invalid_state_changes"]
+        },
+        "transition_map": {
+          "USER_INPUT": ["ASSISTANT"],
+          "ASSISTANT": ["TOOL_EXECUTION", "RESPONSE"],
+          "TOOL_EXECUTION": ["RESPONSE"],
+          "RESPONSE": ["ASSISTANT"]
+        }
+      }
+    },
+    "tool_execution_types": {
+      "ToolBuffer": {
+        "definition": "src/tunacode/core/agents/agent_components/tool_buffer.py",
+        "purpose": "Buffers read-only tools for parallel execution",
+        "relationships": {
+          "manages": ["tool calls"],
+          "coordinates": ["execute_tools_parallel"],
+          "optimizes": ["read_only_tool_performance"],
+          "integrates": ["ToolCallback"]
+        },
+        "buffering_logic": {
+          "read_only_tools": "Buffered for parallel execution",
+          "write_tools": "Executed immediately",
+          "flush_trigger": "Non-read-only tool or end of processing"
+        }
+      },
+      "ToolCallback": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Protocol for tool execution callbacks",
+        "signature": "Callable[[Any, Any], Awaitable[None]]",
+        "relationships": {
+          "implemented_by": ["tool_executor", "create_buffering_callback"],
+          "used_by": ["_process_node", "execute_tools_parallel"],
+          "wraps": ["individual_tool_functions"]
+        },
+        "variants": [
+          {
+            "name": "buffering_callback",
+            "purpose": "Wraps original callback to add buffering logic",
+            "created_by": "create_buffering_callback"
+          },
+          {
+            "name": "original_callback",
+            "purpose": "Direct tool execution without buffering"
+          }
+        ]
+      }
+    },
+    "configuration_types": {
+      "ModelName": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Type alias for model identifier strings",
+        "base_type": "str",
+        "relationships": {
+          "used_by": ["get_or_create_agent", "_AGENT_CACHE"],
+          "indexes": ["agent_instances"],
+          "configuration": ["model_specific_settings"]
+        },
+        "caching_key": "Primary key for agent instance caching"
+      },
+      "AgentConfig": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Configuration dictionary for agent settings",
+        "base_type": "Dict[str, Any]",
+        "relationships": {
+          "contains": ["model_settings", "tool_settings", "prompt_settings"],
+          "used_by": ["get_or_create_agent"],
+          "overrides": ["default_configuration"]
+        }
+      },
+      "PydanticAgent": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Type alias for pydantic_ai.Agent",
+        "relationships": {
+          "alias_for": ["pydantic_ai.Agent"],
+          "cached_as": ["_AGENT_CACHE values"],
+          "configured_by": ["get_or_create_agent"],
+          "used_by": ["process_request"]
+        },
+        "fallback_handling": "Any type when pydantic_ai not available"
+      }
+    },
+    "session_and_state_types": {
+      "StateManager": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Protocol for session state management",
+        "relationships": {
+          "accessed_by": ["StateFacade"],
+          "contains": ["SessionState"],
+          "manages": ["user_config", "messages", "tool_calls"],
+          "persists": ["across_requests"]
+        },
+        "wrapper_pattern": {
+          "wrapper": "StateFacade",
+          "purpose": "Centralize state access with safety checks"
+        }
+      },
+      "SessionState": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Complete session state container",
+        "relationships": {
+          "managed_by": ["StateManager"],
+          "contains": ["user_config", "agents", "messages", "current_model"],
+          "tracks": ["session_metadata", "cost_tracking", "tool_ignore"]
+        },
+        "key_attributes": {
+          "user_config": "User preferences and settings",
+          "messages": "Conversation history",
+          "current_model": "Active model name",
+          "tool_calls": "History of executed tools",
+          "session_id": "Unique session identifier"
+        }
+      }
+    },
+    "result_types": {
+      "SimpleResult": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Minimal result container for agent responses",
+        "relationships": {
+          "used_by": ["AgentRunWrapper"],
+          "contains": ["output_string"],
+          "alternative_to": ["full_agent_response"]
+        },
+        "structure": {
+          "output": "str - Response content"
+        }
+      },
+      "FallbackResponse": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Structured fallback response for incomplete tasks",
+        "relationships": {
+          "created_by": ["create_fallback_response"],
+          "used_by": ["_build_fallback_output"],
+          "contains": ["progress_summary"]
+        },
+        "structure": {
+          "summary": "Task overview and completion status",
+          "progress": "Detailed progress description",
+          "issues": "Problems encountered",
+          "next_steps": "Recommended actions"
+        }
+      }
+    },
+    "protocol_types": {
+      "UsageTrackerProtocol": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Protocol for token usage and cost tracking",
+        "relationships": {
+          "implemented_by": ["usage_tracker_classes"],
+          "used_by": ["process_request"],
+          "tracks": ["TokenUsage", "CostBreakdown"]
+        },
+        "methods": {
+          "track_and_display": "Async method to track response usage"
+        }
+      },
+      "ToolFunction": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Protocol for tool function implementations",
+        "relationships": {
+          "implemented_by": ["individual_tool_functions"],
+          "registered_with": ["agent_configuration"],
+          "executed_by": ["ToolCallback"]
+        },
+        "signature": "Callable[..., Awaitable[str]]"
+      },
+      "UILogger": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Protocol for UI logging operations",
+        "relationships": {
+          "implemented_by": ["rich_console", "noop_ui"],
+          "used_by": ["streaming", "tool_executor"],
+          "provides": ["async_logging_methods"]
+        },
+        "methods": ["info", "error", "warning", "debug", "success"]
+      }
+    },
+    "plan_and_task_types": {
+      "PlanPhase": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Enumeration of plan mode phases",
+        "relationships": {
+          "manages": ["planning_workflow"],
+          "used_by": ["plan_mode_commands"],
+          "sequences": ["planning_process"]
+        },
+        "values": {
+          "PLANNING_RESEARCH": "Research and analysis phase",
+          "PLANNING_DRAFT": "Plan creation phase",
+          "PLAN_READY": "Plan completion and review",
+          "REVIEW_DECISION": "Plan approval and execution"
+        }
+      },
+      "PlanDoc": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Structured plan document with validation",
+        "relationships": {
+          "validated_by": ["validate_method"],
+          "used_by": ["plan_mode"],
+          "contains": ["structured_plan_content"]
+        },
+        "required_sections": ["title", "overview", "steps", "files_to_modify/create"],
+        "optional_sections": ["risks", "tests", "rollback", "success_criteria"]
+      },
+      "TodoItem": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Structured todo item with status tracking",
+        "relationships": {
+          "managed_by": ["TodoTool"],
+          "tracked_by": ["task_management"],
+          "contains": ["task_metadata"]
+        },
+        "attributes": {
+          "id": "Unique identifier",
+          "content": "Task description",
+          "status": "pending/in_progress/completed",
+          "priority": "high/medium/low",
+          "created_at": "Creation timestamp",
+          "completed_at": "Completion timestamp",
+          "tags": "Categorization tags"
+        }
+      }
+    },
+    "enum_types": {
+      "enumeration_hierarchy": {
+        "AgentState": {
+          "domain": "agent_processing",
+          "purpose": "Track agent execution phases",
+          "integration": "state_machine, response_tracking"
+        },
+        "PlanPhase": {
+          "domain": "planning_workflow", 
+          "purpose": "Manage plan creation phases",
+          "integration": "plan_mode, task_management"
+        }
+      },
+      "enum_benefits": {
+        "type_safety": "Compile-time validation of state values",
+        "ide_support": "Autocompletion and type checking",
+        "documentation": "Self-documenting through enum values",
+        "extensibility": "Easy to add new states/phases"
+      }
+    },
+    "refactor_type_improvements": {
+      "date": "2025-09-19",
+      "key_improvements": [
+        "Enhanced state machine with enum-based AgentState",
+        "Improved type safety through proper type aliases",
+        "Better separation of interface and implementation",
+        "Enhanced backward compatibility through facade patterns",
+        "More robust protocol definitions",
+        "Clearer component boundaries through type relationships"
+      ],
+      "backward_compatibility": {
+        "ResponseState": "Maintains legacy boolean flags alongside state machine",
+        "type_aliases": "Graceful fallbacks when dependencies unavailable",
+        "protocol_fallbacks": "Minimal implementations for testing"
+      },
+      "type_safety_improvements": [
+        "Enum-based states prevent invalid state values",
+        "Protocol interfaces define clear contracts",
+        "Type aliases provide semantic meaning",
+        "Dataclasses ensure consistent structure"
+      ]
+    }
+  }
+}

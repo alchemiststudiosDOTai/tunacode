@@ -1,0 +1,216 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "generated_date": "2025-09-19",
+    "description": "Intent mappings for TunaCode agent system - documents the purpose and semantic intent of key functions after the major refactor"
+  },
+  "intent_mappings": {
+    "core_agent_functions": {
+      "process_request": {
+        "file": "src/tunacode/core/agents/main.py",
+        "intent": "PRIMARY_ORCHESTRATION",
+        "purpose": "Main entry point for all agent requests - coordinates the entire agent processing lifecycle",
+        "semantic_role": "Request coordinator and execution manager",
+        "key_responsibilities": [
+          "Initialize request context and configuration",
+          "Manage agent iteration loop",
+          "Coordinate tool execution and buffering",
+          "Handle completion detection and fallback responses",
+          "Manage state transitions and recovery mechanisms"
+        ],
+        "completion_signal": "TUNACODE DONE:",
+        "error_handling": "Robust exception handling with request context preservation"
+      },
+      "get_or_create_agent": {
+        "file": "src/tunacode/core/agents/agent_components/agent_config.py",
+        "intent": "AGENT_LIFECYCLE",
+        "purpose": "Create and cache agent instances with proper configuration",
+        "semantic_role": "Agent factory and configuration manager",
+        "caching_strategy": "Module-level cache per model name",
+        "configuration_aspects": [
+          "System prompt loading with caching",
+          "Tool registration and MCP integration",
+          "Model-specific configuration"
+        ]
+      }
+    },
+    "state_management": {
+      "ResponseState": {
+        "file": "src/tunacode/core/agents/agent_components/response_state.py",
+        "intent": "STATE_TRACKING",
+        "purpose": "Track agent processing state using enhanced state machine",
+        "semantic_role": "State coordinator with backward compatibility",
+        "state_machine": "Enum-based with AgentState transitions",
+        "legacy_flags": [
+          "has_user_response",
+          "task_completed",
+          "awaiting_user_guidance",
+          "has_final_synthesis"
+        ],
+        "completion_detection": "Integrated with state machine for robust completion tracking"
+      },
+      "AgentStateMachine": {
+        "file": "src/tunacode/core/agents/agent_components/state_transition.py",
+        "intent": "STATE_TRANSITION",
+        "purpose": "Thread-safe state machine for agent processing transitions",
+        "semantic_role": "State transition validator and executor",
+        "validity_rules": "Pre-defined transition rules prevent invalid state changes",
+        "thread_safety": "Reentrant lock for concurrent access"
+      }
+    },
+    "tool_execution": {
+      "execute_tools_parallel": {
+        "file": "src/tunacode/core/agents/utils.py",
+        "intent": "TOOL_PARALLELIZATION",
+        "purpose": "Execute multiple tool calls in parallel for performance optimization",
+        "semantic_role": "Parallel execution coordinator",
+        "batching_strategy": "CPU count based batching with environment override",
+        "error_handling": "Return exceptions rather than raising to allow partial success"
+      },
+      "ToolBuffer": {
+        "file": "src/tunacode/core/agents/agent_components/tool_buffer.py",
+        "intent": "TOOL_BUFFERING",
+        "purpose": "Buffer read-only tools for batched parallel execution",
+        "semantic_role": "Tool batching optimizer",
+        "buffering_logic": "Groups read-only tools, executes write tools immediately",
+        "performance_benefit": "Significant speedup for multiple read operations"
+      }
+    },
+    "node_processing": {
+      "_process_node": {
+        "file": "src/tunacode/core/agents/agent_components/node_processor.py",
+        "intent": "RESPONSE_PROCESSING",
+        "purpose": "Process individual agent response nodes and coordinate tool execution",
+        "semantic_role": "Response parser and tool coordinator",
+        "processing_pipeline": [
+          "Parse model response for tool calls",
+          "Execute tools directly or via buffering",
+          "Detect completion markers",
+          "Update response state",
+          "Handle JSON fallback parsing"
+        ]
+      },
+      "check_task_completion": {
+        "file": "src/tunacode/core/agents/agent_components/task_completion.py",
+        "intent": "COMPLETION_DETECTION",
+        "purpose": "Detect task completion markers in agent responses",
+        "semantic_role": "Completion signal detector",
+        "markers": [
+          "TUNACODE DONE:",
+          "TUNACODE TASK_COMPLETE:"
+        ],
+        "processing": "Removes markers and returns cleaned content"
+      }
+    },
+    "recovery_mechanisms": {
+      "_handle_empty_response": {
+        "file": "src/tunacode/core/agents/main.py",
+        "intent": "EMPTY_RESPONSE_RECOVERY",
+        "purpose": "Handle cases where model produces empty responses",
+        "semantic_role": "Empty response recovery coordinator",
+        "strategy": "Inject guidance prompt to force meaningful action",
+        "trigger": "Empty model response content"
+      },
+      "_force_action_if_unproductive": {
+        "file": "src/tunacode/core/agents/main.py",
+        "intent": "PRODUCTIVITY_RECOVERY",
+        "purpose": "Force agent action when stuck in unproductive loops",
+        "semantic_role": "Productivity enforcer",
+        "trigger": "3+ iterations without tool usage",
+        "message": "Direct instruction to take action or mark complete"
+      },
+      "_build_fallback_output": {
+        "file": "src/tunacode/core/agents/main.py",
+        "intent": "FALLBACK_SYNTHESIS",
+        "purpose": "Generate comprehensive summary when task doesn't complete",
+        "semantic_role": "Progress synthesizer",
+        "content": "Summary of actions, progress, issues, and next steps",
+        "verbosity": "Configurable verbosity levels"
+      },
+      "parse_json_tool_calls": {
+        "file": "src/tunacode/core/agents/utils.py",
+        "intent": "JSON_FALLBACK",
+        "purpose": "Parse JSON-formatted tool calls when structured calling fails",
+        "semantic_role": "JSON tool call parser",
+        "error_handling": "Robust retry logic with custom exceptions",
+        "fallback_pattern": "Extract JSON objects from text"
+      }
+    },
+    "configuration_and_caching": {
+      "load_system_prompt": {
+        "file": "src/tunacode/core/agents/agent_components/agent_config.py",
+        "intent": "PROMPT_MANAGEMENT",
+        "purpose": "Load and cache system prompts with file watching",
+        "semantic_role": "System prompt cache manager",
+        "caching": "Multiple cache levels with time-based invalidation",
+        "file_watching": "Auto-reload when prompt files change"
+      },
+      "get_model_messages": {
+        "file": "src/tunacode/core/agents/utils.py",
+        "intent": "MESSAGE_COMPATIBILITY",
+        "purpose": "Provide compatibility layer for message classes across environments",
+        "semantic_role": "Message class fallback provider",
+        "fallbacks": ["SystemPromptPart", "UserPromptPart"],
+        "environment_adaptation": "Works with both real and test environments"
+      }
+    },
+    "streaming_and_ui": {
+      "stream_model_request_node": {
+        "file": "src/tunacode/core/agents/agent_components/streaming.py",
+        "intent": "TOKEN_STREAMING",
+        "purpose": "Stream model tokens for real-time response display",
+        "semantic_role": "Token streaming coordinator",
+        "availability": "Optional - gracefully handles missing streaming support",
+        "ui_integration": "Coordinates with rich console for live updates"
+      }
+    },
+    "helper_functions": {
+      "StateFacade": {
+        "file": "src/tunacode/core/agents/main.py",
+        "intent": "STATE_ACCESS",
+        "purpose": "Centralize session state access and mutations",
+        "semantic_role": "State access wrapper",
+        "safety": "Safe getters and setters with error handling",
+        "progress_tracking": "Iteration counters and empty response tracking"
+      },
+      "create_fallback_response": {
+        "file": "src/tunacode/core/agents/agent_components/agent_helpers.py",
+        "intent": "FALLBACK_CONTENT",
+        "purpose": "Create structured fallback response content",
+        "semantic_role": "Fallback content generator",
+        "structure": "Summary, progress, issues, next steps",
+        "progress_analysis": "Analyzes tool calls and messages"
+      }
+    },
+    "type_definitions": {
+      "AgentState": {
+        "file": "src/tunacode/types.py",
+        "intent": "STATE_ENUMERATION",
+        "purpose": "Define agent processing states as enum",
+        "semantic_role": "State type definitions",
+        "values": ["USER_INPUT", "ASSISTANT", "TOOL_EXECUTION", "RESPONSE"],
+        "transition_rules": "Pre-defined valid transitions between states"
+      },
+      "PlanPhase": {
+        "file": "src/tunacode/types.py",
+        "intent": "PLAN_ENUMERATION",
+        "purpose": "Define plan mode phases as enum",
+        "semantic_role": "Plan phase type definitions",
+        "values": ["PLANNING_RESEARCH", "PLANNING_DRAFT", "PLAN_READY", "REVIEW_DECISION"]
+      }
+    }
+  },
+  "refactor_intent_summary": {
+    "date": "2025-09-19",
+    "architectural_shift": "From triple redundancy to single source of truth",
+    "key_improvements": [
+      "Modular component system with clear responsibilities",
+      "Enhanced state machine with enum-based transitions",
+      "Robust error handling and recovery mechanisms",
+      "Improved performance through parallel tool execution",
+      "Better separation of concerns and maintainability"
+    ],
+    "semantic_clarity": "Each function has a clear, documented intent and purpose",
+    "backward_compatibility": "Maintained through facade patterns and legacy flags"
+  }
+}

@@ -3,9 +3,8 @@ import importlib
 import json
 import logging
 import os
-import re
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from tunacode.constants import (
@@ -16,11 +15,8 @@ from tunacode.constants import (
 )
 from tunacode.exceptions import ToolBatchingJSONError
 from tunacode.types import (
-    ErrorMessage,
     StateManager,
     ToolCallback,
-    ToolCallId,
-    ToolName,
 )
 from tunacode.ui import console as ui
 from tunacode.utils.retry import retry_json_parse_async

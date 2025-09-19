@@ -1,0 +1,208 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "generated_date": "2025-09-19",
+    "description": "Function call graphs for TunaCode agent system - documents the semantic relationships and data flow after the major refactor that removed triple redundancy"
+  },
+  "call_graphs": {
+    "main_agent_system": {
+      "entry_point": "tunacode.core.agents.main.process_request",
+      "description": "Primary agent orchestration and request processing - achieves single source of truth",
+      "calls": [
+        {
+          "from": "process_request",
+          "to": "agent_components.get_or_create_agent",
+          "type": "delegation",
+          "purpose": "Acquire configured agent instance with caching"
+        },
+        {
+          "from": "process_request",
+          "to": "agent_components._process_node",
+          "type": "iteration",
+          "purpose": "Core node processing delegated to components"
+        },
+        {
+          "from": "process_request",
+          "to": "_init_context",
+          "type": "setup",
+          "purpose": "Initialize request context with configuration"
+        },
+        {
+          "from": "process_request",
+          "to": "_finalize_buffered_tasks",
+          "type": "cleanup",
+          "purpose": "Execute remaining buffered read-only tools"
+        },
+        {
+          "from": "process_request",
+          "to": "_build_fallback_output",
+          "type": "fallback",
+          "purpose": "Generate synthesized response when task incomplete"
+        },
+        {
+          "from": "process_request",
+          "to": "_force_action_if_unproductive",
+          "type": "recovery",
+          "purpose": "Force agent action when stuck in unproductive loops"
+        }
+      ]
+    },
+    "agent_components_system": {
+      "description": "Modular component system for agent functionality - single source of truth achieved",
+      "components": [
+        {
+          "name": "agent_config",
+          "entry": "get_or_create_agent",
+          "purpose": "Agent creation and configuration with system prompt caching",
+          "dependencies": ["system prompt loading", "MCP server integration", "tool registration"]
+        },
+        {
+          "name": "node_processor",
+          "entry": "_process_node",
+          "purpose": "Core processing logic for agent responses",
+          "dependencies": ["tool execution", "completion detection", "state management"]
+        },
+        {
+          "name": "response_state",
+          "entry": "ResponseState",
+          "purpose": "State management using enum-based state machine",
+          "dependencies": ["state_transition", "AgentState enum"]
+        },
+        {
+          "name": "task_completion",
+          "entry": "check_task_completion",
+          "purpose": "Detect task completion markers in responses",
+          "dependencies": ["regex patterns", "content cleaning"]
+        },
+        {
+          "name": "tool_buffer",
+          "entry": "ToolBuffer",
+          "purpose": "Buffer read-only tools for parallel execution",
+          "dependencies": ["tool_executor", "READ_ONLY_TOOLS constant"]
+        },
+        {
+          "name": "streaming",
+          "entry": "stream_model_request_node",
+          "purpose": "Token streaming for real-time responses",
+          "dependencies": ["pydantic_ai streaming APIs"]
+        }
+      ]
+    },
+    "tool_execution_flow": {
+      "description": "Parallel tool execution with batching optimization",
+      "flow": [
+        {
+          "step": 1,
+          "component": "tool_buffer",
+          "function": "add",
+          "purpose": "Buffer read-only tools when encountered"
+        },
+        {
+          "step": 2,
+          "component": "tool_executor",
+          "function": "execute_tools_parallel",
+          "purpose": "Execute buffered tools in parallel batches"
+        },
+        {
+          "step": 3,
+          "component": "tool_executor",
+          "function": "create_buffering_callback",
+          "purpose": "Create callback that handles buffering logic"
+        }
+      ]
+    },
+    "state_machine_flow": {
+      "description": "Enhanced state machine for agent processing",
+      "states": {
+        "USER_INPUT": {
+          "transitions_to": ["ASSISTANT"],
+          "purpose": "Initial state - user prompt received"
+        },
+        "ASSISTANT": {
+          "transitions_to": ["TOOL_EXECUTION", "RESPONSE"],
+          "purpose": "Reasoning/deciding phase"
+        },
+        "TOOL_EXECUTION": {
+          "transitions_to": ["RESPONSE"],
+          "purpose": "Tool execution phase"
+        },
+        "RESPONSE": {
+          "transitions_to": ["ASSISTANT"],
+          "purpose": "Handling results, may complete or loop"
+        }
+      },
+      "completion_detection": {
+        "marker": "TUNACODE DONE:",
+        "state": "RESPONSE",
+        "function": "check_task_completion"
+      }
+    },
+    "configuration_flow": {
+      "description": "Agent configuration and setup",
+      "components": [
+        {
+          "name": "system_prompt",
+          "function": "load_system_prompt",
+          "caching": "Module-level _PROMPT_CACHE and _TUNACODE_CACHE",
+          "purpose": "Load and cache system prompts with file watching"
+        },
+        {
+          "name": "agent_creation",
+          "function": "get_or_create_agent",
+          "caching": "Module-level _AGENT_CACHE",
+          "purpose": "Create and cache agent instances per model"
+        },
+        {
+          "name": "mcp_integration",
+          "function": "get_mcp_servers",
+          "purpose": "Integrate Model Context Protocol servers"
+        }
+      ]
+    },
+    "recovery_mechanisms": {
+      "description": "Robust error handling and recovery systems",
+      "mechanisms": [
+        {
+          "name": "empty_response_recovery",
+          "function": "_handle_empty_response",
+          "trigger": "Empty model responses",
+          "action": "Inject retry guidance prompt"
+        },
+        {
+          "name": "unproductivity_recovery",
+          "function": "_force_action_if_unproductive",
+          "trigger": "3+ iterations without tool usage",
+          "action": "Force action or completion"
+        },
+        {
+          "name": "fallback_synthesis",
+          "function": "_build_fallback_output",
+          "trigger": "Iteration limit reached without completion",
+          "action": "Generate comprehensive summary of progress"
+        },
+        {
+          "name": "json_parsing_fallback",
+          "function": "parse_json_tool_calls",
+          "trigger": "Structured tool calling failures",
+          "action": "Parse and execute JSON-formatted tool calls"
+        }
+      ]
+    }
+  },
+  "refactor_summary": {
+    "date": "2025-09-19",
+    "major_changes": [
+      "Removed triple redundancy in agent functions",
+      "Achieved single source of truth through componentization",
+      "Enhanced state machine with enum-based transitions",
+      "Improved modularity and maintainability",
+      "Added robust recovery mechanisms"
+    ],
+    "files_affected": [
+      "src/tunacode/core/agents/main.py",
+      "src/tunacode/core/agents/agent_components/*",
+      "src/tunacode/core/agents/utils.py",
+      "Documentation files (AGENTS.md, TODO.md)"
+    ]
+  }
+}

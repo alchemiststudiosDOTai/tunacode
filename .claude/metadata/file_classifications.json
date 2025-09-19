@@ -36,15 +36,80 @@
       "category": "issues",
       "classification": "implementation"
     },
-    "src/tunacode/core/agents/main_v2.py": {
-      "type": "source",
-      "category": "agent",
-      "classification": "implementation"
-    },
     "src/tunacode/core/agents/main.py": {
       "type": "source",
       "category": "agent",
       "classification": "interface"
+    },
+    "src/tunacode/core/agents/agent_components/task_completion.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "implementation"
+    },
+    "src/tunacode/core/agents/utils.py": {
+      "type": "source",
+      "category": "agent",
+      "classification": "implementation"
+    },
+    "src/tunacode/cli/repl.py": {
+      "type": "source",
+      "category": "repl",
+      "classification": "interface"
+    },
+    "tests/characterization/agent/test_agent_creation.py": {
+      "type": "test",
+      "category": "agent",
+      "classification": "test"
+    },
+    "tests/characterization/commands/test_init_command.py": {
+      "type": "test",
+      "category": "commands",
+      "classification": "test"
+    },
+    "tests/characterization/context/test_context_integration.py": {
+      "type": "test",
+      "category": "context",
+      "classification": "test"
+    },
+    "tests/characterization/context/test_context_loading.py": {
+      "type": "test",
+      "category": "context",
+      "classification": "test"
+    },
+    "AGENTS.md": {
+      "type": "documentation",
+      "category": "configuration",
+      "classification": "implementation"
+    },
+    "TODO.md": {
+      "type": "documentation",
+      "category": "planning",
+      "classification": "implementation"
+    },
+    "memory-bank/plan/2025-09-19_11-30-00_tunacode_md_to_agents_md_migration.md": {
+      "type": "documentation",
+      "category": "plan",
+      "classification": "implementation"
+    },
+    "memory-bank/research/2025-01-19_react-shim-analysis.md": {
+      "type": "documentation",
+      "category": "research",
+      "classification": "implementation"
+    },
+    "documentation/agent-tools/react-patterns.md": {
+      "type": "documentation",
+      "category": "patterns",
+      "classification": "implementation"
+    },
+    "documentation/agent/main-agent-architecture.md": {
+      "type": "documentation",
+      "category": "architecture",
+      "classification": "implementation"
+    },
+    "documentation/development/codebase-hygiene.md": {
+      "type": "documentation",
+      "category": "development",
+      "classification": "implementation"
     },
     "tests/characterization/agent/test_process_request.py": {
       "type": "test",

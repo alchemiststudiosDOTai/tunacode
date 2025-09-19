@@ -17,6 +17,7 @@ from pydantic_ai import Agent
 
 if TYPE_CHECKING:
     from pydantic_ai import Tool  # noqa: F401
+
     from tunacode.core.agents.agent_components import ResponseState, ToolBuffer
 
 from tunacode.core.logging.logger import get_logger
@@ -29,6 +30,7 @@ from tunacode.types import (
     ToolCallback,
     UsageTrackerProtocol,
 )
+from tunacode.ui.tool_descriptions import get_batch_description
 
 # Optional UI console (avoid nested imports in hot paths)
 try:

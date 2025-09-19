@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 
 from tunacode.cli.commands import CommandRegistry
-from tunacode.core.state import StateManager
 from tunacode.constants import GUIDE_FILE_NAME
+from tunacode.core.state import StateManager
 from tunacode.types import CommandContext
 
 

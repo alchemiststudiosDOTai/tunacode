@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tunacode.constants import GUIDE_FILE_NAME
 from tunacode.context import (
     get_claude_files,
     get_code_style,
@@ -13,7 +14,6 @@ from tunacode.context import (
     get_git_status,
 )
 from tunacode.core.agents.agent_components import get_or_create_agent
-from tunacode.constants import GUIDE_FILE_NAME
 from tunacode.core.state import StateManager
 
 

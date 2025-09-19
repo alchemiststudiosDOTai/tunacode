@@ -3,7 +3,6 @@
 import re
 from typing import Tuple
 
-
 _COMPLETION_MARKERS = (
     re.compile(r"^\s*TUNACODE\s+DONE:\s*", re.IGNORECASE),
     re.compile(r"^\s*TUNACODE[_\s]+TASK_COMPLETE\s*:?[\s]*", re.IGNORECASE),

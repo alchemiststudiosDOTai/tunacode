@@ -32,7 +32,6 @@ class TestAgentCreation:
         # Mock the system prompt file reading
         system_prompt = "You are a helpful AI assistant."
 
-        from tunacode.constants import GUIDE_FILE_NAME
         with patch(
             "tunacode.core.agents.agent_components.agent_config.get_agent_tool",
             return_value=(mock_agent_class, mock_tool_class),
@@ -89,7 +88,6 @@ class TestAgentCreation:
                 raise FileNotFoundError()
             return mock_open(read_data=fallback_prompt)()
 
-        from tunacode.constants import GUIDE_FILE_NAME
         with patch(
             "tunacode.core.agents.agent_components.agent_config.get_agent_tool",
             return_value=(mock_agent_class, mock_tool_class),
@@ -115,7 +113,6 @@ class TestAgentCreation:
         mock_agent_class = MagicMock()
         mock_tool_class = MagicMock()
 
-        from tunacode.constants import GUIDE_FILE_NAME
         with patch(
             "tunacode.core.agents.agent_components.agent_config.get_agent_tool",
             return_value=(mock_agent_class, mock_tool_class),
