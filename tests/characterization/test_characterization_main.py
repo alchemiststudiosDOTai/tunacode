@@ -308,10 +308,12 @@ class TestMainAgentCharacterization:
     def test_imports_available(self):
         """Test that all required imports are available."""
         # Test key classes and functions can be imported
-        from tunacode.core.agents.main import (
+        from tunacode.core.agents.agent_components import (
             ResponseState,
             SimpleResult,
             _process_node,
+        )
+        from tunacode.core.agents.main import (
             check_query_satisfaction,
             process_request,
         )

@@ -1,4 +1,4 @@
-"""Integration tests for TUNACODE.md context injection into agent."""
+"""Integration tests for AGENTS.md context injection into agent."""
 
 import os
 import tempfile
@@ -13,16 +13,17 @@ from tunacode.context import (
     get_git_status,
 )
 from tunacode.core.agents.agent_components import get_or_create_agent
+from tunacode.constants import GUIDE_FILE_NAME
 from tunacode.core.state import StateManager
 
 
 @pytest.mark.asyncio
-async def test_context_loading_reads_tunacode_md():
-    """Test that get_code_style reads TUNACODE.md files."""
-    # Create a temporary directory with TUNACODE.md
+async def test_context_loading_reads_agents_md():
+    """Test that get_code_style reads AGENTS.md files."""
+    # Create a temporary directory with AGENTS.md
     with tempfile.TemporaryDirectory() as tmpdir:
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
-        tunacode_content = """# Project Context
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
+        agents_content = """# Project Context
 
 ## Build Commands
 - Run tests: `make test`
@@ -32,7 +33,7 @@ async def test_context_loading_reads_tunacode_md():
 - Use type hints
 - Guard clauses preferred"""
 
-        tunacode_path.write_text(tunacode_content)
+        agents_path.write_text(agents_content)
 
         # Change to temp directory
         original_cwd = os.getcwd()
@@ -62,12 +63,12 @@ async def test_context_loading_reads_tunacode_md():
 
 
 @pytest.mark.asyncio
-async def test_agent_creation_loads_tunacode_md():
-    """Test that agent creation loads TUNACODE.md if it exists."""
-    # Create a temporary directory with TUNACODE.md
+async def test_agent_creation_loads_agents_md():
+    """Test that agent creation loads AGENTS.md if it exists."""
+    # Create a temporary directory with AGENTS.md
     with tempfile.TemporaryDirectory() as tmpdir:
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
-        tunacode_content = """# Test Project Context
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
+        agents_content = """# Test Project Context
 
 ## Build Commands
 - Test: make test
@@ -77,7 +78,7 @@ async def test_agent_creation_loads_tunacode_md():
 - Use type hints for all functions
 - Prefer guard clauses over nested conditionals"""
 
-        tunacode_path.write_text(tunacode_content)
+        agents_path.write_text(agents_content)
 
         # Change to temp directory
         original_cwd = os.getcwd()
@@ -96,9 +97,9 @@ async def test_agent_creation_loads_tunacode_md():
             os.chdir(original_cwd)
 
 
-def test_agent_creation_handles_missing_tunacode_md():
-    """Test that agent creation works even without TUNACODE.md."""
-    # Create a temporary directory without TUNACODE.md
+def test_agent_creation_handles_missing_agents_md():
+    """Test that agent creation works even without AGENTS.md."""
+    # Create a temporary directory without AGENTS.md
     with tempfile.TemporaryDirectory() as tmpdir:
         original_cwd = os.getcwd()
         try:

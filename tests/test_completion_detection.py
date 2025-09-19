@@ -1,6 +1,6 @@
 """Test the task completion detection mechanism."""
 
-from tunacode.core.agents.main import check_task_completion
+from tunacode.core.agents.agent_components import check_task_completion
 from tunacode.types import ResponseState
 
 

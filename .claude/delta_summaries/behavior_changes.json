@@ -41,6 +41,17 @@
         "Added error recovery exports for better error handling integration",
         "Updated REPL error recovery components"
       ]
+    },
+    {
+      "id": "agent-exports-cleanup-20250205-000000",
+      "time": "2025-02-05T00:00:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Routed CLI REPL agent imports through tunacode.core.agents to expose helper mocks",
+        "Extended check_task_completion to accept legacy TUNACODE_TASK_COMPLETE marker"
+      ]
     }
   ]
 }

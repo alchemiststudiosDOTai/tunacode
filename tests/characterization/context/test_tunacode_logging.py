@@ -1,4 +1,4 @@
-"""Test TUNACODE.md logging when thoughts are enabled."""
+"""Test AGENTS.md logging when thoughts are enabled."""
 
 import os
 import tempfile
@@ -7,14 +7,16 @@ from unittest.mock import patch
 
 import pytest
 
+from tunacode.constants import GUIDE_FILE_NAME
+
 
 @pytest.mark.asyncio
-async def test_tunacode_loading_message_displayed():
-    """Test that TUNACODE.md loading message is logged when found."""
-    # Create a temporary directory with TUNACODE.md
+async def test_agents_loading_message_displayed():
+    """Test that AGENTS.md loading message is logged when found."""
+    # Create a temporary directory with AGENTS.md
     with tempfile.TemporaryDirectory() as tmpdir:
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
-        tunacode_content = """# TUNACODE.md
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
+        agents_content = """# AGENTS.md
 
 This file provides guidance to AI assistants.
 
@@ -28,7 +30,7 @@ This file provides guidance to AI assistants.
 - Follow PEP 8 conventions
 - Prefer guard clauses over nested conditionals
 """
-        tunacode_path.write_text(tunacode_content)
+        agents_path.write_text(agents_content)
 
         # Change to temp directory
         original_cwd = os.getcwd()
@@ -52,16 +54,16 @@ This file provides guidance to AI assistants.
                 get_or_create_agent("openai:gpt-4", state_manager)
 
                 # Check that the logger was called with the expected message
-                mock_logger.info.assert_called_with("📄 TUNACODE.md located: Loading context...")
+                mock_logger.info.assert_called_with(f"📄 {GUIDE_FILE_NAME} located: Loading context...")
 
         finally:
             os.chdir(original_cwd)
 
 
 @pytest.mark.asyncio
-async def test_tunacode_not_found_message():
-    """Test that TUNACODE.md not found message is logged when file doesn't exist."""
-    # Create a temporary directory WITHOUT TUNACODE.md
+async def test_agents_not_found_message():
+    """Test that AGENTS.md not found message is logged when file doesn't exist."""
+    # Create a temporary directory WITHOUT AGENTS.md
     with tempfile.TemporaryDirectory() as tmpdir:
         # Change to temp directory
         original_cwd = os.getcwd()
@@ -85,7 +87,7 @@ async def test_tunacode_not_found_message():
 
                 # Check that the logger was called with the expected message
                 mock_logger.info.assert_called_with(
-                    "📄 TUNACODE.md not found: Using default context"
+                    f"📄 {GUIDE_FILE_NAME} not found: Using default context"
                 )
 
         finally:

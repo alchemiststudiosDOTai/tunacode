@@ -1,5 +1,5 @@
 """
-Test suite for the /init command that creates/updates TUNACODE.md files.
+Test suite for the /init command that creates/updates AGENTS.md files.
 Following strict TDD approach - acceptance test first.
 """
 
@@ -11,12 +11,13 @@ import pytest
 
 from tunacode.cli.commands import CommandRegistry
 from tunacode.core.state import StateManager
+from tunacode.constants import GUIDE_FILE_NAME
 from tunacode.types import CommandContext
 
 
 @pytest.mark.asyncio
-async def test_init_command_creates_tunacode_md_file():
-    """Acceptance test: /init command should analyze codebase and create TUNACODE.md file."""
+async def test_init_command_creates_agents_md_file():
+    """Acceptance test: /init command should analyze codebase and create AGENTS.md file."""
     # Arrange
     with tempfile.TemporaryDirectory() as tmpdir:
         old_cwd = os.getcwd()
@@ -37,8 +38,8 @@ async def test_init_command_creates_tunacode_md_file():
 
             # Mock process_request to simulate agent creating the file
             async def mock_process_request(text, state_manager, output=True):
-                # Simulate agent creating TUNACODE.md
-                Path("TUNACODE.md").write_text("""# TUNACODE.md
+                # Simulate agent creating AGENTS.md
+                Path(GUIDE_FILE_NAME).write_text("""# AGENTS.md
 
 ## Build/Test Commands
 - Run tests: `make test`
@@ -57,8 +58,8 @@ async def test_init_command_creates_tunacode_md_file():
             await registry.execute("/init", context)
 
             # Assert
-            assert Path("TUNACODE.md").exists()
-            content = Path("TUNACODE.md").read_text()
+            assert Path(GUIDE_FILE_NAME).exists()
+            content = Path(GUIDE_FILE_NAME).read_text()
             assert "make test" in content
             assert "pytest" in content
             assert "Code Style" in content
@@ -89,7 +90,7 @@ async def test_init_command_sends_correct_prompt():
 
     # Assert
     assert prompt_sent is not None
-    assert "TUNACODE.md" in prompt_sent
+    assert GUIDE_FILE_NAME in prompt_sent
     assert "Build/lint/test commands" in prompt_sent
     assert "Code style guidelines" in prompt_sent
     assert "20 lines long" in prompt_sent
@@ -111,16 +112,16 @@ async def test_init_command_matches_correct_names():
 
 
 @pytest.mark.asyncio
-async def test_init_command_improves_existing_tunacode_md():
-    """Acceptance test: /init should improve existing TUNACODE.md file."""
+async def test_init_command_improves_existing_agents_md():
+    """Acceptance test: /init should improve existing AGENTS.md file."""
     # Arrange
     with tempfile.TemporaryDirectory() as tmpdir:
         old_cwd = os.getcwd()
         os.chdir(tmpdir)
 
         try:
-            # Create existing TUNACODE.md
-            Path("TUNACODE.md").write_text("# Old content\nSome basic info")
+            # Create existing AGENTS.md
+            Path(GUIDE_FILE_NAME).write_text("# Old content\nSome basic info")
 
             # Create project files
             Path(".cursorrules").write_text("Always use type hints")
@@ -131,8 +132,8 @@ async def test_init_command_improves_existing_tunacode_md():
 
             # Mock process_request to simulate agent improving the file
             async def mock_process_request(text, state_manager, output=True):
-                # Simulate agent improving TUNACODE.md
-                Path("TUNACODE.md").write_text("""# TUNACODE.md
+                # Simulate agent improving AGENTS.md
+                Path(GUIDE_FILE_NAME).write_text("""# AGENTS.md
 
 ## Build/Test Commands
 - Run tests: `pytest`
@@ -149,7 +150,7 @@ async def test_init_command_improves_existing_tunacode_md():
             await registry.execute("/init", context)
 
             # Assert
-            content = Path("TUNACODE.md").read_text()
+            content = Path(GUIDE_FILE_NAME).read_text()
             assert "type hints" in content
             assert ".cursorrules" in content
 

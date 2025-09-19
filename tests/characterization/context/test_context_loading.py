@@ -1,4 +1,4 @@
-"""Unit tests for TUNACODE.md context injection."""
+"""Unit tests for AGENTS.md context injection."""
 
 import os
 import tempfile
@@ -13,23 +13,24 @@ from tunacode.context import (
     get_git_status,
 )
 from tunacode.core.agents.agent_components import get_or_create_agent
+from tunacode.constants import GUIDE_FILE_NAME
 from tunacode.core.state import StateManager
 
 
 @pytest.mark.asyncio
 async def test_get_code_style_walks_up_directory_tree():
-    """Test that get_code_style looks for TUNACODE.md up the directory tree."""
+    """Test that get_code_style looks for AGENTS.md up the directory tree."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create nested directories with TUNACODE.md files
+        # Create nested directories with AGENTS.md files
         root_dir = Path(tmpdir)
         sub_dir = root_dir / "subdir"
         sub_sub_dir = sub_dir / "subsubdir"
 
         sub_sub_dir.mkdir(parents=True)
 
-        # Create TUNACODE.md at different levels
-        (root_dir / "TUNACODE.md").write_text("# Root context\nRoot level")
-        (sub_dir / "TUNACODE.md").write_text("# Sub context\nSub level")
+        # Create AGENTS.md at different levels
+        (root_dir / GUIDE_FILE_NAME).write_text("# Root context\nRoot level")
+        (sub_dir / GUIDE_FILE_NAME).write_text("# Sub context\nSub level")
 
         # Change to deepest directory
         original_cwd = os.getcwd()
@@ -52,10 +53,10 @@ async def test_get_code_style_walks_up_directory_tree():
 
 @pytest.mark.asyncio
 async def test_get_code_style_handles_empty_file():
-    """Test that empty TUNACODE.md files don't break loading."""
+    """Test that empty AGENTS.md files don't break loading."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
-        tunacode_path.write_text("")  # Empty file
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
+        agents_path.write_text("")  # Empty file
 
         original_cwd = os.getcwd()
         try:
@@ -74,9 +75,9 @@ async def test_get_code_style_handles_empty_file():
 async def test_context_functions_return_all_types():
     """Test that context functions return git, directory, style, and files info."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create TUNACODE.md
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
-        tunacode_path.write_text("# Test context")
+        # Create AGENTS.md
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
+        agents_path.write_text("# Test context")
 
         # Create some files for directory structure
         (Path(tmpdir) / "src").mkdir()
@@ -105,13 +106,13 @@ async def test_context_functions_return_all_types():
             os.chdir(original_cwd)
 
 
-def test_agent_creation_with_large_tunacode_md():
-    """Test that agent handles large TUNACODE.md files gracefully."""
+def test_agent_creation_with_large_agents_md():
+    """Test that agent handles large AGENTS.md files gracefully."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create a large TUNACODE.md (10KB)
+        # Create a large AGENTS.md (10KB)
         large_content = "# Large Context\n\n" + ("x" * 80 + "\n") * 125
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
-        tunacode_path.write_text(large_content)
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
+        agents_path.write_text(large_content)
 
         original_cwd = os.getcwd()
         try:
@@ -127,14 +128,14 @@ def test_agent_creation_with_large_tunacode_md():
             os.chdir(original_cwd)
 
 
-def test_agent_creation_with_malformed_tunacode_md():
-    """Test that agent handles malformed TUNACODE.md gracefully."""
+def test_agent_creation_with_malformed_agents_md():
+    """Test that agent handles malformed AGENTS.md gracefully."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create TUNACODE.md with potential encoding issues
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
+        # Create AGENTS.md with potential encoding issues
+        agents_path = Path(tmpdir) / GUIDE_FILE_NAME
 
         # Write binary data that might cause encoding issues
-        with open(tunacode_path, "wb") as f:
+        with open(agents_path, "wb") as f:
             f.write(b"# Context\n\x80\x81\x82Invalid UTF-8")
 
         original_cwd = os.getcwd()

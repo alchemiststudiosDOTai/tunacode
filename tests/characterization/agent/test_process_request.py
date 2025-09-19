@@ -97,13 +97,13 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
-                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+                "tunacode.core.agents.agent_components._process_node", new_callable=AsyncMock
             ) as mock_process:
                 # Configure mock to return expected tuple
                 mock_process.return_value = (False, None)
-                with patch("tunacode.core.agents.main.parse_json_tool_calls", return_value=0):
+                with patch("tunacode.core.agents.agent_components.parse_json_tool_calls", return_value=0):
                     # Act
                     result = await process_request("openai:gpt-4", message, self.state_manager)
 
@@ -133,9 +133,9 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
-                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+                "tunacode.core.agents.agent_components._process_node", new_callable=AsyncMock
             ) as mock_process:
                 # Configure mock to return expected tuple
                 mock_process.return_value = (False, None)
@@ -189,13 +189,13 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
-                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+                "tunacode.core.agents.agent_components._process_node", new_callable=AsyncMock
             ) as mock_process:
                 # Configure mock to return expected tuple
                 mock_process.return_value = (False, None)
-                with patch("tunacode.core.agents.main.parse_json_tool_calls", return_value=0):
+                with patch("tunacode.core.agents.agent_components.parse_json_tool_calls", return_value=0):
                     # Act
                     result = await process_request(
                         "openai:gpt-4", message, self.state_manager, AsyncMock()
@@ -228,13 +228,13 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
-                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+                "tunacode.core.agents.agent_components._process_node", new_callable=AsyncMock
             ) as mock_process:
                 # Configure mock to return expected tuple
                 mock_process.return_value = (False, None)
-                with patch("tunacode.core.agents.main.parse_json_tool_calls", return_value=0):
+                with patch("tunacode.core.agents.agent_components.parse_json_tool_calls", return_value=0):
                     # Act
                     result = await process_request("openai:gpt-4", message, self.state_manager)
 
@@ -280,9 +280,9 @@ class TestProcessRequest:
                 )
             return (False, None)
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
-                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+                "tunacode.core.agents.agent_components._process_node", new_callable=AsyncMock
             ) as mock_process:
                 # Configure mock to use our side effect
                 mock_process.side_effect = mock_process_node
@@ -334,9 +334,9 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
-            with patch("tunacode.core.agents.main._process_node", side_effect=track_iterations):
-                with patch("tunacode.core.agents.main.parse_json_tool_calls", return_value=0):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
+            with patch("tunacode.core.agents.agent_components._process_node", side_effect=track_iterations):
+                with patch("tunacode.core.agents.agent_components.parse_json_tool_calls", return_value=0):
                     # Act
                     await process_request("openai:gpt-4", message, self.state_manager)
 
@@ -363,7 +363,7 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
                 "tunacode.core.agents.agent_components.parse_json_tool_calls", return_value=0
             ):
@@ -392,13 +392,13 @@ class TestProcessRequest:
 
         mock_agent.iter = mock_iter
 
-        with patch("tunacode.core.agents.main.get_or_create_agent", return_value=mock_agent):
+        with patch("tunacode.core.agents.agent_components.get_or_create_agent", return_value=mock_agent):
             with patch(
-                "tunacode.core.agents.main._process_node", new_callable=AsyncMock
+                "tunacode.core.agents.agent_components._process_node", new_callable=AsyncMock
             ) as mock_process:
                 # Configure mock to return expected tuple
                 mock_process.return_value = (False, None)
-                with patch("tunacode.core.agents.main.parse_json_tool_calls", return_value=0):
+                with patch("tunacode.core.agents.agent_components.parse_json_tool_calls", return_value=0):
                     # Act
                     result = await process_request("openai:gpt-4", message, self.state_manager)
 
