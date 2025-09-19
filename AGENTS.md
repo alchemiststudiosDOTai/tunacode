@@ -1,6 +1,13 @@
 
 ### Workflow
-you MUST make this repository optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely
+you MUST make this repository optimized for you and future instances of agents and devs working with it. Implement the following structure and instructions precisely
+
+- before any updates make a git commit rollback point, clearly labeled for future agents
+
+- pre-commit hooks can be skipped in order to make a git rollback  if needed with -n
+
+- the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
+
 
 ### Directory Structure
 
@@ -70,16 +77,9 @@ To perfectly optimize this repository for you and future instances of Claude wor
 
 Implementing these changes ensures an optimized, efficient, and highly actionable Claude-specific repository structure for current and future Claude interactions
 
-- before any updates make a git commit rollback point, clearly labeled for future agents
-
-- the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
-
-- pre-commit hooks can NOT be skipped, you will be punished for skipping the
-
 
 - grep documentation and .claude as needed BOTH of these have a README.md that ahs a direcoty map, you MUST read these before any bigger grep or context searches
 
-- in general gather as much context as needed, unless specified by the user
 
 - this is the most important part of this prompt: Synthesis context aggressively and heuristically AS NEEDED ONLY You can deploy the appropriate subagent for complex tasks agents list below
 

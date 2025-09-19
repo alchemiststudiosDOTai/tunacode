@@ -1,6 +1,12 @@
 
 ### Workflow
-Make this repository perfectly optimized for you and future instances of Claude working with it. Implement the following structure and instructions precisely:
+you MUST make this repository optimized for you and future instances of agents and devs working with it. Implement the following structure and instructions precisely
+
+- before any updates make a git commit rollback point, clearly labeled for future agents
+
+- pre-commit hooks can be skipped in order to make a git rollback  if needed with -n
+
+- the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
 
 ### Directory Structure
 
