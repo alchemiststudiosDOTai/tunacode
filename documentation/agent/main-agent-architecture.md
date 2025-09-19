@@ -2,17 +2,38 @@
 
 ## Overview
 
-The main agent (`src/tunacode/core/agents/main.py`) is the central coordinating component of TunaCode, responsible for:
-- Creating and managing AI agents with different models
-- Processing user requests through the agent
-- Coordinating tool execution including parallel batching
-- Managing conversation state and message history
-- Handling streaming responses and fallback mechanisms
+The TunaCode agent system follows a clean modular architecture with single source of truth principles:
+
+- **Main orchestrator** (`src/tunacode/core/agents/main.py`) - Central request processing and coordination
+- **Agent components** (`src/tunacode/core/agents/agent_components/`) - Modular functionality with specific responsibilities
+- **Direct imports** - No re-export layers, clean dependency graph
+
+The main agent is responsible for:
+- Processing user requests through the agent orchestration
+- Coordinating with specialized agent components
+- Managing streaming responses and fallback mechanisms
 - Providing clear completion indicators to show when processing is done
+
+## Clean Architecture Principles
+
+### Single Source of Truth
+Each function is defined in exactly ONE module:
+- ✅ `agent_components/agent_config.py` - Agent creation and management
+- ✅ `agent_components/tool_executor.py` - Parallel tool execution
+- ✅ `agent_components/message_handler.py` - Message patching and handling
+- ✅ `agent_components/json_tool_parser.py` - Tool call parsing and execution
+- ✅ `main.py` - Request orchestration and coordination
+
+### Direct Dependencies
+All imports use direct paths to implementation modules:
+```python
+from tunacode.core.agents.agent_components import patch_tool_messages
+from tunacode.core.agents.agent_components import extract_and_execute_tool_calls
+```
 
 ## Key Components
 
-### 1. Agent Creation and Management
+### 1. Agent Creation and Management (`agent_components/agent_config.py`)
 
 The `get_or_create_agent()` function creates agents on-demand for different models:
 
@@ -39,7 +60,7 @@ The agent integrates with TunaCode's tool system:
 
 Tools are wrapped with retry logic and max retries from user config.
 
-### 3. Parallel Tool Execution
+### 3. Parallel Tool Execution (`agent_components/tool_executor.py`)
 
 A key performance optimization is parallel execution of read-only tools:
 
@@ -47,6 +68,7 @@ A key performance optimization is parallel execution of read-only tools:
 - These tools execute concurrently when multiple are called
 - Write/execute tools run sequentially for safety
 - Controlled by `TUNACODE_MAX_PARALLEL` environment variable
+- Implemented in `execute_tools_parallel()` function
 
 **Current Implementation:**
 - Detects when ALL tools in a response are read-only
