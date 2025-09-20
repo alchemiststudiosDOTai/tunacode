@@ -1,15 +1,9 @@
 
 ### Workflow
-you MUST make this repository optimized for you and future instances of agents and devs working with it. Implement the following structure and instructions precisely
-
-- before any updates make a git commit rollback point, clearly labeled for future agents
-
-- pre-commit hooks can be skipped in order to make a git rollback  if needed with -n
-
-- in general commit Hooks can be skipped in the name of making a rollback point
 
 - the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
 
+- you MUST use .venv and UV for package management 
 ### Code Style & Typing
 - **Formatting**: Strict `ruff` enforcement. All PRs must pass `ruff check --fix .`
 - **Typing**: Explicit types preferred
@@ -43,7 +37,7 @@ you MUST make this repository optimized for you and future instances of agents a
 - commit frequently
 - if a rollback commit point fails due to the pre-commit hooks: use -n
 - always run ruff .
-- anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern UNLESS asked by the user to skip 
+- anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern UNLESS asked by the user to skip
 - if a test for a feature does not exist you MUST create one FIRST to capture current behavior
 - then make a test for the feature the test should fail
 - then build it with TDD red -> green -> blue
@@ -121,5 +115,3 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 
 
 - this is the most important part of this prompt: Synthesise context aggressively and heuristically AS NEEDED ONLY
-
-
