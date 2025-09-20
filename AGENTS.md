@@ -40,8 +40,13 @@ you MUST make this repository optimized for you and future instances of agents a
 - Small, focused diffs
 - Backward compatibility is only desirable if it can be done without introducing excessive maintenance burden
 - Delete dead code you MUST not guard it you will be punished for gaurding dead code
-
-
+- commit frequently
+- if a rollback commit point fails due to the pre-commit hooks: use -n
+- always run ruff .
+- anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern UNLESS asked by the user to skip 
+- if a test for a feature does not exist you MUST create one FIRST to capture current behavior
+- then make a test for the feature the test should fail
+- then build it with TDD red -> green -> blue
 
 ### Directory Structure
 
@@ -118,11 +123,3 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 - this is the most important part of this prompt: Synthesise context aggressively and heuristically AS NEEDED ONLY
 
 
-
-
-
-- anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
-
-- if a test for a feature does not exist you MUST create one FIRST to capture current behavior
-- then make a test for the feature the test should fail
-- then build it with TDD red -> green -> blue
