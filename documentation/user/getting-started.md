@@ -8,6 +8,7 @@ You can install TunaCode using one of the following methods.
 
 - Python 3.10 or higher
 - Git
+- UV (recommended) - Install from [astral.sh/uv](https://astral.sh/uv) or `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ### Option 1: One-line Install (Linux/macOS)
 
@@ -15,7 +16,13 @@ You can install TunaCode using one of the following methods.
 wget -qO- https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/master/scripts/install_linux.sh | bash
 ```
 
-### Option 2: pip install
+### Option 2: UV install (recommended)
+
+```bash
+uv tool install tunacode-cli
+```
+
+### Option 3: pip install
 
 ```bash
 pip install tunacode-cli
@@ -117,9 +124,9 @@ Requirements
 - At least one provider API key (OpenAI, Anthropic, Google Gemini, or OpenRouter)
 
 Install
-- pip (recommended): `pip install tunacode-cli`
-- pipx: `pipx install tunacode`
-- uv tool: `uv tool install tunacode-cli`
+- uv tool (recommended): `uv tool install tunacode-cli`
+- pip: `pip install tunacode-cli`
+- pipx: `pipx install tunacode-cli`
 
 Launch
 - From any project directory, run: `tunacode`
@@ -175,11 +182,11 @@ Configuration file
   - Safety preference `skip_git_safety` is stored here if you opt out of the safety branch.
 
 Updating
-- In-app: `/update` attempts to detect your install method (pipx, venv, uv tool, pip) and upgrade in place
+- In-app: `/update` attempts to detect your install method (uv tool, pipx, venv, pip) and upgrade in place
 - Manual:
-  - pip: `pip install --upgrade tunacode-cli`
-  - pipx: `pipx upgrade tunacode`
   - uv tool: `uv tool upgrade tunacode-cli`
+  - pip: `pip install --upgrade tunacode-cli`
+  - pipx: `pipx upgrade tunacode-cli`
 
 Using the REPL
 When TunaCode starts, it opens an interactive prompt.
@@ -244,8 +251,8 @@ Advanced: Custom slash commands and templates
 - Templates: Place reusable scaffolds in `~/.config/tunacode/templates/`. Commands with shortcuts may appear directly in the REPL.
 
 Uninstall
+- uv tool: `uv tool uninstall tunacode-cli`
 - pip: `pip uninstall tunacode-cli`
 - pipx: `pipx uninstall tunacode`
-- uv tool: `uv tool uninstall tunacode-cli`
 
 That’s it — run `tunacode`, complete the wizard, and start coding with the agent.

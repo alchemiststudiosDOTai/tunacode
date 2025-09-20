@@ -21,7 +21,10 @@
 # Option 1: One-line install (Linux/macOS)
 wget -qO- https://raw.githubusercontent.com/alchemiststudiosDOTai/tunacode/master/scripts/install_linux.sh | bash
 
-# Option 2: pip install
+# Option 2: UV install (recommended)
+uv tool install tunacode-cli
+
+# Option 3: pip install
 pip install tunacode-cli
 ```
 
@@ -30,8 +33,9 @@ For detailed installation and configuration instructions, see the [**Getting Sta
 ## Quickstart
 
 ```bash
-# 1) Install
-pip install tunacode-cli
+# 1) Install (choose one)
+uv tool install tunacode-cli  # recommended
+# or: pip install tunacode-cli
 
 # 2) Launch the CLI
 tunacode --wizard   # guided setup (enter an API key, pick a model)
@@ -57,13 +61,18 @@ For contributors and developers who want to work on TunaCode:
 git clone https://github.com/alchemiststudiosDOTai/tunacode.git
 cd tunacode
 
-# Quick setup (recommended)
+# Quick setup (recommended) - uses UV automatically if available
 ./scripts/setup_dev_env.sh
 
 # Or manual setup with UV (recommended)
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e ".[dev]"
+
+# Alternative: traditional setup
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -e ".[dev]"
 
 # Verify installation
 tunacode --version

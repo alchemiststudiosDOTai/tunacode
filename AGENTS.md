@@ -4,11 +4,43 @@ you MUST make this repository optimized for you and future instances of agents a
 
 - before any updates make a git commit rollback point, clearly labeled for future agents
 
-- pre-commit hooks can be skipped in order to make a git rollback  if needed with -n 
+- pre-commit hooks can be skipped in order to make a git rollback  if needed with -n
 
 - in general commit Hooks can be skipped in the name of making a rollback point
 
 - the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
+
+### Code Style & Typing
+- **Formatting**: Strict `ruff` enforcement. All PRs must pass `ruff check --fix .`
+- **Typing**: Explicit types preferred
+  - **OK**: `cast(...)`, `assert ...` for type narrowing
+  - **SOMETIMES OK**: Untyped args for simple cases (e.g., reward functions)
+  - **NOT OK**: `# type: ignore` without strong justification
+
+### Error Handling Philosophy
+- **Fail fast, fail loud** - No defensive programming or silent fallbacks
+- **Minimize branching** - Prefer single code paths; every `if`/`try` needs justification
+- **Example**: Missing API key → immediate failure, not fallback
+
+### Dependencies
+- Avoid new core dependencies
+- Exception: tiny deps that simplify widely-used code
+
+### Testing
+- `hatch run test` with discovery under `tests/`
+- Write simple, deterministic unit tests
+- Update tests when changing functionality
+
+### Documentation
+- Keep concise and actionable
+- Update relevant pages when behavior changes
+- Avoid content duplication
+
+### Scope
+- Small, focused diffs
+- Backward compatibility is only desirable if it can be done without introducing excessive maintenance burden
+- Delete dead code you MUST not guard it you will be punished for gaurding dead code
+
 
 
 ### Directory Structure
@@ -46,7 +78,7 @@ claude/
 └── memory_anchors/
     ├── anchors.json (UUID-based anchors with semantic structure)
 
-To perfectly optimize this repository for you and future instances of Claude working with it, implement the following explicit instructions:
+optimize this repository for you and future instances of Claude working with it, implement the following explicit instructions:
 
 1. **Claude-specific Metadata Directory**
    - Maintain normalized metadata about the codebase, including dependency graphs, file types (implementation/interface), and intent classifications.
@@ -83,35 +115,11 @@ Implementing these changes ensures an optimized, efficient, and highly actionabl
 - grep documentation and .claude as needed BOTH of these have a README.md that ahs a direcoty map, you MUST read these before any bigger grep or context searches
 
 
-- this is the most important part of this prompt: Synthesis context aggressively and heuristically AS NEEDED ONLY You can deploy the appropriate subagent for complex tasks agents list below
+- this is the most important part of this prompt: Synthesise context aggressively and heuristically AS NEEDED ONLY
 
-### Documentation
 
-- update the documents @documentation and in .claude after any update.
 
-- use the subagent tech-docs-maintainer to update the documentation you MUST instruct the subagent to keep doc updates short you will be PUNISHED for not telling the documentation agent to keep it to only the most distilled information
 
-- always follow best practices with git commits naming and gh cli workflows
-
-- commit frequently
-
-- always be on the side of safety, if you have any question consult the user
-
-### Python Coding Standards
-
-- always use the .venv
-- Use type hints (PEP 484) for all function signatures
-- Prefer f-strings (PEP 498) over %-formatting or .format()
-- Use pathlib.Path instead of os.path for filesystem operations
-- Structure imports: stdlib → third-party → local (PEP 8)
-- Use dataclasses (PEP 557) for simple data containers
-- Prefer context managers (with) for resource handling
-- Use structural pattern matching (PEP 634) for complex
-- run ruff frequently for both linting and formatting
-
-### Testing
-
-- "hatch run test" command for testing suite
 
 - anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
 
