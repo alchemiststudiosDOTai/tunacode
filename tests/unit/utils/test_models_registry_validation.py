@@ -67,4 +67,3 @@ def test_type_coercion_for_numeric_fields() -> None:
     assert model.cost.output == 2.5
     assert model.limits.context == 32000
     assert model.limits.output == 2048
-

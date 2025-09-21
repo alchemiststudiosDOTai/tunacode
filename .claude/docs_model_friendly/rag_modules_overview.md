@@ -19,4 +19,3 @@ Usage
 
 Notes
 - FTS5 query parsing treats `-` as an operator. For terms with hyphens (e.g., `plan-models`), wrap in quotes: `"plan-models"` or replace with a space: `plan models` to avoid `sqlite3.OperationalError: no such column: models`.
-

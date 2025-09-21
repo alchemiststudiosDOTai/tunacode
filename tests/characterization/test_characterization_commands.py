@@ -4,13 +4,12 @@ Characterization tests for commands.py
 These tests aim to capture and document the current behavior of the commands module, providing a safety net for future refactoring.
 """
 
-from unittest import mock
-
-import pytest
-
 # Provide a minimal stub for defusedxml if not installed, to avoid import errors
 import sys
 import types
+from unittest import mock
+
+import pytest
 
 if "defusedxml" not in sys.modules:
     _defusedxml = types.ModuleType("defusedxml")
