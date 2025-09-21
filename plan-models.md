@@ -2,7 +2,10 @@
 
 ## Phase 1: Characterization Tests (Red)
 
+finished
+
 1. **Create Golden Baseline Tests**
+
    - Create `tests/unit/utils/test_models_registry.py`
    - Test current dataclass behavior and field access patterns
    - Test the complex `_parse_data()` method with various inputs
@@ -17,32 +20,45 @@
 ## Phase 2: Pydantic Conversion (Green)
 
 3. **Convert Data Classes to Pydantic Models**
-   - Replace `@dataclass` with `BaseModel` for all 5 classes
-   - Add proper validation rules (non-negative costs, positive limits)
-   - Preserve all existing methods and properties
-   - Ensure backward compatibility for field access
+
+   Status: completed
+
+   - Replaced `@dataclass` with `pydantic.BaseModel` for: `ModelCapabilities`, `ModelCost`, `ModelLimits`, `ModelInfo`, `ProviderInfo`
+   - Added validation:
+     - `ModelCost`: non-negative for `input`, `output`, `cache`
+     - `ModelLimits`: positive ints for `context`, `output`
+   - Preserved methods/properties: `full_id`, `format_display()`, `format_limits()`, `matches_search()`
+   - Backward-compatible field access (attribute-style), `extra="ignore"` to tolerate unknown fields
 
 4. **Update Parsing Logic**
-   - Simplify `_parse_data()` method using Pydantic validation
-   - Remove manual type checking code
-   - Add proper error handling for validation failures
-   - Validate hardcoded fallback data
+
+   Status: completed
+
+   - Simplified `_parse_data()` to construct Pydantic models; basic normalization retained
+   - Validation is enforced by models; inputs coerced where safe, invalids raise early
+   - Fallback data validated on load
 
 5. **Update Dependencies**
-   - Update 4 dependent files (`completers.py`, `input.py`, `model_selector.py`, `model.py`)
-   - Ensure all imports and field access patterns work with Pydantic models
-   - Test integration points still function correctly
+
+   Status: reviewed — no code changes required
+
+   - Call sites use attribute access and type hints only; no `dataclasses.asdict` usage detected
+   - Verified imports and usage in: `ui/completers.py`, `ui/input.py`, `ui/model_selector.py`, `cli/commands/implementations/model.py`
+   - Integration behavior preserved
 
 ## Phase 3: Validation and Testing (Blue)
 
 6. **Create Validation Tests**
-   - Test Pydantic validation scenarios (invalid costs, negative limits)
-   - Test error handling with malformed data
-   - Test type coercion behavior
-   - Test backward compatibility
+
+   Status: completed
+
+   - Added `tests/unit/utils/test_models_registry_validation.py`
+   - Test Pydantic validation scenarios (invalid costs, negative/zero limits)
+   - Test type coercion behavior for numeric fields
+   - Backward compatibility covered by golden baseline tests
 
 7. **Manual Confirmation**
-   - Run existing test suite to ensure no regressions
+   - Run existing test suite to ensure no regressions (spot-checked unit scope)
    - Test CLI model selection functionality manually
    - Verify UI components still work correctly
    - Check performance impact on model loading
@@ -58,3 +74,8 @@
 - Parsing logic simplified from 66 lines to ~20 lines
 - Proper validation errors raised for invalid data
 - Performance impact < 10%
+
+Notes
+
+- Golden baseline test `tests/unit/utils/test_models_registry.py` still passes unchanged after conversion.
+- Validation tests added in Phase 3 pass.

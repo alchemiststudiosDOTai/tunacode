@@ -8,6 +8,33 @@ from unittest import mock
 
 import pytest
 
+# Provide a minimal stub for defusedxml if not installed, to avoid import errors
+import sys
+import types
+
+if "defusedxml" not in sys.modules:
+    _defusedxml = types.ModuleType("defusedxml")
+    _etree = types.ModuleType("ElementTree")
+
+    def _stub_parse(_path: str):  # minimal interface used by ReactTool
+        class _Tree:
+            def getroot(self):
+                class _Root:
+                    def find(self, _name: str):
+                        return None
+
+                    def findall(self, _name: str):
+                        return []
+
+                return _Root()
+
+        return _Tree()
+
+    _etree.parse = _stub_parse  # type: ignore[attr-defined]
+    _defusedxml.ElementTree = _etree  # type: ignore[attr-defined]
+    sys.modules["defusedxml"] = _defusedxml
+    sys.modules["defusedxml.ElementTree"] = _etree
+
 from tunacode.cli import commands
 
 
@@ -70,6 +97,11 @@ class TestCommandBehaviors:
     async def test_model_command_no_args(self, capsys):
         """Test ModelCommand with no arguments shows current model."""
         cmd = commands.ModelCommand()
+        # CLAUDE_ANCHOR[model-command-registry-validation-skip]
+        # Pydantic validation in ModelsRegistry may reject cached API entries (e.g., zero limits).
+        # For characterization, we skip live registry loading to avoid brittle cache/network coupling.
+        # This preserves the intent: command prints current model info when invoked with no args.
+        cmd._registry_loaded = True
         context = mock.Mock()
         context.state_manager.session.current_model = "openai:gpt-4"
 

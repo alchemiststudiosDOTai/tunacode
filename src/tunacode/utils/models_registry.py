@@ -1,7 +1,6 @@
 """Models.dev integration for model discovery and validation."""
 
 import json
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -9,10 +8,13 @@ from typing import Any, Dict, List, Optional
 from urllib.error import URLError
 from urllib.request import urlopen
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-@dataclass
-class ModelCapabilities:
+
+class ModelCapabilities(BaseModel):
     """Model capabilities and features."""
+
+    model_config = ConfigDict(extra="ignore")
 
     attachment: bool = False
     reasoning: bool = False
@@ -21,13 +23,23 @@ class ModelCapabilities:
     knowledge: Optional[str] = None
 
 
-@dataclass
-class ModelCost:
+class ModelCost(BaseModel):
     """Model pricing information."""
+
+    model_config = ConfigDict(extra="ignore")
 
     input: Optional[float] = None
     output: Optional[float] = None
     cache: Optional[float] = None
+
+    @field_validator("input", "output", "cache")
+    @classmethod
+    def _non_negative(cls, v: Optional[float]) -> Optional[float]:
+        if v is None:
+            return v
+        if v < 0:
+            raise ValueError("cost values must be non-negative")
+        return float(v)
 
     def format_cost(self) -> str:
         """Format cost as a readable string."""
@@ -36,16 +48,27 @@ class ModelCost:
         return f"${self.input}/{self.output} per 1M tokens"
 
 
-@dataclass
-class ModelLimits:
+class ModelLimits(BaseModel):
     """Model context and output limits."""
+
+    model_config = ConfigDict(extra="ignore")
 
     context: Optional[int] = None
     output: Optional[int] = None
 
+    @field_validator("context", "output")
+    @classmethod
+    def _positive_int(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        iv = int(v)
+        if iv <= 0:
+            raise ValueError("limits must be positive integers")
+        return iv
+
     def format_limits(self) -> str:
         """Format limits as a readable string."""
-        parts = []
+        parts: List[str] = []
         if self.context:
             parts.append(f"{self.context:,} context")
         if self.output:
@@ -53,20 +76,21 @@ class ModelLimits:
         return ", ".join(parts) if parts else "Limits not specified"
 
 
-@dataclass
-class ModelInfo:
+class ModelInfo(BaseModel):
     """Complete model information."""
+
+    model_config = ConfigDict(extra="ignore")
 
     id: str
     name: str
     provider: str
-    capabilities: ModelCapabilities = field(default_factory=ModelCapabilities)
-    cost: ModelCost = field(default_factory=ModelCost)
-    limits: ModelLimits = field(default_factory=ModelLimits)
+    capabilities: ModelCapabilities = Field(default_factory=ModelCapabilities)
+    cost: ModelCost = Field(default_factory=ModelCost)
+    limits: ModelLimits = Field(default_factory=ModelLimits)
     release_date: Optional[str] = None
     last_updated: Optional[str] = None
     open_weights: bool = False
-    modalities: Dict[str, List[str]] = field(default_factory=dict)
+    modalities: Dict[str, List[str]] = Field(default_factory=dict)
 
     @property
     def full_id(self) -> str:
@@ -77,7 +101,7 @@ class ModelInfo:
         """Format model for display."""
         display = f"{self.full_id} - {self.name}"
         if include_details:
-            details = []
+            details: List[str] = []
             if self.cost.input is not None:
                 details.append(self.cost.format_cost())
             if self.limits.context:
@@ -86,6 +110,7 @@ class ModelInfo:
                 display += f" ({', '.join(details)})"
         return display
 
+    # we need to make this lighter for future dev, low priority
     def matches_search(self, query: str) -> float:
         """Calculate match score for search query (0-1)."""
         query_lower = query.lower()
@@ -107,13 +132,14 @@ class ModelInfo:
         return best_ratio
 
 
-@dataclass
-class ProviderInfo:
+class ProviderInfo(BaseModel):
     """Provider information."""
+
+    model_config = ConfigDict(extra="ignore")
 
     id: str
     name: str
-    env: List[str] = field(default_factory=list)
+    env: List[str] = Field(default_factory=list)
     npm: Optional[str] = None
     doc: Optional[str] = None
 
@@ -315,26 +341,26 @@ class ModelsRegistry:
 
                 # Parse capabilities
                 capabilities = ModelCapabilities(
-                    attachment=model_data.get("attachment", False),
-                    reasoning=model_data.get("reasoning", False),
-                    tool_call=model_data.get("tool_call", False),
-                    temperature=model_data.get("temperature", True),
+                    attachment=bool(model_data.get("attachment", False)),
+                    reasoning=bool(model_data.get("reasoning", False)),
+                    tool_call=bool(model_data.get("tool_call", False)),
+                    temperature=bool(model_data.get("temperature", True)),
                     knowledge=model_data.get("knowledge"),
                 )
 
                 # Parse cost
                 cost_data = model_data.get("cost", {})
                 cost = ModelCost(
-                    input=cost_data.get("input") if isinstance(cost_data, dict) else None,
-                    output=cost_data.get("output") if isinstance(cost_data, dict) else None,
-                    cache=cost_data.get("cache") if isinstance(cost_data, dict) else None,
+                    input=(cost_data.get("input") if isinstance(cost_data, dict) else None),
+                    output=(cost_data.get("output") if isinstance(cost_data, dict) else None),
+                    cache=(cost_data.get("cache") if isinstance(cost_data, dict) else None),
                 )
 
                 # Parse limits
                 limit_data = model_data.get("limit", {})
                 limits = ModelLimits(
-                    context=limit_data.get("context") if isinstance(limit_data, dict) else None,
-                    output=limit_data.get("output") if isinstance(limit_data, dict) else None,
+                    context=(limit_data.get("context") if isinstance(limit_data, dict) else None),
+                    output=(limit_data.get("output") if isinstance(limit_data, dict) else None),
                 )
 
                 # Create model info
@@ -347,8 +373,12 @@ class ModelsRegistry:
                     limits=limits,
                     release_date=model_data.get("release_date"),
                     last_updated=model_data.get("last_updated"),
-                    open_weights=model_data.get("open_weights", False),
-                    modalities=model_data.get("modalities", {}),
+                    open_weights=bool(model_data.get("open_weights", False)),
+                    modalities=(
+                        model_data.get("modalities", {})
+                        if isinstance(model_data.get("modalities", {}), dict)
+                        else {}
+                    ),
                 )
 
                 # Store with full ID as key
