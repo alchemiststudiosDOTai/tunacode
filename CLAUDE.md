@@ -1,131 +1,124 @@
 
-### Workflow
-you MUST make this repository optimized for you and future instances of agents and devs working with it. Implement the following structure and instructions precisely
+###Instruction###
+Your task is to optimize and extend this repository following explicit coding, testing, and documentation workflows.
 
-- before any updates make a git commit rollback point, clearly labeled for future agents
+Example of ReAct loop:
 
-- pre-commit hooks can be skipped in order to make a git rollback  if needed with -n
+Reason: I need to know if a golden baseline test exists for this feature.
 
-- the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
+Act: Search the tests/ directory for existing coverage.
 
-### Directory Structure
+You MUST comply with the rules below. You will be penalized if you deviate. Answer in a natural, human-like manner. you MUST keep.claude updated as instructed below. You will be punished for now keeping .claude kb in synch. You MUST always follow the ReAct Pattern (reasoning + acting) when solving tasks, explicitly alternating between reasoning steps and concrete actions.
+---
 
-```
-claude/
-├── metadata/
-│   ├── dependency_graphs/
-│   ├── file_classifications.json (implementation vs. interface)
-│   └── intent_classifications.json
-├── semantic_index/
-│   ├── function_call_graphs.json
-│   ├── intent_mappings.json
-│   └── type_relationships.json
-├── debug_history/
-│   ├── error_solution_logs.json (categorized by component and error type)
-│   └── context_and_versions.json
-├── patterns/
-│   ├── canonical_patterns/
-│   ├── empirical_interface_patterns/
-│   └── reliability_metrics.json
-├── qa/
-│   ├── solved_problems/
-│   ├── context_logs/
-│   └── reasoning_docs/
-├── debug_history/
-│   └── debug_sessions.json (error→solution pairs, context, code versions)
-├── docs_model_friendly/
-│   ├── component_purpose.md
-│   └── component_relationships.md
-├── delta_summaries/
-│   ├── api_change_logs.json
-│   ├── behavior_changes.json
-│   └── reasoning_logs/
-└── memory_anchors/
-    ├── anchors.json (UUID-based anchors with semantic structure)
+### Workflow Rules
+* Never begin coding until the objective is **explicitly defined**. If unclear, ask questions or use best practices.
+* Always use `.venv` and `uv` for package management.
+* Small, focused diffs only. Commit frequently.
 
-To perfectly optimize this repository for you and future instances of Claude working with it, implement the following explicit instructions:
+### Code Style & Typing
 
-1. **Claude-specific Metadata Directory**
-   - Maintain normalized metadata about the codebase, including dependency graphs, file types (implementation/interface), and intent classifications.
+* Enforce `ruff check --fix .` before PRs.
+* Use explicit typing. `cast(...)` and `assert ...` are OK.
+* `# type: ignore` only with strong justification.
 
-2. **Semantic Code Indexing**
-   - Create a semantic index with intent classification and pre-analyzed semantic relationships.
-   - Document detailed function-to-function call graphs and intent mappings.
+### Error Handling
 
-3. **Debug History Database**
-   - Log all debugging sessions explicitly, including error-solution pairs, context, code versions, and categorization by component/error type.
+* Fail fast, fail loud. No silent fallbacks.
+* Minimize branching: every `if`/`try` must be justified.
 
-4. **Pattern and Industry Database**
-   - Provide canonical implementation patterns and empirical interface examples.
-   - Include explicit reliability metrics for assessing robustness.
+### Dependencies
 
-4. **Component-specific Cheat Sheets**
-   - Create quick-reference guides documenting common operations, pitfalls, edge cases, and Claude-specific behaviors clearly.
+* Avoid new core dependencies. Tiny deps OK if widely reused.
 
-5. **Queries-and-Answers Database**
-   - Store solved queries explicitly indexed by component, file, error type, with context and detailed reasoning.
+### Testing (TDD Red → Green → Blue)
 
-6. **Claude-specific Model-Friendly Documentation**
-   - Include clear, explicit documentation on component purposes and relationships optimized for Claude.
+1. If a test doesn’t exist, create a **golden baseline test first**.
+2. Add a failing test for the new feature.
+3. Implement until tests pass.
+4. Refactor cleanly.
 
-7. **Delta Summaries**
-   - Clearly document semantic change logs, highlighting API changes, behavior shifts, and reasoning behind these changes.
-
-7. **Explicit Memory Anchors**
-   - Embed special "memory anchor" comments with UUID-based identifiers and semantic structure for easy and precise future reference.
-
-Implementing these changes ensures an optimized, efficient, and highly actionable Claude-specific repository structure for current and future Claude interactions
-
-- before any updates make a git commit rollback point, clearly labeled for future agents
-
-- the clear outline of the objective MUST be established before we begin ANY coding, do not under any circumstance begin any updates untill this is clearly understood, if you have any ambiuguity or quesiton, the user can be brought in or use best practises
-
-- pre-commit hooks can NOT be skipped, you will be punished for skipping the
-
-
-- grep documentation and .claude as needed BOTH of these have a README.md that ahs a direcoty map, you MUST read these before any bigger grep or context searches
-
-- in general gather as much context as needed, unless specified by the user
-
-- this is the most important part of this prompt: Synthesis context aggressively and heuristically AS NEEDED ONLY You can deploy the appropriate subagent for complex tasks agents list below
+* Run with: `hatch run test`.
 
 ### Documentation
 
-- update the documents @documentation and in .claude after any update.
+* Keep concise and actionable.
+* Update when behavior changes.
+* Avoid duplication.
 
-- use the subagent tech-docs-maintainer to update the documentation you MUST instruct the subagent to keep doc updates short you will be PUNISHED for not telling the documentation agent to keep it to only the most distilled information
+### Scope & Maintenance
 
-- always follow best practices with git commits naming and gh cli workflows
+* Backward compatibility only if low maintenance cost.
+* Delete dead code (never guard it).
+* Always run `ruff .`.
+* Use `git commit -n` if pre-commit hooks block rollback.
 
-- commit frequently
+---
+Claude-Specific Repository Optimization
 
-- always be on the side of safety, if you have any question consult the user
+Maintain .claude/ with the following structure:
 
-### Python Coding Standards
-
-- always use the .venv
-- Use type hints (PEP 484) for all function signatures
-- Prefer f-strings (PEP 498) over %-formatting or .format()
-- Use pathlib.Path instead of os.path for filesystem operations
-- Structure imports: stdlib → third-party → local (PEP 8)
-- Use dataclasses (PEP 557) for simple data containers
-- Prefer context managers (with) for resource handling
-- Use structural pattern matching (PEP 634) for complex
-- run ruff frequently for both linting and formatting
-
-### Testing
-
-- "hatch run test" command for testing suite
-
-- anytime a new feature or refactor is done, we MUST find or make the golden/character test FIRST as a baseline standaard BEFORE starting, under no circumstance are you to NOT follow this TDD pattern
-
-- if a test for a feature does not exist you MUST create one FIRST to capture current behavior
+claude/
+├── metadata/                # Dependency graphs, file vs interface, intent classification
+├── semantic_index/          # Call graphs, type relationships, intent mappings
+├── debug_history/           # Error→solution pairs, context, versions
+├── patterns/                # Canonical + empirical interface patterns, reliability metrics
+├── qa/                      # Solved Qs, reasoning docs, context logs
+├── docs_model_friendly/     # Component purpose & relationships
+├── delta_summaries/         # API & behavior change logs, reasoning logs
+└── memory_anchors/          # UUID-anchored semantic references
 
 
+Rules:
+
+Metadata → normalize file types, dependencies, and intents.
+
+Semantic Index → map function calls, type relationships, and intent flows.
+
+Debug History → log all sessions with error→solution pairs and context.
+
+Patterns → keep canonical patterns + empirical usage. Add reliability metrics.
+
+QA Database → solved queries indexed by file/component/error type.
+
+Docs → model-friendly explanations of purposes & relationships.
+
+Delta Summaries → record API/behavior shifts with reasoning.
+
+Memory Anchors → embed UUID-tagged semantic anchors in code.
+---
+
+### Example##\#
+
+You are asked to implement a new API client.
+
+1. Create a baseline golden test to capture current client behavior.
+2. Write a failing test for the new endpoint.
+3. Implement minimal code to pass the test.
+4. Refactor with strict typing, `ruff` formatting, and fail-fast error handling.
+5. Update `.claude/semantic_index/function_call_graphs.json` to reflect new call paths.
+6. Add a `delta_summaries/api_change_logs.json` entry documenting the new endpoint.
+7. Commit with a focused diff.
+
+###RAG TOOl###
+in llm-agent-tools/rag_modules/ a tool exist to search the .claude/ directory via RAG
+
+./rag-cli.sh index              # Index .claude/ directory
+./rag-cli.sh index --full       # Full reindex
+./rag-cli.sh search "query"     # Search across .claude/
+./rag-cli.sh stats              # Show index stats
+
+# Filtered / formatted search
+./rag-cli.sh search "query" --category dev --format json --limit 5
+
+You MUST call this tool at least once per session to ground context.
+Use it heuristically before answering tasks that require repo knowledge. You will be punished for not using it to find relevant context before answering questions.
+---
 
 
-## Available Agents:
 
-1. **bug-context-analyzer** - Investigates precise context around bugs without suggesting fixes
-2. **code-synthesis-analyzer** - Analyzes recent code changes to identify issues needing fixes
-3. **documentation-synthesis-qa** - Creates comprehensive docs via multi-agent orchestration
+## Available Sub-Agents you can use these as needed to break down tasks into smaller ones.
+
+ - codebase-analyzer
+ - code-synthesis-analyzer
+ - codebase-locator
