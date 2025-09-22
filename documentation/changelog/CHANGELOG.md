@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-09-22
+
+### Added
+- **Enhanced File Reference Completion** - Fuzzy-first matching for @mentions with smart directory browsing
+- **Fuzzy CLI Command Matching** - CLI suggests closest commands when no exact/prefix match
+- **Models Registry Pydantic Conversion** - Complete conversion to Pydantic BaseModel with validation
+- **RAG Tooling** - SQLite FTS5 index for .claude/ knowledge base search and indexing
+- **Comprehensive Validation Tests** - Added golden baseline tests and validation edge cases
+
+### Changed
+- **File Reference Ordering** - New priority: exact files > fuzzy files > exact dirs > fuzzy dirs
+- **Bare Directory Browsing** - Type `@dir` (without trailing slash) to browse directory contents
+- **Code Style Guidelines** - Updated CLAUDE.md with improved coding patterns and best practices
+- **Models Registry Validation** - Added constraints for non-negative costs and positive limits
+
+### Fixed
+- **Unused Import Removal** - Removed unused Iterable import from fuzzy_utils.py
+- **Validation Edge Cases** - Enhanced registry validation for model loading scenarios
+
 ## [0.0.76.2] - 2025-09-19
 
 ### Added
