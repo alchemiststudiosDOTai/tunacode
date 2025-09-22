@@ -4,8 +4,8 @@ CLAUDE_ANCHOR[command-registry]: Central command registration and execution
 """
 
 import logging
-from difflib import get_close_matches
 from dataclasses import dataclass
+from difflib import get_close_matches
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 

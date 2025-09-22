@@ -49,5 +49,3 @@ Summarize all *existing knowledge* about fuzzy logic implementation in the CLI a
       - Added entries for updated/added files: .claude/metadata/file_classifications.json:149–158
   - .claude/delta_summaries/behavior_changes.json
       - Appended new behavior-change session: .claude/delta_summaries/behavior_changes.json:127–14
-
-      

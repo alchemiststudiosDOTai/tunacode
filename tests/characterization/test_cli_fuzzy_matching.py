@@ -1,5 +1,3 @@
-import pytest
-
 from tunacode.cli import commands
 
 
