@@ -152,5 +152,13 @@
       "description": "Renamed release workflow so GitHub Actions executes the Ruff lint/test pipeline without cached definitions and pins Python 3.12 for Hatch stability",
       "status": "active"
     }
+    ,{
+      "anchor_key": "model-command-registry-validation-skip",
+      "path": "tests/characterization/test_characterization_commands.py",
+      "line": 73,
+      "kind": "line",
+      "description": "Characterization test bypasses registry.load() to avoid Pydantic validation failures from cached API data (e.g., zero limits). Preserves intent to display current model info.",
+      "status": "active"
+    }
   ]
 }

@@ -139,5 +139,29 @@
         ]
       }
     }
+    ,
+    {
+      "id": "models-registry-golden-tests-20250921-160800",
+      "time": "2025-09-21T16:08:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "reasoning": {
+        "problem": "No golden characterization tests existed for ModelsRegistry behavior prior to planned Pydantic conversion.",
+        "why_change": "Establish a stable baseline to prevent regressions during refactor and to document current display/search/sorting semantics.",
+        "solution": "Added tests/unit/utils/test_models_registry.py capturing parse_data mapping, display formatting, search scoring, and variant sorting using deterministic fallback data.",
+        "benefits": [
+          "Locks in legacy behavior so future changes are intentional",
+          "Provides quick, network-independent validation path",
+          "Clarifies cost/limits display and search ranking expectations"
+        ],
+        "risks": [
+          "Baseline may codify quirks we might later want to change"
+        ],
+        "mitigations": [
+          "Document deviations in future delta summaries with explicit test updates"
+        ]
+      }
+    }
   ]
 }
