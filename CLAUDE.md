@@ -91,7 +91,7 @@ Rules:
 * Docs → model-friendly explanations of purposes & relationships.
 * Delta Summaries → record API/behavior shifts with reasoning.
 * Memory Anchors → embed UUID-tagged semantic anchors in code.
-* Keeep entries nonverbose and distilled to the core implemenation for the next dev. You will be punished for not following these instructions. 
+* Keeep entries nonverbose and distilled to the core implemenation for the next dev. You will be punished for not following these instructions.
 
 
 ---
