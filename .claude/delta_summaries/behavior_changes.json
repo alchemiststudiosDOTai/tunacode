@@ -124,5 +124,19 @@
         "Extended check_task_completion to accept legacy TUNACODE_TASK_COMPLETE marker"
       ]
     }
+    ,
+    {
+      "id": "cli-fuzzy-matching-20250922-120500",
+      "time": "2025-09-22T12:05:00",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Enhanced CLI command resolution with fuzzy fallback using difflib.get_close_matches",
+        "Preserved existing prefix-based behavior; fuzzy only applies when no prefix matches",
+        "Zero new dependencies; minimal code change localized to CommandRegistry.find_matching_commands",
+        "Added tests to characterize prefix behavior and validate fuzzy suggestions for typos"
+      ]
+    }
   ]
 }
