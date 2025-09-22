@@ -7,7 +7,7 @@ matching the command registry behavior.
 """
 
 from difflib import get_close_matches
-from typing import Iterable, List, Sequence
+from typing import List, Sequence
 
 
 def find_fuzzy_matches(
@@ -31,4 +31,3 @@ def find_fuzzy_matches(
     candidates = list(lower_to_original.keys())
     matches_lower = get_close_matches(query.lower(), candidates, n=n, cutoff=cutoff)
     return [lower_to_original[m] for m in matches_lower]
-
