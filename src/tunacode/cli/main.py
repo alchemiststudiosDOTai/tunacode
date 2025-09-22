@@ -19,7 +19,7 @@ from tunacode.ui import console as ui
 from tunacode.utils.system import check_for_updates
 
 app_settings = ApplicationSettings()
-app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
+app = typer.Typer(help="TunaCode - OS AI-powered CLI Coding Tool")
 state_manager = StateManager()
 
 

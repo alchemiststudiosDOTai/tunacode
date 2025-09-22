@@ -19,6 +19,7 @@ uv install hatch
 uv venv
 
 # Install development dependencies
+# MEMORY-ANCHOR: dev-setup-2025-09-22-current
 source .venv/bin/activate && uv pip install -e ".[dev]"
 
 # Run the application
