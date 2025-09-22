@@ -11,6 +11,8 @@ from prompt_toolkit.completion import (
 )
 from prompt_toolkit.document import Document
 
+from ..utils.fuzzy_utils import find_fuzzy_matches
+
 if TYPE_CHECKING:
     from ..cli.commands import CommandRegistry
     from ..utils.models_registry import ModelInfo, ModelsRegistry
@@ -73,7 +75,12 @@ class FileReferenceCompleter(Completer):
     def get_completions(
         self, document: Document, _complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        """Get completions for @file references."""
+        """Get completions for @file references.
+
+        Favors file matches before directory matches and supports fuzzy
+        matching for near-miss filenames. Order:
+          exact files > fuzzy files > exact dirs > fuzzy dirs
+        """
         # Get the word before cursor
         word_before_cursor = document.get_word_before_cursor(WORD=True)
 
@@ -94,34 +101,75 @@ class FileReferenceCompleter(Completer):
             dir_path = "."
             prefix = path_part
 
-        # Get matching files
+        # If prefix itself is an existing directory (without trailing slash),
+        # treat it as browsing inside that directory
+        candidate_dir = os.path.join(dir_path, prefix) if dir_path != "." else prefix
+        if prefix and os.path.isdir(candidate_dir) and not path_part.endswith("/"):
+            dir_path = candidate_dir
+            prefix = ""
+
+        # Get matching files with fuzzy support
         try:
             if os.path.exists(dir_path) and os.path.isdir(dir_path):
-                for item in sorted(os.listdir(dir_path)):
-                    if item.startswith(prefix):
-                        full_path = os.path.join(dir_path, item) if dir_path != "." else item
+                items = sorted(os.listdir(dir_path))
 
-                        # Skip hidden files unless explicitly requested
-                        if item.startswith(".") and not prefix.startswith("."):
-                            continue
+                # Separate files vs dirs; skip hidden unless explicitly requested
+                show_hidden = prefix.startswith(".")
+                files: List[str] = []
+                dirs: List[str] = []
+                for item in items:
+                    if item.startswith(".") and not show_hidden:
+                        continue
+                    full_item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                    if os.path.isdir(full_item_path):
+                        dirs.append(item)
+                    else:
+                        files.append(item)
 
-                        # Add / for directories
-                        if os.path.isdir(full_path):
-                            display = item + "/"
-                            completion = full_path + "/"
-                        else:
-                            display = item
-                            completion = full_path
+                # Exact prefix matches (case-insensitive)
+                prefix_lower = prefix.lower()
+                exact_files = [f for f in files if f.lower().startswith(prefix_lower)]
+                exact_dirs = [d for d in dirs if d.lower().startswith(prefix_lower)]
 
-                        # Calculate how much to replace
-                        start_position = -len(path_part)
+                # Fuzzy matches (exclude items already matched exactly)
+                fuzzy_file_candidates = [f for f in files if f not in exact_files]
+                fuzzy_dir_candidates = [d for d in dirs if d not in exact_dirs]
 
-                        yield Completion(
-                            text=completion,
-                            start_position=start_position,
-                            display=display,
-                            display_meta="dir" if os.path.isdir(full_path) else "file",
-                        )
+                fuzzy_files = (
+                    find_fuzzy_matches(prefix, fuzzy_file_candidates, n=10, cutoff=0.75)
+                    if prefix
+                    else []
+                )
+                fuzzy_dirs = (
+                    find_fuzzy_matches(prefix, fuzzy_dir_candidates, n=10, cutoff=0.75)
+                    if prefix
+                    else []
+                )
+
+                # Compose ordered results
+                ordered: List[tuple[str, str]] = (
+                    [("file", name) for name in exact_files]
+                    + [("file", name) for name in fuzzy_files]
+                    + [("dir", name) for name in exact_dirs]
+                    + [("dir", name) for name in fuzzy_dirs]
+                )
+
+                start_position = -len(path_part)
+                for kind, name in ordered:
+                    full_path = os.path.join(dir_path, name) if dir_path != "." else name
+                    if kind == "dir":
+                        display = name + "/"
+                        completion_text = full_path + "/"
+                    else:
+                        display = name
+                        completion_text = full_path
+
+                    yield Completion(
+                        text=completion_text,
+                        start_position=start_position,
+                        display=display,
+                        display_meta="dir" if kind == "dir" else "file",
+                    )
         except (OSError, PermissionError):
             # Silently ignore inaccessible directories
             pass
