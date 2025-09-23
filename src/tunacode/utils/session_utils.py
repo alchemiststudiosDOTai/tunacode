@@ -176,15 +176,18 @@ def _serialize_message_part(part: Any) -> Optional[Dict[str, Any]]:
 def _is_safe_session_id(session_id: str) -> bool:
     """Validate session_id to prevent path traversal.
 
-    Accept both UUID-like identifiers and new timestamp-based format.
-    New format: YYYY-MM-DD_HH-MM_description (alphanumeric, dashes, underscores)
+    Accept both legacy UUID-like identifiers and the canonical timestamp-based format.
+    Canonical format: YYYY-MM-DD_HH-MM-SS_{slug}_{shortid}
+    - slug: lowercase ASCII [a-z0-9-_], 1..20 chars
+    - shortid: 6 lowercase hex chars
     """
     # Accept UUID format (backward compatibility)
     if re.fullmatch(r"[A-Fa-f0-9\-]{8,64}", session_id):
         return True
 
-    # Accept new timestamp-based format
-    return bool(re.fullmatch(r"[A-Za-z0-9\-_]{10,80}", session_id))
+    # Accept canonical timestamp-based format
+    canonical = r"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_[a-z0-9\-_]{1,20}_[a-f0-9]{6}"
+    return bool(re.fullmatch(canonical, session_id))
 
 
 def _serialize_message(message: Any) -> Dict[str, Any]:

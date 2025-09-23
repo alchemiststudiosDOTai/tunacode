@@ -361,6 +361,34 @@
         }
       ]
     }
+    ,
+    "canonical_session_ids": {
+      "description": "Canonical session ID generation and validation flow",
+      "entry_points": [
+        "utils.session_id_generator.generate_user_friendly_session_id",
+        "utils.session_utils._is_safe_session_id"
+      ],
+      "calls": [
+        {
+          "from": "generate_user_friendly_session_id",
+          "to": "_generate_session_description",
+          "type": "data",
+          "purpose": "Derive session slug from recent user messages"
+        },
+        {
+          "from": "generate_user_friendly_session_id",
+          "to": "uuid.uuid4",
+          "type": "utility",
+          "purpose": "Produce 6-char lowercase hex shortid"
+        },
+        {
+          "from": "_is_safe_session_id",
+          "to": "re.fullmatch",
+          "type": "validation",
+          "purpose": "Accept canonical IDs and legacy UUIDs"
+        }
+      ]
+    }
   },
   "refactor_summary": {
     "date": "2025-09-19",

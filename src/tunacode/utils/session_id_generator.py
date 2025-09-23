@@ -129,15 +129,16 @@ def _generate_session_description(messages: List[Any]) -> str:
 def generate_user_friendly_session_id(messages: Optional[List[Any]] = None) -> str:
     """Generate a user-friendly session ID with timestamp and description.
 
-    Format: YYYY-MM-DD_HH-MM-SS_description_short-uuid
-    Example: 2025-01-23_14-30-45_python-debugging_a1b2
+    Format: YYYY-MM-DD_HH-MM-SS_{slug}_{shortid}
+    Example: 2025-01-23_14-30-45_python-debugging_a1b2c3
     """
-    now = datetime.now()
+    # CLAUDE_ANCHOR[canonical-session-id-generator]: Builds canonical UTC session IDs with shortid suffix
+    now = datetime.utcnow()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
     description = _generate_session_description(messages or [])
 
-    # Add short UUID suffix for uniqueness
-    short_uuid = str(uuid.uuid4())[:8]
+    # Add short hex suffix for uniqueness (6 lowercase hex chars)
+    shortid = uuid.uuid4().hex[:6]
 
-    return f"{timestamp}_{description}_{short_uuid}"
+    return f"{timestamp}_{description}_{shortid}"

@@ -160,5 +160,14 @@
       "description": "Characterization test bypasses registry.load() to avoid Pydantic validation failures from cached API data (e.g., zero limits). Preserves intent to display current model info.",
       "status": "active"
     }
+    ,{
+      "anchor_key": "canonical-session-id-generator",
+      "path": "src/tunacode/utils/session_id_generator.py",
+      "line": 129,
+      "kind": "function",
+      "symbol": "generate_user_friendly_session_id",
+      "description": "Canonical session ID builder (UTC timestamp + 6-char hex suffix)",
+      "status": "active"
+    }
   ]
 }

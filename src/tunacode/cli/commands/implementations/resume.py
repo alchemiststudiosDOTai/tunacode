@@ -111,14 +111,15 @@ class ResumeCommand(SimpleCommand):
             is_new_format = "_" in sid and len(sid.split("_")) >= 4
 
             if is_new_format:
-                # New format: YYYY-MM-DD_HH-MM-SS_description_short-uuid
+                # New format: YYYY-MM-DD_HH-MM-SS_{slug}_{shortid}
                 parts = sid.split("_")
                 if len(parts) >= 4:
                     date_part = parts[0]
                     time_part = parts[1]
-                    description = "_".join(parts[2:-1])  # Exclude the UUID suffix
-                    # Format as readable timestamp + description
-                    display_name = f"{date_part} {time_part.replace('-', ':')} — {description.replace('-', ' ')}"
+                    description = "_".join(parts[2:-1])  # Exclude the shortid suffix
+                    shortid = parts[-1]
+                    # Format as readable timestamp + description (+ shortid)
+                    display_name = f"{date_part} {time_part.replace('-', ':')} — {description.replace('-', ' ')} ({shortid})"
                 else:
                     display_name = sid
             else:

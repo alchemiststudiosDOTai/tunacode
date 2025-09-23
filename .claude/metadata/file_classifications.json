@@ -155,6 +155,21 @@
       "type": "test",
       "category": "commands",
       "classification": "test"
+    },
+    "src/tunacode/cli/commands/implementations/resume.py": {
+      "type": "source",
+      "category": "commands",
+      "classification": "implementation"
+    },
+    "src/tunacode/utils/session_id_generator.py": {
+      "type": "source",
+      "category": "sessions",
+      "classification": "implementation"
+    },
+    "src/tunacode/utils/session_utils.py": {
+      "type": "source",
+      "category": "sessions",
+      "classification": "implementation"
     }
   }
 }

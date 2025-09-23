@@ -4,7 +4,7 @@
 Implement user-friendly session naming and improved message serialization for the `/resume` command with minimal code changes and no backward compatibility requirements.
 
 ## User Requirements Summary
-- **Naming**: Timestamp + auto-description format (`2025-01-23_14-30_python-debugging-session`)
+- **Naming**: Timestamp + auto-description + shortid format (`2025-01-23_14-30-00_python-debugging_a1b2c3`)
 - **Data**: Basic session data, chat messages (user queries + agent responses), tool calls
 - **Compatibility**: None required (new feature)
 - **Approach**: Incremental, minimal changes, test-driven
@@ -17,7 +17,7 @@ Implement user-friendly session naming and improved message serialization for th
 ### 1.1 Update Session ID Generation ✅
 - **File**: `src/tunacode/core/state.py`
 - **Change**: Replace `str(uuid.uuid4())` with timestamp-based naming
-- **Format**: `YYYY-MM-DD_HH-MM-SS_description_uuid` (added seconds + UUID for uniqueness)
+- **Format**: `YYYY-MM-DD_HH-MM-SS_{slug}_{shortid}` (UTC seconds + 6-char hex shortid for uniqueness)
 - **Fallback**: Generic description if auto-generation fails
 - **Implementation**: Created `src/tunacode/utils/session_id_generator.py` with auto-description logic
 
@@ -31,7 +31,7 @@ Implement user-friendly session naming and improved message serialization for th
 - **File**: `src/tunacode/cli/commands/implementations/resume.py`
 - **Change**: Improve session listing format for new naming scheme
 - **Enhancement**: Better readability with timestamp + description parsing
-- **Format**: Displays as "2025-09-23 14:30:45 — python debugging" instead of raw ID
+- **Format**: Displays as "2025-09-23 14:30:45 — python debugging (a1b2c3)" to reflect canonical ID
 
 ---
 
@@ -93,11 +93,19 @@ Implement user-friendly session naming and improved message serialization for th
 - Max 20 characters for description part
 - Sanitize for filesystem safety
 
+### Canonical Session ID Specification
+- Canonical format: `YYYY-MM-DD_HH-MM-SS_{slug}_{shortid}`
+- Timezone: UTC (timestamp in UTC seconds)
+- Slug rules: lowercase ASCII; allowed chars `[a-z0-9-_]`; max 20 chars; collapse whitespace to `-`; trim leading/trailing separators
+- Shortid: 6 lowercase hex characters; always present
+- Backward compatibility: legacy UUID-only IDs continue to be accepted for load/list operations
+
+
 ### Session ID Format Examples
 ```
-2025-01-23_14-30_python-debugging
-2025-01-23_14-31_fix-api-error
-2025-01-23_14-32_general-session
+2025-01-23_14-30-00_python-debugging_a1b2c3
+2025-01-23_14-31-05_fix-api-error_f4e2d1
+2025-01-23_14-32-42_general-session_09ab7c
 ```
 
 ### Risk Mitigation
@@ -117,7 +125,7 @@ Implement user-friendly session naming and improved message serialization for th
 **Overall Success**: Users can easily identify and resume sessions with improved context preservation ✅
 
 ### Final Implementation Summary
-- **Session Naming**: Timestamp + auto-description format (`2025-09-23_13-09_python-debug_a1b2`)
+- **Session Naming**: Timestamp + auto-description + shortid format (`2025-09-23_13-09-00_python-debug_a1b2c3`)
 - **Message Preservation**: Tool calls, user queries, agent responses, message structure preserved
 - **Security**: Sensitive data (API keys, tokens) automatically filtered from saved sessions
 - **Testing**: Comprehensive test coverage with all 308 tests passing

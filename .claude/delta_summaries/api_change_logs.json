@@ -121,5 +121,19 @@
         "ENABLED autosave after each processed message to keep session_state.json up to date"
       ]
     }
+,
+    {
+      "id": "canonical-session-id-20250923-000000",
+      "time": "2025-09-23T00:00:00",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Canonical session IDs now use YYYY-MM-DD_HH-MM-SS_{slug}_{shortid} (UTC)",
+        "Generator switched to UTC timestamps with 6-char lowercase hex suffix",
+        "Validator enforces canonical IDs while allowing legacy UUIDs",
+        "Resume list shows the shortid alongside the human description"
+      ]
+    }
   ]
 }
