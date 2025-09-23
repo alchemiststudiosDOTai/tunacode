@@ -80,5 +80,20 @@
         "REMOVED react from registered tool list; process_request now issues up to five auto snapshots every two iterations"
       ]
     }
+    ,
+    {
+      "id": "resume-command-implementation-20250922-223000",
+      "time": "2025-09-22T22:30:00",
+      "branch": "issue-95-resume-chat-sessions",
+      "base": "affc0c3",
+      "head": "current",
+      "bullets": [
+        "ADDED /resume command (save/load) using JSON persistence under ~/.tunacode/sessions/{session_id}",
+        "ADDED utils.session_utils with save_session_state/load_session_state helpers",
+        "UPDATED command registry to auto-discover ResumeCommand",
+        "ADDED one acceptance test covering save/load roundtrip",
+        "NO new dependencies; follows SimpleCommand + existing file patterns"
+      ]
+    }
   ]
 }

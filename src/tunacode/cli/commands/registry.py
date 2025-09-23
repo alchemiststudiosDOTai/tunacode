@@ -29,6 +29,7 @@ from .implementations.development import BranchCommand, InitCommand
 from .implementations.model import ModelCommand
 from .implementations.plan import ExitPlanCommand, PlanCommand
 from .implementations.quickstart import QuickStartCommand
+from .implementations.resume import ResumeCommand
 from .implementations.system import (
     ClearCommand,
     HelpCommand,
@@ -159,6 +160,7 @@ class CommandRegistry:
             PlanCommand,  # Add plan command
             ExitPlanCommand,  # Add exit plan command
             QuickStartCommand,  # Add quickstart command
+            ResumeCommand,  # Add resume command
         ]
 
         # Register all discovered commands

@@ -13,6 +13,7 @@ from .debug import (
 )
 from .development import BranchCommand, InitCommand
 from .model import ModelCommand
+from .resume import ResumeCommand
 from .system import (
     ClearCommand,
     HelpCommand,
@@ -30,6 +31,7 @@ __all__ = [
     "StreamingCommand",
     "UpdateCommand",
     "CommandReloadCommand",
+    "ResumeCommand",
     # Debug commands
     "YoloCommand",
     "DumpCommand",

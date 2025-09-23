@@ -256,6 +256,39 @@
         }
       ]
     }
+    ,
+    "resume_command_flow": {
+      "description": "Session persistence via /resume command",
+      "entry_points": [
+        "cli.commands.implementations.resume.ResumeCommand.execute"
+      ],
+      "calls": [
+        {
+          "from": "ResumeCommand._handle_save",
+          "to": "utils.session_utils.save_session_state",
+          "type": "io",
+          "purpose": "Persist essential SessionState to JSON"
+        },
+        {
+          "from": "ResumeCommand._handle_load",
+          "to": "utils.session_utils.load_session_state",
+          "type": "io",
+          "purpose": "Restore essential SessionState from JSON"
+        },
+        {
+          "from": "utils.session_utils.save_session_state",
+          "to": "utils.system.get_session_dir",
+          "type": "path",
+          "purpose": "Resolve ~/.tunacode/sessions/{session_id}"
+        },
+        {
+          "from": "utils.session_utils.load_session_state",
+          "to": "utils.system.get_tunacode_home",
+          "type": "path",
+          "purpose": "Locate sessions directory under ~/.tunacode"
+        }
+      ]
+    }
   },
   "refactor_summary": {
     "date": "2025-09-19",
