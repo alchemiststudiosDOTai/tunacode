@@ -121,8 +121,21 @@ In llm-agent-tools/rag_modules/ a tool exists to search the .claude/ directory v
 
 ./rag-cli.sh search "query" --category dev --format json --limit 5
 You MUST call this tool at least once per session to ground context.
-If llm-agent-tool dir doesnt exist skip this step
 Use it heuristically before answering tasks that require repo knowledge. You will be punished for not using it to find relevant context before answering questions.
+
+**Problem**: Search for "fuzzy" in the .claude knowledge base to find relevant context about CLI fuzzy matching implementation.
+
+```bash
+# First index the .claude directory
+./rag-cli.sh index --dir .claude
+
+# Search for specific content
+./rag-cli.sh search "fuzzy" --format text
+
+# Results found:
+# 1. behavior_changes.json - CLI fuzzy matching enhancement details
+# 2. file_classifications.json - Test file classification for fuzzy matching
+```
 
 ---
 

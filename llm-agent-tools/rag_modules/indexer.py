@@ -4,12 +4,12 @@ SQLite FTS5 Indexer for Claude Knowledge Base
 Uses only Python stdlib - no external dependencies
 """
 
-import sqlite3
-import hashlib
 import argparse
-from pathlib import Path
+import hashlib
+import sqlite3
 from datetime import datetime
-from typing import List, Tuple, Optional
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 
 class FlexibleIndexer:
@@ -113,8 +113,8 @@ class FlexibleIndexer:
         
     def should_index_file(self, filepath: Path) -> bool:
         """Check if file should be indexed"""
-        # Only index markdown and text files
-        return filepath.suffix in ['.md', '.txt', '.markdown']
+        # Index markdown, text, and JSON files
+        return filepath.suffix in ['.md', '.txt', '.markdown', '.json']
         
     def get_existing_file_hash(self, filepath: str) -> Optional[str]:
         """Get hash of existing indexed file"""

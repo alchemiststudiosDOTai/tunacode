@@ -5,7 +5,7 @@
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MEMORY_BANK_DIR="$SCRIPT_DIR/../memory-bank"
+CLAUDE_DIR="$SCRIPT_DIR/../.claude"
 DEFAULT_DB="$SCRIPT_DIR/rag_knowledge.db"
 
 # Check if Python 3 is available
@@ -31,7 +31,7 @@ Index Command:
   $0 index [options]
     Options:
       --full           Full rebuild of index
-      --dir DIR        Directory to index (default: $MEMORY_BANK_DIR)
+      --dir DIR        Directory to index (default: $CLAUDE_DIR)
       --db PATH        Custom database path (default: $DEFAULT_DB)
 
 Search Command:
@@ -49,7 +49,7 @@ Stats Command:
       --db PATH        Custom database path
 
 Examples:
-  $0 index                           # Index memory-bank
+  $0 index                           # Index .claude directory
   $0 index --full                    # Full rebuild
   $0 index --dir ./docs              # Index different directory
   $0 search "RAG architecture"       # Search all docs
@@ -79,7 +79,7 @@ case "${1:-help}" in
     index)
         shift
         FULL_REBUILD=""
-        INDEX_DIR="$MEMORY_BANK_DIR"
+        INDEX_DIR="$CLAUDE_DIR"
         DB_PATH="${RAG_DB_PATH:-$DEFAULT_DB}"
 
         # Parse options

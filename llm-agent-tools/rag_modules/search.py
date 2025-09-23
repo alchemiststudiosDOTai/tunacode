@@ -4,11 +4,11 @@ SQLite FTS5 Search for Claude Knowledge Base
 Compact output formats for agent consumption
 """
 
-import sqlite3
-import json
 import argparse
+import json
+import sqlite3
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 class FlexibleSearcher:

@@ -4,8 +4,8 @@ Statistics module for Claude Knowledge Base
 Shows index statistics and metadata
 """
 
-import sqlite3
 import argparse
+import sqlite3
 from pathlib import Path
 
 

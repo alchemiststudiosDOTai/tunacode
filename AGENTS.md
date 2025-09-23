@@ -21,6 +21,16 @@ You MUST comply with the rules below. You will be penalized if you deviate. Answ
 * Enforce `ruff check --fix .` before PRs.
 * Use explicit typing. `cast(...)` and `assert ...` are OK.
 * `# type: ignore` only with strong justification.
+* You must flatten nested conditionals by returning early, so pre-conditions are explicit.
+* If it is never executed, remove it. You MUST make sure what we remove has been committed before in case we need to rollback.
+* Normalize symmetries: you must make identical things look identical and different things look different for faster pattern-spotting.
+* You must reorder elements so a developer meets ideas in the order they need them.
+* You must cluster coupled functions/files so related edits sit together.
+* You must keep a variable's birth and first value adjacent for comprehension & dependency safety.
+* Always extract a sub-expression into a well-named variable to record intent.
+* Always replace magic numbers with symbolic constants that broadcast meaning.
+* Never use magic literals; symbolic constants are preferred.
+* ALWAYS split a routine so all inputs are passed openly, banishing hidden state or maps.
 
 ### Error Handling
 
@@ -108,9 +118,23 @@ in llm-agent-tools/rag_modules/ a tool exist to search the .claude/ directory vi
 ./rag-cli.sh search "query"     # Search across .claude/
 ./rag-cli.sh stats              # Show index stats
 
-# Filtered / formatted search
-./rag-cli.sh search "query" --category dev --format json --limit 5
+### Filtered / formatted search
 
+./rag-cli.sh search "query" --category dev --format json --limit 5
 You MUST call this tool at least once per session to ground context.
 Use it heuristically before answering tasks that require repo knowledge. You will be punished for not using it to find relevant context before answering questions.
+
+**Problem**: Search for "fuzzy" in the .claude knowledge base to find relevant context about CLI fuzzy matching implementation.
+
+```bash
+# First index the .claude directory
+./rag-cli.sh index --dir .claude
+
+# Search for specific content
+./rag-cli.sh search "fuzzy" --format text
+
+# Results found:
+# 1. behavior_changes.json - CLI fuzzy matching enhancement details
+# 2. file_classifications.json - Test file classification for fuzzy matching
+```
 ---
