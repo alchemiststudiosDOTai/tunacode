@@ -11,6 +11,7 @@ from typing import List, Optional
 from ....types import CommandArgs, CommandContext, CommandResult
 from ....ui import console as ui
 from ....utils.session_utils import (
+    list_saved_sessions,
     load_session_state,
     save_session_state,
 )
@@ -18,8 +19,10 @@ from ..base import CommandCategory, CommandSpec, SimpleCommand
 
 USAGE = (
     "Usage:\n"
-    "  /resume save                    Save current session state\n"
-    "  /resume load <session_id>       Load a previously saved session\n"
+    "  /resume                 List saved sessions\n"
+    "  /resume list            List saved sessions\n"
+    "  /resume save            Save current session state\n"
+    "  /resume load <id|#>     Load a saved session by id or index from list\n"
 )
 
 
@@ -35,11 +38,11 @@ class ResumeCommand(SimpleCommand):
 
     async def execute(self, args: CommandArgs, context: CommandContext) -> CommandResult:
         if not args:
-            await ui.error("Missing subcommand: 'save' or 'load'")
-            await ui.muted(USAGE)
-            return None
+            return await self._handle_list(context)
 
         sub = args[0].lower()
+        if sub == "list":
+            return await self._handle_list(context)
         if sub == "save":
             return await self._handle_save(context)
         if sub == "load":
@@ -67,7 +70,16 @@ class ResumeCommand(SimpleCommand):
             await ui.muted(USAGE)
             return None
 
-        session_id = args[0]
+        # Allow numeric index (1-based) from the latest list
+        token = args[0]
+        session_id = token
+        if token.isdigit():
+            index = int(token)
+            sessions = list_saved_sessions()
+            if index < 1 or index > len(sessions):
+                await ui.error(f"Invalid index: {index}")
+                return None
+            session_id = sessions[index - 1]["session_id"]
         try:
             ok = load_session_state(context.state_manager, session_id)
         except Exception as e:
@@ -79,4 +91,30 @@ class ResumeCommand(SimpleCommand):
             return None
 
         await ui.success(f"Session loaded: id={context.state_manager.session.session_id}")
+        return None
+
+    async def _handle_list(self, context: CommandContext) -> Optional[str]:
+        sessions = list_saved_sessions()
+        if not sessions:
+            await ui.info("No saved sessions found")
+            await ui.muted("Use '/resume save' to save the current session.")
+            return None
+
+        await ui.info("Saved sessions (most recent first):")
+        for i, entry in enumerate(sessions, 1):
+            sid = entry["session_id"]
+            model = entry.get("model") or "?"
+            count = entry.get("message_count")
+            count_str = f", {count} messages" if isinstance(count, int) else ""
+            from datetime import datetime
+
+            ts = datetime.fromtimestamp(entry.get("mtime", 0.0)).isoformat(
+                sep=" ", timespec="seconds"
+            )
+            preview = entry.get("last_message")
+            preview_str = f" — {preview}" if preview else ""
+            await ui.muted(f"  {i:2d}. {sid}  [{model}{count_str}]  @ {ts}{preview_str}")
+
+        await ui.muted("\nLoad by index:   /resume load 1")
+        await ui.muted("Load by id:      /resume load <session_id>")
         return None

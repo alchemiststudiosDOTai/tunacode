@@ -391,6 +391,15 @@ async def execute_repl_request(text: str, state_manager: StateManager, output: b
                 filenames = [Path(f).name for f in sorted(state_manager.session.files_in_context)]
                 await ui.muted(f"Files in context: {', '.join(filenames)}")
 
+        # Auto-save after each handled request to ensure resume continuity
+        try:
+            from tunacode.utils.session_utils import save_session_state
+
+            save_session_state(state_manager)
+        except Exception as e:
+            # Don't interrupt flow on autosave failures; log for diagnosis
+            logger.debug(f"Per-message auto-save failed: {e}")
+
     except CancelledError:
         await ui.muted(MSG_REQUEST_CANCELLED)
     except UserAbortError:
@@ -469,6 +478,15 @@ async def repl(state_manager: StateManager):
 
         # Offer tutorial to first-time users
         await _offer_tutorial_if_appropriate(state_manager)
+
+        # Auto-save a baseline snapshot of the new session for resume
+        try:
+            from tunacode.utils.session_utils import save_session_state
+
+            save_session_state(state_manager)
+        except Exception as e:
+            # Fail loud in logs but do not interrupt REPL startup
+            logger.debug(f"Initial session auto-save failed: {e}")
 
     instance = agent.get_or_create_agent(state_manager.session.current_model, state_manager)
 

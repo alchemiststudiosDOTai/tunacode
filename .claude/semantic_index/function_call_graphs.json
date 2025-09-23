@@ -276,6 +276,12 @@
           "purpose": "Restore essential SessionState from JSON"
         },
         {
+          "from": "ResumeCommand._handle_list",
+          "to": "utils.session_utils.list_saved_sessions",
+          "type": "io",
+          "purpose": "Enumerate saved session files with metadata"
+        },
+        {
           "from": "utils.session_utils.save_session_state",
           "to": "utils.system.get_session_dir",
           "type": "path",
@@ -286,6 +292,42 @@
           "to": "utils.system.get_tunacode_home",
           "type": "path",
           "purpose": "Locate sessions directory under ~/.tunacode"
+        },
+        {
+          "from": "utils.session_utils.list_saved_sessions",
+          "to": "utils.system.get_tunacode_home",
+          "type": "path",
+          "purpose": "Locate sessions directory under ~/.tunacode"
+        }
+      ]
+    }
+    ,
+    "repl_autosave_flow": {
+      "description": "Initial session auto-save on REPL startup",
+      "entry_points": [
+        "cli.repl.repl"
+      ],
+      "calls": [
+        {
+          "from": "repl (startup path)",
+          "to": "utils.session_utils.save_session_state",
+          "type": "io",
+          "purpose": "Persist baseline snapshot for new session"
+        }
+      ]
+    }
+    ,
+    "per_message_autosave": {
+      "description": "Autosave after each processed message",
+      "entry_points": [
+        "cli.repl.execute_repl_request"
+      ],
+      "calls": [
+        {
+          "from": "execute_repl_request (post-output)",
+          "to": "utils.session_utils.save_session_state",
+          "type": "io",
+          "purpose": "Continuously persist session state after each turn"
         }
       ]
     }

@@ -95,5 +95,31 @@
         "NO new dependencies; follows SimpleCommand + existing file patterns"
       ]
     }
+    ,
+    {
+      "id": "resume-command-list-20250922-231000",
+      "time": "2025-09-22T23:10:00",
+      "branch": "issue-95-resume-chat-sessions",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "EXTENDED /resume with 'list' subcommand and default listing when no args",
+        "ADDED list_saved_sessions() to enumerate saved sessions with model and message count",
+        "SUPPORTED '/resume load <index>' to load by list index"
+      ]
+    }
+    ,
+    {
+      "id": "resume-autosave-and-previews-20250922-233000",
+      "time": "2025-09-22T23:30:00",
+      "branch": "issue-95-resume-chat-sessions",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "ADDED timestamp and last message preview to /resume list output",
+        "ADDED initial auto-save of session on REPL startup to ensure all chats are resumable by default",
+        "ENABLED autosave after each processed message to keep session_state.json up to date"
+      ]
+    }
   ]
 }

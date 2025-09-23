@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
+from tunacode.constants import SESSIONS_SUBDIR
 from tunacode.core.state import SessionState
 from tunacode.types import SessionId
 from tunacode.utils.system import get_session_dir, get_tunacode_home
@@ -82,13 +83,8 @@ def _serialize_message(message: Any) -> Dict[str, Any]:
 
 def _collect_essential_state(state: SessionState) -> Dict[str, Any]:
     """Extract essential fields from SessionState for persistence."""
-    # Dataclasses may appear nested; convert safely
-    obj: Dict[str, Any]
-    if is_dataclass(state):
-        obj = asdict(state)
-    else:
-        # Fallback for unexpected types; store known attributes
-        obj = {k: getattr(state, k, None) for k in ESSENTIAL_FIELDS}
+    # SessionState is a dataclass; convert safely
+    obj: Dict[str, Any] = asdict(state)
 
     # Keep only essential fields in defined order
     essential: Dict[str, Any] = {k: obj.get(k) for k in ESSENTIAL_FIELDS}
@@ -138,7 +134,7 @@ def load_session_state(state_manager: Any, session_id: SessionId) -> bool:
 
     # Resolve session file path under ~/.tunacode/sessions/<id>/session_state.json
     home = get_tunacode_home()
-    session_dir = home / "sessions" / session_id
+    session_dir = home / SESSIONS_SUBDIR / session_id
     in_path = session_dir / SESSION_FILENAME
 
     if not in_path.exists():
@@ -180,3 +176,67 @@ def load_session_state(state_manager: Any, session_id: SessionId) -> bool:
         session.messages = msgs
 
     return True
+
+
+def list_saved_sessions(limit: int = 50) -> List[Dict[str, Any]]:
+    """List saved sessions by last modified time (desc).
+
+    Returns a list of entries: {session_id, path, mtime, model, message_count}.
+    Ignores corrupted JSON entries without failing.
+    """
+    base = get_tunacode_home() / SESSIONS_SUBDIR
+    if not base.exists():
+        return []
+
+    entries: List[Dict[str, Any]] = []
+    for child in base.iterdir():
+        if not child.is_dir():
+            continue
+        sid = child.name
+        state_file = child / SESSION_FILENAME
+        if not state_file.exists():
+            continue
+        try:
+            st = state_file.stat()
+            model = None
+            message_count = None
+            last_preview: Optional[str] = None
+            try:
+                data = json.loads(state_file.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    model = data.get("current_model")
+                    msgs = data.get("messages")
+                    if isinstance(msgs, list):
+                        message_count = len(msgs)
+                        if msgs:
+                            last = msgs[-1]
+                            if isinstance(last, dict) and "content" in last:
+                                raw = last.get("content")
+                            else:
+                                raw = last
+                            text = str(raw) if raw is not None else ""
+                            # Collapse whitespace and trim
+                            text = " ".join(text.split())
+                            if len(text) > 80:
+                                text = text[:77] + "..."
+                            last_preview = text or None
+            except Exception:
+                # Skip metadata extraction but still list the session
+                pass
+            entries.append(
+                {
+                    "session_id": sid,
+                    "path": str(state_file),
+                    "mtime": st.st_mtime,
+                    "model": model,
+                    "message_count": message_count,
+                    "last_message": last_preview,
+                }
+            )
+        except OSError:
+            # Skip unreadable entries
+            continue
+
+    # Sort by most recent first
+    entries.sort(key=lambda e: cast(float, e.get("mtime", 0.0)), reverse=True)
+    return entries[: max(0, limit)]
