@@ -19,30 +19,44 @@ FALLBACK_DESCRIPTION: str = "general-session"
 
 def _generate_session_description(messages: List[Any]) -> str:
     """Generate a descriptive session name from the first few user messages.
-    
+
     Extracts meaningful keywords from user queries to create a readable description.
     Falls back to generic description if no meaningful content is found.
+    Handles both simple dict messages and enhanced message format with parts.
     """
     if not messages:
         return FALLBACK_DESCRIPTION
-    
-    # Look at first 1-3 user messages for keywords
-    user_messages = [msg for msg in messages[:3] if isinstance(msg, dict) and msg.get("role") == "user"]
-    if not user_messages:
-        return FALLBACK_DESCRIPTION
-    
+
     # Extract text content from messages
     text_parts = []
-    for msg in user_messages:
-        content = msg.get("content", "")
-        if isinstance(content, str):
-            text_parts.append(content)
-        elif isinstance(content, list):
-            # Handle structured content
-            for part in content:
-                if isinstance(part, dict) and part.get("type") == "text":
-                    text_parts.append(part.get("text", ""))
-    
+
+    # Look at first 1-3 messages for user content
+    for msg in messages[:5]:  # Look at more messages to find user content
+        if isinstance(msg, dict):
+            # Handle enhanced format with parts
+            if "parts" in msg:
+                for part in msg["parts"]:
+                    if isinstance(part, dict):
+                        # User prompt parts
+                        if part.get("part_kind") == "user-prompt" or part.get("role") == "user":
+                            content = part.get("content", "")
+                            if isinstance(content, str):
+                                text_parts.append(content)
+            # Handle simple format
+            elif msg.get("role") == "user":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    text_parts.append(content)
+                elif isinstance(content, list):
+                    # Handle structured content
+                    for part in content:
+                        if isinstance(part, dict) and part.get("type") == "text":
+                            text_parts.append(part.get("text", ""))
+
+        # Stop after we have enough text content
+        if len(text_parts) >= 2:
+            break
+
     if not text_parts:
         return FALLBACK_DESCRIPTION
     

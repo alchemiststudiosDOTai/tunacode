@@ -258,7 +258,7 @@
     }
     ,
     "resume_command_flow": {
-      "description": "Session persistence via /resume command",
+      "description": "Enhanced session persistence via /resume command with auto-description",
       "entry_points": [
         "cli.commands.implementations.resume.ResumeCommand.execute"
       ],
@@ -267,7 +267,37 @@
           "from": "ResumeCommand._handle_save",
           "to": "utils.session_utils.save_session_state",
           "type": "io",
-          "purpose": "Persist essential SessionState to JSON"
+          "purpose": "Persist essential SessionState to JSON with enhanced serialization"
+        },
+        {
+          "from": "utils.session_utils.save_session_state",
+          "to": "utils.session_utils._collect_essential_state",
+          "type": "data",
+          "purpose": "Extract and serialize essential session fields"
+        },
+        {
+          "from": "utils.session_utils._collect_essential_state",
+          "to": "utils.session_utils._serialize_message",
+          "type": "data",
+          "purpose": "Enhanced message serialization preserving tool calls and structure"
+        },
+        {
+          "from": "utils.session_utils._serialize_message",
+          "to": "utils.session_utils._serialize_message_part",
+          "type": "data",
+          "purpose": "Serialize individual message parts with sensitive data filtering"
+        },
+        {
+          "from": "utils.session_utils.save_session_state",
+          "to": "utils.session_id_generator.generate_user_friendly_session_id",
+          "type": "naming",
+          "purpose": "Generate session ID with auto-description from current messages"
+        },
+        {
+          "from": "utils.session_id_generator.generate_user_friendly_session_id",
+          "to": "utils.session_id_generator._generate_session_description",
+          "type": "naming",
+          "purpose": "Extract meaningful keywords from user messages for session naming"
         },
         {
           "from": "ResumeCommand._handle_load",

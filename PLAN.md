@@ -11,24 +11,27 @@ Implement user-friendly session naming and improved message serialization for th
 
 ---
 
-## Phase 1: Session Naming Enhancement
+## Phase 1: Session Naming Enhancement ✅ COMPLETED
 **Goal**: Replace UUID-based session IDs with user-friendly timestamp + description format
 
-### 1.1 Update Session ID Generation
+### 1.1 Update Session ID Generation ✅
 - **File**: `src/tunacode/core/state.py`
 - **Change**: Replace `str(uuid.uuid4())` with timestamp-based naming
-- **Format**: `YYYY-MM-DD_HH-MM_description`
+- **Format**: `YYYY-MM-DD_HH-MM-SS_description_uuid` (added seconds + UUID for uniqueness)
 - **Fallback**: Generic description if auto-generation fails
+- **Implementation**: Created `src/tunacode/utils/session_id_generator.py` with auto-description logic
 
-### 1.2 Update Session ID Validation
+### 1.2 Update Session ID Validation ✅
 - **File**: `src/tunacode/utils/session_utils.py`
 - **Change**: Modify `_is_safe_session_id()` to accept new format
 - **Pattern**: Allow alphanumeric, dashes, underscores for new naming scheme
+- **Backward Compatibility**: Still accepts UUID format for existing sessions
 
-### 1.3 Update Session Display
+### 1.3 Update Session Display ✅
 - **File**: `src/tunacode/cli/commands/implementations/resume.py`
 - **Change**: Improve session listing format for new naming scheme
 - **Enhancement**: Better readability with timestamp + description parsing
+- **Format**: Displays as "2025-09-23 14:30:45 — python debugging" instead of raw ID
 
 ---
 

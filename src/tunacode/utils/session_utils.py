@@ -34,7 +34,143 @@ ESSENTIAL_FIELDS: Tuple[str, ...] = (
     "session_total_usage",
 )
 
+# Sensitive fields to exclude from serialization
+SENSITIVE_FIELDS: Tuple[str, ...] = (
+    "api_key",
+    "token",
+    "password",
+    "secret",
+    "auth",
+    "credential",
+    "private_key",
+)
 
+
+
+
+def _is_sensitive_field(field_name: str) -> bool:
+    """Check if a field name contains sensitive information."""
+    field_lower = field_name.lower()
+    return any(sensitive in field_lower for sensitive in SENSITIVE_FIELDS)
+
+
+def _serialize_tool_calls(tool_calls: Any) -> List[Dict[str, Any]]:
+    """Serialize tool calls preserving essential information."""
+    if not tool_calls:
+        return []
+
+    if not isinstance(tool_calls, list):
+        tool_calls = [tool_calls]
+
+    serialized = []
+    for call in tool_calls:
+        if isinstance(call, dict):
+            # Already a dict, filter sensitive fields
+            filtered_call = {}
+            for k, v in call.items():
+                if not _is_sensitive_field(k):
+                    try:
+                        json.dumps(v)
+                        filtered_call[k] = v
+                    except Exception:
+                        filtered_call[k] = str(v)
+            serialized.append(filtered_call)
+        elif hasattr(call, "tool_name"):
+            # Object with tool call attributes
+            call_dict = {
+                "tool_name": getattr(call, "tool_name", None),
+                "tool_call_id": getattr(call, "tool_call_id", None),
+            }
+            if hasattr(call, "args"):
+                call_dict["args"] = getattr(call, "args", {})
+            if hasattr(call, "timestamp"):
+                call_dict["timestamp"] = getattr(call, "timestamp", None)
+            serialized.append(call_dict)
+
+    return serialized
+
+
+def _serialize_message_part(part: Any) -> Optional[Dict[str, Any]]:
+    """Serialize a message part (from pydantic-ai messages or dict)."""
+    if not part:
+        return None
+
+    # Handle dict parts (already serialized)
+    if isinstance(part, dict):
+        result = dict(part)  # Copy the dict
+        # Filter sensitive data from args if present
+        if "args" in result and isinstance(result["args"], dict):
+            filtered_args = {}
+            for k, v in result["args"].items():
+                if not _is_sensitive_field(k):
+                    try:
+                        json.dumps(v)
+                        filtered_args[k] = v
+                    except Exception:
+                        filtered_args[k] = str(v)
+            result["args"] = filtered_args
+        return result
+
+    result: Dict[str, Any] = {}
+
+    # Preserve part type and basic info
+    if hasattr(part, "part_kind"):
+        result["part_kind"] = getattr(part, "part_kind")
+
+    # Handle different part types
+    part_kind = result.get("part_kind", "")
+
+    if part_kind == "user-prompt" or part_kind == "text":
+        # User input or text content
+        if hasattr(part, "content"):
+            result["content"] = getattr(part, "content")
+        if hasattr(part, "role"):
+            result["role"] = getattr(part, "role", "user")
+
+    elif part_kind == "tool-call":
+        # Tool call information
+        result["tool_name"] = getattr(part, "tool_name", None)
+        result["tool_call_id"] = getattr(part, "tool_call_id", None)
+        if hasattr(part, "args"):
+            args = getattr(part, "args")
+            # Filter sensitive data from args
+            if isinstance(args, dict):
+                filtered_args = {}
+                for k, v in args.items():
+                    if not _is_sensitive_field(k):
+                        try:
+                            json.dumps(v)
+                            filtered_args[k] = v
+                        except Exception:
+                            filtered_args[k] = str(v)
+                result["args"] = filtered_args
+            else:
+                result["args"] = args
+
+    elif part_kind == "tool-return":
+        # Tool response
+        result["tool_name"] = getattr(part, "tool_name", None)
+        result["tool_call_id"] = getattr(part, "tool_call_id", None)
+        if hasattr(part, "content"):
+            content = getattr(part, "content")
+            # Truncate very long tool outputs
+            if isinstance(content, str) and len(content) > 1000:
+                result["content"] = content[:997] + "..."
+            else:
+                result["content"] = content
+
+    else:
+        # Generic part - preserve basic content
+        if hasattr(part, "content"):
+            result["content"] = getattr(part, "content")
+        if hasattr(part, "role"):
+            result["role"] = getattr(part, "role")
+
+    # Add timestamp if available
+    if hasattr(part, "timestamp"):
+        result["timestamp"] = getattr(part, "timestamp")
+
+    return result if result else None
 
 
 def _is_safe_session_id(session_id: str) -> bool:
@@ -52,28 +188,74 @@ def _is_safe_session_id(session_id: str) -> bool:
 
 
 def _serialize_message(message: Any) -> Dict[str, Any]:
-    """Best-effort message serialization.
+    """Enhanced message serialization preserving tool calls and context.
 
-    - If already JSON-serializable dict with 'role'/'content', keep minimal.
-    - Otherwise, record minimal shape with extracted string content via str().
+    Preserves:
+    - User queries and agent responses (role/content)
+    - Tool calls with basic structure (tool_name, args, tool_call_id)
+    - Message timestamps and types (part_kind)
+    - Message structure (parts for complex messages)
+
+    Excludes:
+    - API keys and sensitive data
+    - Complex internal state objects
+    - Non-serializable objects
     """
+    # Handle dict-based messages (simple format and enhanced format)
     if isinstance(message, dict):
+        # Handle dict messages that already have parts structure (enhanced format)
+        if "parts" in message:
+            result = dict(message)  # Copy the dict
+            # Re-serialize parts to ensure consistency
+            if isinstance(result["parts"], list):
+                result["parts"] = [_serialize_message_part(part) for part in result["parts"] if part]
+            return result
+
+        # Handle simple dict format
         result: Dict[str, Any] = {}
-        if "role" in message:
-            result["role"] = message.get("role")
-        if "content" in message:
-            result["content"] = message.get("content")
+
+        # Preserve basic message fields
+        for field in ["role", "content", "kind", "timestamp"]:
+            if field in message:
+                result[field] = message[field]
+
+        # Preserve tool call information if present
+        if "tool_calls" in message:
+            result["tool_calls"] = _serialize_tool_calls(message["tool_calls"])
+
         if result:
             return result
+
         # Fallback: keep shallow copy of JSON-serializable items
         filtered: Dict[str, Any] = {}
         for k, v in message.items():
+            if _is_sensitive_field(k):
+                continue
             try:
                 json.dumps(v)
                 filtered[k] = v
             except Exception:
                 filtered[k] = str(v)
         return filtered
+
+    # Handle pydantic-ai message objects with parts
+    if hasattr(message, "parts") and hasattr(message, "kind"):
+        result = {
+            "kind": getattr(message, "kind", "unknown"),
+            "parts": []
+        }
+
+        # Add timestamp if available
+        if hasattr(message, "timestamp"):
+            result["timestamp"] = getattr(message, "timestamp", None)
+
+        # Serialize each part
+        for part in message.parts:
+            serialized_part = _serialize_message_part(part)
+            if serialized_part:
+                result["parts"].append(serialized_part)
+
+        return result
 
     # Simple primitives
     try:
@@ -84,10 +266,13 @@ def _serialize_message(message: Any) -> Dict[str, Any]:
 
     # Object fallback
     if hasattr(message, "role") or hasattr(message, "content"):
-        return {
-            "role": getattr(message, "role", None),
-            "content": getattr(message, "content", None),
-        }
+        result = {}
+        if hasattr(message, "role"):
+            result["role"] = getattr(message, "role", None)
+        if hasattr(message, "content"):
+            result["content"] = getattr(message, "content", None)
+        return result
+
     return {"content": str(message)}
 
 
@@ -115,8 +300,17 @@ def _collect_essential_state(state: SessionState) -> Dict[str, Any]:
 def save_session_state(state_manager: Any) -> Path:
     """Save essential session state to a JSON file.
 
+    Regenerates session ID with auto-description from current messages.
     Returns the path to the saved file.
     """
+    # Regenerate session ID with current messages for better description
+    if state_manager.session.messages:
+        # Extract serialized messages for description generation
+        serialized_messages = [_serialize_message(m) for m in state_manager.session.messages]
+        new_session_id = generate_user_friendly_session_id(serialized_messages)
+        state_manager.session.session_id = new_session_id
+
+    # Get session directory after potential ID update
     session_dir = get_session_dir(state_manager)
     session_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
