@@ -282,6 +282,18 @@
           "purpose": "Enhanced message serialization preserving tool calls and structure"
         },
         {
+          "from": "utils.session_utils._collect_essential_state",
+          "to": "utils.message_utils.get_message_content",
+          "type": "data",
+          "purpose": "Extract readable content from complex pydantic-ai message objects"
+        },
+        {
+          "from": "utils.session_utils._collect_essential_state",
+          "to": "utils.session_utils._to_role",
+          "type": "data",
+          "purpose": "Map message types to user/assistant roles for chat transcript"
+        },
+        {
           "from": "utils.session_utils._serialize_message",
           "to": "utils.session_utils._serialize_message_part",
           "type": "data",

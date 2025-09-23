@@ -38,8 +38,6 @@ async def test_resume_save_and_load_roundtrip(monkeypatch):
 
         context = CommandContext(state_manager=state_manager, process_request=noop_request)
 
-        original_session_id = state_manager.session.session_id
-
         # Act: save the session
         await registry.execute("/resume save", context)
 
@@ -47,7 +45,9 @@ async def test_resume_save_and_load_roundtrip(monkeypatch):
         current_session_id = state_manager.session.session_id
 
         # Assert: file exists in the expected directory (use current session ID)
-        session_file = Path(tmp_home) / ".tunacode" / "sessions" / current_session_id / "session_state.json"
+        session_file = (
+            Path(tmp_home) / ".tunacode" / "sessions" / current_session_id / "session_state.json"
+        )
         assert session_file.exists(), f"Missing session file at {session_file}"
 
         # Mutate current session to verify load restores values
@@ -83,9 +83,9 @@ async def test_enhanced_message_serialization(monkeypatch):
                     {
                         "part_kind": "user-prompt",
                         "role": "user",
-                        "content": "Debug this Python script error"
+                        "content": "Debug this Python script error",
                     }
-                ]
+                ],
             },
             {
                 "kind": "response",
@@ -94,9 +94,9 @@ async def test_enhanced_message_serialization(monkeypatch):
                         "part_kind": "tool-call",
                         "tool_name": "read_file",
                         "tool_call_id": "call_123",
-                        "args": {"file_path": "script.py"}
+                        "args": {"file_path": "script.py"},
                     }
-                ]
+                ],
             },
             {
                 "kind": "request",
@@ -105,10 +105,10 @@ async def test_enhanced_message_serialization(monkeypatch):
                         "part_kind": "tool-return",
                         "tool_name": "read_file",
                         "tool_call_id": "call_123",
-                        "content": "def main():\n    print('hello')"
+                        "content": "def main():\n    print('hello')",
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         # Set other essential fields
@@ -117,7 +117,7 @@ async def test_enhanced_message_serialization(monkeypatch):
 
         context = CommandContext(
             state_manager=state_manager,
-            process_request=lambda _text, _state_manager, output=True: None
+            process_request=lambda _text, _state_manager, output=True: None,
         )
 
         session_id = state_manager.session.session_id
@@ -191,10 +191,10 @@ async def test_sensitive_data_filtering(monkeypatch):
                             "url": "https://api.example.com",
                             "api_key": "secret-key-123",
                             "auth_token": "bearer-token-456",
-                            "data": {"message": "hello"}
-                        }
+                            "data": {"message": "hello"},
+                        },
                     }
-                ]
+                ],
             }
         ]
 
@@ -202,7 +202,7 @@ async def test_sensitive_data_filtering(monkeypatch):
 
         context = CommandContext(
             state_manager=state_manager,
-            process_request=lambda _text, _state_manager, output=True: None
+            process_request=lambda _text, _state_manager, output=True: None,
         )
 
         # Save and reload

@@ -120,6 +120,21 @@
         "ADDED initial auto-save of session on REPL startup to ensure all chats are resumable by default",
         "ENABLED autosave after each processed message to keep session_state.json up to date"
       ]
+    },
+    {
+      "id": "session-chat-transcript-20250923-204500",
+      "time": "2025-09-23T20:45:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "FIXED session save truncation by replacing asdict() with direct field access",
+        "ADDED chat_transcript field with clean user/assistant conversation format",
+        "ENHANCED get_message_content() to handle complex pydantic-ai message structures",
+        "RESOLVED files_in_context set serialization causing JSON failures",
+        "IMPLEMENTED proper message serialization via _serialize_message()",
+        "STANDARDIZED canonical session ID format: YYYY-MM-DD_HH-MM-SS_{slug}_{shortid}"
+      ]
     }
 ,
     {

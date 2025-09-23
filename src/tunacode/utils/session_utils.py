@@ -11,16 +11,15 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from tunacode.constants import SESSIONS_SUBDIR
 from tunacode.core.state import SessionState
 from tunacode.types import SessionId
+from tunacode.utils.message_utils import get_message_content
 from tunacode.utils.session_id_generator import generate_user_friendly_session_id
-from tunacode.utils.system import get_session_dir, get_tunacode_home
+from tunacode.utils.system import get_tunacode_home
 
 # Symbolic constants to avoid magic strings
 SESSION_FILENAME: str = "session_state.json"
@@ -44,8 +43,6 @@ SENSITIVE_FIELDS: Tuple[str, ...] = (
     "credential",
     "private_key",
 )
-
-
 
 
 def _is_sensitive_field(field_name: str) -> bool:
@@ -97,19 +94,19 @@ def _serialize_message_part(part: Any) -> Optional[Dict[str, Any]]:
 
     # Handle dict parts (already serialized)
     if isinstance(part, dict):
-        result = dict(part)  # Copy the dict
+        dict_result = dict(part)  # Copy the dict
         # Filter sensitive data from args if present
-        if "args" in result and isinstance(result["args"], dict):
+        if "args" in dict_result and isinstance(dict_result["args"], dict):
             filtered_args = {}
-            for k, v in result["args"].items():
+            for k, v in dict_result["args"].items():
                 if not _is_sensitive_field(k):
                     try:
                         json.dumps(v)
                         filtered_args[k] = v
                     except Exception:
                         filtered_args[k] = str(v)
-            result["args"] = filtered_args
-        return result
+            dict_result["args"] = filtered_args
+        return dict_result
 
     result: Dict[str, Any] = {}
 
@@ -208,11 +205,13 @@ def _serialize_message(message: Any) -> Dict[str, Any]:
     if isinstance(message, dict):
         # Handle dict messages that already have parts structure (enhanced format)
         if "parts" in message:
-            result = dict(message)  # Copy the dict
+            dict_result = dict(message)  # Copy the dict
             # Re-serialize parts to ensure consistency
-            if isinstance(result["parts"], list):
-                result["parts"] = [_serialize_message_part(part) for part in result["parts"] if part]
-            return result
+            if isinstance(dict_result["parts"], list):
+                dict_result["parts"] = [
+                    _serialize_message_part(part) for part in dict_result["parts"] if part
+                ]
+            return dict_result
 
         # Handle simple dict format
         result: Dict[str, Any] = {}
@@ -243,10 +242,7 @@ def _serialize_message(message: Any) -> Dict[str, Any]:
 
     # Handle pydantic-ai message objects with parts
     if hasattr(message, "parts") and hasattr(message, "kind"):
-        result = {
-            "kind": getattr(message, "kind", "unknown"),
-            "parts": []
-        }
+        result = {"kind": getattr(message, "kind", "unknown"), "parts": []}
 
         # Add timestamp if available
         if hasattr(message, "timestamp"):
@@ -281,22 +277,56 @@ def _serialize_message(message: Any) -> Dict[str, Any]:
 
 def _collect_essential_state(state: SessionState) -> Dict[str, Any]:
     """Extract essential fields from SessionState for persistence."""
-    # SessionState is a dataclass; convert safely
-    obj: Dict[str, Any] = asdict(state)
-
-    # Keep only essential fields in defined order
-    essential: Dict[str, Any] = {k: obj.get(k) for k in ESSENTIAL_FIELDS}
-    # Serialize messages minimally
-    messages: List[Any] = cast(List[Any], essential.get("messages") or [])
-    essential["messages"] = [_serialize_message(m) for m in messages]
-    # Normalize set to list for JSON
-    fic = essential.get("files_in_context")
+    # Direct field access instead of asdict() to avoid pydantic-ai serialization issues
+    # Normalize files_in_context (might be a set)
+    fic = state.files_in_context
     if isinstance(fic, set):
-        essential["files_in_context"] = sorted(list(cast(set[str], fic)))
+        files_in_context = sorted(list(fic))
     elif isinstance(fic, list):
-        essential["files_in_context"] = cast(List[str], fic)
+        files_in_context = fic
     else:
-        essential["files_in_context"] = []
+        files_in_context = []
+
+    essential: Dict[str, Any] = {
+        "session_id": state.session_id,
+        "current_model": state.current_model,
+        "user_config": state.user_config,
+        "messages": [_serialize_message(m) for m in state.messages],  # Serialize directly
+        "total_cost": state.total_cost,
+        "files_in_context": files_in_context,
+        "session_total_usage": getattr(state, "session_total_usage", {}),
+    }
+
+    # Also include a flattened chat transcript for human-readable chats
+    def _to_role(msg: Any) -> str:
+        if isinstance(msg, dict):
+            role = str(msg.get("role") or "").lower()
+            if role:
+                return role
+            kind = str(msg.get("kind") or "").lower()
+            if kind == "request":
+                return "user"
+            if kind == "response":
+                return "assistant"
+        if hasattr(msg, "role"):
+            return str(getattr(msg, "role")).lower()
+        if hasattr(msg, "kind"):
+            kind = str(getattr(msg, "kind")).lower()
+            return (
+                "user"
+                if kind == "request"
+                else ("assistant" if kind == "response" else "assistant")
+            )
+        return "assistant"
+
+    transcript: List[Dict[str, Any]] = []
+    for m in state.messages:  # Use actual session messages, not serialized ones
+        text = get_message_content(m)
+        text = " ".join((text or "").split())
+        if not text:
+            continue
+        transcript.append({"role": _to_role(m), "content": text})
+    essential["chat_transcript"] = transcript
     return essential
 
 
@@ -314,7 +344,7 @@ def save_session_state(state_manager: Any) -> Path:
         state_manager.session.session_id = new_session_id
 
     # Get session directory after potential ID update
-    session_dir = get_session_dir(state_manager)
+    session_dir = get_tunacode_home() / SESSIONS_SUBDIR / state_manager.session.session_id
     session_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     data = _collect_essential_state(state_manager.session)
@@ -339,9 +369,8 @@ def load_session_state(state_manager: Any, session_id: SessionId) -> bool:
     if not _is_safe_session_id(session_id):
         raise ValueError("Invalid session_id format")
 
-    # Resolve session file path under ~/.tunacode/sessions/<id>/session_state.json
-    home = get_tunacode_home()
-    session_dir = home / SESSIONS_SUBDIR / session_id
+    # Resolve session file path directly in current directory for debugging
+    session_dir = Path(".")
     in_path = session_dir / SESSION_FILENAME
 
     if not in_path.exists():

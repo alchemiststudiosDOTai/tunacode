@@ -24,6 +24,12 @@ def get_message_content(message: Any) -> str:
     if hasattr(message, "parts"):
         parts = message.parts
         if isinstance(parts, list):
-            return " ".join(get_message_content(part) for part in parts)
+            # Extract content from each part
+            part_contents = []
+            for part in parts:
+                part_content = get_message_content(part)
+                if part_content:
+                    part_contents.append(part_content)
+            return " ".join(part_contents)
         return str(parts)
     return ""

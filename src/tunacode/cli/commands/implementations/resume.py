@@ -125,6 +125,7 @@ class ResumeCommand(SimpleCommand):
             else:
                 # Legacy UUID format - show with timestamp
                 from datetime import datetime
+
                 ts = datetime.fromtimestamp(entry.get("mtime", 0.0)).isoformat(
                     sep=" ", timespec="seconds"
                 )

@@ -6,7 +6,6 @@ Handles user preferences, conversation history, and runtime state.
 CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 """
 
-import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
