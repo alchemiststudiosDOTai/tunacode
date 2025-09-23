@@ -1,0 +1,15 @@
+# Ignore personal knowledge base directory
+.claude/
+
+# Environment variables
+.env
+
+# Scalene profiles
+profile.html
+profile.json
+profiles/
+*.scalene
+
+# Test database
+test.db
+*.db
