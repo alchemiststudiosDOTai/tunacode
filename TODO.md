@@ -1,48 +1,34 @@
-# Current Issue
 
-@-mentions only show directories first, then files. Need fuzzy-first file matching for patterns like `testexampl.py`.
 
----
+### 1. Session Naming Strategy
+What approach do you prefer for user-friendly session names?
 
-## Architecture Analysis
+**Option A: Timestamp + Auto-description**
+- Format: `2025-01-23_14-30_python-debugging-session`
+- Auto-generate description from first few messages
+- Fallback to generic names if content unclear
+- when a user runs /resume, we list all sessions with this format and the usr will scroll and choose
 
-- `src/tunacode/ui/completers.py:70-128`: Current `FileReferenceCompleter` uses basic `startswith()` matching.
-- `src/tunacode/cli/commands/registry.py:305-327`: Fuzzy matching exists for commands using `difflib.get_close_matches`.
-- `src/tunacode/utils/models_registry.py`: Advanced fuzzy matching using `difflib.SequenceMatcher`.
+### 2. Message Data Preservation
+How comprehensive should we be with message serialization?
 
----
+- Basic session data, stuff like keys are NOT to be saved 
+- the chat, the users query and the agents response
+- tool calls 
 
-## Minimal Implementation Strategy
 
-1. **Create Shared Fuzzy Utility**
-   - File: `src/tunacode/utils/fuzzy_utils.py`
-   - Reuse existing `difflib.get_close_matches` pattern
-   - Export `find_fuzzy_matches()` function with same 0.75 cutoff as commands
 
-2. **Modify FileReferenceCompleter**
-   - File: `src/tunacode/ui/completers.py:70-128`
-   - Add fuzzy-first logic:
-     - Separate files vs directories in scan
-     - Apply fuzzy matching to files first (higher priority)
-     - Apply fuzzy matching to directories second
-     - Preserve existing behavior for exact prefixes
-     - Sort results: exact files > fuzzy files > exact dirs > fuzzy dirs
 
-3. **Integration Points**
-   - Reuses existing `difflib.get_close_matches` (already imported in `registry.py`)
-   - No new dependencies
-   - Follows same pattern as command fuzzy matching
-   - Preserves all existing security/validation logic
+### 3. Backward Compatibility
+- NONE this is brand new wee jabvent relased this yes 
 
----
+### 4. Implementation Scope
+Given the research shows this touches multiple files and tests, should we:
+- Start with just the naming improvement 
+- then update the SINGHULAR test for this 
+- then move to the message serialization, users query and aigent response should be saved in a formatted way 
 
-## Expected Behavior
+- go slow, explore and implement this with the least amount of code changes
 
-- `@testexampl.py` → finds `test_example.py` (fuzzy file match)
-- `@testexamp` → shows both files and directories with fuzzy priority
-- `@src/` → preserves current directory browsing behavior
-- Maintains all existing validation, security, and size limits
+DO NOT CODE, CREATE A DOCUMENT CALLED " PLAN" BEFORE WE BEGIN TO OUTLINE THE WORK IN PHASES MAX 3 PHAES MAX 3 SUBPHASES 
 
----
-
-**Code Changes:** ~30 lines total (new utility + modified completer logic)

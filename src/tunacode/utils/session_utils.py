@@ -12,12 +12,14 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from tunacode.constants import SESSIONS_SUBDIR
 from tunacode.core.state import SessionState
 from tunacode.types import SessionId
+from tunacode.utils.session_id_generator import generate_user_friendly_session_id
 from tunacode.utils.system import get_session_dir, get_tunacode_home
 
 # Symbolic constants to avoid magic strings
@@ -33,12 +35,20 @@ ESSENTIAL_FIELDS: Tuple[str, ...] = (
 )
 
 
+
+
 def _is_safe_session_id(session_id: str) -> bool:
     """Validate session_id to prevent path traversal.
 
-    Accept UUID-like identifiers with hex and dashes only.
+    Accept both UUID-like identifiers and new timestamp-based format.
+    New format: YYYY-MM-DD_HH-MM_description (alphanumeric, dashes, underscores)
     """
-    return bool(re.fullmatch(r"[A-Fa-f0-9\-]{8,64}", session_id))
+    # Accept UUID format (backward compatibility)
+    if re.fullmatch(r"[A-Fa-f0-9\-]{8,64}", session_id):
+        return True
+
+    # Accept new timestamp-based format
+    return bool(re.fullmatch(r"[A-Za-z0-9\-_]{10,80}", session_id))
 
 
 def _serialize_message(message: Any) -> Dict[str, Any]:

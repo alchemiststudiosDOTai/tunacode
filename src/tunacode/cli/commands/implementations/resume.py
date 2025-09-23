@@ -106,14 +106,32 @@ class ResumeCommand(SimpleCommand):
             model = entry.get("model") or "?"
             count = entry.get("message_count")
             count_str = f", {count} messages" if isinstance(count, int) else ""
-            from datetime import datetime
 
-            ts = datetime.fromtimestamp(entry.get("mtime", 0.0)).isoformat(
-                sep=" ", timespec="seconds"
-            )
+            # Parse session ID to check if it's new format (timestamp-based)
+            is_new_format = "_" in sid and len(sid.split("_")) >= 4
+
+            if is_new_format:
+                # New format: YYYY-MM-DD_HH-MM-SS_description_short-uuid
+                parts = sid.split("_")
+                if len(parts) >= 4:
+                    date_part = parts[0]
+                    time_part = parts[1]
+                    description = "_".join(parts[2:-1])  # Exclude the UUID suffix
+                    # Format as readable timestamp + description
+                    display_name = f"{date_part} {time_part.replace('-', ':')} — {description.replace('-', ' ')}"
+                else:
+                    display_name = sid
+            else:
+                # Legacy UUID format - show with timestamp
+                from datetime import datetime
+                ts = datetime.fromtimestamp(entry.get("mtime", 0.0)).isoformat(
+                    sep=" ", timespec="seconds"
+                )
+                display_name = f"{sid}  @ {ts}"
+
             preview = entry.get("last_message")
-            preview_str = f" — {preview}" if preview else ""
-            await ui.muted(f"  {i:2d}. {sid}  [{model}{count_str}]  @ {ts}{preview_str}")
+            preview_str = f" — {preview}" if preview and not is_new_format else ""
+            await ui.muted(f"  {i:2d}. {display_name}  [{model}{count_str}]{preview_str}")
 
         await ui.muted("\nLoad by index:   /resume load 1")
         await ui.muted("Load by id:      /resume load <session_id>")

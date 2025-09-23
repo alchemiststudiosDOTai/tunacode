@@ -24,6 +24,7 @@ from tunacode.types import (
     UserConfig,
 )
 from tunacode.utils.message_utils import get_message_content
+from tunacode.utils.session_id_generator import generate_user_friendly_session_id
 from tunacode.utils.token_counter import estimate_tokens
 
 if TYPE_CHECKING:
@@ -47,7 +48,7 @@ class SessionState:
     yolo: bool = False
     undo_initialized: bool = False
     show_thoughts: bool = False
-    session_id: SessionId = field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: SessionId = field(default_factory=lambda: generate_user_friendly_session_id())
     device_id: Optional[DeviceId] = None
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Optional[Any] = None
