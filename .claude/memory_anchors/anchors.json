@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated": "2025-09-24T15:29:42Z",
+  "generated": "2025-09-24T16:12:08Z",
   "description": "Memory anchors are now embedded in source files as CLAUDE_ANCHOR[key] comments",
   "session_history": [
     {
@@ -177,6 +177,33 @@
       "description": "Prompt Toolkit fuzzy matching consolidates file and directory suggestions",
       "status": "active",
       "created": "2025-09-24T15:29:42Z"
+    },
+    {
+      "key": "0b3f320e",
+      "path": "src/tunacode/ui/path_heuristics.py",
+      "line": 7,
+      "kind": "line",
+      "description": "Cross-ecosystem skip directory defaults for FileReferenceCompleter global roots",
+      "status": "active",
+      "created": "2025-09-24T16:08:12Z"
+    },
+    {
+      "key": "6fd59413",
+      "path": "src/tunacode/ui/path_heuristics.py",
+      "line": 22,
+      "kind": "line",
+      "description": "Skip list includes __pycache__ to avoid noisy Python build artifacts in suggestions",
+      "status": "active",
+      "created": "2025-09-24T16:10:11Z"
+    },
+    {
+      "key": "2bcebd52",
+      "path": "src/tunacode/ui/path_heuristics.py",
+      "line": 31,
+      "kind": "line",
+      "description": "Skip heuristic checks every path component to prune nested junk directories such as __pycache__",
+      "status": "active",
+      "created": "2025-09-24T16:12:08Z"
     }
   ]
 }

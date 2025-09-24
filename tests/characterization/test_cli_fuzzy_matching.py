@@ -42,3 +42,19 @@ class TestPromptToolkitFuzzy:
         ordered_text = [completion.text for completion in completions]
 
         assert ordered_text and ordered_text[0].endswith("test_example.py")
+
+    def test_fuzzy_file_reference_walks_nested_directories(self) -> None:
+        """Global fuzzy completions should surface deeper files when matching."""
+
+        completer = FileReferenceCompleter()
+        document = Document(text="@mai")
+        completions = list(completer.get_completions(document, CompleteEvent()))
+
+        completion_texts = [completion.text for completion in completions]
+        print(completion_texts)
+
+        assert any(
+            text.endswith("src/tunacode/cli/main.py")
+            for text in completion_texts
+            if text.endswith(".py")
+        )

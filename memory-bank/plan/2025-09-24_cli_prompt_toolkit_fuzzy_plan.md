@@ -48,6 +48,11 @@ Success is measured by:
 3. **Blue**
    - Refine duplicated logic, extract helper functions where intent is repeated, and update documentation/metadata/anchors.
 
+**Cross-ecosystem follow-ups (deferred):**
+- Auto-prioritise roots by inspecting ecosystem markers (e.g., `package.json`, `CMakeLists.txt`) instead of hard-coding Python paths.
+- Extend ignore lists to cover `node_modules`, `build`, `dist`, `target`, and other non-Python artifacts.
+- Consider optional metadata-driven weighting so language-specific extensions (.js/.ts, .cpp/.hpp) bubble up appropriately.
+
 ## 5. Risks & Mitigations
 - **Performance degradation with large command/file sets** → Use `ThreadedCompleter` if latency is observed; document fallback in TODO.
 - **Inconsistent ordering vs. historical expectations** → Maintain explicit post-processing to enforce file-before-dir rules.*
@@ -62,3 +67,23 @@ Success is measured by:
 - Implement RED step: restore the characterization test, then execute `uv run --python .venv/bin/python -m pytest tests/characterization/test_cli_fuzzy_matching.py` to capture the failing baseline before touching implementation code.
 
 *Maintain file-before-directory ordering by combining prompt-toolkit fuzzy scoring with deterministic post-sort tied to symbolic constants.
+
+
+ - Clarify Objective: Target a detection + weighting layer that broadens ecosystem coverage while keeping current Python-first flow intact when nothing else matches.
+   okay again this is the issue we dont know whart codin g languae they will use 
+
+- Inventory Current State: Document today’s hardcoded paths/skip lists in src/tunacode/ui/completers.py so we know exactly what must stay as the Python fallback.
+  - Introduce Ecosystem Schema: Define a small EcosystemProfile dataclass or typed dict storing markers, roots, skips, extensions, metadata tags; start with just
+  Python + JS/TS + C++ to keep diff tiny.
+  - Add Detection Utility: Implement _detect_ecosystem() that walks upward a bounded depth, counts marker hits per profile, and returns the best match (ties fall back
+  to Python profile). Cache result on the completer instance.
+  - Refactor Root/Skip Providers: Swap the current module-level constants for a profile = self._detect_or_default() call that feeds priority roots, skip prefixes, and
+  extension sets into the existing traversal logic. Preserve ordering rules from the behavior change log.
+  - Lightweight Metadata Hook: When building Completion, append the profile’s metadata hint if defined for the file extension; no UI overhaul required.
+  - Optional Config Ingestion: Allow a simple TOML override (e.g., .tunacode-completer.toml) that merges into the selected profile. Keep parsing isolated so it can be
+  skipped if file absent.
+  - Testing Strategy: Extend characterization tests with tmpdir fixtures for JS and C++ layouts; ensure Python baseline stays green. Cover config override and no-
+  marker fallback. Run via hatch run test.
+  - Knowledge Base Updates: Plan to record new anchors around detection logic, refresh .claude/semantic_index/function_call_graphs.json, and log behavior/API shifts in
+  delta_summaries/behavior_changes.json once code lands.
+
