@@ -11,15 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Models Registry Pydantic Conversion** - Complete conversion to Pydantic BaseModel with validation
 - **RAG Tooling** - SQLite FTS5 index for .claude/ knowledge base search and indexing
 - **Comprehensive Validation Tests** - Added golden baseline tests and validation edge cases
+- **Prompt Toolkit Fuzzy Completers** - Wrapped command and @file completers with native fuzzy matching for typo tolerance
 
 ### Changed
-- **File Reference Ordering** - Restored prefix-only ordering: exact files > exact dirs
+- **File Reference Ordering** - Re-established fuzzy priority: exact files > fuzzy files > exact dirs > fuzzy dirs
 - **Bare Directory Browsing** - Type `@dir` (without trailing slash) to browse directory contents
 - **Code Style Guidelines** - Updated CLAUDE.md with improved coding patterns and best practices
 - **Models Registry Validation** - Added constraints for non-negative costs and positive limits
-
-### Removed
-- **Fuzzy Matching Implementations** - CLI command fallback and @file fuzzy matching removed due to accumulated tech debt
 
 ### Fixed
 - **Validation Edge Cases** - Enhanced registry validation for model loading scenarios

@@ -9,6 +9,7 @@ Summarize all *existing knowledge* about fuzzy logic implementation before makin
 ## Status Update (2025-09-24)
 - CLI fuzzy fallback and @file fuzzy completion were removed on the safe branch to retire accumulated tech debt. This document now serves as a historical reference for any future reintroduction work.
 - Shared helper `src/tunacode/utils/fuzzy_utils.py` and characterization test `tests/characterization/test_cli_fuzzy_matching.py` were deleted; changelog and metadata record the regression to prefix-only behavior.
+- Prompt toolkit-native fuzzy completions were reintroduced on 2025-09-24, wiring `FuzzyWordCompleter` into `CommandCompleter` and `FileReferenceCompleter` with fresh characterization tests capturing the new behavior.
 
 ## Additional Search
 - `grep -ri "fuzzy" .claude/` - Found behavior changes and file classifications
@@ -18,11 +19,16 @@ Post-removal verification confirmed updated changelog entry (`documentation/chan
 
 ## Findings
 
-### Removed CLI/File components (2025-09-24)
+### Removed CLI/File components (2025-09-24 early session)
 - `src/tunacode/utils/fuzzy_utils.py` → Deleted module that wrapped `difflib.get_close_matches`.
-- `src/tunacode/cli/commands/registry.py` → Fuzzy fallback removed; command matching now prefix-only with anchor `86cc1a41` marking the change.
-- `src/tunacode/ui/completers.py` → Fuzzy ordering removed; completion now relies on case-insensitive prefixes.
-- `tests/characterization/test_cli_fuzzy_matching.py` → Deleted golden coverage for CLI fuzzy suggestions.
+- `src/tunacode/cli/commands/registry.py` → Fuzzy fallback removed; command matching temporarily reverted to prefix-only with anchor `86cc1a41` marking the change.
+- `src/tunacode/ui/completers.py` → Fuzzy ordering removed; completion relied on case-insensitive prefixes until prompt toolkit reintegration.
+- `tests/characterization/test_cli_fuzzy_matching.py` → Deleted golden coverage for CLI fuzzy suggestions ahead of prompt toolkit rewrite.
+
+### Reintroduced surfaces (2025-09-24 late session)
+- `tests/characterization/test_cli_fuzzy_matching.py` → Recreated characterization tests covering prompt toolkit fuzzy suggestions for slash commands and @file references.
+- `src/tunacode/ui/completers.py` → Adopted `FuzzyWordCompleter` for both command and file completions, maintaining explicit ordering guarantees.
+- `tests/conftest.py` → Adjusted to honor real prompt_toolkit modules when installed, ensuring tests exercise genuine fuzzy completers.
 
 ### Remaining fuzzy usage
 - `src/tunacode/utils/models_registry.py:114-132` → Still employs `SequenceMatcher` for model similarity scoring; untouched by the rollback.
@@ -75,11 +81,11 @@ Post-removal verification confirmed updated changelog entry (`documentation/chan
 
 ### Documentation
 - `memory-bank/research/2025-09-22_12-01-06_cli_fuzzy_logic_analysis.md` - Previous fuzzy logic analysis
-- `.claude/delta_summaries/behavior_changes.json` - Historical enhancement plus 2025-09-24 removal entry
-- `.claude/memory_anchors/anchors.json` - Memory anchors tracking removal (key `86cc1a41`)
+- `.claude/delta_summaries/behavior_changes.json` - Historical enhancement, 2025-09-24 removal entry, and prompt toolkit reintegration log
+- `.claude/memory_anchors/anchors.json` - Memory anchors tracking removal (key `86cc1a41`) and new prompt toolkit fuzzy anchors
 
 ### Configuration
-- `.claude/metadata/file_classifications.json` - Historical classification entries (CLI fuzzy test record removed 2025-09-24)
+- `.claude/metadata/file_classifications.json` - Historical classification entries updated with restored CLI fuzzy test coverage
 
 ## Next Steps Recommendations
 

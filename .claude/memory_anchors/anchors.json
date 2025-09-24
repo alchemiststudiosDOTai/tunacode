@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated": "2025-09-24T15:05:39Z",
+  "generated": "2025-09-24T15:29:42Z",
   "description": "Memory anchors are now embedded in source files as CLAUDE_ANCHOR[key] comments",
   "session_history": [
     {
@@ -168,6 +168,15 @@
       "description": "Prefix-only command matching after removing fuzzy fallback",
       "status": "active",
       "created": "2025-09-24T15:05:39Z"
+    },
+    {
+      "anchor_key": "1f0911c7",
+      "path": "src/tunacode/ui/completers.py",
+      "line": 176,
+      "kind": "line",
+      "description": "Prompt Toolkit fuzzy matching consolidates file and directory suggestions",
+      "status": "active",
+      "created": "2025-09-24T15:29:42Z"
     }
   ]
 }

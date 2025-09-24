@@ -1,12 +1,13 @@
 """Completers for file references and commands."""
 
 import os
-from typing import TYPE_CHECKING, Iterable, List, Optional
+from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence
 
 from prompt_toolkit.completion import (
     CompleteEvent,
     Completer,
     Completion,
+    FuzzyWordCompleter,
     merge_completers,
 )
 from prompt_toolkit.document import Document
@@ -18,6 +19,17 @@ if TYPE_CHECKING:
 
 class CommandCompleter(Completer):
     """Completer for slash commands."""
+
+    _DEFAULT_COMMANDS: Sequence[str] = (
+        "/help",
+        "/clear",
+        "/dump",
+        "/yolo",
+        "/branch",
+        "/compact",
+        "/model",
+    )
+    _FUZZY_WORD_MODE = True
 
     def __init__(self, command_registry: Optional["CommandRegistry"] = None):
         self.command_registry = command_registry
@@ -50,34 +62,32 @@ class CommandCompleter(Completer):
         if self.command_registry:
             command_names = self.command_registry.get_command_names()
         else:
-            # Fallback list of commands
-            command_names = ["/help", "/clear", "/dump", "/yolo", "/branch", "/compact", "/model"]
+            command_names = list(self._DEFAULT_COMMANDS)
 
-        # Get the partial command (without /)
-        partial = word_before_cursor[1:].lower()
-
-        # Yield completions for matching commands
-        for cmd in command_names:
-            if cmd.startswith("/") and cmd[1:].lower().startswith(partial):
-                yield Completion(
-                    text=cmd,
-                    start_position=-len(word_before_cursor),
-                    display=cmd,
-                    display_meta="command",
-                )
+        fuzzy_completer = FuzzyWordCompleter(command_names, WORD=self._FUZZY_WORD_MODE)
+        for completion in fuzzy_completer.get_completions(document, _complete_event):
+            yield Completion(
+                text=completion.text,
+                start_position=completion.start_position,
+                display=completion.display,
+                display_meta="command",
+            )
 
 
 class FileReferenceCompleter(Completer):
     """Completer for @file references that provides file path suggestions."""
+
+    _FUZZY_WORD_MODE = True
+    _FUZZY_RESULT_LIMIT = 10
 
     def get_completions(
         self, document: Document, _complete_event: CompleteEvent
     ) -> Iterable[Completion]:
         """Get completions for @file references.
 
-        Favors file matches before directory matches using case-insensitive
-        prefix matching. Ordering:
-          exact files > exact dirs
+        Favors file matches before directory matches while allowing fuzzy
+        near-miss suggestions. Ordering:
+          exact files > fuzzy files > exact dirs > fuzzy dirs
         """
         # Get the word before cursor
         word_before_cursor = document.get_word_before_cursor(WORD=True)
@@ -129,10 +139,17 @@ class FileReferenceCompleter(Completer):
                 exact_files = [f for f in files if f.lower().startswith(prefix_lower)]
                 exact_dirs = [d for d in dirs if d.lower().startswith(prefix_lower)]
 
-                # Compose ordered results using exact matches only
+                fuzzy_file_candidates = [f for f in files if f not in exact_files]
+                fuzzy_dir_candidates = [d for d in dirs if d not in exact_dirs]
+
+                fuzzy_files = self._collect_fuzzy_matches(prefix, fuzzy_file_candidates)
+                fuzzy_dirs = self._collect_fuzzy_matches(prefix, fuzzy_dir_candidates)
+
                 ordered: List[tuple[str, str]] = (
                     [("file", name) for name in exact_files]
+                    + [("file", name) for name in fuzzy_files]
                     + [("dir", name) for name in exact_dirs]
+                    + [("dir", name) for name in fuzzy_dirs]
                 )
 
                 start_position = -len(path_part)
@@ -154,6 +171,26 @@ class FileReferenceCompleter(Completer):
         except (OSError, PermissionError):
             # Silently ignore inaccessible directories
             pass
+
+    @classmethod
+# CLAUDE_ANCHOR[key=1f0911c7] Prompt Toolkit fuzzy matching consolidates file and directory suggestions
+    def _collect_fuzzy_matches(cls, prefix: str, candidates: Sequence[str]) -> List[str]:
+        """Return fuzzy-ordered candidate names respecting configured limit."""
+
+        if not prefix or not candidates:
+            return []
+
+        fuzzy_completer = FuzzyWordCompleter(candidates, WORD=cls._FUZZY_WORD_MODE)
+        prefix_document = Document(text=prefix)
+        event = CompleteEvent(completion_requested=True)
+        matches: List[str] = []
+        for completion in fuzzy_completer.get_completions(prefix_document, event):
+            candidate = completion.text
+            if candidate in candidates and candidate not in matches:
+                matches.append(candidate)
+            if len(matches) >= cls._FUZZY_RESULT_LIMIT:
+                break
+        return matches
 
 
 class ModelCompleter(Completer):
