@@ -150,11 +150,6 @@
       "type": "source",
       "category": "commands",
       "classification": "implementation"
-    },
-    "tests/characterization/test_cli_fuzzy_matching.py": {
-      "type": "test",
-      "category": "commands",
-      "classification": "test"
     }
   }
 }

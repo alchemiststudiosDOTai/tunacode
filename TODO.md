@@ -1,18 +1,18 @@
-# Current Issue
+# Archived Issue
 
-@-mentions only show directories first, then files. Need fuzzy-first file matching for patterns like `testexampl.py`.
+Fuzzy-first @-mention matching plan was rolled back on 2025-09-24 after removing the fuzzy utilities and tests for tech debt cleanup. Notes below are preserved for potential future reimplementation.
 
 ---
 
-## Architecture Analysis
+## Architecture Analysis (historical reference)
 
 - `src/tunacode/ui/completers.py:70-128`: Current `FileReferenceCompleter` uses basic `startswith()` matching.
-- `src/tunacode/cli/commands/registry.py:305-327`: Fuzzy matching exists for commands using `difflib.get_close_matches`.
-- `src/tunacode/utils/models_registry.py`: Advanced fuzzy matching using `difflib.SequenceMatcher`.
+- `src/tunacode/cli/commands/registry.py:305-327`: Previously provided fuzzy fallback via `difflib.get_close_matches` (removed 2025-09-24).
+- `src/tunacode/utils/models_registry.py`: Still offers advanced fuzzy matching using `difflib.SequenceMatcher`.
 
 ---
 
-## Minimal Implementation Strategy
+## Minimal Implementation Strategy (archived plan)
 
 1. **Create Shared Fuzzy Utility**
    - File: `src/tunacode/utils/fuzzy_utils.py`

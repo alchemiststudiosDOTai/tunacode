@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated": "2025-01-05",
+  "generated": "2025-09-24T15:05:39Z",
   "description": "Memory anchors are now embedded in source files as CLAUDE_ANCHOR[key] comments",
   "session_history": [
     {
@@ -151,14 +151,23 @@
       "kind": "line",
       "description": "Renamed release workflow so GitHub Actions executes the Ruff lint/test pipeline without cached definitions and pins Python 3.12 for Hatch stability",
       "status": "active"
-    }
-    ,{
+    },
+    {
       "anchor_key": "model-command-registry-validation-skip",
       "path": "tests/characterization/test_characterization_commands.py",
       "line": 73,
       "kind": "line",
       "description": "Characterization test bypasses registry.load() to avoid Pydantic validation failures from cached API data (e.g., zero limits). Preserves intent to display current model info.",
       "status": "active"
+    },
+    {
+      "anchor_key": "86cc1a41",
+      "path": "src/tunacode/cli/commands/registry.py",
+      "line": 317,
+      "kind": "line",
+      "description": "Prefix-only command matching after removing fuzzy fallback",
+      "status": "active",
+      "created": "2025-09-24T15:05:39Z"
     }
   ]
 }

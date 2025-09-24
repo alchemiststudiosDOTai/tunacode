@@ -11,8 +11,6 @@ from prompt_toolkit.completion import (
 )
 from prompt_toolkit.document import Document
 
-from ..utils.fuzzy_utils import find_fuzzy_matches
-
 if TYPE_CHECKING:
     from ..cli.commands import CommandRegistry
     from ..utils.models_registry import ModelInfo, ModelsRegistry
@@ -77,9 +75,9 @@ class FileReferenceCompleter(Completer):
     ) -> Iterable[Completion]:
         """Get completions for @file references.
 
-        Favors file matches before directory matches and supports fuzzy
-        matching for near-miss filenames. Order:
-          exact files > fuzzy files > exact dirs > fuzzy dirs
+        Favors file matches before directory matches using case-insensitive
+        prefix matching. Ordering:
+          exact files > exact dirs
         """
         # Get the word before cursor
         word_before_cursor = document.get_word_before_cursor(WORD=True)
@@ -108,7 +106,7 @@ class FileReferenceCompleter(Completer):
             dir_path = candidate_dir
             prefix = ""
 
-        # Get matching files with fuzzy support
+        # Get matching files using prefix matching
         try:
             if os.path.exists(dir_path) and os.path.isdir(dir_path):
                 items = sorted(os.listdir(dir_path))
@@ -131,27 +129,10 @@ class FileReferenceCompleter(Completer):
                 exact_files = [f for f in files if f.lower().startswith(prefix_lower)]
                 exact_dirs = [d for d in dirs if d.lower().startswith(prefix_lower)]
 
-                # Fuzzy matches (exclude items already matched exactly)
-                fuzzy_file_candidates = [f for f in files if f not in exact_files]
-                fuzzy_dir_candidates = [d for d in dirs if d not in exact_dirs]
-
-                fuzzy_files = (
-                    find_fuzzy_matches(prefix, fuzzy_file_candidates, n=10, cutoff=0.75)
-                    if prefix
-                    else []
-                )
-                fuzzy_dirs = (
-                    find_fuzzy_matches(prefix, fuzzy_dir_candidates, n=10, cutoff=0.75)
-                    if prefix
-                    else []
-                )
-
-                # Compose ordered results
+                # Compose ordered results using exact matches only
                 ordered: List[tuple[str, str]] = (
                     [("file", name) for name in exact_files]
-                    + [("file", name) for name in fuzzy_files]
                     + [("dir", name) for name in exact_dirs]
-                    + [("dir", name) for name in fuzzy_dirs]
                 )
 
                 start_position = -len(path_part)

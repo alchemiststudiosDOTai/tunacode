@@ -5,7 +5,6 @@ CLAUDE_ANCHOR[command-registry]: Central command registration and execution
 
 import logging
 from dataclasses import dataclass
-from difflib import get_close_matches
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 
@@ -315,16 +314,12 @@ class CommandRegistry:
         self.discover_commands()
         partial = partial_command.lower()
 
-        # 1) Prefer prefix matches (preserves current behavior)
+        # CLAUDE_ANCHOR[key=86cc1a41] Prefix-only command matching after removing fuzzy fallback
         prefix_matches = [cmd for cmd in self._commands.keys() if cmd.startswith(partial)]
         if prefix_matches:
             return prefix_matches
 
-        # 2) Fuzzy fallback for typos and near-misses
-        # CLAUDE_ANCHOR[fuzzy-command-matching]: Fuzzy fallback using difflib
-        # Keep minimal change: reuse built-ins, avoid new deps.
-        fuzzy = get_close_matches(partial, list(self._commands.keys()), n=3, cutoff=0.75)
-        return fuzzy
+        return []
 
     def is_command(self, text: str) -> bool:
         """Check if text starts with a registered command (supports partial matching)."""

@@ -150,5 +150,19 @@
         "Behavior and ordering preserved: exact files > fuzzy files > exact dirs > fuzzy dirs; existing case-insensitive exact matching and fuzzy improvements remain."
       ]
     }
+    ,
+    {
+      "id": "cli-fuzzy-removal-20250924-150600",
+      "time": "2025-09-24T15:06:00",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Removed difflib-backed fuzzy fallback from CommandRegistry.find_matching_commands; prefix-only matching restored.",
+        "Deleted shared fuzzy_utils helper module and characterization test covering fuzzy suggestions.",
+        "Simplified FileReferenceCompleter to rely on case-insensitive prefix ordering (files before directories).",
+        "Updated documentation and metadata to reflect removal of fuzzy matching implementation."
+      ]
+    }
   ]
 }
