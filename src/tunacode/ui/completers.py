@@ -1,15 +1,20 @@
 """Completers for file references and commands."""
 
 import os
-from typing import TYPE_CHECKING, Iterable, List, Optional
+from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Set, Tuple
 
 from prompt_toolkit.completion import (
     CompleteEvent,
     Completer,
     Completion,
+    FuzzyCompleter,
+    FuzzyWordCompleter,
+    PathCompleter,
     merge_completers,
 )
 from prompt_toolkit.document import Document
+
+from .path_heuristics import prioritize_roots, should_skip_directory
 
 if TYPE_CHECKING:
     from ..cli.commands import CommandRegistry
@@ -18,6 +23,17 @@ if TYPE_CHECKING:
 
 class CommandCompleter(Completer):
     """Completer for slash commands."""
+
+    _DEFAULT_COMMANDS: Sequence[str] = (
+        "/help",
+        "/clear",
+        "/dump",
+        "/yolo",
+        "/branch",
+        "/compact",
+        "/model",
+    )
+    _FUZZY_WORD_MODE = True
 
     def __init__(self, command_registry: Optional["CommandRegistry"] = None):
         self.command_registry = command_registry
@@ -50,30 +66,36 @@ class CommandCompleter(Completer):
         if self.command_registry:
             command_names = self.command_registry.get_command_names()
         else:
-            # Fallback list of commands
-            command_names = ["/help", "/clear", "/dump", "/yolo", "/branch", "/compact", "/model"]
+            command_names = list(self._DEFAULT_COMMANDS)
 
-        # Get the partial command (without /)
-        partial = word_before_cursor[1:].lower()
-
-        # Yield completions for matching commands
-        for cmd in command_names:
-            if cmd.startswith("/") and cmd[1:].lower().startswith(partial):
-                yield Completion(
-                    text=cmd,
-                    start_position=-len(word_before_cursor),
-                    display=cmd,
-                    display_meta="command",
-                )
+        fuzzy_completer = FuzzyWordCompleter(command_names, WORD=self._FUZZY_WORD_MODE)
+        for completion in fuzzy_completer.get_completions(document, _complete_event):
+            yield Completion(
+                text=completion.text,
+                start_position=completion.start_position,
+                display=completion.display,
+                display_meta="command",
+            )
 
 
 class FileReferenceCompleter(Completer):
     """Completer for @file references that provides file path suggestions."""
 
+    _FUZZY_WORD_MODE = True
+    _FUZZY_RESULT_LIMIT = 10
+    _GLOBAL_ROOT_CACHE: Optional[List[str]] = None
+    _GLOBAL_ROOT_LIMIT = 128
+    _GLOBAL_MAX_DEPTH = 20
+
     def get_completions(
         self, document: Document, _complete_event: CompleteEvent
     ) -> Iterable[Completion]:
-        """Get completions for @file references."""
+        """Get completions for @file references.
+
+        Favors file matches before directory matches while allowing fuzzy
+        near-miss suggestions. Ordering:
+          exact files > fuzzy files > exact dirs > fuzzy dirs
+        """
         # Get the word before cursor
         word_before_cursor = document.get_word_before_cursor(WORD=True)
 
@@ -94,37 +116,196 @@ class FileReferenceCompleter(Completer):
             dir_path = "."
             prefix = path_part
 
-        # Get matching files
+        # If prefix itself is an existing directory (without trailing slash),
+        # treat it as browsing inside that directory
+        candidate_dir = os.path.join(dir_path, prefix) if dir_path != "." else prefix
+        if prefix and os.path.isdir(candidate_dir) and not path_part.endswith("/"):
+            dir_path = candidate_dir
+            prefix = ""
+
+        # Get matching files using prefix matching
         try:
             if os.path.exists(dir_path) and os.path.isdir(dir_path):
-                for item in sorted(os.listdir(dir_path)):
-                    if item.startswith(prefix):
-                        full_path = os.path.join(dir_path, item) if dir_path != "." else item
+                items = sorted(os.listdir(dir_path))
 
-                        # Skip hidden files unless explicitly requested
-                        if item.startswith(".") and not prefix.startswith("."):
-                            continue
+                # Separate files vs dirs; skip hidden unless explicitly requested
+                show_hidden = prefix.startswith(".")
+                files: List[str] = []
+                dirs: List[str] = []
+                for item in items:
+                    if item.startswith(".") and not show_hidden:
+                        continue
+                    full_item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                    if os.path.isdir(full_item_path):
+                        dirs.append(item)
+                    else:
+                        files.append(item)
 
-                        # Add / for directories
-                        if os.path.isdir(full_path):
-                            display = item + "/"
-                            completion = full_path + "/"
-                        else:
-                            display = item
-                            completion = full_path
+                # Exact prefix matches (case-insensitive)
+                prefix_lower = prefix.lower()
+                exact_files = [f for f in files if f.lower().startswith(prefix_lower)]
+                exact_dirs = [d for d in dirs if d.lower().startswith(prefix_lower)]
 
-                        # Calculate how much to replace
-                        start_position = -len(path_part)
+                fuzzy_file_candidates = [f for f in files if f not in exact_files]
+                fuzzy_dir_candidates = [d for d in dirs if d not in exact_dirs]
 
-                        yield Completion(
-                            text=completion,
-                            start_position=start_position,
-                            display=display,
-                            display_meta="dir" if os.path.isdir(full_path) else "file",
-                        )
+                fuzzy_files = self._collect_fuzzy_matches(prefix, fuzzy_file_candidates)
+                fuzzy_dirs = self._collect_fuzzy_matches(prefix, fuzzy_dir_candidates)
+
+                ordered: List[tuple[str, str, bool]] = (
+                    [("file", name, False) for name in exact_files]
+                    + [("file", name, False) for name in fuzzy_files]
+                    + [("dir", name, False) for name in exact_dirs]
+                    + [("dir", name, False) for name in fuzzy_dirs]
+                )
+
+                local_seen: Set[str] = {
+                    os.path.normpath(os.path.join(dir_path, name))
+                    if dir_path != "."
+                    else os.path.normpath(name)
+                    for name in (*exact_files, *fuzzy_files, *exact_dirs, *fuzzy_dirs)
+                }
+
+                global_matches = self._collect_global_path_matches(
+                    prefix,
+                    dir_path,
+                    local_seen,
+                )
+                ordered += global_matches
+
+                start_position = -len(path_part)
+                for kind, name, is_global in ordered:
+                    if is_global:
+                        full_path = name
+                        display = name + "/" if kind == "dir" else name
+                    else:
+                        full_path = os.path.join(dir_path, name) if dir_path != "." else name
+                        display = name + "/" if kind == "dir" else name
+                    if kind == "dir":
+                        completion_text = full_path + "/"
+                    else:
+                        completion_text = full_path
+
+                    yield Completion(
+                        text=completion_text,
+                        start_position=start_position,
+                        display=display,
+                        display_meta="dir" if kind == "dir" else "file",
+                    )
         except (OSError, PermissionError):
             # Silently ignore inaccessible directories
             pass
+
+    @classmethod
+    # CLAUDE_ANCHOR[key=1f0911c7] Prompt Toolkit fuzzy matching consolidates file and directory suggestions
+    def _collect_fuzzy_matches(cls, prefix: str, candidates: Sequence[str]) -> List[str]:
+        """Return fuzzy-ordered candidate names respecting configured limit."""
+
+        if not prefix or not candidates:
+            return []
+
+        fuzzy_completer = FuzzyWordCompleter(candidates, WORD=cls._FUZZY_WORD_MODE)
+        prefix_document = Document(text=prefix)
+        event = CompleteEvent(completion_requested=True)
+        matches: List[str] = []
+        for completion in fuzzy_completer.get_completions(prefix_document, event):
+            candidate = completion.text
+            if candidate in candidates and candidate not in matches:
+                matches.append(candidate)
+            if len(matches) >= cls._FUZZY_RESULT_LIMIT:
+                break
+        return matches
+
+    @classmethod
+    def _collect_global_path_matches(
+        cls,
+        prefix: str,
+        current_dir: str,
+        seen: Set[str],
+    ) -> List[Tuple[str, str, bool]]:
+        """Return global fuzzy matches outside the current directory."""
+
+        if not prefix:
+            return []
+
+        roots = cls._global_roots()
+        if not roots:
+            return []
+
+        event = CompleteEvent(completion_requested=True)
+        document = Document(text=prefix)
+        matches: List[Tuple[str, str, bool]] = []
+        normalized_current = os.path.normpath(current_dir or ".")
+
+        for root in roots:
+            normalized_root = os.path.normpath(root)
+            if normalized_root == normalized_current:
+                continue
+
+            completer = FuzzyCompleter(
+                PathCompleter(only_directories=False, get_paths=lambda root=normalized_root: [root])
+            )
+            for completion in completer.get_completions(document, event):
+                candidate_path = os.path.normpath(os.path.join(normalized_root, completion.text))
+                if candidate_path in seen:
+                    continue
+
+                seen.add(candidate_path)
+                normalized_display = os.path.relpath(candidate_path, start=".").replace("\\", "/")
+                matches.append(
+                    (
+                        "dir" if os.path.isdir(candidate_path) else "file",
+                        normalized_display,
+                        True,
+                    )
+                )
+                if len(matches) >= cls._FUZZY_RESULT_LIMIT:
+                    return matches
+
+        return matches
+
+    @classmethod
+    def _global_roots(cls) -> List[str]:
+        """Compute cached directory list for global fuzzy lookups."""
+
+        if cls._GLOBAL_ROOT_CACHE is not None:
+            return cls._GLOBAL_ROOT_CACHE
+
+        roots: List[str] = []
+        limit = cls._GLOBAL_ROOT_LIMIT
+        max_depth = cls._GLOBAL_MAX_DEPTH
+
+        for root, dirs, _ in os.walk(".", topdown=True):
+            rel_root = os.path.relpath(root, ".")
+            normalized = "." if rel_root == "." else rel_root
+            depth = 0 if normalized == "." else normalized.count(os.sep) + 1
+            if depth > max_depth:
+                dirs[:] = []
+                continue
+
+            if should_skip_directory(normalized):
+                dirs[:] = []
+                continue
+
+            if dirs:
+                rel_dir = os.path.relpath(root, ".")
+                base = "." if rel_dir == "." else rel_dir
+                filtered_dirs = []
+                for directory in dirs:
+                    candidate = directory if base == "." else f"{base}/{directory}"
+                    if should_skip_directory(candidate):
+                        continue
+                    filtered_dirs.append(directory)
+                dirs[:] = filtered_dirs
+
+            if normalized not in roots:
+                roots.append(normalized)
+
+            if len(roots) >= limit:
+                break
+
+        cls._GLOBAL_ROOT_CACHE = prioritize_roots(roots)
+        return cls._GLOBAL_ROOT_CACHE
 
 
 class ModelCompleter(Completer):

@@ -303,7 +303,7 @@ class CommandRegistry:
 
     def find_matching_commands(self, partial_command: str) -> List[str]:
         """
-        Find all commands that start with the given partial command.
+        Find commands matching the given partial command.
 
         Args:
             partial_command: The partial command to match
@@ -313,7 +313,13 @@ class CommandRegistry:
         """
         self.discover_commands()
         partial = partial_command.lower()
-        return [cmd for cmd in self._commands.keys() if cmd.startswith(partial)]
+
+        # CLAUDE_ANCHOR[key=86cc1a41] Prefix-only command matching after removing fuzzy fallback
+        prefix_matches = [cmd for cmd in self._commands.keys() if cmd.startswith(partial)]
+        if prefix_matches:
+            return prefix_matches
+
+        return []
 
     def is_command(self, text: str) -> bool:
         """Check if text starts with a registered command (supports partial matching)."""

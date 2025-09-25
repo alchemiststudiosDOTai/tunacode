@@ -1,18 +1,18 @@
-# Current Issue
+# Prompt Toolkit Fuzzy Reintegration
 
-@-mentions only show directories first, then files. Need fuzzy-first file matching for patterns like `testexampl.py`.
-
----
-
-## Architecture Analysis
-
-- `src/tunacode/ui/completers.py:70-128`: Current `FileReferenceCompleter` uses basic `startswith()` matching.
-- `src/tunacode/cli/commands/registry.py:305-327`: Fuzzy matching exists for commands using `difflib.get_close_matches`.
-- `src/tunacode/utils/models_registry.py`: Advanced fuzzy matching using `difflib.SequenceMatcher`.
+Fuzzy-first matching resumed on 2025-09-24 using prompt_toolkit's native fuzzy completers. Notes below capture the revived implementation plan and historical context for further refinement.
 
 ---
 
-## Minimal Implementation Strategy
+## Architecture Analysis (current state)
+
+- `src/tunacode/ui/completers.py:23-74`: `CommandCompleter` wraps registry commands with `FuzzyWordCompleter` for near-miss suggestions.
+- `src/tunacode/ui/completers.py:80-164`: `FileReferenceCompleter` blends exact prefix ordering with fuzzy scoring for files then directories.
+- `src/tunacode/utils/models_registry.py`: Continues to expose `SequenceMatcher`-based fuzzy similarity for models.
+
+---
+
+## Minimal Implementation Strategy (archived plan)
 
 1. **Create Shared Fuzzy Utility**
    - File: `src/tunacode/utils/fuzzy_utils.py`

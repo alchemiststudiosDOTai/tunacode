@@ -2,6 +2,14 @@ import os
 import sys
 import types
 
+# Ensure prompt_toolkit is imported when available so real completions are exercised
+try:  # pragma: no cover - environment guard
+    import prompt_toolkit  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - fallback to stub logic below
+    prompt_toolkit = None
+else:
+    sys.modules.setdefault("prompt_toolkit", prompt_toolkit)
+
 # Ensure project src is importable
 ROOT_SRC = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src")
 sys.path.insert(0, ROOT_SRC)
