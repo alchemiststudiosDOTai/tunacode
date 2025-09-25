@@ -185,6 +185,18 @@
         "Accepted branch versions for conflicts in registry and completers",
         "Reintroduced CLI fuzzy characterization test"
       ]
+    },
+    {
+      "id": "release-0.0.76.5-20250925-125611",
+      "time": "2025-09-25T12:56:11",
+      "branch": "master",
+      "base": "v0.0.76.4",
+      "head": "v0.0.76.5",
+      "bullets": [
+        "Release v0.0.76.5: merged fuzzy-touchup branch",
+        "Bumped versions in pyproject and constants",
+        "Created GitHub release to trigger publish workflow"
+      ]
     }
   ]
 }
