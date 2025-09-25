@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.76.4] - 2025-09-25
+
+### Added
+- **Fuzzy Matching Integration** - Merged new-fuzzy branch with enhanced CLI and file reference completion
+- **Memory Anchor Tool** - Added UUID-based semantic anchoring system for code documentation
+- **Knowledge Base Structure** - Comprehensive RAG tooling for .claude/ directory search and indexing
+
+### Changed
+- **File Reference System** - Enhanced @mentions with fuzzy-first matching and smart directory browsing
+- **CLI Command Resolution** - Added fuzzy fallback using difflib.get_close_matches for better UX
+- **Code Quality** - Updated coding patterns and best practices in CLAUDE.md
+
+### Fixed
+- **Documentation Consistency** - Resolved merge conflicts and updated project instructions
+- **Import Cleanup** - Removed unused imports and improved code organization
+
 ## [Unreleased] - 2025-09-22
 
 ### Added
