@@ -91,8 +91,6 @@ Rules:
 * Docs → model-friendly explanations of purposes & relationships.
 * Delta Summaries → record API/behavior shifts with reasoning.
 * Memory Anchors → embed UUID-tagged semantic anchors in code.
-you MUST use this tool to drop anchors: python3 knowledge_base/tools/anchor_drop.py <file> <line> <description> to mark important locations
-   with UUID-based comments stored in .claude/memory_anchors/anchors.json
 * Keeep entries nonverbose and distilled to the core implemenation for the next dev. You will be punished for not following these instructions.
 
 
