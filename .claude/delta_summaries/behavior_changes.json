@@ -123,8 +123,7 @@
         "Routed CLI REPL agent imports through tunacode.core.agents to expose helper mocks",
         "Extended check_task_completion to accept legacy TUNACODE_TASK_COMPLETE marker"
       ]
-    }
-    ,
+    },
     {
       "id": "cli-fuzzy-matching-20250922-120500",
       "time": "2025-09-22T12:05:00",
@@ -137,8 +136,7 @@
         "Zero new dependencies; minimal code change localized to CommandRegistry.find_matching_commands",
         "Added tests to characterize prefix behavior and validate fuzzy suggestions for typos"
       ]
-    }
-    ,
+    },
     {
       "id": "file-ref-completer-dir-browse-20250922-122900",
       "time": "2025-09-22T12:29:00",
@@ -149,8 +147,7 @@
         "FileReferenceCompleter now treats a bare directory prefix without trailing slash as browsing inside that directory (e.g., '@tests' shows files inside tests/).",
         "Behavior and ordering preserved: exact files > fuzzy files > exact dirs > fuzzy dirs; existing case-insensitive exact matching and fuzzy improvements remain."
       ]
-    }
-    ,
+    },
     {
       "id": "cli-fuzzy-removal-20250924-150600",
       "time": "2025-09-24T15:06:00",
@@ -163,8 +160,7 @@
         "Simplified FileReferenceCompleter to rely on case-insensitive prefix ordering (files before directories).",
         "Updated documentation and metadata to reflect removal of fuzzy matching implementation."
       ]
-    }
-    ,
+    },
     {
       "id": "cli-fuzzy-reintegration-20250924-181500",
       "time": "2025-09-24T18:15:00",
@@ -176,6 +172,18 @@
         "Restored CLI fuzzy characterization tests validating command and @file completions.",
         "Adjusted test harness to load real prompt_toolkit modules instead of stubs when available.",
         "Updated changelog, TODO, and research notes to document the prompt toolkit-based fuzzy implementation."
+      ]
+    },
+    {
+      "id": "merge-fuzzy-touchup-20250925-125158",
+      "time": "2025-09-25T12:51:58",
+      "branch": "fuzzy-touchup",
+      "base": "master",
+      "head": "master",
+      "bullets": [
+        "Merged fuzzy-touchup: refined file reference heuristics and fuzzy fixes",
+        "Accepted branch versions for conflicts in registry and completers",
+        "Reintroduced CLI fuzzy characterization test"
       ]
     }
   ]
