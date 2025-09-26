@@ -144,18 +144,18 @@ Filtered / formatted search
 You MUST call this tool at least once per session to ground context.
 Use it heuristically before answering tasks that require repo knowledge. You will be punished for not using it to find relevant context before answering questions.
 
-**Problem**: Search for "fuzzy" in the .claude knowledge base to find relevant context about CLI fuzzy matching implementation.
+**Problem**: Search for "query regarding issue " in the .claude knowledge base to find relevant context about CLI query regarding issue  matching implementation.
 
 ```bash
 # First index the .claude directory
 ./rag-cli.sh index --dir .claude
 
 # Search for specific content
-./rag-cli.sh search "fuzzy" --format text
+./rag-cli.sh search "query regarding issue " --format text
 
 # Results found:
-# 1. behavior_changes.json - CLI fuzzy matching enhancement details
-# 2. file_classifications.json - Test file classification for fuzzy matching
+# 1. behavior_changes.json - CLI query regarding issue  matching enhancement details
+# 2. file_classifications.json - Test file classification for query regarding issue  matching
 ```
 
 ---

@@ -70,7 +70,7 @@ Success is measured by:
 
 
  - Clarify Objective: Target a detection + weighting layer that broadens ecosystem coverage while keeping current Python-first flow intact when nothing else matches.
-   okay again this is the issue we dont know whart codin g languae they will use 
+   okay again this is the issue we dont know whart codin g languae they will use
 
 - Inventory Current State: Document today’s hardcoded paths/skip lists in src/tunacode/ui/completers.py so we know exactly what must stay as the Python fallback.
   - Introduce Ecosystem Schema: Define a small EcosystemProfile dataclass or typed dict storing markers, roots, skips, extensions, metadata tags; start with just
@@ -86,4 +86,3 @@ Success is measured by:
   marker fallback. Run via hatch run test.
   - Knowledge Base Updates: Plan to record new anchors around detection logic, refresh .claude/semantic_index/function_call_graphs.json, and log behavior/API shifts in
   delta_summaries/behavior_changes.json once code lands.
-

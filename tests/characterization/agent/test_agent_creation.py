@@ -160,7 +160,13 @@ class TestAgentCreation:
 
         # Assert - Golden master
         call_kwargs = mock_agent_class.call_args.kwargs
-        assert call_kwargs["system_prompt"] == fallback_prompt
+        # System prompt includes AGENTS.md context appended
+        expected_prompt = (
+            fallback_prompt
+            + "\n\n# Project Context from AGENTS.md\n"
+            + Path("AGENTS.md").read_text(encoding="utf-8")
+        )
+        assert call_kwargs["system_prompt"] == expected_prompt
 
     def test_get_or_create_agent_default_prompt(self):
         """Capture behavior when neither prompt file exists."""
