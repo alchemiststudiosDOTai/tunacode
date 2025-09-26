@@ -13,6 +13,7 @@ from .agent_helpers import (
     get_tool_description,
     get_tool_summary,
     get_user_prompt_part_class,
+    handle_empty_response,
 )
 from .json_tool_parser import extract_and_execute_tool_calls, parse_json_tool_calls
 from .message_handler import get_model_messages, patch_tool_messages
@@ -47,6 +48,7 @@ __all__ = [
     "get_tool_description",
     "get_tool_summary",
     "get_user_prompt_part_class",
+    "handle_empty_response",
     "stream_model_request_node",
     "get_batch_description",
 ]

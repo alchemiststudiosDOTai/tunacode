@@ -201,6 +201,33 @@ def create_fallback_response(
     return fallback
 
 
+async def handle_empty_response(
+    message: str,
+    reason: str,
+    iter_index: int,
+    state: Any,
+) -> None:
+    """Handle empty responses by creating a synthetic user message with retry guidance."""
+    from tunacode.ui import console as ui
+
+    force_action_content = create_empty_response_message(
+        message,
+        reason,
+        getattr(state.sm.session, "tool_calls", []),
+        iter_index,
+        state.sm,
+    )
+    create_user_message(force_action_content, state.sm)
+
+    if state.show_thoughts:
+        await ui.warning("\nEMPTY RESPONSE FAILURE - AGGRESSIVE RETRY TRIGGERED")
+        await ui.muted(f"   Reason: {reason}")
+        await ui.muted(
+            f"   Recent tools: {get_recent_tools_context(getattr(state.sm.session, 'tool_calls', []))}"
+        )
+        await ui.muted("   Injecting retry guidance prompt")
+
+
 def format_fallback_output(fallback: FallbackResponse) -> str:
     """Format a fallback response into a comprehensive output string."""
     output_parts = [fallback.summary, ""]

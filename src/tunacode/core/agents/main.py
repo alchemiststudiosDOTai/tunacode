@@ -31,20 +31,10 @@ from tunacode.types import (
     ToolCallback,
     UsageTrackerProtocol,
 )
+
+# CLAUDE_ANCHOR[key=d595ceb5] Direct UI console import aligns with removal of defensive shim
+from tunacode.ui import console as ui
 from tunacode.ui.tool_descriptions import get_batch_description
-
-# Optional UI console (avoid nested imports in hot paths)
-try:
-    from tunacode.ui import console as ui  # rich-style helpers with async methods
-except Exception:  # pragma: no cover - UI is optional
-
-    class _NoopUI:  # minimal no-op shim
-        async def muted(self, *_: Any, **__: Any) -> None: ...
-        async def warning(self, *_: Any, **__: Any) -> None: ...
-        async def success(self, *_: Any, **__: Any) -> None: ...
-        async def update_spinner_message(self, *_: Any, **__: Any) -> None: ...
-
-    ui = _NoopUI()  # type: ignore
 
 # Streaming parts (keep guarded import but avoid per-iteration imports)
 try:
@@ -59,13 +49,8 @@ except Exception:  # pragma: no cover
 # Agent components (flattned to a single module import to reduce coupling)
 from . import agent_components as ac
 
-# Configure logging
 logger = get_logger(__name__)
 
-
-# -----------------------
-# Module exports
-# -----------------------
 __all__ = [
     "process_request",
     "get_mcp_servers",
@@ -73,9 +58,6 @@ __all__ = [
     "check_query_satisfaction",
 ]
 
-# -----------------------
-# Constants & Defaults
-# -----------------------
 DEFAULT_MAX_ITERATIONS = 15
 UNPRODUCTIVE_LIMIT = 3  # iterations without tool use before forcing action
 FALLBACK_VERBOSITY_DEFAULT = "normal"
@@ -84,9 +66,6 @@ FORCED_REACT_INTERVAL = 2
 FORCED_REACT_LIMIT = 5
 
 
-# -----------------------
-# Data structures
-# -----------------------
 @dataclass(slots=True)
 class RequestContext:
     request_id: str
@@ -96,12 +75,11 @@ class RequestContext:
 
 
 class StateFacade:
-    """Thin wrapper to centralize session mutations and reads."""
+    """wrapper to centralize session mutations and reads."""
 
     def __init__(self, state_manager: StateManager) -> None:
         self.sm = state_manager
 
-    # ---- safe getters ----
     def get_setting(self, dotted: str, default: Any) -> Any:
         cfg: Dict[str, Any] = getattr(self.sm.session, "user_config", {}) or {}
         node = cfg
@@ -119,7 +97,6 @@ class StateFacade:
     def messages(self) -> list:
         return list(getattr(self.sm.session, "messages", []))
 
-    # ---- safe setters ----
     def set_request_id(self, req_id: str) -> None:
         try:
             self.sm.session.request_id = req_id
@@ -160,9 +137,6 @@ class StateFacade:
         setattr(self.sm.session, "consecutive_empty_responses", 0)
 
 
-# -----------------------
-# Helper functions
-# -----------------------
 def _init_context(state: StateFacade, fallback_enabled: bool) -> RequestContext:
     req_id = str(uuid.uuid4())[:8]
     state.set_request_id(req_id)
@@ -290,30 +264,6 @@ async def _maybe_force_react_snapshot(
             await ui.muted("\n[react → LLM] BEGIN\n" + guidance_entry + "\n[react → LLM] END\n")
     except Exception:
         logger.debug("Forced react snapshot failed", exc_info=True)
-
-
-async def _handle_empty_response(
-    message: str,
-    reason: str,
-    iter_index: int,
-    state: StateFacade,
-) -> None:
-    force_action_content = ac.create_empty_response_message(
-        message,
-        reason,
-        getattr(state.sm.session, "tool_calls", []),
-        iter_index,
-        state.sm,
-    )
-    ac.create_user_message(force_action_content, state.sm)
-
-    if state.show_thoughts:
-        await ui.warning("\nEMPTY RESPONSE FAILURE - AGGRESSIVE RETRY TRIGGERED")
-        await ui.muted(f"   Reason: {reason}")
-        await ui.muted(
-            f"   Recent tools: {ac.get_recent_tools_context(getattr(state.sm.session, 'tool_calls', []))}"
-        )
-        await ui.muted("   Injecting retry guidance prompt")
 
 
 async def _force_action_if_unproductive(
@@ -445,9 +395,6 @@ def _build_fallback_output(
     return ac.format_fallback_output(fallback)
 
 
-# -----------------------
-# Public API
-# -----------------------
 def get_agent_tool() -> tuple[type[Agent], type["Tool"]]:
     """Return Agent and Tool classes without importing at module load time."""
     from pydantic_ai import Agent as AgentCls
@@ -526,7 +473,7 @@ async def process_request(
                 # Handle empty response (aggressive retry prompt)
                 if empty_response:
                     if state.increment_empty_response() >= 1:
-                        await _handle_empty_response(message, empty_reason, i, state)
+                        await ac.handle_empty_response(message, empty_reason, i, state)
                         state.clear_empty_response()
                 else:
                     state.clear_empty_response()

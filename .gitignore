@@ -61,6 +61,7 @@ scratchpad_*.md
 # Memory bank and agent tools
 # memory-bank/  # Important project documentation - should be tracked
 # llm-agent-tools/  # Removed - now tracking this directory
+llm-agent-tools/kb_synch/target/
 .researcher/
 
 # Logs
