@@ -30,6 +30,9 @@ _TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
 _AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
 
+_PROMPT_FILENAMES: Tuple[str, ...] = ("system.xml", "system.md", "system.txt")
+_DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant."
+
 
 def clear_all_caches():
     """Clear all module-level caches. Useful for testing."""
@@ -46,45 +49,45 @@ def get_agent_tool():
     return Agent, Tool
 
 
-def load_system_prompt(base_path: Path) -> str:
-    """Load the system prompt from file with caching."""
-    prompt_path = base_path / "prompts" / "system.md"
+def _read_prompt_from_path(prompt_path: Path) -> str:
+    """Return prompt content from disk, leveraging the cache when possible."""
     cache_key = str(prompt_path)
 
-    # Check cache with file modification time
     try:
-        if cache_key in _PROMPT_CACHE:
-            cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
-            current_mtime = prompt_path.stat().st_mtime
-            if current_mtime == cached_mtime:
-                return cached_content
+        current_mtime = prompt_path.stat().st_mtime
+    except FileNotFoundError as error:
+        raise FileNotFoundError from error
 
-        # Load from file and cache
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-        _PROMPT_CACHE[cache_key] = (content, prompt_path.stat().st_mtime)
-        return content
+    if cache_key in _PROMPT_CACHE:
+        cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
+        if current_mtime == cached_mtime:
+            return cached_content
 
-    except FileNotFoundError:
-        # Fallback to system.txt if system.md not found
-        prompt_path = base_path / "prompts" / "system.txt"
-        cache_key = str(prompt_path)
+    try:
+        content = prompt_path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError as error:
+        raise FileNotFoundError from error
+
+    _PROMPT_CACHE[cache_key] = (content, current_mtime)
+    return content
+
+
+def load_system_prompt(base_path: Path) -> str:
+    """Load the system prompt from file with caching."""
+    prompts_dir = base_path / "prompts"
+
+    for prompt_name in _PROMPT_FILENAMES:
+        prompt_path = prompts_dir / prompt_name
+        if not prompt_path.exists():
+            continue
 
         try:
-            if cache_key in _PROMPT_CACHE:
-                cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
-                current_mtime = prompt_path.stat().st_mtime
-                if current_mtime == cached_mtime:
-                    return cached_content
-
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-            _PROMPT_CACHE[cache_key] = (content, prompt_path.stat().st_mtime)
-            return content
-
+            return _read_prompt_from_path(prompt_path)
         except FileNotFoundError:
-            # Use a default system prompt if neither file exists
-            return "You are a helpful AI assistant."
+            # File disappeared between exists() check and read. Try next candidate.
+            continue
+
+    return _DEFAULT_SYSTEM_PROMPT
 
 
 def load_tunacode_context() -> str:
