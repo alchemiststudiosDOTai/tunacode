@@ -60,7 +60,7 @@ agent = get_or_create_agent(model_name, state_manager)
 
 # 2. System Prompt Loading
 # - Loads system.md prompt with tool instructions
-# - Appends TUNACODE.md if present (project context)
+# - Appends AGENTS.md if present (project context)
 # - Adds current todos if any exist
 # - Includes TUNACODE_TASK_COMPLETE completion protocol
 
@@ -353,7 +353,7 @@ The self-evaluation prompt triggers the agent to assess its work and use the com
 - Graceful degradation for missing features
 
 ### Context Management:
-- Automatic TUNACODE.md loading
+- Automatic AGENTS.md loading
 - Todo state integration
 - File reference expansion (@file syntax)
 

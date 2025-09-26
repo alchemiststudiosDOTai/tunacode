@@ -32,7 +32,7 @@ These commands are designed to assist with your development workflow.
 
 - **`/branch <branch-name>`**: Creates a new Git branch and switches to it.
 
-- **`/init`**: Analyzes the codebase and creates or updates a `TUNACODE.md` file with project-specific context, such as build commands and coding standards.
+- **`/init`**: Analyzes the codebase and creates or updates a `AGENTS.md` file with project-specific context, such as build commands and coding standards.
 - **`/todo`**: Manages a to-do list for the current task. You can add, list, update, and remove to-do items.
 
 - **`/plan`**: Enters "Plan Mode," a read-only research phase where the agent can only use tools that don't modify your files (`read_file`, `grep`, `list_dir`, `glob`). This is useful for researching a task before making changes.

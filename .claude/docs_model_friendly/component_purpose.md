@@ -233,6 +233,7 @@ This document describes the purpose and responsibilities of each component in th
 - Clear component boundaries
 - Focused responsibilities
 - Comprehensive documentation
+- `memory-bank/main-agent.md` captures consolidated main agent seams with live-code citations (2025-09-26)
 - Extensible architecture
 
 ### 5. Robust Error Handling

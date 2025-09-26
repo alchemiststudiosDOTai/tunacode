@@ -1,6 +1,6 @@
 # Context Characterization Tests
 
-This directory contains characterization tests for TUNACODE.md context loading and injection functionality.
+This directory contains characterization tests for AGENTS.md context loading and injection functionality.
 
 ## Test Files
 
@@ -11,15 +11,15 @@ This directory contains characterization tests for TUNACODE.md context loading a
 ## Key Test Scenarios
 
 ### Context Loading
-- Walking up directory tree to find TUNACODE.md files
+- Walking up directory tree to find AGENTS.md files
 - Handling empty and malformed files
 - Loading large context files
-- Merging multiple TUNACODE.md files from parent directories
+- Merging multiple AGENTS.md files from parent directories
 
 ### Agent Integration
-- Agent loads TUNACODE.md on creation
+- Agent loads AGENTS.md on creation
 - Context is appended to system prompt
-- Graceful handling when TUNACODE.md is missing
+- Graceful handling when AGENTS.md is missing
 - Sync file I/O to avoid event loop issues
 
 ## Related Components

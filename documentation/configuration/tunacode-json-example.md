@@ -26,7 +26,7 @@ The actual configuration file should be located at:
         "tool_ignore": [
             "read_file"
         ],
-        "guide_file": "TUNACODE.md",
+        "guide_file": "AGENTS.md",
         "fallback_response": true,
         "fallback_verbosity": "normal",
         "context_window_size": 200000,
@@ -71,7 +71,7 @@ Configure API keys and endpoints for different AI providers:
 - `max_retries`: Maximum retry attempts for failed operations (default: 10)
 - `max_iterations`: Maximum agent iterations per request (default: 40)
 - `tool_ignore`: List of tools to disable (e.g., `["read_file"]`)
-- `guide_file`: Project instruction file (default: `TUNACODE.md`)
+- `guide_file`: Project instruction file (default: `AGENTS.md`)
 - `fallback_response`: Enable fallback when iterations exhausted (default: true)
 - `fallback_verbosity`: Fallback verbosity level (`minimal`, `normal`, `detailed`)
 - `context_window_size`: Maximum context size in tokens (default: 200000)

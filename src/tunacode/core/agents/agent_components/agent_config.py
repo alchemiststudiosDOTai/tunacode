@@ -91,13 +91,13 @@ def load_system_prompt(base_path: Path) -> str:
 
 
 def load_tunacode_context() -> str:
-    """Load TUNACODE.md context if it exists with caching."""
+    """Load AGENTS.md context if it exists with caching."""
     try:
-        tunacode_path = Path.cwd() / "TUNACODE.md"
+        tunacode_path = Path.cwd() / "AGENTS.md"
         cache_key = str(tunacode_path)
 
         if not tunacode_path.exists():
-            logger.info("📄 TUNACODE.md not found: Using default context")
+            logger.info("📄 AGENTS.md not found: Using default context")
             return ""
 
         # Check cache with file modification time
@@ -110,17 +110,17 @@ def load_tunacode_context() -> str:
         # Load from file and cache
         tunacode_content = tunacode_path.read_text(encoding="utf-8")
         if tunacode_content.strip():
-            logger.info("📄 TUNACODE.md located: Loading context...")
-            result = "\n\n# Project Context from TUNACODE.md\n" + tunacode_content
+            logger.info("📄 AGENTS.md located: Loading context...")
+            result = "\n\n# Project Context from AGENTS.md\n" + tunacode_content
             _TUNACODE_CACHE[cache_key] = (result, tunacode_path.stat().st_mtime)
             return result
         else:
-            logger.info("📄 TUNACODE.md not found: Using default context")
+            logger.info("📄 AGENTS.md not found: Using default context")
             _TUNACODE_CACHE[cache_key] = ("", tunacode_path.stat().st_mtime)
             return ""
 
     except Exception as e:
-        logger.debug(f"Error loading TUNACODE.md: {e}")
+        logger.debug(f"Error loading AGENTS.md: {e}")
         return ""
 
 
@@ -167,7 +167,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         base_path = Path(__file__).parent.parent.parent.parent
         system_prompt = load_system_prompt(base_path)
 
-        # Load TUNACODE.md context
+        # Load AGENTS.md context
         system_prompt += load_tunacode_context()
 
         # Add plan mode context if in plan mode

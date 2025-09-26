@@ -38,7 +38,7 @@ from tunacode.core.agents.agent_components import extract_and_execute_tool_calls
 The `get_or_create_agent()` function creates agents on-demand for different models:
 
 - Loads system prompts from `prompts/system.md`
-- Integrates project context from `TUNACODE.md` if present
+- Integrates project context from `AGENTS.md` if present
 - Configures the agent with all available tools (bash, grep, read_file, etc.)
 - Supports MCP (Model Context Protocol) servers for external tools
 - Caches agents by model name to avoid recreation

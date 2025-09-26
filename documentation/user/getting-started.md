@@ -226,7 +226,7 @@ Common commands
 - `/plan`, `/exit-plan` — manage plan mode
 - `/quickstart` or `/qs` — run the interactive tutorial
 - `/branch <name>` — create/switch to a new git branch
-- `/init` — create or improve `TUNACODE.md` with project guidance
+- `/init` — create or improve `AGENTS.md` with project guidance
 
 Git safety branch
 - If you’re on a git repo and not already on a `-tunacode` branch, TunaCode offers to switch to `<current>-tunacode`.

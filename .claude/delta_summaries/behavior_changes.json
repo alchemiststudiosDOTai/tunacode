@@ -197,6 +197,17 @@
         "Bumped versions in pyproject and constants",
         "Created GitHub release to trigger publish workflow"
       ]
+    },
+    {
+      "id": "main-agent-architecture-doc-20250926-113000",
+      "time": "2025-09-26T11:30:00",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Added memory-bank/main-agent.md as a consolidated main agent architecture reference with code-backed citations.",
+        "Updated Claude metadata to classify the new architecture document for retrieval workflows."
+      ]
     }
   ]
 }

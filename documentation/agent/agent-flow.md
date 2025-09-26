@@ -10,7 +10,7 @@ graph TD
     D -->|Yes - Valid| E[Use Cached Agent]
     D -->|No/Invalid| F[Create New Agent]
     F --> G[Load System Prompt]
-    G --> H[Load TUNACODE.md Context]
+    G --> H[Load AGENTS.md Context]
     F --> I[Initialize Tools]
     I --> J{Plan Mode?}
     J -->|Yes| K[Plan Mode Tools Only]
@@ -48,7 +48,7 @@ graph TD
 - Uses dual caching system (session-level and module-level)
 - Cache invalidation based on configuration changes
 - Loads system prompt from `src/tunacode/prompts/system.md`
-- Appends TUNACODE.md project context if available
+- Appends AGENTS.md project context if available
 - Dynamically configures tools based on mode (plan vs normal)
 
 ### 2. **Plan Mode vs Normal Mode**

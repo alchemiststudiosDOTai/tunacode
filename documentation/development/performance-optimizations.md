@@ -34,7 +34,7 @@ Implemented intelligent directory caching using the existing CodeIndex infrastru
 ## System Prompt Caching (2025-08-12)
 
 ### Problem
-System prompts and TUNACODE.md were being loaded from disk on every agent creation.
+System prompts and AGENTS.md were being loaded from disk on every agent creation.
 
 ### Solution
 Added file-based caching with modification time checking:

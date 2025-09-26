@@ -108,8 +108,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
     "settings.guide_file": KeyDescription(
         name="guide_file",
         description="Name of your project guide file",
-        example="TUNACODE.md",
-        help_text="TunaCode looks for this file to understand your project. Usually TUNACODE.md or README.md.",
+        example="AGENTS.md",
+        help_text="TunaCode looks for this file to understand your project. Usually AGENTS.md or README.md.",
         category="Project Settings",
     ),
     "settings.fallback_response": KeyDescription(

@@ -7,7 +7,7 @@ include README.md
 include LICENSE
 include pyproject.toml
 include CLAUDE.md
-include TUNACODE.md
+include AGENTS.md
 
 # Include test files (optional, but good for development)
 recursive-include tests *.py

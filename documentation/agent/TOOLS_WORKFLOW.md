@@ -163,8 +163,8 @@ Require user confirmation, execute one at a time for safety.
 - **run_command**: Full command confirmation required
 - **bash**: Output limits prevent infinite loops
 
-## Integration with TUNACODE.md
-The system loads TUNACODE.md (found via directory tree walk) and appends its content to the agent's system prompt, providing:
+## Integration with AGENTS.md
+The system loads AGENTS.md (found via directory tree walk) and appends its content to the agent's system prompt, providing:
 - Build commands
 - Code style guidelines
 - Architecture notes

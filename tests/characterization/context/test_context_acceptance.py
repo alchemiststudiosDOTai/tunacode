@@ -1,4 +1,4 @@
-"""Acceptance tests for TUNACODE.md context injection into agent."""
+"""Acceptance tests for AGENTS.md context injection into agent."""
 
 import os
 import tempfile
@@ -19,9 +19,9 @@ from tunacode.core.state import StateManager
 
 @pytest.mark.asyncio
 async def test_agent_includes_tunacode_md_context_in_system_prompt():
-    """Acceptance test: Verify that TUNACODE.md context is loaded properly."""
-    # Given: A TUNACODE.md file exists with project context
-    tunacode_content = """# TUNACODE.md
+    """Acceptance test: Verify that AGENTS.md context is loaded properly."""
+    # Given: A AGENTS.md file exists with project context
+    tunacode_content = """# AGENTS.md
 
 ## Build Commands
 - Run tests: `make test`
@@ -34,10 +34,10 @@ async def test_agent_includes_tunacode_md_context_in_system_prompt():
 - Prefer guard clauses over nested conditionals
 """
 
-    # Mock the file system to have TUNACODE.md
+    # Mock the file system to have AGENTS.md
     with mock.patch("pathlib.Path.exists") as mock_exists:
         with mock.patch("pathlib.Path.read_text") as mock_read:
-            # Mock exists to return True for TUNACODE.md
+            # Mock exists to return True for AGENTS.md
             mock_exists.return_value = True
             mock_read.return_value = tunacode_content
 
@@ -47,7 +47,7 @@ async def test_agent_includes_tunacode_md_context_in_system_prompt():
             directory = await get_directory_structure()
             claude_files = await get_claude_files()
 
-            # Then: Code style should contain TUNACODE.md content
+            # Then: Code style should contain AGENTS.md content
             assert "Run tests: `make test`" in style
             assert "Use type hints for all functions" in style
             assert "Prefer guard clauses over nested conditionals" in style
@@ -60,10 +60,10 @@ async def test_agent_includes_tunacode_md_context_in_system_prompt():
 
 @pytest.mark.asyncio
 async def test_agent_loads_tunacode_md_into_system_prompt():
-    """Test that the agent actually loads TUNACODE.md into its system prompt."""
-    # Create a temporary directory with TUNACODE.md
+    """Test that the agent actually loads AGENTS.md into its system prompt."""
+    # Create a temporary directory with AGENTS.md
     with tempfile.TemporaryDirectory() as tmpdir:
-        tunacode_path = Path(tmpdir) / "TUNACODE.md"
+        tunacode_path = Path(tmpdir) / "AGENTS.md"
         tunacode_content = """# Project-Specific Context
 
 ## Build Commands
@@ -95,7 +95,7 @@ async def test_agent_loads_tunacode_md_into_system_prompt():
 
             # If we have access to real pydantic_ai, check system prompt
             if hasattr(agent, "system_prompt"):
-                assert "Project Context from TUNACODE.md" in agent.system_prompt
+                assert "Project Context from AGENTS.md" in agent.system_prompt
                 assert "Use type hints for all functions" in agent.system_prompt
                 assert "Follow guard clause pattern" in agent.system_prompt
 

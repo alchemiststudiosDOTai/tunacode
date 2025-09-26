@@ -145,6 +145,11 @@
       "type": "test",
       "category": "tools",
       "classification": "test"
+    },
+    "memory-bank/main-agent.md": {
+      "type": "documentation",
+      "category": "architecture",
+      "classification": "implementation"
     }
   }
 }

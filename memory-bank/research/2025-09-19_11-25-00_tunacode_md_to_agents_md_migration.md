@@ -1,33 +1,33 @@
 ---
-title: "Research – tunacode.md to AGENTS.md Migration"
+title: "Research – AGENTS.md to AGENTS.md Migration"
 date: "2025-09-19"
 time: "11:25:00"
 owner: "context-engineer:research"
 phase: "Research"
 last_updated: "2025-09-19"
 last_updated_by: "context-engineer:research"
-last_updated_note: "Initial comprehensive research on tunacode.md to AGENTS.md migration"
+last_updated_note: "Initial comprehensive research on AGENTS.md to AGENTS.md migration"
 tags: ["migration", "refactoring", "documentation", "configuration", "testing"]
 git_commit: "b3e228c3542923743cde34b892f4e74b8f515069"
 ---
 
-# Research – tunacode.md to AGENTS.md Migration
+# Research – AGENTS.md to AGENTS.md Migration
 **Date:** 2025-09-19
 **Owner:** context-engineer:research
 **Phase:** Research
 
 ## Goal
-Summarize all existing knowledge about changing references from "tunacode.md" to "AGENTS.md" throughout the codebase before implementing the migration.
+Summarize all existing knowledge about changing references from "AGENTS.md" to "AGENTS.md" throughout the codebase before implementing the migration.
 
 ## Research Scope
-- Comprehensive search for all "tunacode.md" references
+- Comprehensive search for all "AGENTS.md" references
 - Analysis of AGENTS.md current state and contents
 - Impact assessment on tests, configuration, and documentation
 - Identification of required changes and potential risks
 
 ## Additional Search
-- `grep -ri "tunacode.md" .claude/` - No references found in .claude directory
-- `grep -ri "TUNACODE.md" .claude/` - No references found in .claude directory
+- `grep -ri "AGENTS.md" .claude/` - No references found in .claude directory
+- `grep -ri "AGENTS.md" .claude/` - No references found in .claude directory
 
 ## Findings
 
@@ -45,13 +45,13 @@ Summarize all existing knowledge about changing references from "tunacode.md" to
 
 **Key Finding**: AGENTS.md serves as the primary context file for AI agents working with this repository.
 
-### TUNACODE.md References - Complete Inventory
+### AGENTS.md References - Complete Inventory
 
 #### Core Python Files (4 files)
-- `src/tunacode/constants.py:17` → `GUIDE_FILE_NAME = "TUNACODE.md"` - **PRIMARY CONSTANT**
+- `src/tunacode/constants.py:17` → `GUIDE_FILE_NAME = "AGENTS.md"` - **PRIMARY CONSTANT**
 - `src/tunacode/configuration/defaults.py:23` → Uses `GUIDE_FILE_NAME` constant
 - `src/tunacode/core/agents/agent_components/agent_config.py:91-168` → Context loading logic with hardcoded references
-- `src/tunacode/context.py:53-71` → Directory tree walking for TUNACODE.md files
+- `src/tunacode/context.py:53-71` → Directory tree walking for AGENTS.md files
 
 #### Test Files (7 files, 30+ references)
 - `tests/characterization/context/test_context_acceptance.py:1,21-24,37-40,50,62-66,98` → Acceptance tests for context injection
@@ -59,7 +59,7 @@ Summarize all existing knowledge about changing references from "tunacode.md" to
 - `tests/characterization/context/test_context_loading.py:1,20-23,30-32,54-57,77-78,108-113,130-134` → Unit tests for file loading behavior
 - `tests/characterization/context/test_tunacode_logging.py:1,12-17,55,62-64,87-88` → Logging message tests
 - `tests/characterization/commands/test_init_command.py:2,18-19,40-41,60-61,92,110,114` → `/init` command tests
-- `tests/characterization/agent/test_agent_creation.py:45,101,126` → Agent creation with missing TUNACODE.md
+- `tests/characterization/agent/test_agent_creation.py:45,101,126` → Agent creation with missing AGENTS.md
 - `tests/characterization/test_characterization_main.py:281` → Main characterization test
 
 #### Configuration Files (4 files)
@@ -85,15 +85,15 @@ Summarize all existing knowledge about changing references from "tunacode.md" to
 
 ### Hardcoded References Pattern
 Most references are hardcoded strings that need direct replacement:
-- File paths: `"TUNACODE.md"` → `"AGENTS.md"`
-- Logging messages: `"📄 TUNACODE.md located"` → `"📄 AGENTS.md located"`
+- File paths: `"AGENTS.md"` → `"AGENTS.md"`
+- Logging messages: `"📄 AGENTS.md located"` → `"📄 AGENTS.md located"`
 - Test assertions: Project context strings and file existence checks
 
 ### Test Impact Categories
 1. **Agent Creation Tests** - Mock file existence, system prompt validation
 2. **Context Injection Tests** - File content loading and parsing
 3. **Logging Tests** - Message display and formatting
-4. **Command Tests** - `/init` command creates AGENTS.md instead of TUNACODE.md
+4. **Command Tests** - `/init` command creates AGENTS.md instead of AGENTS.md
 5. **Integration Tests** - End-to-end behavior validation
 
 ### Configuration Changes
@@ -104,9 +104,9 @@ Most references are hardcoded strings that need direct replacement:
 ## Knowledge Gaps
 
 ### Migration Strategy Questions
-1. **Should existing TUNACODE.md files be renamed to AGENTS.md?**
-2. **What about user projects that already have TUNACODE.md files?**
-3. **Are there any external tools or integrations that expect TUNACODE.md?**
+1. **Should existing AGENTS.md files be renamed to AGENTS.md?**
+2. **What about user projects that already have AGENTS.md files?**
+3. **Are there any external tools or integrations that expect AGENTS.md?**
 4. **Should we maintain backward compatibility?**
 
 ### Testing Concerns
@@ -137,7 +137,7 @@ Most references are hardcoded strings that need direct replacement:
 ### High Risk
 - **Test breakage** - Many hardcoded assertions will fail
 - **User confusion** - Documentation changes may confuse existing users
-- **Tool incompatibility** - External integrations may expect TUNACODE.md
+- **Tool incompatibility** - External integrations may expect AGENTS.md
 
 ### Medium Risk
 - **Logging changes** - Monitoring and debugging may be affected
@@ -151,7 +151,7 @@ Most references are hardcoded strings that need direct replacement:
 ## Recommended Migration Strategy
 
 ### Phase 1: Preparation
-1. Create comprehensive characterization test for current TUNACODE.md behavior
+1. Create comprehensive characterization test for current AGENTS.md behavior
 2. Backup existing configuration and documentation
 3. Communicate change to stakeholders
 
@@ -174,7 +174,7 @@ Most references are hardcoded strings that need direct replacement:
 
 ### Phase 5: Cleanup
 1. Update memory bank references
-2. Remove any remaining TUNACODE.md references
+2. Remove any remaining AGENTS.md references
 3. Verify end-to-end functionality
 
 ## References
@@ -192,7 +192,7 @@ Most references are hardcoded strings that need direct replacement:
 - `scripts/install_linux.sh` - Installation configuration
 
 ### Test Files Requiring Updates (7 files)
-All files in `tests/characterization/` directory that reference TUNACODE.md need systematic updates to assertions, file creation, and logging message validation.
+All files in `tests/characterization/` directory that reference AGENTS.md need systematic updates to assertions, file creation, and logging message validation.
 
 ### Configuration Files (4 files)
 Default configurations, examples, and installation scripts need filename reference updates.

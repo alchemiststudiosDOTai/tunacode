@@ -17,7 +17,7 @@ The TunaCode configuration file is located at `~/.config/tunacode.json`. This fi
         "max_retries": 10,
         "max_iterations": 40,
         "tool_ignore": ,
-        "guide_file": "TUNACODE.md",
+        "guide_file": "AGENTS.md",
         "fallback_response": true,
         "fallback_verbosity": "normal",
         "context_window_size": 200000,
@@ -41,7 +41,7 @@ The TunaCode configuration file is located at `~/.config/tunacode.json`. This fi
 - `max_retries`: Maximum number of retries for failed operations (default: 10)
 - `max_iterations`: Maximum iterations the agent can use per request (default: 40)
 - `tool_ignore`: List of tools to ignore (e.g., `["read_file"]`)
-- `guide_file`: Project-specific instructions file (default: `TUNACODE.md`)
+- `guide_file`: Project-specific instructions file (default: `AGENTS.md`)
 - `fallback_response`: Enable fallback responses when iterations are exhausted (default: true)
 - `fallback_verbosity`: Verbosity of fallback responses (`minimal`, `normal`, `detailed`)
 - `context_window_size`: Maximum context window size in tokens (default: 200000)

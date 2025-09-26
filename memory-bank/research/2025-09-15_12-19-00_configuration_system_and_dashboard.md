@@ -46,7 +46,7 @@ The TunaCode configuration system is a comprehensive multi-layered approach that
         "max_retries": 10,
         "max_iterations": 40,
         "tool_ignore": ["read_file"],
-        "guide_file": "TUNACODE.md",
+        "guide_file": "AGENTS.md",
         "fallback_response": true,
         "fallback_verbosity": "normal",
         "context_window_size": 200000,

@@ -49,25 +49,25 @@ class BranchCommand(SimpleCommand):
 
 
 class InitCommand(SimpleCommand):
-    """Creates or updates TUNACODE.md with project-specific context."""
+    """Creates or updates AGENTS.md with project-specific context."""
 
     spec = CommandSpec(
         name="/init",
         aliases=[],
-        description="Analyze codebase and create/update TUNACODE.md file",
+        description="Analyze codebase and create/update AGENTS.md file",
         category=CommandCategory.DEVELOPMENT,
     )
 
     async def execute(self, args, context: CommandContext) -> CommandResult:
         """Execute the init command."""
         # Minimal implementation to make test pass
-        prompt = """Please analyze this codebase and create a TUNACODE.md file containing:
+        prompt = """Please analyze this codebase and create a AGENTS.md file containing:
 1. Build/lint/test commands - especially for running a single test
 2. Code style guidelines including imports, formatting, types, naming conventions, error handling, etc.
 
 The file you create will be given to agentic coding agents (such as yourself) that operate in this repository.
 Make it about 20 lines long.
-If there's already a TUNACODE.md, improve it.
+If there's already a AGENTS.md, improve it.
 If there are Cursor rules (in .cursor/rules/ or .cursorrules) or Copilot rules (in .github/copilot-instructions.md),
 make sure to include them."""
 

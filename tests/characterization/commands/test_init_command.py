@@ -108,7 +108,7 @@ async def test_init_command_matches_correct_names():
     # Assert
     assert command.name == "/init"
     assert command.aliases == []
-    assert "TUNACODE.md" in command.description
+    assert "AGENTS.md" in command.description
 
 
 @pytest.mark.asyncio
@@ -180,7 +180,7 @@ async def test_init_command_sends_correct_prompt_duplicate():
 
     # Assert
     assert prompt_sent is not None
-    assert "TUNACODE.md" in prompt_sent
+    assert "AGENTS.md" in prompt_sent
     assert "Build/lint/test commands" in prompt_sent
     assert "Code style guidelines" in prompt_sent
 
@@ -199,7 +199,7 @@ async def test_init_command_matches_correct_names_duplicate():
     # Assert
     assert command.name == "/init"
     assert command.aliases == []
-    assert "TUNACODE.md" in command.description
+    assert "AGENTS.md" in command.description
 
 
 @pytest.mark.asyncio

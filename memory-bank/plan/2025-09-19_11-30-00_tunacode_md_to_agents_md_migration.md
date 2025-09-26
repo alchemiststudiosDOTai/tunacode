@@ -1,5 +1,5 @@
 ---
-title: "tunacode.md to AGENTS.md Migration – Plan"
+title: "AGENTS.md to AGENTS.md Migration – Plan"
 phase: Plan
 date: "2025-09-19_11-30-00"
 owner: "context-engineer:plan"
@@ -9,13 +9,13 @@ tags: [plan, migration, refactoring]
 ---
 
 ## Goal
-Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the primary configuration file throughout the codebase, ensuring all references, tests, documentation, and configurations are updated systematically with zero regressions. This is a singular focused migration that will standardize the agent configuration filename across the entire ecosystem.
+Execute a comprehensive migration from "AGENTS.md" to "AGENTS.md" as the primary configuration file throughout the codebase, ensuring all references, tests, documentation, and configurations are updated systematically with zero regressions. This is a singular focused migration that will standardize the agent configuration filename across the entire ecosystem.
 
 ## Scope & Assumptions
 
 ### In Scope
-- All hardcoded "TUNACODE.md" references in Python source code
-- All test files referencing TUNACODE.md (30+ references across 7 files)
+- All hardcoded "AGENTS.md" references in Python source code
+- All test files referencing AGENTS.md (30+ references across 7 files)
 - Configuration files, installation scripts, and package manifests
 - User-facing documentation and examples
 - Memory bank references and research documentation
@@ -23,8 +23,8 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 
 ### Out of Scope
 - External tool integrations beyond this repository
-- User projects that may have existing TUNACODE.md files
-- Backward compatibility with TUNACODE.md (breaking change intended)
+- User projects that may have existing AGENTS.md files
+- Backward compatibility with AGENTS.md (breaking change intended)
 
 ### Assumptions
 - AGENTS.md already exists and contains comprehensive agent configuration
@@ -34,7 +34,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 
 ## Deliverables (DoD)
 
-1. **Updated Codebase** - All TUNACODE.md references replaced with AGENTS.md
+1. **Updated Codebase** - All AGENTS.md references replaced with AGENTS.md
 2. **Comprehensive Test Suite** - All tests passing with new filename
 3. **Updated Documentation** - User guides and examples reflect AGENTS.md
 4. **Configuration Updates** - All config files and installation scripts updated
@@ -61,7 +61,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 ### M1: Preparation & Baseline
 - Create rollback commit point
 - Establish baseline characterization test for current behavior
-- Document exact current behavior with TUNACODE.md
+- Document exact current behavior with AGENTS.md
 
 ### M2: Core Infrastructure Changes
 - Update GUIDE_FILE_NAME constant in constants.py
@@ -93,7 +93,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 **M1.1** - Create rollback commit point
 - Owner: context-engineer
 - Dependencies: None
-- Acceptance Tests: 
+- Acceptance Tests:
   - Git commit created with clear rollback message
   - All current changes committed safely
 
@@ -101,7 +101,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 - Owner: context-engineer
 - Dependencies: M1.1
 - Acceptance Tests:
-  - Test captures exact current TUNACODE.md behavior
+  - Test captures exact current AGENTS.md behavior
   - Test validates file loading, context injection, logging
   - Test serves as regression prevention baseline
 
@@ -119,7 +119,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 - Owner: context-engineer
 - Dependencies: M1.1
 - Acceptance Tests:
-  - GUIDE_FILE_NAME changed from "TUNACODE.md" to "AGENTS.md"
+  - GUIDE_FILE_NAME changed from "AGENTS.md" to "AGENTS.md"
   - No other constants need modification
   - Tests validate constant change
 
@@ -146,7 +146,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 - Owner: context-engineer
 - Dependencies: M2.3
 - Acceptance Tests:
-  - All TUNACODE.md references replaced in test_context_acceptance.py
+  - All AGENTS.md references replaced in test_context_acceptance.py
   - Assertions validate AGENTS.md behavior
   - File creation tests use correct filename
 
@@ -229,7 +229,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 - Dependencies: M4.3
 - Acceptance Tests:
   - Recent research documents updated
-  - References to TUNACODE.md in memory bank updated
+  - References to AGENTS.md in memory bank updated
   - Historical consistency maintained
 
 ### M5: Validation & Hardening
@@ -255,7 +255,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 - Dependencies: M5.2
 - Acceptance Tests:
   - All docs consistently reference AGENTS.md
-  - No TUNACODE.md references remain
+  - No AGENTS.md references remain
   - Examples work correctly
 
 ## Risks & Mitigations
@@ -399,7 +399,7 @@ Execute a comprehensive migration from "TUNACODE.md" to "AGENTS.md" as the prima
 - Smooth transition for existing users
 
 ### Technical Metrics
-- All TUNACODE.md references eliminated
+- All AGENTS.md references eliminated
 - Code coverage maintained or improved
 - Build and packaging success
 - CI/CD pipeline stability

@@ -50,16 +50,16 @@ async def get_directory_structure(max_depth: int = 3) -> str:
 
 
 async def get_code_style() -> str:
-    """Concatenate contents of all TUNACODE.md files up the directory tree."""
+    """Concatenate contents of all AGENTS.md files up the directory tree."""
     parts: List[str] = []
     current = Path.cwd()
     while True:
-        file = current / "TUNACODE.md"
+        file = current / "AGENTS.md"
         if file.exists():
             try:
                 parts.append(file.read_text(encoding="utf-8"))
             except Exception as e:
-                logger.debug(f"Failed to read TUNACODE.md at {file}: {e}")
+                logger.debug(f"Failed to read AGENTS.md at {file}: {e}")
         if current == current.parent:
             break
         current = current.parent
@@ -67,5 +67,5 @@ async def get_code_style() -> str:
 
 
 async def get_claude_files() -> List[str]:
-    """Return a list of additional TUNACODE.md files in the repo."""
-    return ripgrep("TUNACODE.md", ".")
+    """Return a list of additional AGENTS.md files in the repo."""
+    return ripgrep("AGENTS.md", ".")
