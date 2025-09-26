@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-09-25T00:00:00Z",
+  "change_type": "feature",
+  "component": "prompt_system",
+  "description": "Migrated system prompt from Markdown to XML format with enhanced loading mechanism",
+  "files_modified": [
+    "src/tunacode/core/agents/agent_components/agent_config.py",
+    "src/tunacode/prompts/system.md",
+    "src/tunacode/prompts/system.xml",
+    "tests/characterization/agent/test_agent_creation.py",
+    "tests/test_prompt_changes_validation.py"
+  ],
+  "key_changes": [
+    "Renamed system.md to system.xml with structured XML tags",
+    "Enhanced prompt loading to support multiple file formats (xml, md, txt)",
+    "Improved caching with proper file modification time tracking",
+    "Added symbolic constants for prompt filenames and default prompt",
+    "Enhanced error handling with explicit FileNotFoundError propagation"
+  ],
+  "impact": "Improved prompt system flexibility and maintainability",
+  "branch": "prompt-xml",
+  "commit_hash": "HEAD"
+}

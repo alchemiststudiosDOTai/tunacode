@@ -5,13 +5,12 @@ from pathlib import Path
 
 def test_system_prompt_no_json_in_responses():
     """Verify system prompt has proper structure and instructions."""
-    prompt_path = Path(__file__).parent.parent / "src" / "tunacode" / "prompts" / "system.md"
+    prompt_path = Path(__file__).parent.parent / "src" / "tunacode" / "prompts" / "system.xml"
 
-    with open(prompt_path, "r") as f:
-        content = f.read()
+    content = prompt_path.read_text(encoding="utf-8")
 
     # Check that we have the core instruction structure
-    assert "###Instruction###" in content
+    assert "<instructions>" in content
     assert (
         "YOU ARE NOT A CHATBOT. YOU ARE AN OPERATIONAL EXPERIENCED DEVELOPER WITH AGENT WITH TOOLS."
         in content
@@ -23,7 +22,7 @@ def test_system_prompt_no_json_in_responses():
     assert "TUNACODE DONE:" in content
 
     # Check tool access rules
-    assert "###Tool Access Rules###" in content
+    assert "<tools>" in content
     assert "READONLY TOOLS" in content
     assert "WRITE/EXECUTE TOOLS" in content
 

@@ -1,0 +1,21 @@
+{
+  "component": "prompt_system",
+  "last_updated": "2025-09-25T00:00:00Z",
+  "file_formats": ["xml", "md", "txt"],
+  "priority_order": ["system.xml", "system.md", "system.txt"],
+  "default_prompt": "You are a helpful AI assistant.",
+  "caching_mechanism": "file_modification_time_based",
+  "error_handling": "explicit_file_not_found_propagation",
+  "helper_functions": [
+    "_read_prompt_from_path",
+    "load_system_prompt"
+  ],
+  "test_coverage": "characterization_tests_updated",
+  "xml_structure": {
+    "instructions": "Critical behavior rules and operational guidelines",
+    "completion": "Task completion signaling format",
+    "tools": "Tool access rules and categories",
+    "examples": "Tool usage patterns and examples",
+    "formatting": "JSON formatting rules and validation"
+  }
+}
