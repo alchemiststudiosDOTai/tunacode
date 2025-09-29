@@ -11,7 +11,6 @@ from tunacode.core.setup import (
     AgentSetup,
     ConfigSetup,
     EnvironmentSetup,
-    GitSafetySetup,
     SetupCoordinator,
     TemplateSetup,
 )
@@ -39,7 +38,6 @@ async def setup(
     coordinator.register_step(config_setup)
     coordinator.register_step(EnvironmentSetup(state_manager))
     coordinator.register_step(TemplateSetup(state_manager))
-    coordinator.register_step(GitSafetySetup(state_manager))
 
     # Run all setup steps
     await coordinator.run_setup(force_setup=run_setup, wizard_mode=wizard_mode)
