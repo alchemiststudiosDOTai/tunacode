@@ -139,7 +139,6 @@ On first launch, TunaCode initializes your environment through several coordinat
 - Configuration: Loads or creates `~/.config/tunacode.json`, merges defaults, and validates settings
 - Environment: Exports API keys from your config to the process environment
 - Templates: Creates `~/.config/tunacode/templates/` for future customization
-- Git safety: If in a git repo, offers to switch to a safety branch `<current-branch>-tunacode`
 
 Setup wizard (recommended)
 - Run `tunacode --wizard` to enter guided setup
@@ -179,7 +178,6 @@ Configuration file
 - Notes
   - If a selected model is missing a required key, TunaCode tries to pick a fallback based on any configured key.
   - Environment variables defined under `env` are exported when the app starts.
-  - Safety preference `skip_git_safety` is stored here if you opt out of the safety branch.
 
 Updating
 - In-app: `/update` attempts to detect your install method (uv tool, pipx, venv, pip) and upgrade in place
@@ -227,11 +225,6 @@ Common commands
 - `/quickstart` or `/qs` — run the interactive tutorial
 - `/branch <name>` — create/switch to a new git branch
 - `/init` — create or improve `AGENTS.md` with project guidance
-
-Git safety branch
-- If you’re on a git repo and not already on a `-tunacode` branch, TunaCode offers to switch to `<current>-tunacode`.
-- Declining is allowed; your preference is remembered.
-- Not a git repo or detached HEAD: TunaCode continues with a warning.
 
 Costs and streaming
 - Streaming is enabled by default; disable via `/streaming off`.

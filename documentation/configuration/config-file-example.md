@@ -23,8 +23,7 @@ The TunaCode configuration file is located at `~/.config/tunacode.json`. This fi
         "context_window_size": 200000,
         "tool_strict_validation": false
     },
-    "mcpServers": {},
-    "skip_git_safety": true
+    "mcpServers": {}
 }
 ```
 
@@ -35,7 +34,6 @@ The TunaCode configuration file is located at `~/.config/tunacode.json`. This fi
 - `env`: API keys for different providers
 - `settings`: Various runtime settings
 - `mcpServers`: MCP server configurations (if using Model Context Protocol)
-- `skip_git_safety`: Skip git safety checks (optional)
 
 ### Settings
 - `max_retries`: Maximum number of retries for failed operations (default: 10)

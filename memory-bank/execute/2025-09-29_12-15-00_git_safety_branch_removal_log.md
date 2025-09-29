@@ -59,10 +59,17 @@ env: {target: "local", notes: "Development environment for git safety removal"}
 - **Test Results**: All 304 tests pass, setup flow test works with 3 steps
 - **Result**: Git safety test coverage completely removed
 
+### Task M2.4 – Update Configuration Schema
+- **Commit**: `606c9e6`
+- **Status**: Completed ✅
+- **Files**: `src/tunacode/configuration/key_descriptions.py`
+- **Changes**: Removed skip_git_safety option from configuration key descriptions
+- **Result**: Configuration system no longer references git safety functionality
+
 ## Work In Progress
-Currently executing M2.4: Update configuration schema and utilities.
+Currently executing M3.1: Clean up documentation references.
 
 ## Next Steps
-1. Complete M2.4: Update configuration schema and utilities
-2. Begin M3.1: Clean up documentation references
+1. Complete M3.1: Clean up documentation references
+2. Begin M3.2: Verify setup flow works correctly
 3. Continue with systematic removal per plan
