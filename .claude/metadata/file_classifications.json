@@ -1,155 +1,160 @@
 {
-  "version": 1,
   "files": {
-    "docs/reports/subagent_analysis/code-synthesis-analyzer_report.md": {
-      "type": "documentation",
-      "category": "analysis",
-      "classification": "implementation"
-    },
-    "docs/reports/subagent_analysis/codebase-analyzer_report.md": {
-      "type": "documentation",
-      "category": "analysis",
-      "classification": "implementation"
-    },
-    "docs/reviews/FAGAN_PLAN.md": {
-      "type": "documentation",
-      "category": "plan",
-      "classification": "implementation"
-    },
-    "docs/reviews/agent_seams.md": {
-      "type": "documentation",
-      "category": "analysis",
-      "classification": "implementation"
-    },
-    "docs/reviews/fagan_inspection_defects.json": {
-      "type": "data",
-      "category": "defects",
-      "classification": "implementation"
-    },
-    "docs/reviews/fagan_inspection_summary.md": {
-      "type": "documentation",
-      "category": "analysis",
-      "classification": "implementation"
-    },
-    "docs/reviews/main_agent_refactor_issues.md": {
-      "type": "documentation",
-      "category": "issues",
-      "classification": "implementation"
-    },
-    "src/tunacode/core/agents/main.py": {
-      "type": "source",
-      "category": "agent",
-      "classification": "interface"
-    },
-    "src/tunacode/core/agents/agent_components/task_completion.py": {
-      "type": "source",
-      "category": "agent",
-      "classification": "implementation"
-    },
-    "src/tunacode/core/agents/utils.py": {
-      "type": "source",
-      "category": "agent",
-      "classification": "implementation"
-    },
-    "src/tunacode/cli/repl.py": {
-      "type": "source",
-      "category": "repl",
-      "classification": "interface"
-    },
-    "tests/characterization/agent/test_agent_creation.py": {
-      "type": "test",
-      "category": "agent",
-      "classification": "test"
-    },
-    "tests/characterization/commands/test_init_command.py": {
-      "type": "test",
-      "category": "commands",
-      "classification": "test"
-    },
-    "tests/characterization/context/test_context_integration.py": {
-      "type": "test",
-      "category": "context",
-      "classification": "test"
-    },
-    "tests/characterization/context/test_context_loading.py": {
-      "type": "test",
-      "category": "context",
-      "classification": "test"
-    },
     "AGENTS.md": {
-      "type": "documentation",
       "category": "configuration",
-      "classification": "implementation"
+      "classification": "implementation",
+      "type": "documentation"
     },
     "TODO.md": {
-      "type": "documentation",
       "category": "planning",
-      "classification": "implementation"
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "memory-bank/plan/2025-09-19_11-30-00_tunacode_md_to_agents_md_migration.md": {
-      "type": "documentation",
+    "docs/reports/subagent_analysis/code-synthesis-analyzer_report.md": {
+      "category": "analysis",
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "docs/reports/subagent_analysis/codebase-analyzer_report.md": {
+      "category": "analysis",
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "docs/reviews/FAGAN_PLAN.md": {
       "category": "plan",
-      "classification": "implementation"
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "memory-bank/research/2025-01-19_react-shim-analysis.md": {
-      "type": "documentation",
-      "category": "research",
-      "classification": "implementation"
+    "docs/reviews/agent_seams.md": {
+      "category": "analysis",
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "documentation/agent-tools/react-patterns.md": {
-      "type": "documentation",
-      "category": "patterns",
-      "classification": "implementation"
+    "docs/reviews/fagan_inspection_defects.json": {
+      "category": "defects",
+      "classification": "implementation",
+      "type": "data"
     },
-    "documentation/agent/main-agent-architecture.md": {
-      "type": "documentation",
-      "category": "architecture",
-      "classification": "implementation"
+    "docs/reviews/fagan_inspection_summary.md": {
+      "category": "analysis",
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "documentation/development/codebase-hygiene.md": {
-      "type": "documentation",
-      "category": "development",
-      "classification": "implementation"
-    },
-    "tests/characterization/agent/test_process_request.py": {
-      "type": "test",
-      "category": "agent",
-      "classification": "test"
-    },
-    "memory-bank/research/main_agent_refactor_plan.md": {
-      "type": "documentation",
-      "category": "plan",
-      "classification": "implementation"
+    "docs/reviews/main_agent_refactor_issues.md": {
+      "category": "issues",
+      "classification": "implementation",
+      "type": "documentation"
     },
     "docs/reviews/main_agent_refactor_plan.md": {
-      "type": "documentation",
       "category": "plan",
-      "classification": "implementation"
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "src/tunacode/cli/repl_components/error_recovery.py": {
-      "type": "source",
-      "category": "repl",
-      "classification": "implementation"
+    "documentation/agent-tools/react-patterns.md": {
+      "category": "patterns",
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "src/tunacode/tools/react.py": {
-      "type": "source",
-      "category": "tools",
-      "classification": "implementation"
+    "documentation/agent/main-agent-architecture.md": {
+      "category": "architecture",
+      "classification": "implementation",
+      "type": "documentation"
     },
-    "src/tunacode/tools/prompts/react_prompt.xml": {
-      "type": "prompt",
-      "category": "tools",
-      "classification": "interface"
-    },
-    "tests/unit/test_react_tool.py": {
-      "type": "test",
-      "category": "tools",
-      "classification": "test"
+    "documentation/development/codebase-hygiene.md": {
+      "category": "development",
+      "classification": "implementation",
+      "type": "documentation"
     },
     "memory-bank/main-agent.md": {
-      "type": "documentation",
       "category": "architecture",
-      "classification": "implementation"
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "memory-bank/plan/2025-09-19_11-30-00_tunacode_md_to_agents_md_migration.md": {
+      "category": "plan",
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "memory-bank/plan/2025-09-29_11-15-30_simplified_agent_implementation.md": {
+      "category": "plan",
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "memory-bank/research/2025-01-19_react-shim-analysis.md": {
+      "category": "research",
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "memory-bank/research/main_agent_refactor_plan.md": {
+      "category": "plan",
+      "classification": "implementation",
+      "type": "documentation"
+    },
+    "src/tunacode/cli/repl.py": {
+      "category": "repl",
+      "classification": "interface",
+      "type": "source"
+    },
+    "src/tunacode/cli/repl_components/error_recovery.py": {
+      "category": "repl",
+      "classification": "implementation",
+      "type": "source"
+    },
+    "src/tunacode/core/agents/agent_components/task_completion.py": {
+      "category": "agent",
+      "classification": "implementation",
+      "type": "source"
+    },
+    "src/tunacode/core/agents/main.py": {
+      "category": "agent",
+      "classification": "interface",
+      "type": "source"
+    },
+    "src/tunacode/core/agents/utils.py": {
+      "category": "agent",
+      "classification": "implementation",
+      "type": "source"
+    },
+    "src/tunacode/tools/prompts/react_prompt.xml": {
+      "category": "tools",
+      "classification": "interface",
+      "type": "prompt"
+    },
+    "src/tunacode/tools/react.py": {
+      "category": "tools",
+      "classification": "implementation",
+      "type": "source"
+    },
+    "tests/characterization/agent/test_agent_creation.py": {
+      "category": "agent",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/characterization/agent/test_process_request.py": {
+      "category": "agent",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/characterization/commands/test_init_command.py": {
+      "category": "commands",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/characterization/context/test_context_integration.py": {
+      "category": "context",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/characterization/context/test_context_loading.py": {
+      "category": "context",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/unit/test_react_tool.py": {
+      "category": "tools",
+      "classification": "test",
+      "type": "test"
     }
-  }
+  },
+  "version": 1
 }
