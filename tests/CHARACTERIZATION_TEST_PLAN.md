@@ -123,7 +123,6 @@ This document outlines the remaining characterization tests needed to capture th
 - **EnvironmentSetup** - API key detection
 - **ModelSetup** - Model validation
 - **ConfigSetup** - User config loading/creation
-- **GitSafetySetup** - Git status checking
 
 ### 7. UI Component Tests
 

@@ -32,14 +32,7 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         help_text="Format: provider:model-name. Examples: openai:gpt-4, anthropic:claude-3-sonnet, google:gemini-pro",
         category="AI Models",
     ),
-    "skip_git_safety": KeyDescription(
-        name="skip_git_safety",
-        description="Skip Git safety checks when making changes",
-        example=True,
-        help_text="When true, TunaCode won't create safety branches before making changes. Use with caution!",
-        category="Safety Settings",
-    ),
-    # Environment variables (API Keys)
+      # Environment variables (API Keys)
     "env.OPENAI_API_KEY": KeyDescription(
         name="OPENAI_API_KEY",
         description="Your OpenAI API key for GPT models",

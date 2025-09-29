@@ -14,7 +14,6 @@ from tunacode.core.setup import (
     AgentSetup,
     ConfigSetup,
     EnvironmentSetup,
-    GitSafetySetup,
     SetupCoordinator,
     TemplateSetup,
 )
@@ -65,7 +64,6 @@ class TestSetupFlowBaseline:
         assert ConfigSetup is not None
         assert EnvironmentSetup is not None
         assert TemplateSetup is not None
-        assert GitSafetySetup is not None
         assert AgentSetup is not None
 
     @pytest.mark.asyncio
@@ -74,33 +72,14 @@ class TestSetupFlowBaseline:
         config_setup = ConfigSetup(mock_state_manager)
         env_setup = EnvironmentSetup(mock_state_manager)
         template_setup = TemplateSetup(mock_state_manager)
-        git_setup = GitSafetySetup(mock_state_manager)
 
         # Verify all setup steps have required methods
-        for setup_step in [config_setup, env_setup, template_setup, git_setup]:
+        for setup_step in [config_setup, env_setup, template_setup]:
             assert hasattr(setup_step, 'name')
             assert hasattr(setup_step, 'should_run')
             assert hasattr(setup_step, 'execute')
             assert hasattr(setup_step, 'validate')
 
-    @pytest.mark.asyncio
-    async def test_git_safety_setup_behavior(self, mock_state_manager):
-        """Test GitSafetySetup behavior with different config values."""
-        # Test with skip_git_safety = False (default)
-        mock_state_manager.session.user_config["skip_git_safety"] = False
-        git_setup = GitSafetySetup(mock_state_manager)
-
-        # Should run when not skipped
-        should_run = await git_setup.should_run()
-        assert should_run == True
-
-        # Test with skip_git_safety = True
-        mock_state_manager.session.user_config["skip_git_safety"] = True
-        git_setup = GitSafetySetup(mock_state_manager)
-
-        # Should not run when skipped
-        should_run = await git_setup.should_run()
-        assert should_run == False
 
     @pytest.mark.asyncio
     async def test_setup_step_names(self, mock_state_manager):
@@ -108,13 +87,11 @@ class TestSetupFlowBaseline:
         config_setup = ConfigSetup(mock_state_manager)
         env_setup = EnvironmentSetup(mock_state_manager)
         template_setup = TemplateSetup(mock_state_manager)
-        git_setup = GitSafetySetup(mock_state_manager)
 
         # Verify names are as expected
         assert config_setup.name == "Configuration"
         assert env_setup.name == "Environment Variables"
         assert template_setup.name == "Template Directory"
-        assert git_setup.name == "Git Safety"
 
     @pytest.mark.asyncio
     async def test_setup_step_validation(self, mock_state_manager):
@@ -122,19 +99,13 @@ class TestSetupFlowBaseline:
         config_setup = ConfigSetup(mock_state_manager)
         env_setup = EnvironmentSetup(mock_state_manager)
         template_setup = TemplateSetup(mock_state_manager)
-        git_setup = GitSafetySetup(mock_state_manager)
 
         # Mock user config for config validation
         mock_state_manager.session.user_config = {
             "settings": {"max_retries": 3},
-            "skip_git_safety": False,
             "default_model": "test-model",
             "env": {"TEST_API_KEY": "test-key"}
         }
-
-        # Git safety always validates successfully
-        git_validation = await git_setup.validate()
-        assert git_validation == True
 
         # Config validation depends on having proper config
         config_validation = await config_setup.validate()
