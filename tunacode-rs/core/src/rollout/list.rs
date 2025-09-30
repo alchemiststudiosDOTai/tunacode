@@ -3,7 +3,6 @@ use std::io::{self};
 use std::path::Path;
 use std::path::PathBuf;
 
-use tunacode_file_search as file_search;
 use std::num::NonZero;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -11,6 +10,7 @@ use time::OffsetDateTime;
 use time::PrimitiveDateTime;
 use time::format_description::FormatItem;
 use time::macros::format_description;
+use tunacode_file_search as file_search;
 use uuid::Uuid;
 
 use super::SESSIONS_SUBDIR;

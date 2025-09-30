@@ -191,8 +191,8 @@ impl ChatComposerHistory {
 mod tests {
     use super::*;
     use crate::app_event::AppEvent;
-    use tunacode_core::protocol::Op;
     use tokio::sync::mpsc::unbounded_channel;
+    use tunacode_core::protocol::Op;
 
     #[test]
     fn duplicate_submissions_are_not_recorded() {

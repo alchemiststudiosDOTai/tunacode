@@ -1,15 +1,15 @@
+use std::path::PathBuf;
 use tunacode_common::CliConfigOverrides;
-use tunacode_core::tunacodeAuth;
 use tunacode_core::auth::CLIENT_ID;
 use tunacode_core::auth::login_with_api_key;
 use tunacode_core::auth::logout;
 use tunacode_core::config::Config;
 use tunacode_core::config::ConfigOverrides;
+use tunacode_core::tunacodeAuth;
 use tunacode_login::ServerOptions;
 use tunacode_login::run_device_code_login;
 use tunacode_login::run_login_server;
 use tunacode_protocol::mcp_protocol::AuthMode;
-use std::path::PathBuf;
 
 pub async fn login_with_chatgpt(tunacode_home: PathBuf) -> std::io::Result<()> {
     let opts = ServerOptions::new(tunacode_home, CLIENT_ID.to_string());

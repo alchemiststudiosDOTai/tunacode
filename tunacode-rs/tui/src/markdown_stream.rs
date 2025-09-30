@@ -1,5 +1,5 @@
-use tunacode_core::config::Config;
 use ratatui::text::Line;
+use tunacode_core::config::Config;
 
 use crate::markdown;
 
@@ -118,9 +118,9 @@ pub(crate) fn simulate_stream_markdown_for_tests(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ratatui::style::Color;
     use tunacode_core::config::Config;
     use tunacode_core::config::ConfigOverrides;
-    use ratatui::style::Color;
 
     fn test_config() -> Config {
         let overrides = ConfigOverrides {

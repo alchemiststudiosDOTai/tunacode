@@ -2,14 +2,14 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 
-use tunacode_protocol::mcp_protocol::GitSha;
-use tunacode_protocol::protocol::GitInfo;
 use futures::future::join_all;
 use serde::Deserialize;
 use serde::Serialize;
 use tokio::process::Command;
 use tokio::time::Duration as TokioDuration;
 use tokio::time::timeout;
+use tunacode_protocol::mcp_protocol::GitSha;
+use tunacode_protocol::protocol::GitInfo;
 
 /// Return `true` if the project folder specified by the `Config` is inside a
 /// Git repository.

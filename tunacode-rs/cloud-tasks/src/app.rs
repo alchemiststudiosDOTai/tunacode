@@ -39,10 +39,10 @@ pub struct ApplyModalState {
 }
 
 use crate::scrollable_diff::ScrollableDiff;
+use throbber_widgets_tui::ThrobberState;
 use tunacode_cloud_tasks_client::CloudBackend;
 use tunacode_cloud_tasks_client::TaskId;
 use tunacode_cloud_tasks_client::TaskSummary;
-use throbber_widgets_tui::ThrobberState;
 
 #[derive(Default)]
 pub struct App {
@@ -419,7 +419,8 @@ mod tests {
             &self,
             _task: TaskId,
             _turn_id: String,
-        ) -> tunacode_cloud_tasks_client::Result<Vec<tunacode_cloud_tasks_client::TurnAttempt>> {
+        ) -> tunacode_cloud_tasks_client::Result<Vec<tunacode_cloud_tasks_client::TurnAttempt>>
+        {
             Ok(Vec::new())
         }
 
@@ -427,7 +428,8 @@ mod tests {
             &self,
             _id: TaskId,
             _diff_override: Option<String>,
-        ) -> tunacode_cloud_tasks_client::Result<tunacode_cloud_tasks_client::ApplyOutcome> {
+        ) -> tunacode_cloud_tasks_client::Result<tunacode_cloud_tasks_client::ApplyOutcome>
+        {
             Err(tunacode_cloud_tasks_client::CloudTaskError::Unimplemented(
                 "not used in test",
             ))
@@ -437,7 +439,8 @@ mod tests {
             &self,
             _id: TaskId,
             _diff_override: Option<String>,
-        ) -> tunacode_cloud_tasks_client::Result<tunacode_cloud_tasks_client::ApplyOutcome> {
+        ) -> tunacode_cloud_tasks_client::Result<tunacode_cloud_tasks_client::ApplyOutcome>
+        {
             Err(tunacode_cloud_tasks_client::CloudTaskError::Unimplemented(
                 "not used in test",
             ))

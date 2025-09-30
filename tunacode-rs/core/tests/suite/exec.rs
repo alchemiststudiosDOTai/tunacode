@@ -3,13 +3,13 @@
 use std::collections::HashMap;
 use std::string::ToString;
 
+use tempfile::TempDir;
 use tunacode_core::exec::ExecParams;
 use tunacode_core::exec::ExecToolCallOutput;
 use tunacode_core::exec::SandboxType;
 use tunacode_core::exec::process_exec_tool_call;
 use tunacode_core::protocol::SandboxPolicy;
 use tunacode_core::spawn::TUNACODE_SANDBOX_ENV_VAR;
-use tempfile::TempDir;
 
 use tunacode_core::error::Result;
 

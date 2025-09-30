@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use anyhow::Result;
 use base64::Engine;
-use tunacode_login::ServerOptions;
-use tunacode_login::run_login_server;
 use core_test_support::skip_if_no_network;
 use tempfile::tempdir;
+use tunacode_login::ServerOptions;
+use tunacode_login::run_login_server;
 
 // See spawn.rs for details
 

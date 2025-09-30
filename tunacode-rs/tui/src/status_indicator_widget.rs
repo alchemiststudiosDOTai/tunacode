@@ -4,13 +4,13 @@
 use std::time::Duration;
 use std::time::Instant;
 
-use tunacode_core::protocol::Op;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::WidgetRef;
+use tunacode_core::protocol::Op;
 
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;

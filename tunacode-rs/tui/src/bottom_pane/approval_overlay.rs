@@ -11,8 +11,6 @@ use crate::bottom_pane::list_selection_view::SelectionViewParams;
 use crate::exec_command::strip_bash_lc_and_escape;
 use crate::history_cell;
 use crate::text_formatting::truncate_text;
-use tunacode_core::protocol::Op;
-use tunacode_core::protocol::ReviewDecision;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -22,6 +20,8 @@ use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::text::Span;
+use tunacode_core::protocol::Op;
+use tunacode_core::protocol::ReviewDecision;
 
 /// Request coming from the agent that needs user approval.
 pub(crate) enum ApprovalRequest {
@@ -149,17 +149,19 @@ impl ApprovalOverlay {
                 history_cell::new_user_approval_decision(lines),
             )));
         }
-        self.app_event_tx.send(AppEvent::TunacodeOp(Op::ExecApproval {
-            id: id.to_string(),
-            decision,
-        }));
+        self.app_event_tx
+            .send(AppEvent::TunacodeOp(Op::ExecApproval {
+                id: id.to_string(),
+                decision,
+            }));
     }
 
     fn handle_patch_decision(&self, id: &str, decision: ReviewDecision) {
-        self.app_event_tx.send(AppEvent::TunacodeOp(Op::PatchApproval {
-            id: id.to_string(),
-            decision,
-        }));
+        self.app_event_tx
+            .send(AppEvent::TunacodeOp(Op::PatchApproval {
+                id: id.to_string(),
+                decision,
+            }));
     }
 
     fn advance_queue(&mut self) {

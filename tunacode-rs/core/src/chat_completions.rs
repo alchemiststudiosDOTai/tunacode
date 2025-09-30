@@ -4,16 +4,12 @@ use crate::ModelProviderInfo;
 use crate::client_common::Prompt;
 use crate::client_common::ResponseEvent;
 use crate::client_common::ResponseStream;
-use crate::error::tunacodeErr;
 use crate::error::Result;
+use crate::error::tunacodeErr;
 use crate::model_family::ModelFamily;
 use crate::openai_tools::create_tools_json_for_chat_completions_api;
 use crate::util::backoff;
 use bytes::Bytes;
-use tunacode_otel::otel_event_manager::OtelEventManager;
-use tunacode_protocol::models::ContentItem;
-use tunacode_protocol::models::ReasoningItemContent;
-use tunacode_protocol::models::ResponseItem;
 use eventsource_stream::Eventsource;
 use futures::Stream;
 use futures::StreamExt;
@@ -27,6 +23,10 @@ use tokio::sync::mpsc;
 use tokio::time::timeout;
 use tracing::debug;
 use tracing::trace;
+use tunacode_otel::otel_event_manager::OtelEventManager;
+use tunacode_protocol::models::ContentItem;
+use tunacode_protocol::models::ReasoningItemContent;
+use tunacode_protocol::models::ResponseItem;
 
 /// Implementation for the classic Chat Completions API.
 pub(crate) async fn stream_chat_completions(

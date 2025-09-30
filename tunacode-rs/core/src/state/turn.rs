@@ -6,8 +6,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::AbortHandle;
 
-use tunacode_protocol::models::ResponseInputItem;
 use tokio::sync::oneshot;
+use tunacode_protocol::models::ResponseInputItem;
 
 use crate::protocol::ReviewDecision;
 use crate::tasks::SessionTask;

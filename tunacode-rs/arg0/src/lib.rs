@@ -2,10 +2,10 @@ use std::future::Future;
 use std::path::Path;
 use std::path::PathBuf;
 
-use tunacode_core::tunacode_APPLY_PATCH_ARG1;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 use tempfile::TempDir;
+use tunacode_core::tunacode_APPLY_PATCH_ARG1;
 
 const LINUX_SANDBOX_ARG0: &str = "tunacode-linux-sandbox";
 const APPLY_PATCH_ARG0: &str = "apply_patch";

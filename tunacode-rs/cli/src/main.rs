@@ -2,6 +2,9 @@ use clap::CommandFactory;
 use clap::Parser;
 use clap_complete::Shell;
 use clap_complete::generate;
+use owo_colors::OwoColorize;
+use std::path::PathBuf;
+use supports_color::Stream;
 use tunacode_arg0::arg0_dispatch_or_else;
 use tunacode_chatgpt::apply_command::ApplyCommand;
 use tunacode_chatgpt::apply_command::run_apply_command;
@@ -19,9 +22,6 @@ use tunacode_exec::Cli as ExecCli;
 use tunacode_responses_api_proxy::Args as ResponsesApiProxyArgs;
 use tunacode_tui::AppExitInfo;
 use tunacode_tui::Cli as TuiCli;
-use owo_colors::OwoColorize;
-use std::path::PathBuf;
-use supports_color::Stream;
 
 mod mcp_cmd;
 
@@ -276,7 +276,8 @@ async fn cli_main(tunacode_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result
             tunacode_exec::run_main(exec_cli, tunacode_linux_sandbox_exe).await?;
         }
         Some(Subcommand::McpServer) => {
-            tunacode_mcp_server::run_main(tunacode_linux_sandbox_exe, root_config_overrides).await?;
+            tunacode_mcp_server::run_main(tunacode_linux_sandbox_exe, root_config_overrides)
+                .await?;
         }
         Some(Subcommand::Mcp(mut mcp_cli)) => {
             // Propagate any root-level config overrides (e.g. `-c key=value`).
@@ -284,7 +285,8 @@ async fn cli_main(tunacode_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result
             mcp_cli.run().await?;
         }
         Some(Subcommand::AppServer) => {
-            tunacode_app_server::run_main(tunacode_linux_sandbox_exe, root_config_overrides).await?;
+            tunacode_app_server::run_main(tunacode_linux_sandbox_exe, root_config_overrides)
+                .await?;
         }
         Some(Subcommand::Resume(ResumeCommand {
             session_id,

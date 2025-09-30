@@ -6,6 +6,19 @@ pub mod exec_events;
 pub mod experimental_event_processor_with_json_output;
 
 pub use cli::Cli;
+use event_processor_with_human_output::EventProcessorWithHumanOutput;
+use event_processor_with_json_output::EventProcessorWithJsonOutput;
+use experimental_event_processor_with_json_output::ExperimentalEventProcessorWithJsonOutput;
+use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
+use serde_json::Value;
+use std::io::IsTerminal;
+use std::io::Read;
+use std::path::PathBuf;
+use tracing::debug;
+use tracing::error;
+use tracing::info;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::prelude::*;
 use tunacode_core::AuthManager;
 use tunacode_core::BUILT_IN_OSS_MODEL_PROVIDER_ID;
 use tunacode_core::ConversationManager;
@@ -21,29 +34,19 @@ use tunacode_core::protocol::Op;
 use tunacode_core::protocol::TaskCompleteEvent;
 use tunacode_ollama::DEFAULT_OSS_MODEL;
 use tunacode_protocol::config_types::SandboxMode;
-use event_processor_with_human_output::EventProcessorWithHumanOutput;
-use event_processor_with_json_output::EventProcessorWithJsonOutput;
-use experimental_event_processor_with_json_output::ExperimentalEventProcessorWithJsonOutput;
-use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use serde_json::Value;
-use std::io::IsTerminal;
-use std::io::Read;
-use std::path::PathBuf;
-use tracing::debug;
-use tracing::error;
-use tracing::info;
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::prelude::*;
 
 use crate::cli::Command as ExecCommand;
-use crate::event_processor::TunacodeStatus;
 use crate::event_processor::EventProcessor;
+use crate::event_processor::TunacodeStatus;
 use tunacode_core::default_client::set_default_originator;
 use tunacode_core::find_conversation_path_by_id_str;
 
 pub async fn run_main(cli: Cli, tunacode_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()> {
     if let Err(err) = set_default_originator("tunacode_exec") {
-        tracing::warn!(?err, "Failed to set tunacode exec originator override {err:?}");
+        tracing::warn!(
+            ?err,
+            "Failed to set tunacode exec originator override {err:?}"
+        );
     }
 
     let Cli {
@@ -391,7 +394,9 @@ async fn resolve_resume_path(
     args: &crate::cli::ResumeArgs,
 ) -> anyhow::Result<Option<PathBuf>> {
     if args.last {
-        match tunacode_core::RolloutRecorder::list_conversations(&config.tunacode_home, 1, None).await {
+        match tunacode_core::RolloutRecorder::list_conversations(&config.tunacode_home, 1, None)
+            .await
+        {
             Ok(page) => Ok(page.items.first().map(|it| it.path.clone())),
             Err(e) => {
                 error!("Error listing conversations: {e}");

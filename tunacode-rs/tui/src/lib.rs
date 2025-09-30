@@ -5,9 +5,15 @@
 #![deny(clippy::disallowed_methods)]
 use app::App;
 pub use app::AppExitInfo;
+use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
+use std::fs::OpenOptions;
+use std::path::PathBuf;
+use tracing::error;
+use tracing_appender::non_blocking;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::prelude::*;
 use tunacode_core::AuthManager;
 use tunacode_core::BUILT_IN_OSS_MODEL_PROVIDER_ID;
-use tunacode_core::tunacodeAuth;
 use tunacode_core::RolloutRecorder;
 use tunacode_core::config::Config;
 use tunacode_core::config::ConfigOverrides;
@@ -17,16 +23,10 @@ use tunacode_core::config::load_config_as_toml_with_cli_overrides;
 use tunacode_core::find_conversation_path_by_id_str;
 use tunacode_core::protocol::AskForApproval;
 use tunacode_core::protocol::SandboxPolicy;
+use tunacode_core::tunacodeAuth;
 use tunacode_ollama::DEFAULT_OSS_MODEL;
 use tunacode_protocol::config_types::SandboxMode;
 use tunacode_protocol::mcp_protocol::AuthMode;
-use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use std::fs::OpenOptions;
-use std::path::PathBuf;
-use tracing::error;
-use tracing_appender::non_blocking;
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::prelude::*;
 
 mod app;
 mod app_backtrack;

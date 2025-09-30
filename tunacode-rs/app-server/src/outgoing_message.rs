@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicI64;
 use std::sync::atomic::Ordering;
 
-use tunacode_protocol::mcp_protocol::ServerNotification;
 use mcp_types::JSONRPC_VERSION;
 use mcp_types::JSONRPCError;
 use mcp_types::JSONRPCErrorError;
@@ -17,6 +16,7 @@ use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use tracing::warn;
+use tunacode_protocol::mcp_protocol::ServerNotification;
 
 use crate::error_code::INTERNAL_ERROR_CODE;
 
@@ -205,9 +205,9 @@ pub(crate) struct OutgoingError {
 
 #[cfg(test)]
 mod tests {
-    use tunacode_protocol::mcp_protocol::LoginChatGptCompleteNotification;
     use pretty_assertions::assert_eq;
     use serde_json::json;
+    use tunacode_protocol::mcp_protocol::LoginChatGptCompleteNotification;
     use uuid::Uuid;
 
     use super::*;

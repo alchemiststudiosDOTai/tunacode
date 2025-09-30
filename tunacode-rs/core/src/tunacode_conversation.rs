@@ -1,8 +1,8 @@
-use crate::tunacode::tunacode;
 use crate::error::Result as tunacodeResult;
 use crate::protocol::Event;
 use crate::protocol::Op;
 use crate::protocol::Submission;
+use crate::tunacode::tunacode;
 
 pub struct tunacodeConversation {
     tunacode: tunacode,

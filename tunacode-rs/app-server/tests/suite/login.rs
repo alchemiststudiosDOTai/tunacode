@@ -3,6 +3,10 @@ use std::time::Duration;
 
 use app_test_support::McpProcess;
 use app_test_support::to_response;
+use mcp_types::JSONRPCResponse;
+use mcp_types::RequestId;
+use tempfile::TempDir;
+use tokio::time::timeout;
 use tunacode_login::login_with_api_key;
 use tunacode_protocol::mcp_protocol::CancelLoginChatGptParams;
 use tunacode_protocol::mcp_protocol::CancelLoginChatGptResponse;
@@ -10,10 +14,6 @@ use tunacode_protocol::mcp_protocol::GetAuthStatusParams;
 use tunacode_protocol::mcp_protocol::GetAuthStatusResponse;
 use tunacode_protocol::mcp_protocol::LoginChatGptResponse;
 use tunacode_protocol::mcp_protocol::LogoutChatGptResponse;
-use mcp_types::JSONRPCResponse;
-use mcp_types::RequestId;
-use tempfile::TempDir;
-use tokio::time::timeout;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
@@ -95,7 +95,8 @@ async fn logout_chatgpt_removes_auth() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn login_and_cancel_chatgpt() {
     let tunacode_home = TempDir::new().unwrap_or_else(|e| panic!("create tempdir: {e}"));
-    create_config_toml(tunacode_home.path()).unwrap_or_else(|err| panic!("write config.toml: {err}"));
+    create_config_toml(tunacode_home.path())
+        .unwrap_or_else(|err| panic!("write config.toml: {err}"));
 
     let mut mcp = McpProcess::new(tunacode_home.path())
         .await

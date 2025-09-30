@@ -2,10 +2,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use tunacode_core::tunacodeConversation;
-use tunacode_core::protocol::FileChange;
-use tunacode_core::protocol::Op;
-use tunacode_core::protocol::ReviewDecision;
 use mcp_types::ElicitRequest;
 use mcp_types::ElicitRequestParamsRequestedSchema;
 use mcp_types::JSONRPCErrorError;
@@ -15,9 +11,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
 use tracing::error;
+use tunacode_core::protocol::FileChange;
+use tunacode_core::protocol::Op;
+use tunacode_core::protocol::ReviewDecision;
+use tunacode_core::tunacodeConversation;
 
-use crate::tunacode_tool_runner::INVALID_PARAMS_ERROR_CODE;
 use crate::outgoing_message::OutgoingMessageSender;
+use crate::tunacode_tool_runner::INVALID_PARAMS_ERROR_CODE;
 
 #[derive(Debug, Serialize)]
 pub struct PatchApprovalElicitRequestParams {

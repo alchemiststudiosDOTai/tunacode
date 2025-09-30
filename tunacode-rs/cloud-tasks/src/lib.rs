@@ -148,7 +148,10 @@ fn spawn_apply(
 // (no standalone patch summarizer needed – UI displays raw diffs)
 
 /// Entry point for the `tunacode cloud` subcommand.
-pub async fn run_main(_cli: Cli, _tunacode_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()> {
+pub async fn run_main(
+    _cli: Cli,
+    _tunacode_linux_sandbox_exe: Option<PathBuf>,
+) -> anyhow::Result<()> {
     // Very minimal logging setup; mirrors other crates' pattern.
     let default_level = "error";
     let _ = tracing_subscriber::fmt()
@@ -1593,13 +1596,13 @@ fn pretty_lines_from_error(raw: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use tunacode_tui::ComposerAction;
-    use tunacode_tui::ComposerInput;
     use crossterm::event::KeyCode;
     use crossterm::event::KeyEvent;
     use crossterm::event::KeyModifiers;
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
+    use tunacode_tui::ComposerAction;
+    use tunacode_tui::ComposerInput;
 
     #[test]
     fn composer_input_renders_typed_characters() {

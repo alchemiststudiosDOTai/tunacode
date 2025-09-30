@@ -1,12 +1,5 @@
 #![allow(clippy::unwrap_used)]
 
-use tunacode_core::AuthManager;
-use tunacode_core::auth::CLIENT_ID;
-use tunacode_core::auth::login_with_api_key;
-use tunacode_core::auth::read_openai_api_key_from_env;
-use tunacode_login::ServerOptions;
-use tunacode_login::ShutdownHandle;
-use tunacode_login::run_login_server;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyModifiers;
@@ -26,9 +19,16 @@ use ratatui::widgets::Borders;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::WidgetRef;
 use ratatui::widgets::Wrap;
+use tunacode_core::AuthManager;
+use tunacode_core::auth::CLIENT_ID;
+use tunacode_core::auth::login_with_api_key;
+use tunacode_core::auth::read_openai_api_key_from_env;
+use tunacode_login::ServerOptions;
+use tunacode_login::ShutdownHandle;
+use tunacode_login::run_login_server;
 
-use tunacode_protocol::mcp_protocol::AuthMode;
 use std::sync::RwLock;
+use tunacode_protocol::mcp_protocol::AuthMode;
 
 use crate::LoginStatus;
 use crate::onboarding::onboarding_screen::KeyboardHandler;

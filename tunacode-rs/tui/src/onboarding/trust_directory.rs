@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use tunacode_core::config::set_project_trusted;
-use tunacode_core::git_info::resolve_root_git_project_for_trust;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
@@ -14,6 +12,8 @@ use ratatui::text::Line;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::WidgetRef;
 use ratatui::widgets::Wrap;
+use tunacode_core::config::set_project_trusted;
+use tunacode_core::git_info::resolve_root_git_project_for_trust;
 
 use crate::onboarding::onboarding_screen::KeyboardHandler;
 use crate::onboarding::onboarding_screen::StepStateProvider;

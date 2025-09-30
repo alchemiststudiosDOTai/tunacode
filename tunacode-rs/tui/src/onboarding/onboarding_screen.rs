@@ -1,6 +1,3 @@
-use tunacode_core::AuthManager;
-use tunacode_core::config::Config;
-use tunacode_core::git_info::get_git_repo_root;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -10,6 +7,9 @@ use ratatui::prelude::Widget;
 use ratatui::style::Color;
 use ratatui::widgets::Clear;
 use ratatui::widgets::WidgetRef;
+use tunacode_core::AuthManager;
+use tunacode_core::config::Config;
+use tunacode_core::git_info::get_git_repo_root;
 
 use tunacode_protocol::mcp_protocol::AuthMode;
 

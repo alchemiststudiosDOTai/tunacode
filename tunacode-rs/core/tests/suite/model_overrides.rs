@@ -1,12 +1,12 @@
-use tunacode_core::tunacodeAuth;
-use tunacode_core::ConversationManager;
-use tunacode_core::protocol::EventMsg;
-use tunacode_core::protocol::Op;
-use tunacode_core::protocol_config_types::ReasoningEffort;
 use core_test_support::load_default_config_for_test;
 use core_test_support::wait_for_event;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
+use tunacode_core::ConversationManager;
+use tunacode_core::protocol::EventMsg;
+use tunacode_core::protocol::Op;
+use tunacode_core::protocol_config_types::ReasoningEffort;
+use tunacode_core::tunacodeAuth;
 
 const CONFIG_TOML: &str = "config.toml";
 
@@ -42,7 +42,10 @@ async fn override_turn_context_does_not_persist_when_config_exists() {
         .await
         .expect("submit override");
 
-    tunacode.submit(Op::Shutdown).await.expect("request shutdown");
+    tunacode
+        .submit(Op::Shutdown)
+        .await
+        .expect("request shutdown");
     wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::ShutdownComplete)).await;
 
     let contents = tokio::fs::read_to_string(&config_path)
@@ -82,7 +85,10 @@ async fn override_turn_context_does_not_create_config_file() {
         .await
         .expect("submit override");
 
-    tunacode.submit(Op::Shutdown).await.expect("request shutdown");
+    tunacode
+        .submit(Op::Shutdown)
+        .await
+        .expect("request shutdown");
     wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::ShutdownComplete)).await;
 
     assert!(

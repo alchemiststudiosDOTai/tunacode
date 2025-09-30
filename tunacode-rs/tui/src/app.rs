@@ -8,15 +8,6 @@ use crate::pager_overlay::Overlay;
 use crate::resume_picker::ResumeSelection;
 use crate::tui;
 use crate::tui::TuiEvent;
-use tunacode_ansi_escape::ansi_escape_line;
-use tunacode_core::AuthManager;
-use tunacode_core::ConversationManager;
-use tunacode_core::config::Config;
-use tunacode_core::config::persist_model_selection;
-use tunacode_core::model_family::find_family_for_model;
-use tunacode_core::protocol::TokenUsage;
-use tunacode_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
-use tunacode_protocol::mcp_protocol::ConversationId;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::WrapErr;
 use crossterm::event::KeyCode;
@@ -32,6 +23,15 @@ use std::thread;
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::mpsc::unbounded_channel;
+use tunacode_ansi_escape::ansi_escape_line;
+use tunacode_core::AuthManager;
+use tunacode_core::ConversationManager;
+use tunacode_core::config::Config;
+use tunacode_core::config::persist_model_selection;
+use tunacode_core::model_family::find_family_for_model;
+use tunacode_core::protocol::TokenUsage;
+use tunacode_core::protocol_config_types::ReasoningEffort as ReasoningEffortConfig;
+use tunacode_protocol::mcp_protocol::ConversationId;
 // use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -447,15 +447,15 @@ mod tests {
     use crate::history_cell::HistoryCell;
     use crate::history_cell::UserHistoryCell;
     use crate::history_cell::new_session_info;
-    use tunacode_core::AuthManager;
-    use tunacode_core::tunacodeAuth;
-    use tunacode_core::ConversationManager;
-    use tunacode_core::protocol::SessionConfiguredEvent;
-    use tunacode_protocol::mcp_protocol::ConversationId;
     use ratatui::prelude::Line;
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
+    use tunacode_core::AuthManager;
+    use tunacode_core::ConversationManager;
+    use tunacode_core::protocol::SessionConfiguredEvent;
+    use tunacode_core::tunacodeAuth;
+    use tunacode_protocol::mcp_protocol::ConversationId;
 
     fn make_test_app() -> App {
         let (chat_widget, app_event_tx, _rx, _op_rx) = make_chatwidget_manual_with_sender();

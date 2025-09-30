@@ -1,7 +1,7 @@
 use clap::Parser;
+use std::path::PathBuf;
 use tunacode_common::ApprovalModeCliArg;
 use tunacode_common::CliConfigOverrides;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(version)]

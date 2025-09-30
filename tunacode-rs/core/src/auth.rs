@@ -239,7 +239,9 @@ fn load_auth(tunacode_home: &Path) -> std::io::Result<Option<tunacodeAuth>> {
 
     // Prefer AuthMode.ApiKey if it's set in the auth.json.
     if let Some(api_key) = &auth_json_api_key {
-        return Ok(Some(tunacodeAuth::from_api_key_with_client(api_key, client)));
+        return Ok(Some(tunacodeAuth::from_api_key_with_client(
+            api_key, client,
+        )));
     }
 
     Ok(Some(tunacodeAuth {
@@ -585,7 +587,9 @@ impl AuthManager {
     /// simply return `None` in that case so callers can treat it as an
     /// unauthenticated state.
     pub fn new(tunacode_home: PathBuf) -> Self {
-        let auth = tunacodeAuth::from_tunacode_home(&tunacode_home).ok().flatten();
+        let auth = tunacodeAuth::from_tunacode_home(&tunacode_home)
+            .ok()
+            .flatten();
         Self {
             tunacode_home,
             inner: RwLock::new(CachedAuth { auth }),
@@ -609,7 +613,9 @@ impl AuthManager {
     /// Force a reload of the auth information from auth.json. Returns
     /// whether the auth value changed.
     pub fn reload(&self) -> bool {
-        let new_auth = tunacodeAuth::from_tunacode_home(&self.tunacode_home).ok().flatten();
+        let new_auth = tunacodeAuth::from_tunacode_home(&self.tunacode_home)
+            .ok()
+            .flatten();
         if let Ok(mut guard) = self.inner.write() {
             let changed = !AuthManager::auths_equal(&guard.auth, &new_auth);
             guard.auth = new_auth;

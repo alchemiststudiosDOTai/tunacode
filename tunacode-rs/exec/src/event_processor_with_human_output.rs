@@ -1,3 +1,10 @@
+use owo_colors::OwoColorize;
+use owo_colors::Style;
+use shlex::try_join;
+use std::collections::HashMap;
+use std::io::Write;
+use std::path::PathBuf;
+use std::time::Instant;
 use tunacode_common::elapsed::format_duration;
 use tunacode_common::elapsed::format_elapsed;
 use tunacode_core::config::Config;
@@ -27,16 +34,9 @@ use tunacode_core::protocol::TurnDiffEvent;
 use tunacode_core::protocol::WebSearchBeginEvent;
 use tunacode_core::protocol::WebSearchEndEvent;
 use tunacode_protocol::num_format::format_with_separators;
-use owo_colors::OwoColorize;
-use owo_colors::Style;
-use shlex::try_join;
-use std::collections::HashMap;
-use std::io::Write;
-use std::path::PathBuf;
-use std::time::Instant;
 
-use crate::event_processor::TunacodeStatus;
 use crate::event_processor::EventProcessor;
+use crate::event_processor::TunacodeStatus;
 use crate::event_processor::handle_last_message;
 use tunacode_common::create_config_summary_entries;
 
@@ -201,7 +201,11 @@ impl EventProcessor for EventProcessorWithHumanOutput {
             }
             EventMsg::AgentMessageDelta(AgentMessageDeltaEvent { delta }) => {
                 if !self.answer_started {
-                    ts_println!(self, "{}\n", "tunacode".style(self.italic).style(self.magenta));
+                    ts_println!(
+                        self,
+                        "{}\n",
+                        "tunacode".style(self.italic).style(self.magenta)
+                    );
                     self.answer_started = true;
                 }
                 print!("{delta}");

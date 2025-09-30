@@ -21,7 +21,8 @@ use std::sync::OnceLock;
 /// Parenthesis will be added by tunacode. This should only specify what goes inside of the parenthesis.
 pub static USER_AGENT_SUFFIX: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
 
-pub const tunacode_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "tunacode_INTERNAL_ORIGINATOR_OVERRIDE";
+pub const tunacode_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str =
+    "tunacode_INTERNAL_ORIGINATOR_OVERRIDE";
 #[derive(Debug, Clone)]
 pub struct Originator {
     pub value: String,

@@ -2,6 +2,10 @@ use super::new_status_output;
 use super::rate_limit_snapshot_display;
 use crate::history_cell::HistoryCell;
 use chrono::TimeZone;
+use insta::assert_snapshot;
+use ratatui::prelude::*;
+use std::path::PathBuf;
+use tempfile::TempDir;
 use tunacode_core::config::Config;
 use tunacode_core::config::ConfigOverrides;
 use tunacode_core::config::ConfigToml;
@@ -11,10 +15,6 @@ use tunacode_core::protocol::SandboxPolicy;
 use tunacode_core::protocol::TokenUsage;
 use tunacode_protocol::config_types::ReasoningEffort;
 use tunacode_protocol::config_types::ReasoningSummary;
-use insta::assert_snapshot;
-use ratatui::prelude::*;
-use std::path::PathBuf;
-use tempfile::TempDir;
 
 fn test_config(temp_home: &TempDir) -> Config {
     Config::load_from_base_config_with_overrides(

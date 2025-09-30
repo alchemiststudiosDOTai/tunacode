@@ -15,13 +15,13 @@ use std::time::Duration;
 
 use anyhow::Context;
 use anyhow::Result;
-use tunacode_mcp_client::McpClient;
 use mcp_types::ClientCapabilities;
 use mcp_types::Implementation;
 use mcp_types::InitializeRequestParams;
 use mcp_types::ListToolsRequestParams;
 use mcp_types::MCP_SCHEMA_VERSION;
 use tracing_subscriber::EnvFilter;
+use tunacode_mcp_client::McpClient;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -41,7 +41,9 @@ async fn main() -> Result<()> {
     let mut args: Vec<OsString> = std::env::args_os().skip(1).collect();
 
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
-        eprintln!("Usage: mcp-client <program> [args..]\n\nExample: mcp-client tunacode-mcp-server");
+        eprintln!(
+            "Usage: mcp-client <program> [args..]\n\nExample: mcp-client tunacode-mcp-server"
+        );
         std::process::exit(1);
     }
     let original_args = args.clone();

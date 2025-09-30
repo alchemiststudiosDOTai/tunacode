@@ -1,8 +1,8 @@
-use tunacode_chatgpt::apply_command::apply_diff_from_task;
-use tunacode_chatgpt::get_task::GetTaskResponse;
 use std::path::Path;
 use tempfile::TempDir;
 use tokio::process::Command;
+use tunacode_chatgpt::apply_command::apply_diff_from_task;
+use tunacode_chatgpt::get_task::GetTaskResponse;
 
 /// Creates a temporary git repository with initial commit
 async fn create_temp_git_repo() -> anyhow::Result<TempDir> {

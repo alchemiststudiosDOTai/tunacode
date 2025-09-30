@@ -1,10 +1,10 @@
 use assert_cmd::Command as AssertCommand;
-use tunacode_core::RolloutRecorder;
-use tunacode_core::protocol::GitInfo;
 use core_test_support::skip_if_no_network;
 use std::time::Duration;
 use std::time::Instant;
 use tempfile::TempDir;
+use tunacode_core::RolloutRecorder;
+use tunacode_core::protocol::GitInfo;
 use uuid::Uuid;
 use walkdir::WalkDir;
 use wiremock::Mock;

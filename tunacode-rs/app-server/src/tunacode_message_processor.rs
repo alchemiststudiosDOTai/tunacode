@@ -3,8 +3,22 @@ use crate::error_code::INVALID_REQUEST_ERROR_CODE;
 use crate::fuzzy_file_search::run_fuzzy_file_search;
 use crate::outgoing_message::OutgoingMessageSender;
 use crate::outgoing_message::OutgoingNotification;
+use mcp_types::JSONRPCErrorError;
+use mcp_types::RequestId;
+use std::collections::HashMap;
+use std::ffi::OsStr;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
+use tokio::select;
+use tokio::sync::Mutex;
+use tokio::sync::oneshot;
+use tracing::error;
+use tracing::info;
+use tracing::warn;
 use tunacode_core::AuthManager;
-use tunacode_core::tunacodeConversation;
 use tunacode_core::ConversationManager;
 use tunacode_core::Cursor as RolloutCursor;
 use tunacode_core::NewConversation;
@@ -33,6 +47,7 @@ use tunacode_core::protocol::ExecApprovalRequestEvent;
 use tunacode_core::protocol::InputItem as CoreInputItem;
 use tunacode_core::protocol::Op;
 use tunacode_core::protocol::ReviewDecision;
+use tunacode_core::tunacodeConversation;
 use tunacode_login::ServerOptions as LoginServerOptions;
 use tunacode_login::ShutdownHandle;
 use tunacode_login::run_login_server;
@@ -86,21 +101,6 @@ use tunacode_protocol::models::ResponseItem;
 use tunacode_protocol::protocol::InputMessageKind;
 use tunacode_protocol::protocol::USER_MESSAGE_BEGIN;
 use tunacode_utils_json_to_toml::json_to_toml;
-use mcp_types::JSONRPCErrorError;
-use mcp_types::RequestId;
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
-use std::time::Duration;
-use tokio::select;
-use tokio::sync::Mutex;
-use tokio::sync::oneshot;
-use tracing::error;
-use tracing::info;
-use tracing::warn;
 use uuid::Uuid;
 
 // Duration before a ChatGPT login attempt is abandoned.
@@ -637,18 +637,19 @@ impl TunacodeMessageProcessor {
     }
 
     async fn process_new_conversation(&self, request_id: RequestId, params: NewConversationParams) {
-        let config = match derive_config_from_params(params, self.tunacode_linux_sandbox_exe.clone()) {
-            Ok(config) => config,
-            Err(err) => {
-                let error = JSONRPCErrorError {
-                    code: INVALID_REQUEST_ERROR_CODE,
-                    message: format!("error deriving config: {err}"),
-                    data: None,
-                };
-                self.outgoing.send_error(request_id, error).await;
-                return;
-            }
-        };
+        let config =
+            match derive_config_from_params(params, self.tunacode_linux_sandbox_exe.clone()) {
+                Ok(config) => config,
+                Err(err) => {
+                    let error = JSONRPCErrorError {
+                        code: INVALID_REQUEST_ERROR_CODE,
+                        message: format!("error deriving config: {err}"),
+                        data: None,
+                    };
+                    self.outgoing.send_error(request_id, error).await;
+                    return;
+                }
+            };
 
         match self.conversation_manager.new_conversation(config).await {
             Ok(conversation_id) => {
@@ -819,7 +820,10 @@ impl TunacodeMessageProcessor {
 
         // Verify that the rollout path is in the sessions directory or else
         // a malicious client could specify an arbitrary path.
-        let rollout_folder = self.config.tunacode_home.join(tunacode_core::SESSIONS_SUBDIR);
+        let rollout_folder = self
+            .config
+            .tunacode_home
+            .join(tunacode_core::SESSIONS_SUBDIR);
         let canonical_rollout_path = tokio::fs::canonicalize(&rollout_path).await;
         let canonical_rollout_path = if let Ok(path) = canonical_rollout_path
             && path.starts_with(&rollout_folder)

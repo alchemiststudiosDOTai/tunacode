@@ -9,7 +9,12 @@ use crate::exec_approval::handle_exec_approval_request;
 use crate::outgoing_message::OutgoingMessageSender;
 use crate::outgoing_message::OutgoingNotificationMeta;
 use crate::patch_approval::handle_patch_approval_request;
-use tunacode_core::tunacodeConversation;
+use mcp_types::CallToolResult;
+use mcp_types::ContentBlock;
+use mcp_types::RequestId;
+use mcp_types::TextContent;
+use serde_json::json;
+use tokio::sync::Mutex;
 use tunacode_core::ConversationManager;
 use tunacode_core::NewConversation;
 use tunacode_core::config::Config as tunacodeConfig;
@@ -22,13 +27,8 @@ use tunacode_core::protocol::InputItem;
 use tunacode_core::protocol::Op;
 use tunacode_core::protocol::Submission;
 use tunacode_core::protocol::TaskCompleteEvent;
+use tunacode_core::tunacodeConversation;
 use tunacode_protocol::mcp_protocol::ConversationId;
-use mcp_types::CallToolResult;
-use mcp_types::ContentBlock;
-use mcp_types::RequestId;
-use mcp_types::TextContent;
-use serde_json::json;
-use tokio::sync::Mutex;
 
 pub(crate) const INVALID_PARAMS_ERROR_CODE: i64 = -32602;
 
@@ -100,7 +100,10 @@ pub async fn run_tunacode_tool_session(
     if let Err(e) = conversation.submit_with_id(submission).await {
         tracing::error!("Failed to submit initial prompt: {e}");
         // unregister the id so we don't keep it in the map
-        running_requests_id_to_tunacode_uuid.lock().await.remove(&id);
+        running_requests_id_to_tunacode_uuid
+            .lock()
+            .await
+            .remove(&id);
         return;
     }
 

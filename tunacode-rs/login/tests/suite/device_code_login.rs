@@ -2,15 +2,15 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use tunacode_core::auth::get_auth_file;
-use tunacode_core::auth::try_read_auth_json;
-use tunacode_login::ServerOptions;
-use tunacode_login::run_device_code_login;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use tempfile::tempdir;
+use tunacode_core::auth::get_auth_file;
+use tunacode_core::auth::try_read_auth_json;
+use tunacode_login::ServerOptions;
+use tunacode_login::run_device_code_login;
 use wiremock::Mock;
 use wiremock::MockServer;
 use wiremock::Request;

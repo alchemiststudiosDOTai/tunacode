@@ -1,15 +1,15 @@
 use std::mem::swap;
 use std::sync::Arc;
 
-use tunacode_core::tunacodeAuth;
-use tunacode_core::tunacodeConversation;
+use tempfile::TempDir;
 use tunacode_core::ConversationManager;
 use tunacode_core::ModelProviderInfo;
 use tunacode_core::NewConversation;
 use tunacode_core::built_in_model_providers;
 use tunacode_core::config::Config;
 use tunacode_core::protocol::SessionConfiguredEvent;
-use tempfile::TempDir;
+use tunacode_core::tunacodeAuth;
+use tunacode_core::tunacodeConversation;
 
 use crate::load_default_config_for_test;
 
@@ -45,7 +45,8 @@ impl TesttunacodeBuilder {
         for mutator in mutators {
             mutator(&mut config)
         }
-        let conversation_manager = ConversationManager::with_auth(tunacodeAuth::from_api_key("dummy"));
+        let conversation_manager =
+            ConversationManager::with_auth(tunacodeAuth::from_api_key("dummy"));
         let NewConversation {
             conversation,
             session_configured,

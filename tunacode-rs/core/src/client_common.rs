@@ -3,11 +3,6 @@ use crate::model_family::ModelFamily;
 use crate::openai_tools::OpenAiTool;
 use crate::protocol::RateLimitSnapshot;
 use crate::protocol::TokenUsage;
-use tunacode_apply_patch::APPLY_PATCH_TOOL_INSTRUCTIONS;
-use tunacode_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
-use tunacode_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
-use tunacode_protocol::config_types::Verbosity as VerbosityConfig;
-use tunacode_protocol::models::ResponseItem;
 use futures::Stream;
 use serde::Serialize;
 use serde_json::Value;
@@ -17,6 +12,11 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 use tokio::sync::mpsc;
+use tunacode_apply_patch::APPLY_PATCH_TOOL_INSTRUCTIONS;
+use tunacode_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
+use tunacode_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
+use tunacode_protocol::config_types::Verbosity as VerbosityConfig;
+use tunacode_protocol::models::ResponseItem;
 
 /// Review thread system prompt. Edit `core/src/review_prompt.md` to customize.
 pub const REVIEW_PROMPT: &str = include_str!("../review_prompt.md");

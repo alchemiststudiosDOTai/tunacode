@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use tunacode_core::tunacodeConversation;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::unbounded_channel;
 use tunacode_core::ConversationManager;
 use tunacode_core::NewConversation;
 use tunacode_core::config::Config;
 use tunacode_core::protocol::Op;
-use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::mpsc::unbounded_channel;
+use tunacode_core::tunacodeConversation;
 
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;

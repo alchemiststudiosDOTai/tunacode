@@ -6,12 +6,12 @@
 //!      key. These override or extend the defaults at runtime.
 
 use crate::tunacodeAuth;
-use tunacode_protocol::mcp_protocol::AuthMode;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env::VarError;
 use std::time::Duration;
+use tunacode_protocol::mcp_protocol::AuthMode;
 
 use crate::error::EnvVarError;
 const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;

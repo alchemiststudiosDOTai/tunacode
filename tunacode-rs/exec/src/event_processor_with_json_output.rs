@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use serde_json::json;
 use tunacode_core::config::Config;
 use tunacode_core::protocol::Event;
 use tunacode_core::protocol::EventMsg;
 use tunacode_core::protocol::SessionConfiguredEvent;
 use tunacode_core::protocol::TaskCompleteEvent;
-use serde_json::json;
 
-use crate::event_processor::TunacodeStatus;
 use crate::event_processor::EventProcessor;
+use crate::event_processor::TunacodeStatus;
 use crate::event_processor::handle_last_message;
 use tunacode_common::create_config_summary_entries;
 

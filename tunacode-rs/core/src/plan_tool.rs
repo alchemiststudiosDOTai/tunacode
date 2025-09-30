@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
-use crate::tunacode::Session;
 use crate::function_tool::FunctionCallError;
 use crate::openai_tools::JsonSchema;
 use crate::openai_tools::OpenAiTool;
 use crate::openai_tools::ResponsesApiTool;
 use crate::protocol::Event;
 use crate::protocol::EventMsg;
+use crate::tunacode::Session;
 
 // Use the canonical plan tool types from the protocol crate to ensure
 // type-identity matches events transported via `tunacode_protocol`.

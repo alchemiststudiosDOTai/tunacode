@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use crate::tunacode::TurnContext;
-use crate::tunacode::compact;
 use crate::protocol::InputItem;
 use crate::state::TaskKind;
+use crate::tunacode::TurnContext;
+use crate::tunacode::compact;
 
 use super::SessionTask;
 use super::SessionTaskContext;

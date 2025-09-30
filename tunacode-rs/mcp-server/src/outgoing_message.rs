@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicI64;
 use std::sync::atomic::Ordering;
 
-use tunacode_core::protocol::Event;
 use mcp_types::JSONRPC_VERSION;
 use mcp_types::JSONRPCError;
 use mcp_types::JSONRPCErrorError;
@@ -17,6 +16,7 @@ use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use tracing::warn;
+use tunacode_core::protocol::Event;
 
 use crate::error_code::INTERNAL_ERROR_CODE;
 
@@ -232,13 +232,13 @@ pub(crate) struct OutgoingError {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+    use tempfile::NamedTempFile;
     use tunacode_core::protocol::EventMsg;
     use tunacode_core::protocol::SessionConfiguredEvent;
     use tunacode_protocol::config_types::ReasoningEffort;
     use tunacode_protocol::mcp_protocol::ConversationId;
-    use pretty_assertions::assert_eq;
-    use serde_json::json;
-    use tempfile::NamedTempFile;
 
     use super::*;
 

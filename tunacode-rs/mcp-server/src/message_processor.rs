@@ -1,20 +1,14 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::error_code::INVALID_REQUEST_ERROR_CODE;
+use crate::outgoing_message::OutgoingMessageSender;
 use crate::tunacode_tool_config::TunacodeToolCallParam;
 use crate::tunacode_tool_config::TunacodeToolCallReplyParam;
 use crate::tunacode_tool_config::create_tool_for_tunacode_tool_call_param;
 use crate::tunacode_tool_config::create_tool_for_tunacode_tool_call_reply_param;
-use crate::error_code::INVALID_REQUEST_ERROR_CODE;
-use crate::outgoing_message::OutgoingMessageSender;
 use tunacode_protocol::mcp_protocol::ConversationId;
 
-use tunacode_core::AuthManager;
-use tunacode_core::ConversationManager;
-use tunacode_core::config::Config;
-use tunacode_core::default_client::USER_AGENT_SUFFIX;
-use tunacode_core::default_client::get_tunacode_user_agent;
-use tunacode_core::protocol::Submission;
 use mcp_types::CallToolRequestParams;
 use mcp_types::CallToolResult;
 use mcp_types::ClientRequest as McpClientRequest;
@@ -34,6 +28,12 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
+use tunacode_core::AuthManager;
+use tunacode_core::ConversationManager;
+use tunacode_core::config::Config;
+use tunacode_core::default_client::USER_AGENT_SUFFIX;
+use tunacode_core::default_client::get_tunacode_user_agent;
+use tunacode_core::protocol::Submission;
 
 pub(crate) struct MessageProcessor {
     outgoing: Arc<OutgoingMessageSender>,
@@ -340,7 +340,8 @@ impl MessageProcessor {
     async fn handle_tool_call_tunacode(&self, id: RequestId, arguments: Option<serde_json::Value>) {
         let (initial_prompt, config): (String, Config) = match arguments {
             Some(json_val) => match serde_json::from_value::<TunacodeToolCallParam>(json_val) {
-                Ok(tool_cfg) => match tool_cfg.into_config(self.tunacode_linux_sandbox_exe.clone()) {
+                Ok(tool_cfg) => match tool_cfg.into_config(self.tunacode_linux_sandbox_exe.clone())
+                {
                     Ok(cfg) => cfg,
                     Err(e) => {
                         let result = CallToolResult {
@@ -395,7 +396,8 @@ impl MessageProcessor {
         // Clone outgoing and server to move into async task.
         let outgoing = self.outgoing.clone();
         let conversation_manager = self.conversation_manager.clone();
-        let running_requests_id_to_tunacode_uuid = self.running_requests_id_to_tunacode_uuid.clone();
+        let running_requests_id_to_tunacode_uuid =
+            self.running_requests_id_to_tunacode_uuid.clone();
 
         // Spawn an async task to handle the tunacode session so that we do not
         // block the synchronous message-processing loop.
@@ -425,24 +427,28 @@ impl MessageProcessor {
             conversation_id,
             prompt,
         } = match arguments {
-            Some(json_val) => match serde_json::from_value::<TunacodeToolCallReplyParam>(json_val) {
-                Ok(params) => params,
-                Err(e) => {
-                    tracing::error!("Failed to parse tunacode tool call reply parameters: {e}");
-                    let result = CallToolResult {
-                        content: vec![ContentBlock::TextContent(TextContent {
-                            r#type: "text".to_owned(),
-                            text: format!("Failed to parse configuration for tunacode tool: {e}"),
-                            annotations: None,
-                        })],
-                        is_error: Some(true),
-                        structured_content: None,
-                    };
-                    self.send_response::<mcp_types::CallToolRequest>(request_id, result)
-                        .await;
-                    return;
+            Some(json_val) => {
+                match serde_json::from_value::<TunacodeToolCallReplyParam>(json_val) {
+                    Ok(params) => params,
+                    Err(e) => {
+                        tracing::error!("Failed to parse tunacode tool call reply parameters: {e}");
+                        let result = CallToolResult {
+                            content: vec![ContentBlock::TextContent(TextContent {
+                                r#type: "text".to_owned(),
+                                text: format!(
+                                    "Failed to parse configuration for tunacode tool: {e}"
+                                ),
+                                annotations: None,
+                            })],
+                            is_error: Some(true),
+                            structured_content: None,
+                        };
+                        self.send_response::<mcp_types::CallToolRequest>(request_id, result)
+                            .await;
+                        return;
+                    }
                 }
-            },
+            }
             None => {
                 tracing::error!(
                     "Missing arguments for tunacode-reply tool-call; the `conversation_id` and `prompt` fields are required."
@@ -482,7 +488,8 @@ impl MessageProcessor {
 
         // Clone outgoing to move into async task.
         let outgoing = self.outgoing.clone();
-        let running_requests_id_to_tunacode_uuid = self.running_requests_id_to_tunacode_uuid.clone();
+        let running_requests_id_to_tunacode_uuid =
+            self.running_requests_id_to_tunacode_uuid.clone();
 
         let tunacode = match self
             .conversation_manager

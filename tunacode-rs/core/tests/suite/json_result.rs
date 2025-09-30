@@ -1,11 +1,5 @@
 #![cfg(not(target_os = "windows"))]
 
-use tunacode_core::protocol::AskForApproval;
-use tunacode_core::protocol::EventMsg;
-use tunacode_core::protocol::InputItem;
-use tunacode_core::protocol::Op;
-use tunacode_core::protocol::SandboxPolicy;
-use tunacode_protocol::config_types::ReasoningSummary;
 use core_test_support::responses;
 use core_test_support::skip_if_no_network;
 use core_test_support::test_tunacode::Testtunacode;
@@ -16,6 +10,12 @@ use responses::ev_assistant_message;
 use responses::ev_completed;
 use responses::sse;
 use responses::start_mock_server;
+use tunacode_core::protocol::AskForApproval;
+use tunacode_core::protocol::EventMsg;
+use tunacode_core::protocol::InputItem;
+use tunacode_core::protocol::Op;
+use tunacode_core::protocol::SandboxPolicy;
+use tunacode_protocol::config_types::ReasoningSummary;
 
 const SCHEMA: &str = r#"
 {

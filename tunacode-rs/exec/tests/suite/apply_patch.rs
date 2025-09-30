@@ -2,7 +2,6 @@
 
 use anyhow::Context;
 use assert_cmd::prelude::*;
-use tunacode_core::tunacode_APPLY_PATCH_ARG1;
 use core_test_support::responses::ev_apply_patch_custom_tool_call;
 use core_test_support::responses::ev_apply_patch_function_call;
 use core_test_support::responses::ev_completed;
@@ -12,6 +11,7 @@ use core_test_support::responses::start_mock_server;
 use std::fs;
 use std::process::Command;
 use tempfile::tempdir;
+use tunacode_core::tunacode_APPLY_PATCH_ARG1;
 
 /// While we may add an `apply-patch` subcommand to the `tunacode` CLI multitool
 /// at some point, we must ensure that the smaller `tunacode-exec` CLI can still

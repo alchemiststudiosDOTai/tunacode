@@ -1,6 +1,4 @@
 #![cfg(unix)]
-use tunacode_core::protocol::SandboxPolicy;
-use tunacode_core::spawn::StdioPolicy;
 use std::collections::HashMap;
 use std::future::Future;
 use std::io;
@@ -9,6 +7,8 @@ use std::path::PathBuf;
 use std::process::ExitStatus;
 use tokio::fs::create_dir_all;
 use tokio::process::Child;
+use tunacode_core::protocol::SandboxPolicy;
+use tunacode_core::spawn::StdioPolicy;
 
 #[cfg(target_os = "macos")]
 async fn spawn_command_under_sandbox(

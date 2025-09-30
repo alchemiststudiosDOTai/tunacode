@@ -9,19 +9,6 @@
 
 use super::compact::FIRST_REPLY;
 use super::compact::SUMMARY_TEXT;
-use tunacode_core::tunacodeAuth;
-use tunacode_core::tunacodeConversation;
-use tunacode_core::ConversationManager;
-use tunacode_core::ModelProviderInfo;
-use tunacode_core::NewConversation;
-use tunacode_core::built_in_model_providers;
-use tunacode_core::tunacode::compact::SUMMARIZATION_PROMPT;
-use tunacode_core::config::Config;
-use tunacode_core::protocol::ConversationPathResponseEvent;
-use tunacode_core::protocol::EventMsg;
-use tunacode_core::protocol::InputItem;
-use tunacode_core::protocol::Op;
-use tunacode_core::spawn::TUNACODE_SANDBOX_NETWORK_DISABLED_ENV_VAR;
 use core_test_support::load_default_config_for_test;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
@@ -33,6 +20,19 @@ use serde_json::Value;
 use serde_json::json;
 use std::sync::Arc;
 use tempfile::TempDir;
+use tunacode_core::ConversationManager;
+use tunacode_core::ModelProviderInfo;
+use tunacode_core::NewConversation;
+use tunacode_core::built_in_model_providers;
+use tunacode_core::config::Config;
+use tunacode_core::protocol::ConversationPathResponseEvent;
+use tunacode_core::protocol::EventMsg;
+use tunacode_core::protocol::InputItem;
+use tunacode_core::protocol::Op;
+use tunacode_core::spawn::TUNACODE_SANDBOX_NETWORK_DISABLED_ENV_VAR;
+use tunacode_core::tunacode::compact::SUMMARIZATION_PROMPT;
+use tunacode_core::tunacodeAuth;
+use tunacode_core::tunacodeConversation;
 use wiremock::MockServer;
 
 const AFTER_SECOND_RESUME: &str = "AFTER_SECOND_RESUME";
@@ -754,7 +754,12 @@ async fn mount_second_compact_flow(server: &MockServer) {
 
 async fn start_test_conversation(
     server: &MockServer,
-) -> (TempDir, Config, ConversationManager, Arc<tunacodeConversation>) {
+) -> (
+    TempDir,
+    Config,
+    ConversationManager,
+    Arc<tunacodeConversation>,
+) {
     let model_provider = ModelProviderInfo {
         base_url: Some(format!("{}/v1", server.uri())),
         ..built_in_model_providers()["openai"].clone()

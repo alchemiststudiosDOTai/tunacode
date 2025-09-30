@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
 
-use crate::event_processor::TunacodeStatus;
 use crate::event_processor::EventProcessor;
+use crate::event_processor::TunacodeStatus;
 use crate::event_processor::handle_last_message;
 use crate::exec_events::AssistantMessageItem;
 use crate::exec_events::CommandExecutionItem;
@@ -29,6 +29,8 @@ use crate::exec_events::TurnCompletedEvent;
 use crate::exec_events::TurnFailedEvent;
 use crate::exec_events::TurnStartedEvent;
 use crate::exec_events::Usage;
+use tracing::error;
+use tracing::warn;
 use tunacode_core::config::Config;
 use tunacode_core::plan_tool::StepStatus;
 use tunacode_core::plan_tool::UpdatePlanArgs;
@@ -46,8 +48,6 @@ use tunacode_core::protocol::PatchApplyEndEvent;
 use tunacode_core::protocol::SessionConfiguredEvent;
 use tunacode_core::protocol::TaskCompleteEvent;
 use tunacode_core::protocol::TaskStartedEvent;
-use tracing::error;
-use tracing::warn;
 
 pub struct ExperimentalEventProcessorWithJsonOutput {
     last_message_path: Option<PathBuf>,

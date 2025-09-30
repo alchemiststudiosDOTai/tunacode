@@ -1,6 +1,10 @@
 #![allow(clippy::unwrap_used)]
 
-use tunacode_core::tunacodeAuth;
+use core_test_support::load_default_config_for_test;
+use core_test_support::load_sse_fixture_with_id;
+use core_test_support::skip_if_no_network;
+use core_test_support::wait_for_event;
+use tempfile::TempDir;
 use tunacode_core::ConversationManager;
 use tunacode_core::ModelProviderInfo;
 use tunacode_core::built_in_model_providers;
@@ -14,11 +18,7 @@ use tunacode_core::protocol_config_types::ReasoningEffort;
 use tunacode_core::protocol_config_types::ReasoningSummary;
 use tunacode_core::shell::Shell;
 use tunacode_core::shell::default_user_shell;
-use core_test_support::load_default_config_for_test;
-use core_test_support::load_sse_fixture_with_id;
-use core_test_support::skip_if_no_network;
-use core_test_support::wait_for_event;
-use tempfile::TempDir;
+use tunacode_core::tunacodeAuth;
 use wiremock::Mock;
 use wiremock::MockServer;
 use wiremock::ResponseTemplate;

@@ -20,24 +20,24 @@ use tracing::error;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-mod tunacode_tool_config;
-mod tunacode_tool_runner;
 mod error_code;
 mod exec_approval;
 pub(crate) mod message_processor;
 mod outgoing_message;
 mod patch_approval;
+mod tunacode_tool_config;
+mod tunacode_tool_runner;
 
 use crate::message_processor::MessageProcessor;
 use crate::outgoing_message::OutgoingMessage;
 use crate::outgoing_message::OutgoingMessageSender;
 
-pub use crate::tunacode_tool_config::TunacodeToolCallParam;
-pub use crate::tunacode_tool_config::TunacodeToolCallReplyParam;
 pub use crate::exec_approval::ExecApprovalElicitRequestParams;
 pub use crate::exec_approval::ExecApprovalResponse;
 pub use crate::patch_approval::PatchApprovalElicitRequestParams;
 pub use crate::patch_approval::PatchApprovalResponse;
+pub use crate::tunacode_tool_config::TunacodeToolCallParam;
+pub use crate::tunacode_tool_config::TunacodeToolCallReplyParam;
 
 /// Size of the bounded channels used to communicate between tasks. The value
 /// is a balance between throughput and memory usage – 128 messages should be

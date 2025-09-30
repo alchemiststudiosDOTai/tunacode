@@ -1,5 +1,12 @@
-use tunacode_core::tunacodeAuth;
-use tunacode_core::tunacodeConversation;
+use core_test_support::load_default_config_for_test;
+use core_test_support::load_sse_fixture_with_id_from_str;
+use core_test_support::skip_if_no_network;
+use core_test_support::wait_for_event;
+use pretty_assertions::assert_eq;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tempfile::TempDir;
+use tokio::io::AsyncWriteExt as _;
 use tunacode_core::ContentItem;
 use tunacode_core::ConversationManager;
 use tunacode_core::ModelProviderInfo;
@@ -20,15 +27,8 @@ use tunacode_core::protocol::ReviewOutputEvent;
 use tunacode_core::protocol::ReviewRequest;
 use tunacode_core::protocol::RolloutItem;
 use tunacode_core::protocol::RolloutLine;
-use core_test_support::load_default_config_for_test;
-use core_test_support::load_sse_fixture_with_id_from_str;
-use core_test_support::skip_if_no_network;
-use core_test_support::wait_for_event;
-use pretty_assertions::assert_eq;
-use std::path::PathBuf;
-use std::sync::Arc;
-use tempfile::TempDir;
-use tokio::io::AsyncWriteExt as _;
+use tunacode_core::tunacodeAuth;
+use tunacode_core::tunacodeConversation;
 use uuid::Uuid;
 use wiremock::Mock;
 use wiremock::MockServer;
@@ -89,7 +89,8 @@ async fn review_op_emits_lifecycle_and_review_output() {
         .unwrap();
 
     // Verify lifecycle: Entered -> Exited(Some(review)) -> TaskComplete.
-    let _entered = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _entered =
+        wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
     let closed = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::ExitedReviewMode(_))).await;
     let review = match closed {
         EventMsg::ExitedReviewMode(ev) => ev
@@ -190,7 +191,8 @@ async fn review_op_with_plain_text_emits_review_fallback() {
         .await
         .unwrap();
 
-    let _entered = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _entered =
+        wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
     let closed = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::ExitedReviewMode(_))).await;
     let review = match closed {
         EventMsg::ExitedReviewMode(ev) => ev
@@ -314,7 +316,8 @@ async fn review_uses_custom_review_model_from_config() {
         .unwrap();
 
     // Wait for completion
-    let _entered = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _entered =
+        wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
     let _closed = wait_for_event(&tunacode, |ev| {
         matches!(
             ev,
@@ -429,7 +432,8 @@ async fn review_input_isolated_from_parent_history() {
         .await
         .unwrap();
 
-    let _entered = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _entered =
+        wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
     let _closed = wait_for_event(&tunacode, |ev| {
         matches!(
             ev,
@@ -541,7 +545,8 @@ async fn review_history_does_not_leak_into_parent_session() {
         })
         .await
         .unwrap();
-    let _entered = wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
+    let _entered =
+        wait_for_event(&tunacode, |ev| matches!(ev, EventMsg::EnteredReviewMode(_))).await;
     let _closed = wait_for_event(&tunacode, |ev| {
         matches!(
             ev,
@@ -661,8 +666,9 @@ where
     mutator(&mut config);
     let conversation_manager =
         ConversationManager::with_auth(tunacodeAuth::from_api_key("Test API Key"));
-    let auth_manager =
-        tunacode_core::AuthManager::from_auth_for_testing(tunacodeAuth::from_api_key("Test API Key"));
+    let auth_manager = tunacode_core::AuthManager::from_auth_for_testing(
+        tunacodeAuth::from_api_key("Test API Key"),
+    );
     conversation_manager
         .resume_conversation_from_rollout(config, resume_path, auth_manager)
         .await

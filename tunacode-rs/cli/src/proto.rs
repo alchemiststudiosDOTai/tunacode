@@ -1,6 +1,10 @@
 use std::io::IsTerminal;
 
 use clap::Parser;
+use tokio::io::AsyncBufReadExt;
+use tokio::io::BufReader;
+use tracing::error;
+use tracing::info;
 use tunacode_common::CliConfigOverrides;
 use tunacode_core::AuthManager;
 use tunacode_core::ConversationManager;
@@ -10,10 +14,6 @@ use tunacode_core::config::ConfigOverrides;
 use tunacode_core::protocol::Event;
 use tunacode_core::protocol::EventMsg;
 use tunacode_core::protocol::Submission;
-use tokio::io::AsyncBufReadExt;
-use tokio::io::BufReader;
-use tracing::error;
-use tracing::info;
 
 #[derive(Debug, Parser)]
 pub struct ProtoCli {

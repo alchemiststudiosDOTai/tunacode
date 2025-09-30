@@ -1,9 +1,3 @@
-use tunacode_protocol::protocol::AskForApproval;
-use tunacode_protocol::protocol::EventMsg;
-use tunacode_protocol::protocol::InputItem;
-use tunacode_protocol::protocol::Op;
-use tunacode_protocol::protocol::ReviewDecision;
-use tunacode_protocol::protocol::SandboxPolicy;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_custom_tool_call;
@@ -17,6 +11,12 @@ use core_test_support::test_tunacode::test_tunacode;
 use core_test_support::wait_for_event_with_timeout;
 use std::time::Duration;
 use tracing_test::traced_test;
+use tunacode_protocol::protocol::AskForApproval;
+use tunacode_protocol::protocol::EventMsg;
+use tunacode_protocol::protocol::InputItem;
+use tunacode_protocol::protocol::Op;
+use tunacode_protocol::protocol::ReviewDecision;
+use tunacode_protocol::protocol::SandboxPolicy;
 
 use core_test_support::responses::ev_local_shell_call;
 
@@ -706,7 +706,9 @@ async fn handle_response_item_records_tool_result_for_local_shell_call() {
     logs_assert(|lines: &[&str]| {
         let line = lines
             .iter()
-            .find(|line| line.contains("tunacode.tool_result") && line.contains("call_id=shell-call"))
+            .find(|line| {
+                line.contains("tunacode.tool_result") && line.contains("call_id=shell-call")
+            })
             .ok_or_else(|| "missing tunacode.tool_result event".to_string())?;
 
         if !line.contains("tool_name=local_shell") {
@@ -742,7 +744,8 @@ fn tool_decision_assertion<'a>(
         let line = lines
             .iter()
             .find(|line| {
-                line.contains("tunacode.tool_decision") && line.contains(&format!("call_id={call_id}"))
+                line.contains("tunacode.tool_decision")
+                    && line.contains(&format!("call_id={call_id}"))
             })
             .ok_or_else(|| format!("missing tunacode.tool_decision event for {call_id}"))?;
 

@@ -4,6 +4,12 @@ use app_test_support::McpProcess;
 use app_test_support::create_final_assistant_message_sse_response;
 use app_test_support::create_mock_chat_completions_server;
 use app_test_support::to_response;
+use mcp_types::JSONRPCResponse;
+use mcp_types::RequestId;
+use pretty_assertions::assert_eq;
+use serde_json::json;
+use tempfile::TempDir;
+use tokio::time::timeout;
 use tunacode_protocol::mcp_protocol::AddConversationListenerParams;
 use tunacode_protocol::mcp_protocol::AddConversationSubscriptionResponse;
 use tunacode_protocol::mcp_protocol::InputItem;
@@ -11,12 +17,6 @@ use tunacode_protocol::mcp_protocol::NewConversationParams;
 use tunacode_protocol::mcp_protocol::NewConversationResponse;
 use tunacode_protocol::mcp_protocol::SendUserMessageParams;
 use tunacode_protocol::mcp_protocol::SendUserMessageResponse;
-use mcp_types::JSONRPCResponse;
-use mcp_types::RequestId;
-use pretty_assertions::assert_eq;
-use serde_json::json;
-use tempfile::TempDir;
-use tokio::time::timeout;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 

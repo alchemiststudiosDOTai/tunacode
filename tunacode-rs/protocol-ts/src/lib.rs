@@ -27,7 +27,9 @@ pub fn generate_ts(out_dir: &Path, prettier: Option<&Path>) -> Result<()> {
     tunacode_protocol::mcp_protocol::ResumeConversationResponse::export_all_to(out_dir)?;
     tunacode_protocol::mcp_protocol::ArchiveConversationResponse::export_all_to(out_dir)?;
     tunacode_protocol::mcp_protocol::AddConversationSubscriptionResponse::export_all_to(out_dir)?;
-    tunacode_protocol::mcp_protocol::RemoveConversationSubscriptionResponse::export_all_to(out_dir)?;
+    tunacode_protocol::mcp_protocol::RemoveConversationSubscriptionResponse::export_all_to(
+        out_dir,
+    )?;
     tunacode_protocol::mcp_protocol::SendUserMessageResponse::export_all_to(out_dir)?;
     tunacode_protocol::mcp_protocol::SendUserTurnResponse::export_all_to(out_dir)?;
     tunacode_protocol::mcp_protocol::InterruptConversationResponse::export_all_to(out_dir)?;

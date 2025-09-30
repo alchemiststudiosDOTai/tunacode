@@ -21,7 +21,9 @@ async fn test_fuzzy_file_search_sorts_and_includes_indices() {
     std::fs::write(root.path().join("zzz.txt"), "x").expect("write file zzz");
 
     // Start MCP server and initialize.
-    let mut mcp = McpProcess::new(tunacode_home.path()).await.expect("spawn mcp");
+    let mut mcp = McpProcess::new(tunacode_home.path())
+        .await
+        .expect("spawn mcp");
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize())
         .await
         .expect("init timeout")
@@ -62,7 +64,9 @@ async fn test_fuzzy_file_search_accepts_cancellation_token() {
 
     std::fs::write(root.path().join("alpha.txt"), "contents").expect("write alpha");
 
-    let mut mcp = McpProcess::new(tunacode_home.path()).await.expect("spawn mcp");
+    let mut mcp = McpProcess::new(tunacode_home.path())
+        .await
+        .expect("spawn mcp");
     timeout(DEFAULT_READ_TIMEOUT, mcp.initialize())
         .await
         .expect("init timeout")

@@ -6,10 +6,10 @@ use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::sync::OnceLock;
 
-use tunacode_core::config::Config;
-use tunacode_core::protocol::Op;
 use serde::Serialize;
 use serde_json::json;
+use tunacode_core::config::Config;
+use tunacode_core::protocol::Op;
 
 use crate::app_event::AppEvent;
 

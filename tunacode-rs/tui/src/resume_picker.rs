@@ -5,10 +5,6 @@ use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::Utc;
-use tunacode_core::ConversationItem;
-use tunacode_core::ConversationsPage;
-use tunacode_core::Cursor;
-use tunacode_core::RolloutRecorder;
 use color_eyre::eyre::Result;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -22,6 +18,10 @@ use ratatui::text::Span;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tunacode_core::ConversationItem;
+use tunacode_core::ConversationsPage;
+use tunacode_core::Cursor;
+use tunacode_core::RolloutRecorder;
 
 use crate::text_formatting::truncate_text;
 use crate::tui::FrameRequester;
@@ -321,7 +321,8 @@ impl PickerState {
     }
 
     async fn load_initial_page(&mut self) -> Result<()> {
-        let page = RolloutRecorder::list_conversations(&self.tunacode_home, PAGE_SIZE, None).await?;
+        let page =
+            RolloutRecorder::list_conversations(&self.tunacode_home, PAGE_SIZE, None).await?;
         self.reset_pagination();
         self.all_rows.clear();
         self.filtered_rows.clear();

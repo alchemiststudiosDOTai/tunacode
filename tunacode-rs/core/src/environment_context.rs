@@ -2,16 +2,16 @@ use serde::Deserialize;
 use serde::Serialize;
 use strum_macros::Display as DeriveDisplay;
 
-use crate::tunacode::TurnContext;
 use crate::protocol::AskForApproval;
 use crate::protocol::SandboxPolicy;
 use crate::shell::Shell;
+use crate::tunacode::TurnContext;
+use std::path::PathBuf;
 use tunacode_protocol::config_types::SandboxMode;
 use tunacode_protocol::models::ContentItem;
 use tunacode_protocol::models::ResponseItem;
 use tunacode_protocol::protocol::ENVIRONMENT_CONTEXT_CLOSE_TAG;
 use tunacode_protocol::protocol::ENVIRONMENT_CONTEXT_OPEN_TAG;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, DeriveDisplay)]
 #[serde(rename_all = "kebab-case")]

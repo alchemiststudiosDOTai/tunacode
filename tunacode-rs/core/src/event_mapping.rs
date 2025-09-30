@@ -127,9 +127,9 @@ mod tests {
     use super::map_response_item_to_event_messages;
     use crate::protocol::EventMsg;
     use crate::protocol::InputMessageKind;
+    use pretty_assertions::assert_eq;
     use tunacode_protocol::models::ContentItem;
     use tunacode_protocol::models::ResponseItem;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn maps_user_message_with_text_and_two_images() {

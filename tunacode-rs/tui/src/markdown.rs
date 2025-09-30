@@ -1,7 +1,7 @@
-use tunacode_core::config::Config;
-use tunacode_core::config_types::UriBasedFileOpener;
 use ratatui::text::Line;
 use std::path::Path;
+use tunacode_core::config::Config;
+use tunacode_core::config_types::UriBasedFileOpener;
 
 pub(crate) fn append_markdown(
     markdown_source: &str,
@@ -112,8 +112,8 @@ mod tests {
 
     #[test]
     fn append_markdown_preserves_full_text_line() {
-        use tunacode_core::config_types::UriBasedFileOpener;
         use std::path::Path;
+        use tunacode_core::config_types::UriBasedFileOpener;
         let src = "Hi! How can I help with tunacode-rs today? Want me to explore the repo, run tests, or work on a specific change?\n";
         let cwd = Path::new("/");
         let mut out = Vec::new();
@@ -137,8 +137,8 @@ mod tests {
 
     #[test]
     fn append_markdown_matches_tui_markdown_for_ordered_item() {
-        use tunacode_core::config_types::UriBasedFileOpener;
         use std::path::Path;
+        use tunacode_core::config_types::UriBasedFileOpener;
         let cwd = Path::new("/");
         let mut out = Vec::new();
         append_markdown_with_opener_and_cwd(
@@ -161,8 +161,8 @@ mod tests {
 
     #[test]
     fn append_markdown_keeps_ordered_list_line_unsplit_in_context() {
-        use tunacode_core::config_types::UriBasedFileOpener;
         use std::path::Path;
+        use tunacode_core::config_types::UriBasedFileOpener;
         let src = "Loose vs. tight list items:\n1. Tight item\n";
         let cwd = Path::new("/");
         let mut out = Vec::new();

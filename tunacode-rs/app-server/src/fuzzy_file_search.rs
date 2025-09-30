@@ -4,10 +4,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use tunacode_file_search as file_search;
-use tunacode_protocol::mcp_protocol::FuzzyFileSearchResult;
 use tokio::task::JoinSet;
 use tracing::warn;
+use tunacode_file_search as file_search;
+use tunacode_protocol::mcp_protocol::FuzzyFileSearchResult;
 
 const LIMIT_PER_ROOT: usize = 50;
 const MAX_THREADS: usize = 12;

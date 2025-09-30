@@ -2,11 +2,11 @@ use std::io::IsTerminal;
 use std::path::Path;
 
 use clap::Parser;
+use serde_json::json;
 use tunacode_file_search::Cli;
 use tunacode_file_search::FileMatch;
 use tunacode_file_search::Reporter;
 use tunacode_file_search::run_main;
-use serde_json::json;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

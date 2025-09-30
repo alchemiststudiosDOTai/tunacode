@@ -1,4 +1,7 @@
-use tunacode_core::tunacodeAuth;
+use core_test_support::load_default_config_for_test;
+use core_test_support::skip_if_no_network;
+use core_test_support::wait_for_event;
+use tempfile::TempDir;
 use tunacode_core::ConversationManager;
 use tunacode_core::ModelProviderInfo;
 use tunacode_core::NewConversation;
@@ -9,10 +12,7 @@ use tunacode_core::protocol::InputItem;
 use tunacode_core::protocol::Op;
 use tunacode_core::protocol::RolloutItem;
 use tunacode_core::protocol::RolloutLine;
-use core_test_support::load_default_config_for_test;
-use core_test_support::skip_if_no_network;
-use core_test_support::wait_for_event;
-use tempfile::TempDir;
+use tunacode_core::tunacodeAuth;
 use wiremock::Mock;
 use wiremock::Request;
 use wiremock::Respond;
@@ -20,7 +20,6 @@ use wiremock::ResponseTemplate;
 use wiremock::matchers::method;
 use wiremock::matchers::path;
 
-use tunacode_core::tunacode::compact::SUMMARIZATION_PROMPT;
 use core_test_support::responses::ev_assistant_message;
 use core_test_support::responses::ev_completed;
 use core_test_support::responses::ev_completed_with_tokens;
@@ -34,6 +33,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
+use tunacode_core::tunacode::compact::SUMMARIZATION_PROMPT;
 // --- Test helpers -----------------------------------------------------------
 
 pub(super) const FIRST_REPLY: &str = "FIRST_REPLY";

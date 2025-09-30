@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use anyhow::Result;
-use tunacode_core::config::load_global_mcp_servers;
-use tunacode_core::config_types::McpServerTransportConfig;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
+use tunacode_core::config::load_global_mcp_servers;
+use tunacode_core::config_types::McpServerTransportConfig;
 
 fn tunacode_command(tunacode_home: &Path) -> Result<assert_cmd::Command> {
     let mut cmd = assert_cmd::Command::cargo_bin("tunacode")?;

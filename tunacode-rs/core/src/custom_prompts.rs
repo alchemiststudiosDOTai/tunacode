@@ -1,8 +1,8 @@
-use tunacode_protocol::custom_prompts::CustomPrompt;
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use tokio::fs;
+use tunacode_protocol::custom_prompts::CustomPrompt;
 
 /// Return the default prompts directory: `$tunacode_HOME/prompts`.
 /// If `tunacode_HOME` cannot be resolved, returns `None`.

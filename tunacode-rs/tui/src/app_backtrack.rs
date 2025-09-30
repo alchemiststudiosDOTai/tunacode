@@ -8,12 +8,12 @@ use crate::history_cell::UserHistoryCell;
 use crate::pager_overlay::Overlay;
 use crate::tui;
 use crate::tui::TuiEvent;
-use tunacode_core::protocol::ConversationPathResponseEvent;
-use tunacode_protocol::mcp_protocol::ConversationId;
 use color_eyre::eyre::Result;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
+use tunacode_core::protocol::ConversationPathResponseEvent;
+use tunacode_protocol::mcp_protocol::ConversationId;
 
 /// Aggregates all backtrack-related state used by the App.
 #[derive(Default)]
@@ -102,9 +102,10 @@ impl App {
         nth_user_message: usize,
     ) {
         self.backtrack.pending = Some((base_id, nth_user_message, prefill));
-        self.app_event_tx.send(crate::app_event::AppEvent::TunacodeOp(
-            tunacode_core::protocol::Op::GetPath,
-        ));
+        self.app_event_tx
+            .send(crate::app_event::AppEvent::TunacodeOp(
+                tunacode_core::protocol::Op::GetPath,
+            ));
     }
 
     /// Open transcript overlay (enters alternate screen and shows full transcript).

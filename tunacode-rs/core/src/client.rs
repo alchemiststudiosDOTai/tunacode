@@ -6,8 +6,6 @@ use std::time::Duration;
 use crate::AuthManager;
 use crate::auth::tunacodeAuth;
 use bytes::Bytes;
-use tunacode_protocol::mcp_protocol::AuthMode;
-use tunacode_protocol::mcp_protocol::ConversationId;
 use eventsource_stream::Eventsource;
 use futures::prelude::*;
 use regex_lite::Regex;
@@ -22,6 +20,8 @@ use tokio_util::io::ReaderStream;
 use tracing::debug;
 use tracing::trace;
 use tracing::warn;
+use tunacode_protocol::mcp_protocol::AuthMode;
+use tunacode_protocol::mcp_protocol::ConversationId;
 
 use crate::chat_completions::AggregateStreamExt;
 use crate::chat_completions::stream_chat_completions;
@@ -33,9 +33,9 @@ use crate::client_common::create_reasoning_param_for_request;
 use crate::client_common::create_text_param_for_request;
 use crate::config::Config;
 use crate::default_client::create_client;
-use crate::error::tunacodeErr;
 use crate::error::Result;
 use crate::error::UsageLimitReachedError;
+use crate::error::tunacodeErr;
 use crate::flags::tunacode_RS_SSE_FIXTURE;
 use crate::model_family::ModelFamily;
 use crate::model_provider_info::ModelProviderInfo;
@@ -47,11 +47,11 @@ use crate::protocol::RateLimitWindow;
 use crate::protocol::TokenUsage;
 use crate::token_data::PlanType;
 use crate::util::backoff;
+use std::sync::Arc;
 use tunacode_otel::otel_event_manager::OtelEventManager;
 use tunacode_protocol::config_types::ReasoningEffort as ReasoningEffortConfig;
 use tunacode_protocol::config_types::ReasoningSummary as ReasoningSummaryConfig;
 use tunacode_protocol::models::ResponseItem;
-use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
 struct ErrorResponse {
@@ -390,11 +390,12 @@ impl ModelClient {
                                 .plan_type
                                 .or_else(|| auth.as_ref().and_then(tunacodeAuth::get_plan_type));
                             let resets_in_seconds = error.resets_in_seconds;
-                            let tunacode_err = tunacodeErr::UsageLimitReached(UsageLimitReachedError {
-                                plan_type,
-                                resets_in_seconds,
-                                rate_limits: rate_limit_snapshot,
-                            });
+                            let tunacode_err =
+                                tunacodeErr::UsageLimitReached(UsageLimitReachedError {
+                                    plan_type,
+                                    resets_in_seconds,
+                                    rate_limits: rate_limit_snapshot,
+                                });
                             return Err(StreamAttemptError::Fatal(tunacode_err));
                         } else if error.r#type.as_deref() == Some("usage_not_included") {
                             return Err(StreamAttemptError::Fatal(tunacodeErr::UsageNotIncluded));

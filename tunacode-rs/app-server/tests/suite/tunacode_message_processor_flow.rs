@@ -5,6 +5,13 @@ use app_test_support::create_final_assistant_message_sse_response;
 use app_test_support::create_mock_chat_completions_server;
 use app_test_support::create_shell_sse_response;
 use app_test_support::to_response;
+use mcp_types::JSONRPCNotification;
+use mcp_types::JSONRPCResponse;
+use mcp_types::RequestId;
+use pretty_assertions::assert_eq;
+use std::env;
+use tempfile::TempDir;
+use tokio::time::timeout;
 use tunacode_core::protocol::AskForApproval;
 use tunacode_core::protocol::SandboxPolicy;
 use tunacode_core::protocol_config_types::ReasoningEffort;
@@ -21,13 +28,6 @@ use tunacode_protocol::mcp_protocol::SendUserMessageParams;
 use tunacode_protocol::mcp_protocol::SendUserMessageResponse;
 use tunacode_protocol::mcp_protocol::SendUserTurnParams;
 use tunacode_protocol::mcp_protocol::SendUserTurnResponse;
-use mcp_types::JSONRPCNotification;
-use mcp_types::JSONRPCResponse;
-use mcp_types::RequestId;
-use pretty_assertions::assert_eq;
-use std::env;
-use tempfile::TempDir;
-use tokio::time::timeout;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 

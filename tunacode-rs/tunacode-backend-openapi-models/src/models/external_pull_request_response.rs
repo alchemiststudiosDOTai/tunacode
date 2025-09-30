@@ -20,7 +20,10 @@ pub struct ExternalPullRequestResponse {
     pub assistant_turn_id: String,
     #[serde(rename = "pull_request")]
     pub pull_request: Box<models::GitPullRequest>,
-    #[serde(rename = "tunacode_updated_sha", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "tunacode_updated_sha",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub tunacode_updated_sha: Option<String>,
 }
 

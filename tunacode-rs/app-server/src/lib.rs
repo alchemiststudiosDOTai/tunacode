@@ -23,11 +23,11 @@ use crate::message_processor::MessageProcessor;
 use crate::outgoing_message::OutgoingMessage;
 use crate::outgoing_message::OutgoingMessageSender;
 
-mod tunacode_message_processor;
 mod error_code;
 mod fuzzy_file_search;
 mod message_processor;
 mod outgoing_message;
+mod tunacode_message_processor;
 
 /// Size of the bounded channels used to communicate between tasks. The value
 /// is a balance between throughput and memory usage – 128 messages should be

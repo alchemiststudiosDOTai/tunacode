@@ -6,7 +6,6 @@ use std::io::Error as IoError;
 use std::path::Path;
 use std::path::PathBuf;
 
-use tunacode_protocol::mcp_protocol::ConversationId;
 use serde_json::Value;
 use time::OffsetDateTime;
 use time::format_description::FormatItem;
@@ -17,6 +16,7 @@ use tokio::sync::mpsc::{self};
 use tokio::sync::oneshot;
 use tracing::info;
 use tracing::warn;
+use tunacode_protocol::mcp_protocol::ConversationId;
 
 use super::SESSIONS_SUBDIR;
 use super::list::ConversationsPage;

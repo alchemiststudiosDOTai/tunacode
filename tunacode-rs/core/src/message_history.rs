@@ -30,11 +30,11 @@ use tokio::io::AsyncReadExt;
 use crate::config::Config;
 use crate::config_types::HistoryPersistence;
 
-use tunacode_protocol::mcp_protocol::ConversationId;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+use tunacode_protocol::mcp_protocol::ConversationId;
 
 /// Filename that stores the message history inside `~/.tunacode`.
 const HISTORY_FILENAME: &str = "history.jsonl";

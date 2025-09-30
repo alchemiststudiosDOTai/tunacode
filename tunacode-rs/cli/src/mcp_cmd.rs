@@ -133,8 +133,12 @@ fn run_add(config_overrides: &CliConfigOverrides, add_args: AddArgs) -> Result<(
     };
 
     let tunacode_home = find_tunacode_home().context("failed to resolve tunacode_HOME")?;
-    let mut servers = load_global_mcp_servers(&tunacode_home)
-        .with_context(|| format!("failed to load MCP servers from {}", tunacode_home.display()))?;
+    let mut servers = load_global_mcp_servers(&tunacode_home).with_context(|| {
+        format!(
+            "failed to load MCP servers from {}",
+            tunacode_home.display()
+        )
+    })?;
 
     let new_entry = McpServerConfig {
         transport: McpServerTransportConfig::Stdio {
@@ -164,14 +168,19 @@ fn run_remove(config_overrides: &CliConfigOverrides, remove_args: RemoveArgs) ->
     validate_server_name(&name)?;
 
     let tunacode_home = find_tunacode_home().context("failed to resolve tunacode_HOME")?;
-    let mut servers = load_global_mcp_servers(&tunacode_home)
-        .with_context(|| format!("failed to load MCP servers from {}", tunacode_home.display()))?;
+    let mut servers = load_global_mcp_servers(&tunacode_home).with_context(|| {
+        format!(
+            "failed to load MCP servers from {}",
+            tunacode_home.display()
+        )
+    })?;
 
     let removed = servers.remove(&name).is_some();
 
     if removed {
-        write_global_mcp_servers(&tunacode_home, &servers)
-            .with_context(|| format!("failed to write MCP servers to {}", tunacode_home.display()))?;
+        write_global_mcp_servers(&tunacode_home, &servers).with_context(|| {
+            format!("failed to write MCP servers to {}", tunacode_home.display())
+        })?;
     }
 
     if removed {

@@ -560,10 +560,10 @@ mod tests {
     use crate::history_cell::HistoryCell;
     use crate::history_cell::PatchEventType;
     use crate::history_cell::new_patch_event;
-    use tunacode_core::protocol::FileChange;
-    use tunacode_protocol::parse_command::ParsedCommand;
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
+    use tunacode_core::protocol::FileChange;
+    use tunacode_protocol::parse_command::ParsedCommand;
 
     #[derive(Debug)]
     struct TestCell {

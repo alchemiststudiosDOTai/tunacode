@@ -1,11 +1,11 @@
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use tunacode_protocol::mcp_protocol::GetUserAgentResponse;
 use mcp_types::JSONRPCResponse;
 use mcp_types::RequestId;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 use tokio::time::timeout;
+use tunacode_protocol::mcp_protocol::GetUserAgentResponse;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 

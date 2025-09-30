@@ -1,4 +1,14 @@
-use tunacode_core::tunacodeAuth;
+use core_test_support::load_default_config_for_test;
+use core_test_support::load_sse_fixture_with_id;
+use core_test_support::responses;
+use core_test_support::skip_if_no_network;
+use core_test_support::test_tunacode::test_tunacode;
+use core_test_support::wait_for_event;
+use futures::StreamExt;
+use serde_json::json;
+use std::io::Write;
+use std::sync::Arc;
+use tempfile::TempDir;
 use tunacode_core::ContentItem;
 use tunacode_core::ConversationManager;
 use tunacode_core::LocalShellAction;
@@ -16,22 +26,12 @@ use tunacode_core::built_in_model_providers;
 use tunacode_core::protocol::EventMsg;
 use tunacode_core::protocol::InputItem;
 use tunacode_core::protocol::Op;
+use tunacode_core::tunacodeAuth;
 use tunacode_otel::otel_event_manager::OtelEventManager;
 use tunacode_protocol::mcp_protocol::AuthMode;
 use tunacode_protocol::mcp_protocol::ConversationId;
 use tunacode_protocol::models::ReasoningItemReasoningSummary;
 use tunacode_protocol::models::WebSearchAction;
-use core_test_support::load_default_config_for_test;
-use core_test_support::load_sse_fixture_with_id;
-use core_test_support::responses;
-use core_test_support::skip_if_no_network;
-use core_test_support::test_tunacode::test_tunacode;
-use core_test_support::wait_for_event;
-use futures::StreamExt;
-use serde_json::json;
-use std::io::Write;
-use std::sync::Arc;
-use tempfile::TempDir;
 use uuid::Uuid;
 use wiremock::Mock;
 use wiremock::MockServer;
@@ -240,8 +240,9 @@ async fn resume_includes_initial_messages_and_sends_prior_items() {
 
     let conversation_manager =
         ConversationManager::with_auth(tunacodeAuth::from_api_key("Test API Key"));
-    let auth_manager =
-        tunacode_core::AuthManager::from_auth_for_testing(tunacodeAuth::from_api_key("Test API Key"));
+    let auth_manager = tunacode_core::AuthManager::from_auth_for_testing(
+        tunacodeAuth::from_api_key("Test API Key"),
+    );
     let NewConversation {
         conversation: tunacode,
         session_configured,

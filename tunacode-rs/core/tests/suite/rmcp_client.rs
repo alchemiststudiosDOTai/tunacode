@@ -5,12 +5,6 @@ use std::time::Duration;
 use tunacode_core::config_types::McpServerConfig;
 use tunacode_core::config_types::McpServerTransportConfig;
 
-use tunacode_core::protocol::AskForApproval;
-use tunacode_core::protocol::EventMsg;
-use tunacode_core::protocol::InputItem;
-use tunacode_core::protocol::Op;
-use tunacode_core::protocol::SandboxPolicy;
-use tunacode_protocol::config_types::ReasoningSummary;
 use core_test_support::responses;
 use core_test_support::responses::mount_sse_once_match;
 use core_test_support::skip_if_no_network;
@@ -24,6 +18,12 @@ use tokio::process::Child;
 use tokio::process::Command;
 use tokio::time::Instant;
 use tokio::time::sleep;
+use tunacode_core::protocol::AskForApproval;
+use tunacode_core::protocol::EventMsg;
+use tunacode_core::protocol::InputItem;
+use tunacode_core::protocol::Op;
+use tunacode_core::protocol::SandboxPolicy;
+use tunacode_protocol::config_types::ReasoningSummary;
 use wiremock::matchers::any;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -156,7 +156,10 @@ async fn stdio_server_round_trip() -> anyhow::Result<()> {
         .expect("env snapshot inserted");
     assert_eq!(env_value, expected_env_value);
 
-    wait_for_event(&fixture.tunacode, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.tunacode, |ev| {
+        matches!(ev, EventMsg::TaskComplete(_))
+    })
+    .await;
 
     server.verify().await;
 
@@ -307,7 +310,10 @@ async fn streamable_http_tool_call_round_trip() -> anyhow::Result<()> {
         .expect("env snapshot inserted");
     assert_eq!(env_value, expected_env_value);
 
-    wait_for_event(&fixture.tunacode, |ev| matches!(ev, EventMsg::TaskComplete(_))).await;
+    wait_for_event(&fixture.tunacode, |ev| {
+        matches!(ev, EventMsg::TaskComplete(_))
+    })
+    .await;
 
     server.verify().await;
 

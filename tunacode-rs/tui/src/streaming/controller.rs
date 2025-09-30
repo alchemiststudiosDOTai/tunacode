@@ -1,7 +1,7 @@
 use crate::history_cell::HistoryCell;
 use crate::history_cell::{self};
-use tunacode_core::config::Config;
 use ratatui::text::Line;
+use tunacode_core::config::Config;
 
 use super::StreamState;
 

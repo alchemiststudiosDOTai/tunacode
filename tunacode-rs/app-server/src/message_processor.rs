@@ -1,23 +1,23 @@
 use std::path::PathBuf;
 
-use crate::tunacode_message_processor::TunacodeMessageProcessor;
 use crate::error_code::INVALID_REQUEST_ERROR_CODE;
 use crate::outgoing_message::OutgoingMessageSender;
+use crate::tunacode_message_processor::TunacodeMessageProcessor;
 use tunacode_protocol::mcp_protocol::ClientInfo;
 use tunacode_protocol::mcp_protocol::ClientRequest;
 use tunacode_protocol::mcp_protocol::InitializeResponse;
 
-use tunacode_core::AuthManager;
-use tunacode_core::ConversationManager;
-use tunacode_core::config::Config;
-use tunacode_core::default_client::USER_AGENT_SUFFIX;
-use tunacode_core::default_client::get_tunacode_user_agent;
 use mcp_types::JSONRPCError;
 use mcp_types::JSONRPCErrorError;
 use mcp_types::JSONRPCNotification;
 use mcp_types::JSONRPCRequest;
 use mcp_types::JSONRPCResponse;
 use std::sync::Arc;
+use tunacode_core::AuthManager;
+use tunacode_core::ConversationManager;
+use tunacode_core::config::Config;
+use tunacode_core::default_client::USER_AGENT_SUFFIX;
+use tunacode_core::default_client::get_tunacode_user_agent;
 
 pub(crate) struct MessageProcessor {
     outgoing: Arc<OutgoingMessageSender>,

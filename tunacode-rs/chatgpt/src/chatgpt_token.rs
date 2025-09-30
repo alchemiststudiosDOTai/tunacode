@@ -1,7 +1,7 @@
-use tunacode_core::tunacodeAuth;
 use std::path::Path;
 use std::sync::LazyLock;
 use std::sync::RwLock;
+use tunacode_core::tunacodeAuth;
 
 use tunacode_core::token_data::TokenData;
 

@@ -1,6 +1,6 @@
+use shlex::Shlex;
 use tunacode_protocol::custom_prompts::CustomPrompt;
 use tunacode_protocol::custom_prompts::PROMPTS_CMD_PREFIX;
-use shlex::Shlex;
 
 /// Parse a first-line slash command of the form `/name <rest>`.
 /// Returns `(name, rest_after_name)` if the line begins with `/` and contains

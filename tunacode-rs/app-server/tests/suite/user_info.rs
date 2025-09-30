@@ -5,18 +5,18 @@ use app_test_support::McpProcess;
 use app_test_support::to_response;
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use tunacode_core::auth::AuthDotJson;
-use tunacode_core::auth::get_auth_file;
-use tunacode_core::auth::write_auth_json;
-use tunacode_core::token_data::IdTokenInfo;
-use tunacode_core::token_data::TokenData;
-use tunacode_protocol::mcp_protocol::UserInfoResponse;
 use mcp_types::JSONRPCResponse;
 use mcp_types::RequestId;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 use tempfile::TempDir;
 use tokio::time::timeout;
+use tunacode_core::auth::AuthDotJson;
+use tunacode_core::auth::get_auth_file;
+use tunacode_core::auth::write_auth_json;
+use tunacode_core::token_data::IdTokenInfo;
+use tunacode_core::token_data::TokenData;
+use tunacode_protocol::mcp_protocol::UserInfoResponse;
 
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(10);
 

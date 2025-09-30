@@ -3,13 +3,6 @@ use std::path::Path;
 
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use tunacode_protocol::mcp_protocol::ListConversationsParams;
-use tunacode_protocol::mcp_protocol::ListConversationsResponse;
-use tunacode_protocol::mcp_protocol::NewConversationParams; // reused for overrides shape
-use tunacode_protocol::mcp_protocol::ResumeConversationParams;
-use tunacode_protocol::mcp_protocol::ResumeConversationResponse;
-use tunacode_protocol::mcp_protocol::ServerNotification;
-use tunacode_protocol::mcp_protocol::SessionConfiguredNotification;
 use mcp_types::JSONRPCNotification;
 use mcp_types::JSONRPCResponse;
 use mcp_types::RequestId;
@@ -17,6 +10,13 @@ use pretty_assertions::assert_eq;
 use serde_json::json;
 use tempfile::TempDir;
 use tokio::time::timeout;
+use tunacode_protocol::mcp_protocol::ListConversationsParams;
+use tunacode_protocol::mcp_protocol::ListConversationsResponse;
+use tunacode_protocol::mcp_protocol::NewConversationParams; // reused for overrides shape
+use tunacode_protocol::mcp_protocol::ResumeConversationParams;
+use tunacode_protocol::mcp_protocol::ResumeConversationResponse;
+use tunacode_protocol::mcp_protocol::ServerNotification;
+use tunacode_protocol::mcp_protocol::SessionConfiguredNotification;
 use uuid::Uuid;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
@@ -158,7 +158,11 @@ fn create_fake_rollout(tunacode_home: &Path, filename_ts: &str, meta_rfc3339: &s
     let year = &filename_ts[0..4];
     let month = &filename_ts[5..7];
     let day = &filename_ts[8..10];
-    let dir = tunacode_home.join("sessions").join(year).join(month).join(day);
+    let dir = tunacode_home
+        .join("sessions")
+        .join(year)
+        .join(month)
+        .join(day);
     fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("create sessions dir: {e}"));
 
     let file_path = dir.join(format!("rollout-{filename_ts}-{uuid}.jsonl"));

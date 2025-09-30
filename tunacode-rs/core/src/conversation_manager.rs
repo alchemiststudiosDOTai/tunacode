@@ -1,26 +1,26 @@
 use crate::AuthManager;
-use crate::tunacodeAuth;
-use crate::tunacode::tunacode;
-use crate::tunacode::tunacodeSpawnOk;
-use crate::tunacode::INITIAL_SUBMIT_ID;
-use crate::tunacode::compact::content_items_to_text;
-use crate::tunacode::compact::is_session_prefix_message;
-use crate::tunacode_conversation::tunacodeConversation;
 use crate::config::Config;
-use crate::error::tunacodeErr;
 use crate::error::Result as tunacodeResult;
+use crate::error::tunacodeErr;
 use crate::protocol::Event;
 use crate::protocol::EventMsg;
 use crate::protocol::SessionConfiguredEvent;
 use crate::rollout::RolloutRecorder;
-use tunacode_protocol::mcp_protocol::ConversationId;
-use tunacode_protocol::models::ResponseItem;
-use tunacode_protocol::protocol::InitialHistory;
-use tunacode_protocol::protocol::RolloutItem;
+use crate::tunacode::INITIAL_SUBMIT_ID;
+use crate::tunacode::compact::content_items_to_text;
+use crate::tunacode::compact::is_session_prefix_message;
+use crate::tunacode::tunacode;
+use crate::tunacode::tunacodeSpawnOk;
+use crate::tunacode_conversation::tunacodeConversation;
+use crate::tunacodeAuth;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tunacode_protocol::mcp_protocol::ConversationId;
+use tunacode_protocol::models::ResponseItem;
+use tunacode_protocol::protocol::InitialHistory;
+use tunacode_protocol::protocol::RolloutItem;
 
 /// Represents a newly created tunacode conversation, including the first event
 /// (which is [`EventMsg::SessionConfigured`]).
@@ -198,10 +198,10 @@ fn truncate_before_nth_user_message(history: InitialHistory, n: usize) -> Initia
 mod tests {
     use super::*;
     use crate::tunacode::make_session_and_context;
+    use pretty_assertions::assert_eq;
     use tunacode_protocol::models::ContentItem;
     use tunacode_protocol::models::ReasoningItemReasoningSummary;
     use tunacode_protocol::models::ResponseItem;
-    use pretty_assertions::assert_eq;
 
     fn user_msg(text: &str) -> ResponseItem {
         ResponseItem::Message {

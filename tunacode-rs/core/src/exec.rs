@@ -15,9 +15,9 @@ use tokio::io::AsyncReadExt;
 use tokio::io::BufReader;
 use tokio::process::Child;
 
-use crate::error::tunacodeErr;
 use crate::error::Result;
 use crate::error::SandboxErr;
+use crate::error::tunacodeErr;
 use crate::landlock::spawn_command_under_linux_sandbox;
 use crate::protocol::Event;
 use crate::protocol::EventMsg;
@@ -91,52 +91,52 @@ pub async fn process_exec_tool_call(
 
     let timeout_duration = params.timeout_duration();
 
-    let raw_output_result: std::result::Result<RawExecToolCallOutput, tunacodeErr> = match sandbox_type
-    {
-        SandboxType::None => exec(params, sandbox_policy, stdout_stream.clone()).await,
-        SandboxType::MacosSeatbelt => {
-            let ExecParams {
-                command,
-                cwd: command_cwd,
-                env,
-                ..
-            } = params;
-            let child = spawn_command_under_seatbelt(
-                command,
-                command_cwd,
-                sandbox_policy,
-                sandbox_cwd,
-                StdioPolicy::RedirectForShellTool,
-                env,
-            )
-            .await?;
-            consume_truncated_output(child, timeout_duration, stdout_stream.clone()).await
-        }
-        SandboxType::LinuxSeccomp => {
-            let ExecParams {
-                command,
-                cwd: command_cwd,
-                env,
-                ..
-            } = params;
+    let raw_output_result: std::result::Result<RawExecToolCallOutput, tunacodeErr> =
+        match sandbox_type {
+            SandboxType::None => exec(params, sandbox_policy, stdout_stream.clone()).await,
+            SandboxType::MacosSeatbelt => {
+                let ExecParams {
+                    command,
+                    cwd: command_cwd,
+                    env,
+                    ..
+                } = params;
+                let child = spawn_command_under_seatbelt(
+                    command,
+                    command_cwd,
+                    sandbox_policy,
+                    sandbox_cwd,
+                    StdioPolicy::RedirectForShellTool,
+                    env,
+                )
+                .await?;
+                consume_truncated_output(child, timeout_duration, stdout_stream.clone()).await
+            }
+            SandboxType::LinuxSeccomp => {
+                let ExecParams {
+                    command,
+                    cwd: command_cwd,
+                    env,
+                    ..
+                } = params;
 
-            let tunacode_linux_sandbox_exe = tunacode_linux_sandbox_exe
-                .as_ref()
-                .ok_or(tunacodeErr::LandlockSandboxExecutableNotProvided)?;
-            let child = spawn_command_under_linux_sandbox(
-                tunacode_linux_sandbox_exe,
-                command,
-                command_cwd,
-                sandbox_policy,
-                sandbox_cwd,
-                StdioPolicy::RedirectForShellTool,
-                env,
-            )
-            .await?;
+                let tunacode_linux_sandbox_exe = tunacode_linux_sandbox_exe
+                    .as_ref()
+                    .ok_or(tunacodeErr::LandlockSandboxExecutableNotProvided)?;
+                let child = spawn_command_under_linux_sandbox(
+                    tunacode_linux_sandbox_exe,
+                    command,
+                    command_cwd,
+                    sandbox_policy,
+                    sandbox_cwd,
+                    StdioPolicy::RedirectForShellTool,
+                    env,
+                )
+                .await?;
 
-            consume_truncated_output(child, timeout_duration, stdout_stream).await
-        }
-    };
+                consume_truncated_output(child, timeout_duration, stdout_stream).await
+            }
+        };
     let duration = start.elapsed();
     match raw_output_result {
         Ok(raw_output) => {

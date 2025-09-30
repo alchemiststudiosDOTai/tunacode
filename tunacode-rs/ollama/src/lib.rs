@@ -4,11 +4,11 @@ mod pull;
 mod url;
 
 pub use client::OllamaClient;
-use tunacode_core::config::Config;
 pub use pull::CliProgressReporter;
 pub use pull::PullEvent;
 pub use pull::PullProgressReporter;
 pub use pull::TuiProgressReporter;
+use tunacode_core::config::Config;
 
 /// Default OSS model to use when `--oss` is passed without an explicit `-m`.
 pub const DEFAULT_OSS_MODEL: &str = "gpt-oss:20b";

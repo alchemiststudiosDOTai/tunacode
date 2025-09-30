@@ -7,11 +7,11 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 
+use tempfile::TempDir;
 use tunacode_core::protocol::SandboxPolicy;
 use tunacode_core::seatbelt::spawn_command_under_seatbelt;
-use tunacode_core::spawn::TUNACODE_SANDBOX_ENV_VAR;
 use tunacode_core::spawn::StdioPolicy;
-use tempfile::TempDir;
+use tunacode_core::spawn::TUNACODE_SANDBOX_ENV_VAR;
 
 struct TestScenario {
     repo_parent: PathBuf,

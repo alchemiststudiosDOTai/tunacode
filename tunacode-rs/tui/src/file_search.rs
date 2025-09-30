@@ -18,7 +18,6 @@
 //! 4. If there is a in-flight search that is not a prefix of the latest thing
 //!    the user typed, it is cancelled.
 
-use tunacode_file_search as file_search;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -27,6 +26,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
+use tunacode_file_search as file_search;
 
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;

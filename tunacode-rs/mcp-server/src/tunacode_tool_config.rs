@@ -1,8 +1,5 @@
 //! Configuration object accepted by the `tunacode` MCP tool-call.
 
-use tunacode_core::protocol::AskForApproval;
-use tunacode_protocol::config_types::SandboxMode;
-use tunacode_utils_json_to_toml::json_to_toml;
 use mcp_types::Tool;
 use mcp_types::ToolInputSchema;
 use schemars::JsonSchema;
@@ -11,6 +8,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use tunacode_core::protocol::AskForApproval;
+use tunacode_protocol::config_types::SandboxMode;
+use tunacode_utils_json_to_toml::json_to_toml;
 
 /// Client-supplied configuration for a `tunacode` tool-call.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]

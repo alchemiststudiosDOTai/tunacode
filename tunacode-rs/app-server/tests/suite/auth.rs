@@ -2,16 +2,16 @@ use std::path::Path;
 
 use app_test_support::McpProcess;
 use app_test_support::to_response;
-use tunacode_protocol::mcp_protocol::AuthMode;
-use tunacode_protocol::mcp_protocol::GetAuthStatusParams;
-use tunacode_protocol::mcp_protocol::GetAuthStatusResponse;
-use tunacode_protocol::mcp_protocol::LoginApiKeyParams;
-use tunacode_protocol::mcp_protocol::LoginApiKeyResponse;
 use mcp_types::JSONRPCResponse;
 use mcp_types::RequestId;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 use tokio::time::timeout;
+use tunacode_protocol::mcp_protocol::AuthMode;
+use tunacode_protocol::mcp_protocol::GetAuthStatusParams;
+use tunacode_protocol::mcp_protocol::GetAuthStatusResponse;
+use tunacode_protocol::mcp_protocol::LoginApiKeyParams;
+use tunacode_protocol::mcp_protocol::LoginApiKeyResponse;
 
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
@@ -79,7 +79,8 @@ async fn login_with_api_key_via_request(mcp: &mut McpProcess, api_key: &str) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn get_auth_status_no_auth() {
     let tunacode_home = TempDir::new().unwrap_or_else(|e| panic!("create tempdir: {e}"));
-    create_config_toml(tunacode_home.path()).unwrap_or_else(|err| panic!("write config.toml: {err}"));
+    create_config_toml(tunacode_home.path())
+        .unwrap_or_else(|err| panic!("write config.toml: {err}"));
 
     let mut mcp = McpProcess::new_with_env(tunacode_home.path(), &[("OPENAI_API_KEY", None)])
         .await
@@ -112,7 +113,8 @@ async fn get_auth_status_no_auth() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn get_auth_status_with_api_key() {
     let tunacode_home = TempDir::new().unwrap_or_else(|e| panic!("create tempdir: {e}"));
-    create_config_toml(tunacode_home.path()).unwrap_or_else(|err| panic!("write config.toml: {err}"));
+    create_config_toml(tunacode_home.path())
+        .unwrap_or_else(|err| panic!("write config.toml: {err}"));
 
     let mut mcp = McpProcess::new(tunacode_home.path())
         .await
@@ -188,7 +190,8 @@ async fn get_auth_status_with_api_key_when_auth_not_required() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn get_auth_status_with_api_key_no_include_token() {
     let tunacode_home = TempDir::new().unwrap_or_else(|e| panic!("create tempdir: {e}"));
-    create_config_toml(tunacode_home.path()).unwrap_or_else(|err| panic!("write config.toml: {err}"));
+    create_config_toml(tunacode_home.path())
+        .unwrap_or_else(|err| panic!("write config.toml: {err}"));
 
     let mut mcp = McpProcess::new(tunacode_home.path())
         .await
