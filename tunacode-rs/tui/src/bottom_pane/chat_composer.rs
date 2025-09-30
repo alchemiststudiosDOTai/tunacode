@@ -15,6 +15,7 @@ use ratatui::widgets::Block;
 use ratatui::widgets::StatefulWidgetRef;
 use ratatui::widgets::WidgetRef;
 
+use super::bash_command_popup::BashCommandPopup;
 use super::chat_composer_history::ChatComposerHistory;
 use super::command_popup::CommandItem;
 use super::command_popup::CommandPopup;
@@ -46,13 +47,13 @@ use crate::bottom_pane::textarea::TextAreaState;
 use crate::clipboard_paste::normalize_pasted_path;
 use crate::clipboard_paste::pasted_image_format;
 use crate::ui_consts::LIVE_PREFIX_COLS;
-use tunacode_file_search::FileMatch;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
+use tunacode_file_search::FileMatch;
 
 /// If the pasted content exceeds this number of characters, replace it with a
 /// placeholder in the UI.
@@ -63,7 +64,13 @@ const LARGE_PASTE_CHAR_THRESHOLD: usize = 1000;
 pub enum InputResult {
     Submitted(String),
     Command(SlashCommand),
+    Bash(BashCommandInput),
     None,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BashCommandInput {
+    pub script: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -101,6 +108,7 @@ pub(crate) struct ChatComposer {
 enum ActivePopup {
     None,
     Command(CommandPopup),
+    Bash(BashCommandPopup),
     File(FileSearchPopup),
 }
 
@@ -156,6 +164,7 @@ impl ChatComposer {
             + match &self.active_popup {
                 ActivePopup::None => footer_total_height,
                 ActivePopup::Command(c) => c.calculate_required_height(width),
+                ActivePopup::Bash(c) => c.calculate_required_height(width),
                 ActivePopup::File(c) => c.calculate_required_height(),
             }
     }
@@ -169,6 +178,9 @@ impl ChatComposer {
         let footer_total_height = footer_hint_height + footer_spacing;
         let popup_constraint = match &self.active_popup {
             ActivePopup::Command(popup) => {
+                Constraint::Max(popup.calculate_required_height(area.width))
+            }
+            ActivePopup::Bash(popup) => {
                 Constraint::Max(popup.calculate_required_height(area.width))
             }
             ActivePopup::File(popup) => Constraint::Max(popup.calculate_required_height()),
@@ -245,11 +257,8 @@ impl ChatComposer {
         // Keep popup sync consistent with key handling: prefer slash popup; only
         // sync file popup when slash popup is NOT active.
         self.sync_command_popup();
-        if matches!(self.active_popup, ActivePopup::Command(_)) {
-            self.dismissed_file_popup_token = None;
-        } else {
-            self.sync_file_search_popup();
-        }
+        self.sync_bash_popup();
+        self.sync_file_popup_if_allowed();
         true
     }
 
@@ -295,7 +304,8 @@ impl ChatComposer {
         self.textarea.set_text(&text);
         self.textarea.set_cursor(0);
         self.sync_command_popup();
-        self.sync_file_search_popup();
+        self.sync_bash_popup();
+        self.sync_file_popup_if_allowed();
     }
 
     /// Get the current composer text.
@@ -360,24 +370,23 @@ impl ChatComposer {
     pub(crate) fn insert_str(&mut self, text: &str) {
         self.textarea.insert_str(text);
         self.sync_command_popup();
-        self.sync_file_search_popup();
+        self.sync_bash_popup();
+        self.sync_file_popup_if_allowed();
     }
 
     /// Handle a key event coming from the main UI.
     pub fn handle_key_event(&mut self, key_event: KeyEvent) -> (InputResult, bool) {
         let result = match &mut self.active_popup {
             ActivePopup::Command(_) => self.handle_key_event_with_slash_popup(key_event),
+            ActivePopup::Bash(_) => self.handle_key_event_with_bash_popup(key_event),
             ActivePopup::File(_) => self.handle_key_event_with_file_popup(key_event),
             ActivePopup::None => self.handle_key_event_without_popup(key_event),
         };
 
         // Update (or hide/show) popup after processing the key.
         self.sync_command_popup();
-        if matches!(self.active_popup, ActivePopup::Command(_)) {
-            self.dismissed_file_popup_token = None;
-        } else {
-            self.sync_file_search_popup();
-        }
+        self.sync_bash_popup();
+        self.sync_file_popup_if_allowed();
 
         result
     }
@@ -559,6 +568,18 @@ impl ChatComposer {
     }
 
     /// Handle key events when file search popup is visible.
+
+    fn handle_key_event_with_bash_popup(&mut self, key_event: KeyEvent) -> (InputResult, bool) {
+        if self.handle_shortcut_overlay_key(&key_event) {
+            return (InputResult::None, true);
+        }
+        if matches!(key_event.code, KeyCode::Esc) {
+            self.active_popup = ActivePopup::None;
+            return (InputResult::None, true);
+        }
+        self.handle_key_event_without_popup(key_event)
+    }
+
     fn handle_key_event_with_file_popup(&mut self, key_event: KeyEvent) -> (InputResult, bool) {
         if self.handle_shortcut_overlay_key(&key_event) {
             return (InputResult::None, true);
@@ -889,14 +910,16 @@ impl ChatComposer {
                 // If we're in a paste-like burst capture, treat Enter as part of the burst
                 // and accumulate it rather than submitting or inserting immediately.
                 // Do not treat Enter as paste inside a slash-command context.
-                let in_slash_context = matches!(self.active_popup, ActivePopup::Command(_))
-                    || self
-                        .textarea
-                        .text()
-                        .lines()
-                        .next()
-                        .unwrap_or("")
-                        .starts_with('/');
+                let in_slash_context = matches!(
+                    self.active_popup,
+                    ActivePopup::Command(_) | ActivePopup::Bash(_),
+                ) || self
+                    .textarea
+                    .text()
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .starts_with('/');
                 if self.paste_burst.is_active() && !in_slash_context {
                     let now = Instant::now();
                     if self.paste_burst.append_newline_if_active(now) {
@@ -946,6 +969,19 @@ impl ChatComposer {
                 let has_attachments = !self.attached_images.is_empty();
                 text = text.trim().to_string();
 
+                if text.starts_with('!') && !has_attachments {
+                    let script = text[1..].trim_start();
+                    if !script.is_empty() {
+                        self.history.record_local_submission(&text);
+                        return (
+                            InputResult::Bash(BashCommandInput {
+                                script: script.to_string(),
+                            }),
+                            true,
+                        );
+                    }
+                }
+
                 if let Some(expanded) =
                     expand_custom_prompt(&text, &self.custom_prompts).unwrap_or_default()
                 {
@@ -978,11 +1014,8 @@ impl ChatComposer {
                 // Keep popup sync consistent with key handling: prefer slash popup; only
                 // sync file popup when slash popup is NOT active.
                 self.sync_command_popup();
-                if matches!(self.active_popup, ActivePopup::Command(_)) {
-                    self.dismissed_file_popup_token = None;
-                } else {
-                    self.sync_file_search_popup();
-                }
+                self.sync_bash_popup();
+                self.sync_file_popup_if_allowed();
                 true
             }
             FlushResult::None => false,
@@ -1372,6 +1405,48 @@ impl ChatComposer {
         }
     }
 
+    fn sync_bash_popup(&mut self) {
+        if Self::current_at_token(&self.textarea).is_some() {
+            if matches!(self.active_popup, ActivePopup::Bash(_)) {
+                self.active_popup = ActivePopup::None;
+            }
+            return;
+        }
+
+        let text = self.textarea.text();
+        let first_line_end = text.find('\n').unwrap_or(text.len());
+        let first_line = &text[..first_line_end];
+        let cursor = self.textarea.cursor();
+        let caret_on_first_line = cursor <= first_line_end;
+        let is_bash = first_line.starts_with('!') && caret_on_first_line;
+
+        match &mut self.active_popup {
+            ActivePopup::Bash(popup) if is_bash => {
+                popup.on_composer_text_change(first_line);
+            }
+            ActivePopup::Bash(_) => {
+                self.active_popup = ActivePopup::None;
+            }
+            _ if is_bash => {
+                let mut popup = BashCommandPopup::new();
+                popup.on_composer_text_change(first_line);
+                self.active_popup = ActivePopup::Bash(popup);
+            }
+            _ => {}
+        }
+    }
+
+    fn sync_file_popup_if_allowed(&mut self) {
+        if matches!(
+            self.active_popup,
+            ActivePopup::Command(_) | ActivePopup::Bash(_)
+        ) {
+            self.dismissed_file_popup_token = None;
+        } else {
+            self.sync_file_search_popup();
+        }
+    }
+
     pub(crate) fn set_custom_prompts(&mut self, prompts: Vec<CustomPrompt>) {
         self.custom_prompts = prompts.clone();
         if let ActivePopup::Command(popup) = &mut self.active_popup {
@@ -1448,6 +1523,9 @@ impl WidgetRef for ChatComposer {
         let [composer_rect, textarea_rect, popup_rect] = self.layout_areas(area);
         match &self.active_popup {
             ActivePopup::Command(popup) => {
+                popup.render_ref(popup_rect, buf);
+            }
+            ActivePopup::Bash(popup) => {
                 popup.render_ref(popup_rect, buf);
             }
             ActivePopup::File(popup) => {
@@ -2161,6 +2239,7 @@ mod tests {
             InputResult::Submitted(text) => {
                 panic!("expected command dispatch, but composer submitted literal text: {text}")
             }
+            InputResult::Bash(_) => panic!("expected Command result for '/init'"),
             InputResult::None => panic!("expected Command result for '/init'"),
         }
         assert!(composer.textarea.is_empty(), "composer should be cleared");
@@ -2235,6 +2314,7 @@ mod tests {
             InputResult::Submitted(text) => {
                 panic!("expected command dispatch, but composer submitted literal text: {text}")
             }
+            InputResult::Bash(_) => panic!("expected Command result for '/mention'"),
             InputResult::None => panic!("expected Command result for '/mention'"),
         }
         assert!(composer.textarea.is_empty(), "composer should be cleared");

@@ -2,11 +2,37 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use crossterm::event::KeyEventKind;
+use crossterm::event::KeyModifiers;
+use rand::Rng;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Constraint;
+use ratatui::layout::Layout;
+use ratatui::layout::Rect;
+use ratatui::widgets::Widget;
+use ratatui::widgets::WidgetRef;
+use tokio::sync::mpsc::UnboundedSender;
+use tracing::debug;
+use tunacode_core::bash::try_parse_bash;
 use tunacode_core::config::Config;
 use tunacode_core::config_types::Notifications;
+use tunacode_core::error::SandboxErr;
+use tunacode_core::error::get_error_message_ui;
+use tunacode_core::error::tunacodeErr;
+use tunacode_core::exec::ExecParams;
+use tunacode_core::exec::ExecToolCallOutput;
+use tunacode_core::exec::SandboxType;
+use tunacode_core::exec::StreamOutput;
+use tunacode_core::exec::process_exec_tool_call;
+use tunacode_core::exec_env::create_env;
+use tunacode_core::get_platform_sandbox;
 use tunacode_core::git_info::current_branch_name;
 use tunacode_core::git_info::local_git_branches;
+use tunacode_core::parse_command::parse_command;
 use tunacode_core::protocol::AgentMessageDeltaEvent;
 use tunacode_core::protocol::AgentMessageEvent;
 use tunacode_core::protocol::AgentReasoningDeltaEvent;
@@ -43,23 +69,11 @@ use tunacode_core::protocol::WebSearchBeginEvent;
 use tunacode_core::protocol::WebSearchEndEvent;
 use tunacode_protocol::mcp_protocol::ConversationId;
 use tunacode_protocol::parse_command::ParsedCommand;
-use crossterm::event::KeyCode;
-use crossterm::event::KeyEvent;
-use crossterm::event::KeyEventKind;
-use crossterm::event::KeyModifiers;
-use rand::Rng;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
-use ratatui::layout::Layout;
-use ratatui::layout::Rect;
-use ratatui::widgets::Widget;
-use ratatui::widgets::WidgetRef;
-use tokio::sync::mpsc::UnboundedSender;
-use tracing::debug;
 
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;
 use crate::bottom_pane::ApprovalRequest;
+use crate::bottom_pane::BashCommandInput;
 use crate::bottom_pane::BottomPane;
 use crate::bottom_pane::BottomPaneParams;
 use crate::bottom_pane::CancellationEvent;
@@ -251,6 +265,7 @@ pub(crate) struct ChatWidget {
     pending_notification: Option<Notification>,
     // Simple review mode flag; used to adjust layout and banners.
     is_review_mode: bool,
+    user_exec_counter: u64,
     // List of ghost commits corresponding to each turn.
     ghost_snapshots: Vec<GhostCommit>,
     ghost_snapshots_disabled: bool,
@@ -872,7 +887,8 @@ impl ChatWidget {
         } = common;
         let mut rng = rand::rng();
         let placeholder = EXAMPLE_PROMPTS[rng.random_range(0..EXAMPLE_PROMPTS.len())].to_string();
-        let tunacode_op_tx = spawn_agent(config.clone(), app_event_tx.clone(), conversation_manager);
+        let tunacode_op_tx =
+            spawn_agent(config.clone(), app_event_tx.clone(), conversation_manager);
 
         Self {
             app_event_tx: app_event_tx.clone(),
@@ -909,6 +925,7 @@ impl ChatWidget {
             suppress_session_configured_redraw: false,
             pending_notification: None,
             is_review_mode: false,
+            user_exec_counter: 0,
             ghost_snapshots: Vec::new(),
             ghost_snapshots_disabled: true,
             needs_final_message_separator: false,
@@ -971,6 +988,7 @@ impl ChatWidget {
             suppress_session_configured_redraw: true,
             pending_notification: None,
             is_review_mode: false,
+            user_exec_counter: 0,
             ghost_snapshots: Vec::new(),
             ghost_snapshots_disabled: true,
             needs_final_message_separator: false,
@@ -1044,6 +1062,9 @@ impl ChatWidget {
                     }
                     InputResult::Command(cmd) => {
                         self.dispatch_command(cmd);
+                    }
+                    InputResult::Bash(cmd) => {
+                        self.run_local_shell_command(cmd);
                     }
                     InputResult::None => {}
                 }
@@ -1137,8 +1158,8 @@ impl ChatWidget {
             }
             #[cfg(debug_assertions)]
             SlashCommand::TestApproval => {
-                use tunacode_core::protocol::EventMsg;
                 use std::collections::HashMap;
+                use tunacode_core::protocol::EventMsg;
 
                 use tunacode_core::protocol::ApplyPatchApprovalRequestEvent;
                 use tunacode_core::protocol::FileChange;
@@ -1174,6 +1195,113 @@ impl ChatWidget {
                 }));
             }
         }
+    }
+
+    fn run_local_shell_command(&mut self, input: BashCommandInput) {
+        let script = input.script.trim();
+        if script.is_empty() {
+            return;
+        }
+
+        if try_parse_bash(script).is_none() {
+            self.add_error_message("Could not parse bash command.".to_string());
+            return;
+        }
+
+        let command = vec!["bash".to_string(), "-lc".to_string(), script.to_string()];
+        let parsed_cmd: Vec<ParsedCommand> = parse_command(&command)
+            .into_iter()
+            .map(Into::into)
+            .collect();
+
+        let call_id = format!("user-local-{}", self.user_exec_counter);
+        self.user_exec_counter += 1;
+        let event_id = format!("local-shell-{call_id}");
+        let cwd = self.config.cwd.clone();
+
+        let begin_event = ExecCommandBeginEvent {
+            call_id: call_id.clone(),
+            command: command.clone(),
+            cwd: cwd.clone(),
+            parsed_cmd: parsed_cmd.clone(),
+        };
+        self.app_event_tx.send(AppEvent::TunacodeEvent(Event {
+            id: event_id.clone(),
+            msg: EventMsg::ExecCommandBegin(begin_event),
+        }));
+
+        let sandbox_policy = self.config.sandbox_policy.clone();
+        let linux_sandbox_exe = self.config.tunacode_linux_sandbox_exe.clone();
+        let env = create_env(&self.config.shell_environment_policy);
+        let exec_params = ExecParams {
+            command: command.clone(),
+            cwd: cwd.clone(),
+            timeout_ms: None,
+            env,
+            with_escalated_permissions: None,
+            justification: None,
+        };
+        let sandbox_type = get_platform_sandbox().unwrap_or(SandboxType::None);
+        let tx = self.app_event_tx.clone();
+        tokio::spawn(async move {
+            let result = process_exec_tool_call(
+                exec_params,
+                sandbox_type,
+                &sandbox_policy,
+                &cwd,
+                &linux_sandbox_exe,
+                None,
+            )
+            .await;
+
+            let exec_output = match result {
+                Ok(output) => output,
+                Err(tunacodeErr::Sandbox(SandboxErr::Timeout { output })) => *output,
+                Err(err) => {
+                    let message = get_error_message_ui(&err);
+                    ExecToolCallOutput {
+                        exit_code: -1,
+                        stdout: StreamOutput::new(String::new()),
+                        stderr: StreamOutput::new(message.clone()),
+                        aggregated_output: StreamOutput::new(message),
+                        duration: Duration::default(),
+                        timed_out: false,
+                    }
+                }
+            };
+
+            let ExecToolCallOutput {
+                exit_code,
+                stdout,
+                stderr,
+                aggregated_output,
+                duration,
+                timed_out,
+            } = exec_output;
+            let mut formatted_output = aggregated_output.text.clone();
+            if timed_out {
+                formatted_output = format!(
+                    "command timed out after {} milliseconds\n{}",
+                    duration.as_millis(),
+                    formatted_output
+                );
+            }
+
+            let end_event = ExecCommandEndEvent {
+                call_id: call_id.clone(),
+                stdout: stdout.text,
+                stderr: stderr.text,
+                aggregated_output: aggregated_output.text,
+                exit_code,
+                duration,
+                formatted_output,
+            };
+
+            tx.send(AppEvent::TunacodeEvent(Event {
+                id: event_id,
+                msg: EventMsg::ExecCommandEnd(end_event),
+            }));
+        });
     }
 
     pub(crate) fn handle_paste(&mut self, text: String) {
@@ -1453,8 +1581,10 @@ impl ChatWidget {
                         .send(AppEvent::InsertHistoryCell(Box::new(body_cell)));
                 }
             } else {
-                let message_text =
-                    tunacode_core::review_format::format_review_findings_block(&output.findings, None);
+                let message_text = tunacode_core::review_format::format_review_findings_block(
+                    &output.findings,
+                    None,
+                );
                 let mut message_lines: Vec<ratatui::text::Line<'static>> = Vec::new();
                 append_markdown(&message_text, &mut message_lines, &self.config);
                 let body_cell = AgentMessageCell::new(message_lines, true);

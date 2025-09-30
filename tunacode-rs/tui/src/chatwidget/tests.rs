@@ -2,8 +2,18 @@ use super::*;
 use crate::app_event::AppEvent;
 use crate::app_event_sender::AppEventSender;
 use crate::test_backend::VT100Backend;
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use crossterm::event::KeyModifiers;
+use insta::assert_snapshot;
+use pretty_assertions::assert_eq;
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::path::PathBuf;
+use tempfile::NamedTempFile;
+use tokio::sync::mpsc::unbounded_channel;
 use tunacode_core::AuthManager;
-use tunacode_core::tunacodeAuth;
 use tunacode_core::config::Config;
 use tunacode_core::config::ConfigOverrides;
 use tunacode_core::config::ConfigToml;
@@ -34,18 +44,8 @@ use tunacode_core::protocol::ReviewRequest;
 use tunacode_core::protocol::StreamErrorEvent;
 use tunacode_core::protocol::TaskCompleteEvent;
 use tunacode_core::protocol::TaskStartedEvent;
+use tunacode_core::tunacodeAuth;
 use tunacode_protocol::mcp_protocol::ConversationId;
-use crossterm::event::KeyCode;
-use crossterm::event::KeyEvent;
-use crossterm::event::KeyModifiers;
-use insta::assert_snapshot;
-use pretty_assertions::assert_eq;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::path::PathBuf;
-use tempfile::NamedTempFile;
-use tokio::sync::mpsc::unbounded_channel;
 
 fn test_config() -> Config {
     // Use base defaults to avoid depending on host state.
@@ -276,9 +276,9 @@ async fn helpers_are_available_and_do_not_panic() {
     let (tx_raw, _rx) = unbounded_channel::<AppEvent>();
     let tx = AppEventSender::new(tx_raw);
     let cfg = test_config();
-    let conversation_manager = Arc::new(ConversationManager::with_auth(tunacodeAuth::from_api_key(
-        "test",
-    )));
+    let conversation_manager = Arc::new(ConversationManager::with_auth(
+        tunacodeAuth::from_api_key("test"),
+    ));
     let auth_manager = AuthManager::from_auth_for_testing(tunacodeAuth::from_api_key("test"));
     let init = ChatWidgetInit {
         config: cfg,
@@ -338,6 +338,7 @@ fn make_chatwidget_manual() -> (
         suppress_session_configured_redraw: false,
         pending_notification: None,
         is_review_mode: false,
+        user_exec_counter: 0,
         ghost_snapshots: Vec::new(),
         ghost_snapshots_disabled: false,
         needs_final_message_separator: false,
@@ -1046,7 +1047,8 @@ async fn binary_size_transcript_snapshot() {
                             ..
                         } => {
                             // Re-parse the command
-                            let parsed_cmd = tunacode_core::parse_command::parse_command(&e.command);
+                            let parsed_cmd =
+                                tunacode_core::parse_command::parse_command(&e.command);
                             Event {
                                 id: ev.id,
                                 msg: EventMsg::ExecCommandBegin(ExecCommandBeginEvent {

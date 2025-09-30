@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use crate::app_event_sender::AppEventSender;
 use crate::tui::FrameRequester;
 use bottom_pane_view::BottomPaneView;
-use tunacode_file_search::FileMatch;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use ratatui::buffer::Buffer;
@@ -13,10 +12,12 @@ use ratatui::layout::Layout;
 use ratatui::layout::Rect;
 use ratatui::widgets::WidgetRef;
 use std::time::Duration;
+use tunacode_file_search::FileMatch;
 
 mod approval_overlay;
 pub(crate) use approval_overlay::ApprovalOverlay;
 pub(crate) use approval_overlay::ApprovalRequest;
+mod bash_command_popup;
 mod bottom_pane_view;
 mod chat_composer;
 mod chat_composer_history;
@@ -39,6 +40,7 @@ pub(crate) enum CancellationEvent {
     NotHandled,
 }
 
+pub(crate) use chat_composer::BashCommandInput;
 pub(crate) use chat_composer::ChatComposer;
 pub(crate) use chat_composer::InputResult;
 use tunacode_protocol::custom_prompts::CustomPrompt;
