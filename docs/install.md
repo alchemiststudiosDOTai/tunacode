@@ -10,14 +10,14 @@
 
 ### DotSlash
 
-The GitHub Release also contains a [DotSlash](https://dotslash-cli.com/) file for the Codex CLI named `codex`. Using a DotSlash file makes it possible to make a lightweight commit to source control to ensure all contributors use the same version of an executable, regardless of what platform they use for development.
+The GitHub Release also contains a [DotSlash](https://dotslash-cli.com/) file for the tunacode CLI named `tunacode`. Using a DotSlash file makes it possible to make a lightweight commit to source control to ensure all contributors use the same version of an executable, regardless of what platform they use for development.
 
 ### Build from source
 
 ```bash
 # Clone the repository and navigate to the root of the Cargo workspace.
-git clone https://github.com/openai/codex.git
-cd codex/codex-rs
+git clone https://github.com/openai/tunacode.git
+cd tunacode/tunacode-rs
 
 # Install the Rust toolchain, if necessary.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -25,11 +25,11 @@ source "$HOME/.cargo/env"
 rustup component add rustfmt
 rustup component add clippy
 
-# Build Codex.
+# Build tunacode.
 cargo build
 
 # Launch the TUI with a sample prompt.
-cargo run --bin codex -- "explain this codebase to me"
+cargo run --bin tunacode -- "explain this codebase to me"
 
 # After making changes, ensure the code is clean.
 cargo fmt -- --config imports_granularity=Item

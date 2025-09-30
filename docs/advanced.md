@@ -2,14 +2,14 @@
 
 ## Non-interactive / CI mode
 
-Run Codex head-less in pipelines. Example GitHub Action step:
+Run tunacode head-less in pipelines. Example GitHub Action step:
 
 ```yaml
-- name: Update changelog via Codex
+- name: Update changelog via tunacode
   run: |
-    npm install -g @openai/codex
-    codex login --api-key "${{ secrets.OPENAI_KEY }}"
-    codex exec --full-auto "update CHANGELOG for next release"
+    npm install -g @openai/tunacode
+    tunacode login --api-key "${{ secrets.OPENAI_KEY }}"
+    tunacode exec --full-auto "update CHANGELOG for next release"
 ```
 
 ### Resuming non-interactive sessions
@@ -19,50 +19,50 @@ You can resume a previous headless run to continue the same conversation context
 Interactive TUI equivalent:
 
 ```shell
-codex resume             # picker
-codex resume --last      # most recent
-codex resume <SESSION_ID>
+tunacode resume             # picker
+tunacode resume --last      # most recent
+tunacode resume <SESSION_ID>
 ```
 
 Compatibility:
 
-- Latest source builds include `codex exec resume` (examples below).
-- Current released CLI may not include this yet. If `codex exec --help` shows no `resume`, use the workaround in the next subsection.
+- Latest source builds include `tunacode exec resume` (examples below).
+- Current released CLI may not include this yet. If `tunacode exec --help` shows no `resume`, use the workaround in the next subsection.
 
 ```shell
 # Resume the most recent recorded session and run with a new prompt (source builds)
-codex exec "ship a release draft changelog" resume --last
+tunacode exec "ship a release draft changelog" resume --last
 
 # Alternatively, pass the prompt via stdin (source builds)
 # Note: omit the trailing '-' to avoid it being parsed as a SESSION_ID
-echo "ship a release draft changelog" | codex exec resume --last
+echo "ship a release draft changelog" | tunacode exec resume --last
 
 # Or resume a specific session by id (UUID) (source builds)
-codex exec resume 7f9f9a2e-1b3c-4c7a-9b0e-123456789abc "continue the task"
+tunacode exec resume 7f9f9a2e-1b3c-4c7a-9b0e-123456789abc "continue the task"
 ```
 
 Notes:
 
-- When using `--last`, Codex picks the newest recorded session; if none exist, it behaves like starting fresh.
+- When using `--last`, tunacode picks the newest recorded session; if none exist, it behaves like starting fresh.
 - Resuming appends new events to the existing session file and maintains the same conversation id.
 
 ## Tracing / verbose logging
 
-Because Codex is written in Rust, it honors the `RUST_LOG` environment variable to configure its logging behavior.
+Because tunacode is written in Rust, it honors the `RUST_LOG` environment variable to configure its logging behavior.
 
-The TUI defaults to `RUST_LOG=codex_core=info,codex_tui=info` and log messages are written to `~/.codex/log/codex-tui.log`, so you can leave the following running in a separate terminal to monitor log messages as they are written:
+The TUI defaults to `RUST_LOG=tunacode_core=info,tunacode_tui=info` and log messages are written to `~/.tunacode/log/tunacode-tui.log`, so you can leave the following running in a separate terminal to monitor log messages as they are written:
 
 ```
-tail -F ~/.codex/log/codex-tui.log
+tail -F ~/.tunacode/log/tunacode-tui.log
 ```
 
-By comparison, the non-interactive mode (`codex exec`) defaults to `RUST_LOG=error`, but messages are printed inline, so there is no need to monitor a separate file.
+By comparison, the non-interactive mode (`tunacode exec`) defaults to `RUST_LOG=error`, but messages are printed inline, so there is no need to monitor a separate file.
 
 See the Rust documentation on [`RUST_LOG`](https://docs.rs/env_logger/latest/env_logger/#enabling-logging) for more information on the configuration options.
 
 ## Model Context Protocol (MCP)
 
-The Codex CLI can be configured to leverage MCP servers by defining an [`mcp_servers`](./config.md#mcp_servers) section in `~/.codex/config.toml`. It is intended to mirror how tools such as Claude and Cursor define `mcpServers` in their respective JSON config files, though the Codex format is slightly different since it uses TOML rather than JSON, e.g.:
+The tunacode CLI can be configured to leverage MCP servers by defining an [`mcp_servers`](./config.md#mcp_servers) section in `~/.tunacode/config.toml`. It is intended to mirror how tools such as Claude and Cursor define `mcpServers` in their respective JSON config files, though the tunacode format is slightly different since it uses TOML rather than JSON, e.g.:
 
 ```toml
 # IMPORTANT: the top-level key is `mcp_servers` rather than `mcpServers`.
@@ -72,44 +72,44 @@ args = ["-y", "mcp-server"]
 env = { "API_KEY" = "value" }
 ```
 
-## Using Codex as an MCP Server
+## Using tunacode as an MCP Server
 
-The Codex CLI can also be run as an MCP _server_ via `codex mcp-server`. For example, you can use `codex mcp-server` to make Codex available as a tool inside of a multi-agent framework like the OpenAI [Agents SDK](https://platform.openai.com/docs/guides/agents). Use `codex mcp` separately to add/list/get/remove MCP server launchers in your configuration.
+The tunacode CLI can also be run as an MCP _server_ via `tunacode mcp-server`. For example, you can use `tunacode mcp-server` to make tunacode available as a tool inside of a multi-agent framework like the OpenAI [Agents SDK](https://platform.openai.com/docs/guides/agents). Use `tunacode mcp` separately to add/list/get/remove MCP server launchers in your configuration.
 
-### Codex MCP Server Quickstart
-You can launch a Codex MCP server with the [Model Context Protocol Inspector](https://modelcontextprotocol.io/legacy/tools/inspector):
+### tunacode MCP Server Quickstart
+You can launch a tunacode MCP server with the [Model Context Protocol Inspector](https://modelcontextprotocol.io/legacy/tools/inspector):
 
 ``` bash
-npx @modelcontextprotocol/inspector codex mcp-server
+npx @modelcontextprotocol/inspector tunacode mcp-server
 ```
 Send a `tools/list` request and you will see that there are two tools available:
 
-**`codex`** - Run a Codex session. Accepts configuration parameters matching the Codex Config struct. The `codex` tool takes the following properties:
+**`tunacode`** - Run a tunacode session. Accepts configuration parameters matching the tunacode Config struct. The `tunacode` tool takes the following properties:
 
 Property           | Type     | Description
 -------------------|----------|----------------------------------------------------------------------------------------------------------
-**`prompt`** (required)             | string   | The initial user prompt to start the Codex conversation.
+**`prompt`** (required)             | string   | The initial user prompt to start the tunacode conversation.
 `approval-policy`    | string   | Approval policy for shell commands generated by the model: `untrusted`, `on-failure`, `never`.
 `base-instructions`  | string   | The set of instructions to use instead of the default ones.
-`config`             | object   | Individual [config settings](https://github.com/openai/codex/blob/main/docs/config.md#config) that will override what is in `$CODEX_HOME/config.toml`.
+`config`             | object   | Individual [config settings](https://github.com/openai/tunacode/blob/main/docs/config.md#config) that will override what is in `$tunacode_HOME/config.toml`.
 `cwd`                | string   | Working directory for the session. If relative, resolved against the server process's current directory.
 `include-plan-tool`  | boolean  | Whether to include the plan tool in the conversation.
 `model`             | string   | Optional override for the model name (e.g. `o3`, `o4-mini`).
 `profile`            | string   | Configuration profile from `config.toml` to specify default options.
 `sandbox`           | string   | Sandbox mode: `read-only`, `workspace-write`, or `danger-full-access`.
 
-**`codex-reply`** - Continue a Codex session by providing the conversation id and prompt. The `codex-reply` tool takes the following properties:
+**`tunacode-reply`** - Continue a tunacode session by providing the conversation id and prompt. The `tunacode-reply` tool takes the following properties:
 
 Property   | Type   | Description
 -----------|--------|---------------------------------------------------------------
-**`prompt`** (required)     | string | The next user prompt to continue the Codex conversation.
+**`prompt`** (required)     | string | The next user prompt to continue the tunacode conversation.
 **`conversationId`** (required)  | string | The id of the conversation to continue.
 
 ### Trying it Out
 > [!TIP]
-> Codex often takes a few minutes to run. To accommodate this, adjust the MCP inspector's Request and Total timeouts to 600000ms (10 minutes) under ⛭ Configuration.
+> tunacode often takes a few minutes to run. To accommodate this, adjust the MCP inspector's Request and Total timeouts to 600000ms (10 minutes) under ⛭ Configuration.
 
-Use the MCP inspector and `codex mcp-server` to build a simple tic-tac-toe game with the following settings:
+Use the MCP inspector and `tunacode mcp-server` to build a simple tic-tac-toe game with the following settings:
 
 **approval-policy:** never
 
@@ -117,4 +117,4 @@ Use the MCP inspector and `codex mcp-server` to build a simple tic-tac-toe game 
 
 **sandbox:** workspace-write
 
-Click "Run Tool" and you should see a list of events emitted from the Codex MCP server as it builds the game.
+Click "Run Tool" and you should see a list of events emitted from the tunacode MCP server as it builds the game.

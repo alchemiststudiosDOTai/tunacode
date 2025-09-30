@@ -1,0 +1,53 @@
+[package]
+edition = "2024"
+name = "tunacode-cli"
+version = { workspace = true }
+
+[[bin]]
+name = "tunacode"
+path = "src/main.rs"
+
+[lib]
+name = "tunacode_cli"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+clap_complete = { workspace = true }
+tunacode-app-server = { workspace = true }
+tunacode-arg0 = { workspace = true }
+tunacode-chatgpt = { workspace = true }
+tunacode-common = { workspace = true, features = ["cli"] }
+tunacode-core = { workspace = true }
+tunacode-exec = { workspace = true }
+tunacode-login = { workspace = true }
+tunacode-mcp-server = { workspace = true }
+tunacode-process-hardening = { workspace = true }
+tunacode-protocol = { workspace = true }
+tunacode-protocol-ts = { workspace = true }
+tunacode-responses-api-proxy = { workspace = true }
+tunacode-tui = { workspace = true }
+tunacode-cloud-tasks = { path = "../cloud-tasks" }
+ctor = { workspace = true }
+owo-colors = { workspace = true }
+serde_json = { workspace = true }
+supports-color = { workspace = true }
+tokio = { workspace = true, features = [
+    "io-std",
+    "macros",
+    "process",
+    "rt-multi-thread",
+    "signal",
+] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+pretty_assertions = { workspace = true }
+tempfile = { workspace = true }

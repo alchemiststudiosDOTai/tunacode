@@ -18,7 +18,7 @@ If you want to add a new feature or change the behavior of an existing one, plea
 
 1. **Start with an issue.** Open a new one or comment on an existing discussion so we can agree on the solution before code is written.
 2. **Add or update tests.** Every new feature or bug-fix should come with test coverage that fails before your change and passes afterwards. 100% coverage is not required, but aim for meaningful assertions.
-3. **Document behaviour.** If your change affects user-facing behaviour, update the README, inline help (`codex --help`), or relevant example projects.
+3. **Document behaviour.** If your change affects user-facing behaviour, update the README, inline help (`tunacode --help`), or relevant example projects.
 4. **Keep commits atomic.** Each commit should compile and the tests should pass. This makes reviews and potential rollbacks easier.
 
 ### Opening a pull request
@@ -45,7 +45,7 @@ If you want to add a new feature or change the behavior of an existing one, plea
 
 If you run into problems setting up the project, would like feedback on an idea, or just want to say _hi_ - please open a Discussion or jump into the relevant issue. We are happy to help.
 
-Together we can make Codex CLI an incredible tool. **Happy hacking!** :rocket:
+Together we can make tunacode CLI an incredible tool. **Happy hacking!** :rocket:
 
 ### Contributor license agreement (CLA)
 
@@ -70,7 +70,7 @@ No special Git commands, email attachments, or commit footers required.
 
 The **DCO check** blocks merges until every commit in the PR carries the footer (with squash this is just the one).
 
-### Releasing `codex`
+### Releasing `tunacode`
 
 _For admins only._
 
@@ -78,16 +78,16 @@ Make sure you are on `main` and have no local changes. Then run:
 
 ```shell
 VERSION=0.2.0  # Can also be 0.2.0-alpha.1 or any valid Rust version.
-./codex-rs/scripts/create_github_release.sh "$VERSION"
+./tunacode-rs/scripts/create_github_release.sh "$VERSION"
 ```
 
-This will make a local commit on top of `main` with `version` set to `$VERSION` in `codex-rs/Cargo.toml` (note that on `main`, we leave the version as `version = "0.0.0"`).
+This will make a local commit on top of `main` with `version` set to `$VERSION` in `tunacode-rs/Cargo.toml` (note that on `main`, we leave the version as `version = "0.0.0"`).
 
 This will push the commit using the tag `rust-v${VERSION}`, which in turn kicks off [the release workflow](../.github/workflows/rust-release.yml). This will create a new GitHub Release named `$VERSION`.
 
 If everything looks good in the generated GitHub Release, uncheck the **pre-release** box so it is the latest release.
 
-Create a PR to update [`Formula/c/codex.rb`](https://github.com/Homebrew/homebrew-core/blob/main/Formula/c/codex.rb) on Homebrew.
+Create a PR to update [`Formula/c/tunacode.rb`](https://github.com/Homebrew/homebrew-core/blob/main/Formula/c/tunacode.rb) on Homebrew.
 
 ### Security & responsible AI
 

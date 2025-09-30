@@ -1,0 +1,22 @@
+[package]
+edition = "2024"
+name = "tunacode-protocol-ts"
+version = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+name = "tunacode_protocol_ts"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tunacode-protocol-ts"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+mcp-types = { workspace = true }
+tunacode-protocol = { workspace = true }
+ts-rs = { workspace = true }
+clap = { workspace = true, features = ["derive"] }

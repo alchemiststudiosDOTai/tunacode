@@ -1,0 +1,21 @@
+{
+  "name": "@openai/tunacode-responses-api-proxy",
+  "version": "0.0.0-dev",
+  "license": "Apache-2.0",
+  "bin": {
+    "tunacode-responses-api-proxy": "bin/tunacode-responses-api-proxy.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "bin",
+    "vendor"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openai/tunacode.git",
+    "directory": "tunacode-rs/responses-api-proxy/npm"
+  }
+}

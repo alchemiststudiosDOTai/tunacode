@@ -1,10 +1,10 @@
 # Custom Model Provider Setup Guide
 
-This guide explains how to configure custom model providers in Codex, allowing you to use any OpenAI-compatible API endpoint with your own models.
+This guide explains how to configure custom model providers in tunacode, allowing you to use any OpenAI-compatible API endpoint with your own models.
 
 ## Overview
 
-Codex supports custom model providers through configuration in `~/.codex/config.toml`. You can define providers for:
+tunacode supports custom model providers through configuration in `~/.tunacode/config.toml`. You can define providers for:
 - Commercial AI services (Mistral, Anthropic, etc.)
 - Self-hosted models (Ollama, vLLM, etc.)
 - Cloud deployments (Azure OpenAI, etc.)
@@ -12,7 +12,7 @@ Codex supports custom model providers through configuration in `~/.codex/config.
 
 ## Configuration File Location
 
-Create or edit `~/.codex/config.toml` to add your custom providers.
+Create or edit `~/.tunacode/config.toml` to add your custom providers.
 
 ## Provider Configuration Structure
 
@@ -132,8 +132,8 @@ export YOUR_API_KEY_ENV_VAR="your-api-key"
 export OPENAI_BASE_URL="https://custom-openai-endpoint.com/v1"
 
 # Override OSS provider URL
-export CODEX_OSS_BASE_URL="http://localhost:8000/v1"
-export CODEX_OSS_PORT="8000"
+export tunacode_OSS_BASE_URL="http://localhost:8000/v1"
+export tunacode_OSS_PORT="8000"
 ```
 
 ## Headers and Authentication
@@ -143,7 +143,7 @@ export CODEX_OSS_PORT="8000"
 [model_providers.your-provider]
 http_headers = {
     "Content-Type" = "application/json",
-    "User-Agent" = "Codex/1.0",
+    "User-Agent" = "tunacode/1.0",
     "Authorization" = "Bearer static-token"
 }
 ```
@@ -162,14 +162,14 @@ env_http_headers = {
 ### 1. Via CLI
 ```bash
 # Use your custom provider
-codex --model-provider your-provider-id
+tunacode --model-provider your-provider-id
 
 # Or set as default in config.toml
 model_provider = "your-provider-id"
 ```
 
 ### 2. Via Config File
-Set your provider as the default in `~/.codex/config.toml`:
+Set your provider as the default in `~/.tunacode/config.toml`:
 ```toml
 model_provider = "your-provider-id"
 ```
@@ -217,15 +217,15 @@ query_params = {
 ### Testing Configuration
 ```bash
 # Test your provider configuration
-codex --model-provider your-provider-id --help
+tunacode --model-provider your-provider-id --help
 
 # Check loaded configuration
-codex --config
+tunacode --config
 ```
 
 ## Built-in Providers
 
-Codex includes two built-in providers that can be overridden:
+tunacode includes two built-in providers that can be overridden:
 
 ### OpenAI Provider
 ```toml
@@ -242,8 +242,8 @@ export OPENAI_BASE_URL="https://custom-openai.com/v1"
 name = "gpt-oss"
 wire_api = "chat"
 # Override via environment variables:
-export CODEX_OSS_BASE_URL="http://localhost:11434/v1"
-export CODEX_OSS_PORT="11434"
+export tunacode_OSS_BASE_URL="http://localhost:11434/v1"
+export tunacode_OSS_PORT="11434"
 ```
 
 ## Best Practices
@@ -260,4 +260,4 @@ For issues with custom provider configurations:
 1. Check the [troubleshooting section](#troubleshooting)
 2. Verify your provider's API documentation
 3. Test connectivity to your endpoint
-4. Check Codex logs for detailed error information
+4. Check tunacode logs for detailed error information

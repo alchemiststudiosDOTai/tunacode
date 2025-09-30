@@ -1,0 +1,51 @@
+[package]
+edition = "2024"
+name = "tunacode-app-server"
+version = { workspace = true }
+
+[[bin]]
+name = "tunacode-app-server"
+path = "src/main.rs"
+
+[lib]
+name = "tunacode_app_server"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+tunacode-arg0 = { workspace = true }
+tunacode-common = { workspace = true, features = ["cli"] }
+tunacode-core = { workspace = true }
+tunacode-file-search = { workspace = true }
+tunacode-login = { workspace = true }
+tunacode-protocol = { workspace = true }
+tunacode-utils-json-to-toml = { workspace = true }
+# We should only be using mcp-types for JSON-RPC types: it would be nice to
+# split this out into a separate crate at some point.
+mcp-types = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = [
+    "io-std",
+    "macros",
+    "process",
+    "rt-multi-thread",
+    "signal",
+] }
+tracing = { workspace = true, features = ["log"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
+uuid = { workspace = true, features = ["serde", "v7"] }
+
+[dev-dependencies]
+app_test_support = { workspace = true }
+assert_cmd = { workspace = true }
+base64 = { workspace = true }
+core_test_support = { workspace = true }
+os_info = { workspace = true }
+pretty_assertions = { workspace = true }
+tempfile = { workspace = true }
+toml = { workspace = true }
+wiremock = { workspace = true }

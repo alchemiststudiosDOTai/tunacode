@@ -1,10 +1,10 @@
 {
-  "name": "@openai/codex-sdk",
+  "name": "@openai/tunacode-sdk",
   "version": "0.0.0-dev",
-  "description": "TypeScript SDK for Codex APIs.",
+  "description": "TypeScript SDK for tunacode APIs.",
   "keywords": [
     "openai",
-    "codex",
+    "tunacode",
     "sdk",
     "typescript",
     "api"

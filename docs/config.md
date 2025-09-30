@@ -1,32 +1,32 @@
 # Config
 
 
-Codex supports several mechanisms for setting config values:
+tunacode supports several mechanisms for setting config values:
 
 - Config-specific command-line flags, such as `--model o3` (highest precedence).
 - A generic `-c`/`--config` flag that takes a `key=value` pair, such as `--config model="o3"`.
   - The key can contain dots to set a value deeper than the root, e.g. `--config model_providers.openai.wire_api="chat"`.
   - For consistency with `config.toml`, values are a string in TOML format rather than JSON format, so use `key='{a = 1, b = 2}'` rather than `key='{"a": 1, "b": 2}'`.
-    - The quotes around the value are necessary, as without them your shell would split the config argument on spaces, resulting in `codex` receiving `-c key={a` with (invalid) additional arguments `=`, `1,`, `b`, `=`, `2}`.
+    - The quotes around the value are necessary, as without them your shell would split the config argument on spaces, resulting in `tunacode` receiving `-c key={a` with (invalid) additional arguments `=`, `1,`, `b`, `=`, `2}`.
   - Values can contain any TOML object, such as `--config shell_environment_policy.include_only='["PATH", "HOME", "USER"]'`.
   - If `value` cannot be parsed as a valid TOML value, it is treated as a string value. This means that `-c model='"o3"'` and `-c model=o3` are equivalent.
     - In the first case, the value is the TOML string `"o3"`, while in the second the value is `o3`, which is not valid TOML and therefore treated as the TOML string `"o3"`.
     - Because quotes are interpreted by one's shell, `-c key="true"` will be correctly interpreted in TOML as `key = true` (a boolean) and not `key = "true"` (a string). If for some reason you needed the string `"true"`, you would need to use `-c key='"true"'` (note the two sets of quotes).
-- The `$CODEX_HOME/config.toml` configuration file where the `CODEX_HOME` environment value defaults to `~/.codex`. (Note `CODEX_HOME` will also be where logs and other Codex-related information are stored.)
+- The `$tunacode_HOME/config.toml` configuration file where the `tunacode_HOME` environment value defaults to `~/.tunacode`. (Note `tunacode_HOME` will also be where logs and other tunacode-related information are stored.)
 
 Both the `--config` flag and the `config.toml` file support the following options:
 
 ## model
 
-The model that Codex should use.
+The model that tunacode should use.
 
 ```toml
-model = "o3"  # overrides the default of "gpt-5-codex"
+model = "o3"  # overrides the default of "gpt-5-tunacode"
 ```
 
 ## model_providers
 
-This option lets you override and amend the default set of model providers bundled with Codex. This value is a map where the key is the value to use with `model_provider` to select the corresponding provider.
+This option lets you override and amend the default set of model providers bundled with tunacode. This value is a map where the key is the value to use with `model_provider` to select the corresponding provider.
 
 For example, if you wanted to add a provider that uses the OpenAI 4o model via the chat completions API, then you could add the following configuration:
 
@@ -36,13 +36,13 @@ model = "gpt-4o"
 model_provider = "openai-chat-completions"
 
 [model_providers.openai-chat-completions]
-# Name of the provider that will be displayed in the Codex UI.
+# Name of the provider that will be displayed in the tunacode UI.
 name = "OpenAI using Chat Completions"
 # The path `/chat/completions` will be amended to this URL to make the POST
 # request for the chat completions.
 base_url = "https://api.openai.com/v1"
 # If `env_key` is set, identifies an environment variable that must be set when
-# using Codex with this provider. The value of the environment variable must be
+# using tunacode with this provider. The value of the environment variable must be
 # non-empty and will be used in the `Bearer TOKEN` HTTP header for the POST request.
 env_key = "OPENAI_API_KEY"
 # Valid values for wire_api are "chat" and "responses". Defaults to "chat" if omitted.
@@ -52,7 +52,7 @@ wire_api = "chat"
 query_params = {}
 ```
 
-Note this makes it possible to use Codex CLI with non-OpenAI models, so long as they use a wire API that is compatible with the OpenAI chat completions API. For example, you could define the following provider to use Codex CLI with Ollama running locally:
+Note this makes it possible to use tunacode CLI with non-OpenAI models, so long as they use a wire API that is compatible with the OpenAI chat completions API. For example, you could define the following provider to use tunacode CLI with Ollama running locally:
 
 ```toml
 [model_providers.ollama]
@@ -99,7 +99,7 @@ query_params = { api-version = "2025-04-01-preview" }
 wire_api = "responses"
 ```
 
-Export your key before launching Codex: `export AZURE_OPENAI_API_KEY=…`
+Export your key before launching tunacode: `export AZURE_OPENAI_API_KEY=…`
 
 ### Per-provider network tuning
 
@@ -120,15 +120,15 @@ stream_idle_timeout_ms = 300000    # 5m idle timeout
 
 #### request_max_retries
 
-How many times Codex will retry a failed HTTP request to the model provider. Defaults to `4`.
+How many times tunacode will retry a failed HTTP request to the model provider. Defaults to `4`.
 
 #### stream_max_retries
 
-Number of times Codex will attempt to reconnect when a streaming response is interrupted. Defaults to `5`.
+Number of times tunacode will attempt to reconnect when a streaming response is interrupted. Defaults to `5`.
 
 #### stream_idle_timeout_ms
 
-How long Codex will wait for activity on a streaming response before treating the connection as lost. Defaults to `300_000` (5 minutes).
+How long tunacode will wait for activity on a streaming response before treating the connection as lost. Defaults to `300_000` (5 minutes).
 
 ## model_provider
 
@@ -145,14 +145,14 @@ model = "mistral"
 
 ## approval_policy
 
-Determines when the user should be prompted to approve whether Codex can execute a command:
+Determines when the user should be prompted to approve whether tunacode can execute a command:
 
 ```toml
-# Codex has hardcoded logic that defines a set of "trusted" commands.
-# Setting the approval_policy to `untrusted` means that Codex will prompt the
+# tunacode has hardcoded logic that defines a set of "trusted" commands.
+# Setting the approval_policy to `untrusted` means that tunacode will prompt the
 # user before running a command not in the "trusted" set.
 #
-# See https://github.com/openai/codex/issues/1260 for the plan to enable
+# See https://github.com/openai/tunacode/issues/1260 for the plan to enable
 # end-users to define their own trusted commands.
 approval_policy = "untrusted"
 ```
@@ -160,7 +160,7 @@ approval_policy = "untrusted"
 If you want to be notified whenever a command fails, use "on-failure":
 
 ```toml
-# If the command fails when run in the sandbox, Codex asks for permission to
+# If the command fails when run in the sandbox, tunacode asks for permission to
 # retry the command outside the sandbox.
 approval_policy = "on-failure"
 ```
@@ -175,7 +175,7 @@ approval_policy = "on-request"
 Alternatively, you can have the model run until it is done, and never ask to run a command with escalated permissions:
 
 ```toml
-# User is never prompted: if the command fails, Codex will automatically try
+# User is never prompted: if the command fails, tunacode will automatically try
 # something out. Note the `exec` subcommand always uses this mode.
 approval_policy = "never"
 ```
@@ -223,11 +223,11 @@ Users can specify config values at multiple levels. Order of precedence is as fo
 1. custom command-line argument, e.g., `--model o3`
 2. as part of a profile, where the `--profile` is specified via a CLI (or in the config file itself)
 3. as an entry in `config.toml`, e.g., `model = "o3"`
-4. the default value that comes with Codex CLI (i.e., Codex CLI defaults to `gpt-5-codex`)
+4. the default value that comes with tunacode CLI (i.e., tunacode CLI defaults to `gpt-5-tunacode`)
 
 ## model_reasoning_effort
 
-If the selected model is known to support reasoning (for example: `o3`, `o4-mini`, `codex-*`, `gpt-5`, `gpt-5-codex`), reasoning is enabled by default when using the Responses API. As explained in the [OpenAI Platform documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#get-started-with-reasoning), this can be set to:
+If the selected model is known to support reasoning (for example: `o3`, `o4-mini`, `tunacode-*`, `gpt-5`, `gpt-5-tunacode`), reasoning is enabled by default when using the Responses API. As explained in the [OpenAI Platform documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#get-started-with-reasoning), this can be set to:
 
 - `"minimal"`
 - `"low"`
@@ -238,7 +238,7 @@ Note: to minimize reasoning, choose `"minimal"`.
 
 ## model_reasoning_summary
 
-If the model name starts with `"o"` (as in `"o3"` or `"o4-mini"`) or `"codex"`, reasoning is enabled by default when using the Responses API. As explained in the [OpenAI Platform documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries), this can be set to:
+If the model name starts with `"o"` (as in `"o3"` or `"o4-mini"`) or `"tunacode"`, reasoning is enabled by default when using the Responses API. As explained in the [OpenAI Platform documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries), this can be set to:
 
 - `"auto"` (default)
 - `"concise"`
@@ -258,7 +258,7 @@ Controls output length/detail on GPT‑5 family models when using the Responses 
 - `"medium"` (default when omitted)
 - `"high"`
 
-When set, Codex includes a `text` object in the request payload with the configured verbosity, for example: `"text": { "verbosity": "low" }`.
+When set, tunacode includes a `text` object in the request payload with the configured verbosity, for example: `"text": { "verbosity": "low" }`.
 
 Example:
 
@@ -279,7 +279,7 @@ model_supports_reasoning_summaries = true
 
 ## sandbox_mode
 
-Codex executes model-generated shell commands inside an OS-level sandbox.
+tunacode executes model-generated shell commands inside an OS-level sandbox.
 
 In most cases you can pick the desired behaviour with a single option:
 
@@ -291,9 +291,9 @@ sandbox_mode = "read-only"
 The default policy is `read-only`, which means commands can read any file on
 disk, but attempts to write a file or access the network will be blocked.
 
-A more relaxed policy is `workspace-write`. When specified, the current working directory for the Codex task will be writable (as well as `$TMPDIR` on macOS). Note that the CLI defaults to using the directory where it was spawned as `cwd`, though this can be overridden using `--cwd/-C`.
+A more relaxed policy is `workspace-write`. When specified, the current working directory for the tunacode task will be writable (as well as `$TMPDIR` on macOS). Note that the CLI defaults to using the directory where it was spawned as `cwd`, though this can be overridden using `--cwd/-C`.
 
-On macOS (and soon Linux), all writable roots (including `cwd`) that contain a `.git/` folder _as an immediate child_ will configure the `.git/` folder to be read-only while the rest of the Git repository will be writable. This means that commands like `git commit` will fail, by default (as it entails writing to `.git/`), and will require Codex to ask for permission.
+On macOS (and soon Linux), all writable roots (including `cwd`) that contain a `.git/` folder _as an immediate child_ will configure the `.git/` folder to be read-only while the rest of the Git repository will be writable. This means that commands like `git commit` will fail, by default (as it entails writing to `.git/`), and will require tunacode to ask for permission.
 
 ```toml
 # same as `--sandbox workspace-write`
@@ -301,7 +301,7 @@ sandbox_mode = "workspace-write"
 
 # Extra settings that only apply when `sandbox = "workspace-write"`.
 [sandbox_workspace_write]
-# By default, the cwd for the Codex session will be writable as well as $TMPDIR
+# By default, the cwd for the tunacode session will be writable as well as $TMPDIR
 # (if set) and /tmp (if it exists). Setting the respective options to `true`
 # will override those defaults.
 exclude_tmpdir_env_var = false
@@ -322,23 +322,23 @@ To disable sandboxing altogether, specify `danger-full-access` like so:
 sandbox_mode = "danger-full-access"
 ```
 
-This is reasonable to use if Codex is running in an environment that provides its own sandboxing (such as a Docker container) such that further sandboxing is unnecessary.
+This is reasonable to use if tunacode is running in an environment that provides its own sandboxing (such as a Docker container) such that further sandboxing is unnecessary.
 
-Though using this option may also be necessary if you try to use Codex in environments where its native sandboxing mechanisms are unsupported, such as older Linux kernels or on Windows.
+Though using this option may also be necessary if you try to use tunacode in environments where its native sandboxing mechanisms are unsupported, such as older Linux kernels or on Windows.
 
 ## Approval presets
 
-Codex provides three main Approval Presets:
+tunacode provides three main Approval Presets:
 
-- Read Only: Codex can read files and answer questions; edits, running commands, and network access require approval.
-- Auto: Codex can read files, make edits, and run commands in the workspace without approval; asks for approval outside the workspace or for network access.
+- Read Only: tunacode can read files and answer questions; edits, running commands, and network access require approval.
+- Auto: tunacode can read files, make edits, and run commands in the workspace without approval; asks for approval outside the workspace or for network access.
 - Full Access: Full disk and network access without prompts; extremely risky.
 
-You can further customize how Codex runs at the command line using the `--ask-for-approval` and `--sandbox` options.
+You can further customize how tunacode runs at the command line using the `--ask-for-approval` and `--sandbox` options.
 
 ## MCP Servers
 
-You can configure Codex to use [MCP servers](https://modelcontextprotocol.io/about) to give Codex access to external applications, resources, or services such as [Playwright](https://github.com/microsoft/playwright-mcp), [Figma](https://www.figma.com/blog/design-context-everywhere-you-build/), [documentation](https://context7.com/), and  [more](https://github.com/mcp?utm_source=blog-source&utm_campaign=mcp-registry-server-launch-2025).
+You can configure tunacode to use [MCP servers](https://modelcontextprotocol.io/about) to give tunacode access to external applications, resources, or services such as [Playwright](https://github.com/microsoft/playwright-mcp), [Figma](https://www.figma.com/blog/design-context-everywhere-you-build/), [documentation](https://context7.com/), and  [more](https://github.com/mcp?utm_source=blog-source&utm_campaign=mcp-registry-server-launch-2025).
 
 ### Server transport configuration
 
@@ -353,7 +353,7 @@ command = "npx"
 args = ["-y", "mcp-server"]
 # Optional: propagate additional env vars to the MVP server.
 # A default whitelist of env vars will be propagated to the MCP server.
-# https://github.com/openai/codex/blob/main/codex-rs/rmcp-client/src/utils.rs#L82
+# https://github.com/openai/tunacode/blob/main/tunacode-rs/rmcp-client/src/utils.rs#L82
 env = { "API_KEY" = "value" }
 ```
 
@@ -380,7 +380,7 @@ tool_timeout_sec = 30
 
 ### Experimental RMCP client
 
-Codex is transitioning to the [official Rust MCP SDK](https://github.com/modelcontextprotocol/rust-sdk) and new functionality such as streamable http servers will only work with the new client.
+tunacode is transitioning to the [official Rust MCP SDK](https://github.com/modelcontextprotocol/rust-sdk) and new functionality such as streamable http servers will only work with the new client.
 
 Please try and report issues with the new client. To enable it, add this to the top level of your `config.toml`
 
@@ -392,23 +392,23 @@ experimental_use_rmcp_client = true
 
 ```shell
 # Add a server (env can be repeated; `--` separates the launcher command)
-codex mcp add docs -- docs-server --port 4000
+tunacode mcp add docs -- docs-server --port 4000
 
 # List configured servers (pretty table or JSON)
-codex mcp list
-codex mcp list --json
+tunacode mcp list
+tunacode mcp list --json
 
 # Show one server (table or JSON)
-codex mcp get docs
-codex mcp get docs --json
+tunacode mcp get docs
+tunacode mcp get docs --json
 
 # Remove a server
-codex mcp remove docs
+tunacode mcp remove docs
 ```
 
 ## shell_environment_policy
 
-Codex spawns subprocesses (e.g. when executing a `local_shell` tool-call suggested by the assistant). By default it now passes **your full environment** to those subprocesses. You can tune this behavior via the **`shell_environment_policy`** block in `config.toml`:
+tunacode spawns subprocesses (e.g. when executing a `local_shell` tool-call suggested by the assistant). By default it now passes **your full environment** to those subprocesses. You can tune this behavior via the **`shell_environment_policy`** block in `config.toml`:
 
 ```toml
 [shell_environment_policy]
@@ -427,7 +427,7 @@ include_only = ["PATH", "HOME"]
 | Field                     | Type                       | Default | Description                                                                                                                                     |
 | ------------------------- | -------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `inherit`                 | string                     | `all`   | Starting template for the environment:<br>`all` (clone full parent env), `core` (`HOME`, `PATH`, `USER`, …), or `none` (start empty).           |
-| `ignore_default_excludes` | boolean                    | `false` | When `false`, Codex removes any var whose **name** contains `KEY`, `SECRET`, or `TOKEN` (case-insensitive) before other rules run.              |
+| `ignore_default_excludes` | boolean                    | `false` | When `false`, tunacode removes any var whose **name** contains `KEY`, `SECRET`, or `TOKEN` (case-insensitive) before other rules run.              |
 | `exclude`                 | array<string>        | `[]`    | Case-insensitive glob patterns to drop after the default filter.<br>Examples: `"AWS_*"`, `"AZURE_*"`.                                           |
 | `set`                     | table<string,string> | `{}`    | Explicit key/value overrides or additions – always win over inherited values.                                                                   |
 | `include_only`            | array<string>        | `[]`    | If non-empty, a whitelist of patterns; only variables that match _one_ pattern survive the final step. (Generally used with `inherit = "all"`.) |
@@ -446,11 +446,11 @@ inherit = "none"
 set = { PATH = "/usr/bin", MY_FLAG = "1" }
 ```
 
-Currently, `CODEX_SANDBOX_NETWORK_DISABLED=1` is also added to the environment, assuming network is disabled. This is not configurable.
+Currently, `tunacode_SANDBOX_NETWORK_DISABLED=1` is also added to the environment, assuming network is disabled. This is not configurable.
 
 ## otel
 
-Codex can emit [OpenTelemetry](https://opentelemetry.io/) **log events** that
+tunacode can emit [OpenTelemetry](https://opentelemetry.io/) **log events** that
 describe each run: outbound API requests, streamed responses, user input,
 tool-approval decisions, and the result of every tool invocation. Export is
 **disabled by default** so local runs remain self-contained. Opt in by adding an
@@ -463,10 +463,10 @@ exporter = "none"          # defaults to "none"; set to otlp-http or otlp-grpc t
 log_user_prompt = false    # defaults to false; redact prompt text unless explicitly enabled
 ```
 
-Codex tags every exported event with `service.name = $ORIGINATOR` (the same
-value sent in the `originator` header, `codex_cli_rs` by default), the CLI
+tunacode tags every exported event with `service.name = $ORIGINATOR` (the same
+value sent in the `originator` header, `tunacode_cli_rs` by default), the CLI
 version, and an `env` attribute so downstream collectors can distinguish
-dev/staging/prod traffic. Only telemetry produced inside the `codex_otel`
+dev/staging/prod traffic. Only telemetry produced inside the `tunacode_otel`
 crate—the events listed below—is forwarded to the exporter.
 
 ### Event catalog
@@ -475,10 +475,10 @@ Every event shares a common set of metadata fields: `event.timestamp`,
 `conversation.id`, `app.version`, `auth_mode` (when available),
 `user.account_id` (when available), `terminal.type`, `model`, and `slug`.
 
-With OTEL enabled Codex emits the following event types (in addition to the
+With OTEL enabled tunacode emits the following event types (in addition to the
 metadata above):
 
-- `codex.conversation_starts`
+- `tunacode.conversation_starts`
   - `provider_name`
   - `reasoning_effort` (optional)
   - `reasoning_summary`
@@ -489,12 +489,12 @@ metadata above):
   - `sandbox_policy`
   - `mcp_servers` (comma-separated list)
   - `active_profile` (optional)
-- `codex.api_request`
+- `tunacode.api_request`
   - `attempt`
   - `duration_ms`
   - `http.response.status_code` (optional)
   - `error.message` (failures)
-- `codex.sse_event`
+- `tunacode.sse_event`
   - `event.kind`
   - `duration_ms`
   - `error.message` (failures)
@@ -503,15 +503,15 @@ metadata above):
   - `cached_token_count` (responses only, optional)
   - `reasoning_token_count` (responses only, optional)
   - `tool_token_count` (responses only)
-- `codex.user_prompt`
+- `tunacode.user_prompt`
   - `prompt_length`
   - `prompt` (redacted unless `log_user_prompt = true`)
-- `codex.tool_decision`
+- `tunacode.tool_decision`
   - `tool_name`
   - `call_id`
   - `decision` (`approved`, `approved_for_session`, `denied`, or `abort`)
   - `source` (`config` or `user`)
-- `codex.tool_result`
+- `tunacode.tool_result`
   - `tool_name`
   - `call_id` (optional)
   - `arguments` (optional)
@@ -554,14 +554,14 @@ If the exporter is `none` nothing is written anywhere; otherwise you must run or
 own collector. All exporters run on a background batch worker that is flushed on
 shutdown.
 
-If you build Codex from source the OTEL crate is still behind an `otel` feature
+If you build tunacode from source the OTEL crate is still behind an `otel` feature
 flag; the official prebuilt binaries ship with the feature enabled. When the
 feature is disabled the telemetry hooks become no-ops so the CLI continues to
 function without the extra dependencies.
 
 ## notify
 
-Specify a program that will be executed to get notified about events generated by Codex. Note that the program will receive the notification argument as a string of JSON, e.g.:
+Specify a program that will be executed to get notified about events generated by tunacode. Note that the program will receive the notification argument as a string of JSON, e.g.:
 
 ```json
 {
@@ -598,9 +598,9 @@ def main() -> int:
         case "agent-turn-complete":
             assistant_message = notification.get("last-assistant-message")
             if assistant_message:
-                title = f"Codex: {assistant_message}"
+                title = f"tunacode: {assistant_message}"
             else:
-                title = "Codex: Turn Complete!"
+                title = "tunacode: Turn Complete!"
             input_messages = notification.get("input_messages", [])
             message = " ".join(input_messages)
             title += message
@@ -616,7 +616,7 @@ def main() -> int:
             "-message",
             message,
             "-group",
-            "codex",
+            "tunacode",
             "-ignoreDnD",
             "-activate",
             "com.googlecode.iterm2",
@@ -630,18 +630,18 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-To have Codex use this script for notifications, you would configure it via `notify` in `~/.codex/config.toml` using the appropriate path to `notify.py` on your computer:
+To have tunacode use this script for notifications, you would configure it via `notify` in `~/.tunacode/config.toml` using the appropriate path to `notify.py` on your computer:
 
 ```toml
-notify = ["python3", "/Users/mbolin/.codex/notify.py"]
+notify = ["python3", "/Users/mbolin/.tunacode/notify.py"]
 ```
 
 > [!NOTE]
-> Use `notify` for automation and integrations: Codex invokes your external program with a single JSON argument for each event, independent of the TUI. If you only want lightweight desktop notifications while using the TUI, prefer `tui.notifications`, which uses terminal escape codes and requires no external program. You can enable both; `tui.notifications` covers in‑TUI alerts (e.g., approval prompts), while `notify` is best for system‑level hooks or custom notifiers. Currently, `notify` emits only `agent-turn-complete`, whereas `tui.notifications` supports `agent-turn-complete` and `approval-requested` with optional filtering.
+> Use `notify` for automation and integrations: tunacode invokes your external program with a single JSON argument for each event, independent of the TUI. If you only want lightweight desktop notifications while using the TUI, prefer `tui.notifications`, which uses terminal escape codes and requires no external program. You can enable both; `tui.notifications` covers in‑TUI alerts (e.g., approval prompts), while `notify` is best for system‑level hooks or custom notifiers. Currently, `notify` emits only `agent-turn-complete`, whereas `tui.notifications` supports `agent-turn-complete` and `approval-requested` with optional filtering.
 
 ## history
 
-By default, Codex CLI records messages sent to the model in `$CODEX_HOME/history.jsonl`. Note that on UNIX, the file permissions are set to `o600`, so it should only be readable and writable by the owner.
+By default, tunacode CLI records messages sent to the model in `$tunacode_HOME/history.jsonl`. Note that on UNIX, the file permissions are set to `o600`, so it should only be readable and writable by the owner.
 
 To disable this behavior, configure `[history]` as follows:
 
@@ -664,11 +664,11 @@ Note this is **not** a general editor setting (like `$EDITOR`), as it only accep
 - `"cursor"`
 - `"none"` to explicitly disable this feature
 
-Currently, `"vscode"` is the default, though Codex does not verify VS Code is installed. As such, `file_opener` may default to `"none"` or something else in the future.
+Currently, `"vscode"` is the default, though tunacode does not verify VS Code is installed. As such, `file_opener` may default to `"none"` or something else in the future.
 
 ## hide_agent_reasoning
 
-Codex intermittently emits "reasoning" events that show the model's internal "thinking" before it produces a final answer. Some users may find these events distracting, especially in CI logs or minimal terminal output.
+tunacode intermittently emits "reasoning" events that show the model's internal "thinking" before it produces a final answer. Some users may find these events distracting, especially in CI logs or minimal terminal output.
 
 Setting `hide_agent_reasoning` to `true` suppresses these events in **both** the TUI as well as the headless `exec` sub-command:
 
@@ -695,7 +695,7 @@ show_raw_agent_reasoning = true  # defaults to false
 
 The size of the context window for the model, in tokens.
 
-In general, Codex knows the context window for the most common OpenAI models, but if you are using a new model with an old version of the Codex CLI, then you can use `model_context_window` to tell Codex what value to use to determine how much context is left during a conversation.
+In general, tunacode knows the context window for the most common OpenAI models, but if you are using a new model with an old version of the tunacode CLI, then you can use `model_context_window` to tell tunacode what value to use to determine how much context is left during a conversation.
 
 ## model_max_output_tokens
 
@@ -721,7 +721,7 @@ notifications = [ "agent-turn-complete", "approval-requested" ]
 ```
 
 > [!NOTE]
-> Codex emits desktop notifications using terminal escape codes. Not all terminals support these (notably, macOS Terminal.app and VS Code's terminal do not support custom notifications. iTerm2, Ghostty and WezTerm do support these notifications).
+> tunacode emits desktop notifications using terminal escape codes. Not all terminals support these (notably, macOS Terminal.app and VS Code's terminal do not support custom notifications. iTerm2, Ghostty and WezTerm do support these notifications).
 
 > [!NOTE]
 > `tui.notifications` is built‑in and limited to the TUI session. For programmatic or cross‑environment notifications—or to integrate with OS‑specific notifiers—use the top‑level `notify` option to run an external program that receives event JSON. The two settings are independent and can be used together.
@@ -730,7 +730,7 @@ notifications = [ "agent-turn-complete", "approval-requested" ]
 
 | Key | Type / Values | Notes |
 | --- | --- | --- |
-| `model` | string | Model to use (e.g., `gpt-5-codex`). |
+| `model` | string | Model to use (e.g., `gpt-5-tunacode`). |
 | `model_provider` | string | Provider id from `model_providers` (default: `openai`). |
 | `model_context_window` | number | Context window tokens. |
 | `model_max_output_tokens` | number | Max output tokens. |
