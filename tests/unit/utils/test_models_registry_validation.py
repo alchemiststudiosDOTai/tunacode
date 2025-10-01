@@ -45,9 +45,9 @@ def test_negative_costs_raise_validation_error() -> None:
         registry._parse_data(bad)
 
 
-def test_non_positive_limits_raise_validation_error() -> None:
+def test_negative_limits_raise_validation_error() -> None:
     registry = ModelsRegistry()
-    bad = _data_with_limits(context=0, output=-1)
+    bad = _data_with_limits(context=-1, output=-1)
     with pytest.raises(ValidationError):
         registry._parse_data(bad)
 
@@ -67,3 +67,16 @@ def test_type_coercion_for_numeric_fields() -> None:
     assert model.cost.output == 2.5
     assert model.limits.context == 32000
     assert model.limits.output == 2048
+
+
+def test_zero_limits_treated_as_unbounded() -> None:
+    registry = ModelsRegistry()
+    data = _data_with_limits(context=0, output=0)
+
+    registry._parse_data(data)
+
+    mid = "prov:m"
+    assert mid in registry.models
+    model = registry.models[mid]
+    assert model.limits.context is None
+    assert model.limits.output is None

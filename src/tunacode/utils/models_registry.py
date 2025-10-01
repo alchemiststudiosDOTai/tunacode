@@ -62,9 +62,9 @@ class ModelLimits(BaseModel):
         if v is None:
             return v
         iv = int(v)
-        if iv <= 0:
-            raise ValueError("limits must be positive integers")
-        return iv
+        if iv < 0:
+            raise ValueError("limits must be non-negative integers")
+        return iv if iv > 0 else None
 
     def format_limits(self) -> str:
         """Format limits as a readable string."""

@@ -22,29 +22,16 @@ from .constants import SPINNER_TYPE
 from .decorators import create_sync_wrapper
 from .logging_compat import ui_logger
 
-# Create console with explicit settings to ensure ANSI codes work properly
 console = Console()
 colors = DotDict(UI_COLORS)
 
 BANNER = """[bold cyan]
-████████╗██╗   ██╗███╗   ██╗ █████╗
-╚══██╔══╝██║   ██║████╗  ██║██╔══██╗
-   ██║   ██║   ██║██╔██╗ ██║███████║
-   ██║   ██║   ██║██║╚██╗██║██╔══██║
-   ██║   ╚██████╔╝██║ ╚████║██║  ██║
-   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝
-
- ██████╗ ██████╗ ██████╗ ███████╗  dev
-██╔════╝██╔═══██╗██╔══██╗██╔════╝
-██║     ██║   ██║██║  ██║█████╗
-██║     ██║   ██║██║  ██║██╔══╝
-╚██████╗╚██████╔╝██████╔╝███████╗
- ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
+><>
+  ><(((°>
+    ><> TunaCode <>
 [/bold cyan]
 
-● Caution: This tool can modify your codebase - always use git branches"""
-
-
+"""
 @create_sync_wrapper
 async def print(message, **kwargs) -> None:
     """Print a message to the console."""
