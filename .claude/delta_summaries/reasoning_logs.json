@@ -2,6 +2,29 @@
   "version": 1,
   "sessions": [
     {
+      "id": "version-bump-0.0.77-20251001-190642",
+      "time": "2025-10-01T19:06:42Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "reasoning": {
+        "problem": "Project metadata still advertised v0.0.76.9, blocking the next release tag.",
+        "why_change": "A 0.0.77 release requires pyproject and runtime constants to agree on the new version before tagging and publishing.",
+        "solution": "Update both pyproject.toml version declarations and src/tunacode/constants.APP_VERSION to 0.0.77, keeping release docs and automation trustworthy.",
+        "benefits": [
+          "Aligns build metadata with the upcoming release tag",
+          "Prevents GitHub Actions release workflow from failing version consistency checks",
+          "Signals to users and tooling that 0.0.77 is the current release"
+        ],
+        "risks": [
+          "Missing a hidden version reference could leave inconsistent metadata"
+        ],
+        "mitigations": [
+          "Searched repository for prior version string to ensure synchronized update"
+        ]
+      }
+    },
+    {
       "id": "publish-workflow-cache-bust-20250105-000000",
       "time": "2025-01-05T00:00:00",
       "branch": "master",

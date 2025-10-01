@@ -12,7 +12,7 @@ This system ensures consistent, automated releases with proper version control a
 ## Release Components
 
 ### 1. Git Tags
-- Format: `v0.0.76.2`
+- Format: `v0.0.77`
 - Technical snapshots of code at specific moments
 - Serve as official release identifiers
 
@@ -40,8 +40,8 @@ This system ensures consistent, automated releases with proper version control a
 
 1. **Update versions** in both `pyproject.toml` and `src/tunacode/constants.py`
 2. **Commit changes** to git
-3. **Create git tag** (e.g., `git tag v0.0.76.2`)
-4. **Push tag** to GitHub (`git push origin v0.0.76.2`)
+3. **Create git tag** (e.g., `git tag v0.0.77`)
+4. **Push tag** to GitHub (`git push origin v0.0.77`)
 5. **Create GitHub release** (this triggers the workflow)
 6. **Automated publishing** to PyPI
 
@@ -57,11 +57,11 @@ This system ensures consistent, automated releases with proper version control a
 ```bash
 # After updating version files
 git add pyproject.toml src/tunacode/constants.py
-git commit -m "bump version to v0.0.76.2"
+git commit -m "bump version to v0.0.77"
 
 # Create and push tag
-git tag v0.0.76.2
-git push origin v0.0.76.2
+git tag v0.0.77
+git push origin v0.0.77
 
 # Then create GitHub release through web interface
 ```

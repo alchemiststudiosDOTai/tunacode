@@ -17,6 +17,7 @@ htmlcov/
 .tox/
 coverage.xml
 *.cover
+.uv-cache/
 
 # Test environments
 test_env/
@@ -63,6 +64,7 @@ scratchpad_*.md
 # llm-agent-tools/  # Removed - now tracking this directory
 llm-agent-tools/kb_synch/target/
 .researcher/
+tunacode-rs/target/
 
 # Logs
 logs

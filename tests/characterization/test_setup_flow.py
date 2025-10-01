@@ -6,7 +6,7 @@ before git safety removal to ensure we can verify functionality
 after removal is complete.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -54,8 +54,8 @@ class TestSetupFlowBaseline:
 
         # Verify coordinator initializes correctly
         assert coordinator.state_manager == mock_state_manager
-        assert hasattr(coordinator, 'register_step')
-        assert hasattr(coordinator, 'run_setup')
+        assert hasattr(coordinator, "register_step")
+        assert hasattr(coordinator, "run_setup")
 
     @pytest.mark.asyncio
     async def test_setup_step_imports_available(self):
@@ -75,11 +75,10 @@ class TestSetupFlowBaseline:
 
         # Verify all setup steps have required methods
         for setup_step in [config_setup, env_setup, template_setup]:
-            assert hasattr(setup_step, 'name')
-            assert hasattr(setup_step, 'should_run')
-            assert hasattr(setup_step, 'execute')
-            assert hasattr(setup_step, 'validate')
-
+            assert hasattr(setup_step, "name")
+            assert hasattr(setup_step, "should_run")
+            assert hasattr(setup_step, "execute")
+            assert hasattr(setup_step, "validate")
 
     @pytest.mark.asyncio
     async def test_setup_step_names(self, mock_state_manager):
@@ -104,7 +103,7 @@ class TestSetupFlowBaseline:
         mock_state_manager.session.user_config = {
             "settings": {"max_retries": 3},
             "default_model": "test-model",
-            "env": {"TEST_API_KEY": "test-key"}
+            "env": {"TEST_API_KEY": "test-key"},
         }
 
         # Config validation depends on having proper config
