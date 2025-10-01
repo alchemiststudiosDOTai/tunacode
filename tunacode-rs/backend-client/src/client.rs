@@ -13,7 +13,7 @@ use serde::de::DeserializeOwned;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PathStyle {
     /// /api/tunacode/…
-    tunacodeApi,
+    TunacodeApi,
     /// /wham/…
     ChatGptApi,
 }
@@ -23,7 +23,7 @@ impl PathStyle {
         if base_url.contains("/backend-api") {
             PathStyle::ChatGptApi
         } else {
-            PathStyle::tunacodeApi
+            PathStyle::TunacodeApi
         }
     }
 }
@@ -145,7 +145,7 @@ impl Client {
         environment_id: Option<&str>,
     ) -> Result<PaginatedListTaskListItem> {
         let url = match self.path_style {
-            PathStyle::tunacodeApi => format!("{}/api/tunacode/tasks/list", self.base_url),
+            PathStyle::TunacodeApi => format!("{}/api/tunacode/tasks/list", self.base_url),
             PathStyle::ChatGptApi => format!("{}/wham/tasks/list", self.base_url),
         };
         let req = self.http.get(&url).headers(self.headers());
@@ -178,7 +178,7 @@ impl Client {
         task_id: &str,
     ) -> Result<(CodeTaskDetailsResponse, String, String)> {
         let url = match self.path_style {
-            PathStyle::tunacodeApi => format!("{}/api/tunacode/tasks/{}", self.base_url, task_id),
+            PathStyle::TunacodeApi => format!("{}/api/tunacode/tasks/{}", self.base_url, task_id),
             PathStyle::ChatGptApi => format!("{}/wham/tasks/{}", self.base_url, task_id),
         };
         let req = self.http.get(&url).headers(self.headers());
@@ -193,7 +193,7 @@ impl Client {
         turn_id: &str,
     ) -> Result<TurnAttemptsSiblingTurnsResponse> {
         let url = match self.path_style {
-            PathStyle::tunacodeApi => format!(
+            PathStyle::TunacodeApi => format!(
                 "{}/api/tunacode/tasks/{}/turns/{}/sibling_turns",
                 self.base_url, task_id, turn_id
             ),
@@ -211,7 +211,7 @@ impl Client {
     /// based on `path_style`. Returns the created task id.
     pub async fn create_task(&self, request_body: serde_json::Value) -> Result<String> {
         let url = match self.path_style {
-            PathStyle::tunacodeApi => format!("{}/api/tunacode/tasks", self.base_url),
+            PathStyle::TunacodeApi => format!("{}/api/tunacode/tasks", self.base_url),
             PathStyle::ChatGptApi => format!("{}/wham/tasks", self.base_url),
         };
         let req = self
