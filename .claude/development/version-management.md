@@ -32,9 +32,8 @@ This system ensures consistent, automated releases with proper version control a
 
 **Process:**
 1. Version validation - Ensures git tag matches both version files
-2. Test execution - Runs full test suite (Python 3.12 pinned to avoid Hatch CLI bug on 3.13)
-3. Package building - Creates installable Python package
-4. PyPI publishing - Pushes to Python Package Index
+2. Package building - Creates installable Python package
+3. PyPI publishing - Pushes to Python Package Index
 
 ## Release Process Flow
 
@@ -70,5 +69,5 @@ git push origin v0.0.77
 
 - Never skip version validation - it prevents deployment of inconsistent versions
 - Always create git tag before GitHub release
-- Test suite must pass for release to succeed
+- Run tests locally before tagging to avoid shipping regressions (CI no longer enforces this)
 - Version numbers must follow semantic versioning (major.minor.patch.build)

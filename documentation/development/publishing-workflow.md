@@ -41,10 +41,8 @@ The publishing workflow (`.github/workflows/publish-release.yml`) performs these
 2. **Setup Python**: Configures Python 3.12 (3.13 currently breaks Hatch's filter parsing)
 3. **Install Dependencies**: Installs build tools (hatch, twine, uv)
 4. **Version Check**: Validates that tag version matches code versions
-5. **Linting**: Runs code quality checks with ruff
-6. **Testing**: Executes the test suite
-7. **Build**: Creates distribution packages using hatch
-8. **Publish**: Uploads to PyPI using API token authentication
+5. **Build**: Creates distribution packages using hatch
+6. **Publish**: Uploads to PyPI using API token authentication
 
 ## Version Management
 

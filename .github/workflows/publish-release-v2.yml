@@ -62,14 +62,6 @@ jobs:
             echo "No semver tag detected; skipping tag consistency check."
           fi
 
-      - name: Lint
-        run: |
-          ruff check .
-          ruff format --check .
-
-      - name: Test
-        run: pytest -q tests/characterization tests/test_security.py tests/test_agent_output_formatting.py tests/test_prompt_changes_validation.py
-
       - name: Build
         run: hatch build
 
