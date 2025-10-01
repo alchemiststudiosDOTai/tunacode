@@ -32,7 +32,7 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         help_text="Format: provider:model-name. Examples: openai:gpt-4, anthropic:claude-3-sonnet, google:gemini-pro",
         category="AI Models",
     ),
-      # Environment variables (API Keys)
+    # Environment variables (API Keys)
     "env.OPENAI_API_KEY": KeyDescription(
         name="OPENAI_API_KEY",
         description="Your OpenAI API key for GPT models",

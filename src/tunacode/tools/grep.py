@@ -281,7 +281,6 @@ Usage:
         def run_enhanced_ripgrep():
             """Execute ripgrep search using the new executor."""
             start_time = time.time()
-            first_match_time = None
             results = []
 
             # Configure timeout from settings
@@ -306,17 +305,8 @@ Usage:
                     context_after=config.context_lines,
                 )
 
-                # Track first match time for metrics
-                if search_results and first_match_time is None:
-                    first_match_time = time.time() - start_time
-
-                    # Check if we exceeded the first match deadline
-                    if first_match_time > config.first_match_deadline:
-                        if self._config.get("debug", False):
-                            logger.debug(
-                                f"Search exceeded first match deadline: {first_match_time:.2f}s"
-                            )
-                        raise TooBroadPatternError(pattern, config.first_match_deadline)
+                # Ripgrep doesn't provide timing info for first match, so we rely on
+                # the overall timeout mechanism instead of first_match_deadline
 
                 # Parse results
                 for result_line in search_results:
@@ -363,10 +353,7 @@ Usage:
                 )
 
                 if self._config.get("debug", False):
-                    logger.debug(
-                        f"Ripgrep search completed in {total_time:.2f}s "
-                        f"(first match: {first_match_time:.2f}s if found)"
-                    )
+                    logger.debug(f"Ripgrep search completed in {total_time:.2f}s")
 
             return results
 

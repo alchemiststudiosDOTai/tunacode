@@ -46,7 +46,6 @@ except Exception:  # pragma: no cover
     TextPartDelta = None  # type: ignore
     STREAMING_AVAILABLE = False
 
-# Agent components (flattned to a single module import to reduce coupling)
 from . import agent_components as ac
 
 logger = get_logger(__name__)
@@ -548,11 +547,7 @@ async def process_request(
                         "Progress summary:\n"
                         f"- Tools used: {tools_str}\n"
                         f"- Iterations completed: {i}\n\n"
-                        "The task appears incomplete. Would you like me to:\n"
-                        "1. Continue working (extend limit)\n"
-                        "2. Summarize what I've done and stop\n"
-                        "3. Try a different approach\n\n"
-                        "Please let me know how to proceed."
+                        "Plese add more context to the task."
                     )
                     ac.create_user_message(extend_content, state.sm)
                     if state.show_thoughts:
@@ -564,7 +559,6 @@ async def process_request(
 
                 i += 1
 
-            # Final buffered read-only tasks (batch)
             await _finalize_buffered_tasks(tool_buffer, tool_callback, state)
 
             # Build fallback synthesis if needed
