@@ -29,7 +29,7 @@ dependencies = [
     "typer>=0.9.0,<0.10.0",
     "click>=8.0.0,<8.2.0",
     "prompt_toolkit==3.0.51",
-    "pydantic-ai[logfire]==0.2.6",
+    "pydantic-ai==0.2.6",
     "pygments==2.19.1",
     "rich==14.0.0",
     "tiktoken>=0.5.2",
