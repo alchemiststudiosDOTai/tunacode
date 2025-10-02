@@ -38,6 +38,7 @@ done < <(find . -type f \
     -not -path "./.pytest_cache/*" \
     -not -path "./.mypy_cache/*" \
     -not -path "./.ruff_cache/*" \
+    -not -path "./.uv_cache/*" \
     -not -path "./htmlcov/*" \
     -not -path "./reports/*" \
     -not -path "./node_modules/*" \

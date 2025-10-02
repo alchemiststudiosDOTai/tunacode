@@ -2,6 +2,39 @@
   "version": 1,
   "sessions": [
     {
+      "id": "check-file-length-cache-exclusion-20251005-000001",
+      "time": "2025-10-05T00:00:01Z",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Updated scripts/check-file-length.sh to prune .uv_cache artifacts from max-line scan.",
+        "Pre-commit check-file-length hook now ignores uv package caches to avoid false positives."
+      ]
+    },
+    {
+      "id": "ui-rich-typing-fix-20251005-000002",
+      "time": "2025-10-05T00:00:02Z",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Reworked Rich console typing to rely on TYPE_CHECKING-only imports while preserving lazy runtime loading.",
+        "Introduced RenderableContent alias so StreamingAgentPanel stays mypy-safe without importing Rich eagerly."
+      ]
+    },
+    {
+      "id": "dead-imports-runner-fallback-20251005-000003",
+      "time": "2025-10-05T00:00:03Z",
+      "branch": "current",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Swapped dead-imports pre-commit entry to scripts/run-dead-imports.sh for portable execution.",
+        "Script detects uv run/tool support via help output and falls back to .venv python while ignoring cache directories, preventing legacy uv noise."
+      ]
+    },
+    {
       "id": "publish-workflow-slim-20251001-195201",
       "time": "2025-10-01T19:52:01Z",
       "branch": "master",

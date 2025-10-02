@@ -75,8 +75,8 @@ repos:
       # UV-managed standalone tools (not in hatch environments)
       - id: dead-imports
         name: Check for unused imports in changed files
-        entry: uv run unimport --check --diff --exclude "venv/*" --gitignore
-        language: system
+        entry: scripts/run-dead-imports.sh
+        language: script
         files: \.py$
         stages: [pre-commit]
 

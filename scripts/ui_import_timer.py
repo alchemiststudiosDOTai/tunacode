@@ -75,9 +75,7 @@ def _run_single_import(module: str) -> float:
     try:
         return float(output)
     except ValueError as exc:
-        raise RuntimeError(
-            f"Unexpected output while importing {module!r}: {output!r}"
-        ) from exc
+        raise RuntimeError(f"Unexpected output while importing {module!r}: {output!r}") from exc
 
 
 def measure_module(module: str, iterations: int, warmup: int) -> ModuleTiming:

@@ -5,11 +5,14 @@ Covers: console object, markdown utility, and re-exported functions.
 
 
 def test_console_object_is_rich_console():
-    # Should be a rich.console.Console instance
+    # Should be a rich.console.Console instance (wrapped with lazy loading)
     from tunacode.ui import console as ui_console
 
     assert hasattr(ui_console, "console")
-    assert ui_console.console.__class__.__name__ == "Console"
+    # Console is now lazy-loaded via _LazyConsole wrapper for performance
+    assert ui_console.console.__class__.__name__ == "_LazyConsole"
+    # But it should behave like a Console when accessed
+    assert hasattr(ui_console.console, "print")
 
 
 def test_markdown_returns_markdown_object():

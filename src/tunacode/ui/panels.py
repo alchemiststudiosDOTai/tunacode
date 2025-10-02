@@ -2,14 +2,11 @@
 
 import asyncio
 import time
-from typing import Any, Mapping, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Union
 
 if TYPE_CHECKING:
-    from rich.box import Box
-    from rich.live import Live
     from rich.markdown import Markdown
     from rich.padding import Padding
-    from rich.panel import Panel
     from rich.pretty import Pretty
     from rich.table import Table
     from rich.text import Text
@@ -46,6 +43,8 @@ from .decorators import create_sync_wrapper
 from .output import print
 
 colors = DotDict(UI_COLORS)
+
+RenderableContent = Union["Text", "Markdown"]
 
 _rich_components: Optional[Mapping[str, Any]] = None
 
@@ -121,7 +120,7 @@ class StreamingAgentPanel:
     bottom: int
     title: str
     content: str
-    live: Optional["rich.Live"]
+    live: Optional[Any]
     _last_update_time: float
     _dots_task: Optional[asyncio.Task]
     _dots_count: int
@@ -158,6 +157,7 @@ class StreamingAgentPanel:
     def _create_panel(self) -> "Padding":
         """Create a Rich panel with current content."""
         from tunacode.constants import UI_THINKING_MESSAGE
+
         rich = get_rich_components()
 
         # Show "Thinking..." only when no content has arrived yet
@@ -170,7 +170,7 @@ class StreamingAgentPanel:
                 dots_patterns = ["", ".", "..", "..."]
                 dots = dots_patterns[self._dots_count % len(dots_patterns)]
                 thinking_msg = base_msg + dots
-            content_renderable: Union["rich.Text", "rich.Markdown"] = rich["Text"].from_markup(thinking_msg)
+            content_renderable: RenderableContent = rich["Text"].from_markup(thinking_msg)
         else:
             # Once we have content, show it with optional dots animation
             display_content = self.content
@@ -229,6 +229,7 @@ class StreamingAgentPanel:
     async def start(self):
         """Start the live streaming display."""
         from .output import get_console
+
         rich = get_rich_components()
 
         self.live = rich["Live"](self._create_panel(), console=get_console(), refresh_per_second=4)

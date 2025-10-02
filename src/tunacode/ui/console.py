@@ -3,14 +3,12 @@
 Provides high-level console functions and coordinates between different UI components.
 """
 
-from rich.console import Console as RichConsole
-from rich.markdown import Markdown
-
 # Import and re-export all functions from specialized modules
+# Lazy loading of Rich components
+from typing import TYPE_CHECKING, Any, Optional
+
 from .input import formatted_text, input, multiline_input
 from .keybindings import create_key_bindings
-
-# Unified UI logger compatibility layer
 from .logging_compat import ui_logger
 from .output import (
     banner,
@@ -40,6 +38,29 @@ from .panels import (
 from .prompt_manager import PromptConfig, PromptManager
 from .validators import ModelValidator
 
+if TYPE_CHECKING:
+    from rich.console import Console as RichConsole
+
+_console: Optional["RichConsole"] = None
+_keybindings: Optional[Any] = None
+
+
+def get_console() -> "RichConsole":
+    """Get or create the Rich console instance lazily."""
+    global _console
+    if _console is None:
+        from rich.console import Console as RichConsole
+
+        _console = RichConsole(force_terminal=True, legacy_windows=False)
+    return _console
+
+
+def get_markdown() -> type:
+    """Get the Markdown class lazily."""
+    from rich.markdown import Markdown
+
+    return Markdown
+
 
 # Async wrappers for UI logging
 async def info(message: str) -> None:
@@ -62,16 +83,45 @@ async def success(message: str) -> None:
     await ui_logger.success(message)
 
 
-# Create console object for backward compatibility
-console = RichConsole(force_terminal=True, legacy_windows=False)
+# Create lazy console object for backward compatibility
+class _LazyConsole:
+    """Lazy console accessor."""
 
-# Create key bindings object for backward compatibility
-kb = create_key_bindings()
+    def __str__(self):
+        return str(get_console())
+
+    def __getattr__(self, name):
+        return getattr(get_console(), name)
+
+
+# Create lazy key bindings object for backward compatibility
+class _LazyKeyBindings:
+    """Lazy key bindings accessor."""
+
+    def __str__(self):
+        return str(get_keybindings())
+
+    def __getattr__(self, name):
+        return getattr(get_keybindings(), name)
+
+
+def get_keybindings() -> Any:
+    """Get key bindings lazily."""
+    global _keybindings
+    if _keybindings is None:
+        _keybindings = create_key_bindings()
+    return _keybindings
+
+
+# Module-level lazy instances
+console = _LazyConsole()
+kb = _LazyKeyBindings()
 
 
 # Re-export markdown utility for backward compatibility
-def markdown(text: str) -> Markdown:
-    """Create a Markdown object."""
+def markdown(text: str) -> Any:
+    """Create a Markdown object lazily."""
+    Markdown = get_markdown()
     return Markdown(text)
 
 

@@ -1,6 +1,6 @@
 """Output and display functions for TunaCode UI."""
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from prompt_toolkit.application import run_in_terminal
 from rich.padding import Padding

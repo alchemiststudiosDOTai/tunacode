@@ -1,8 +1,8 @@
 """Test lazy loading of Rich UI components."""
 
-import time
 import sys
-from pathlib import Path
+import time
+
 
 def test_import_time_before_lazy():
     """Test import time before lazy loading - baseline measurement."""
@@ -10,17 +10,16 @@ def test_import_time_before_lazy():
 
     # Import the module that would trigger Rich loading
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "console_direct",
-        "src/tunacode/ui/console.py"
-    )
-    module = importlib.util.module_from_spec(spec)
+
+    spec = importlib.util.spec_from_file_location("console_direct", "src/tunacode/ui/console.py")
+    importlib.util.module_from_spec(spec)
 
     # This would load Rich components immediately in old version
     # spec.loader.exec_module(module)
 
     end = time.perf_counter()
     return end - start
+
 
 def test_lazy_loading_functionality():
     """Test that lazy loading works correctly and provides same functionality."""
@@ -52,14 +51,13 @@ def test_lazy_loading_functionality():
     print("✓ All lazy loading accessors work correctly")
     return True
 
+
 def test_startup_import_time():
     """Measure startup import time with lazy loading."""
     start = time.perf_counter()
 
     # Import modules that should not trigger Rich loading immediately
     from tunacode.ui import console
-    from tunacode.ui import output
-    from tunacode.ui import panels
 
     end = time.perf_counter()
     import_time = end - start
@@ -67,13 +65,14 @@ def test_startup_import_time():
     print(f"UI modules import time: {import_time:.4f}s")
 
     # Test that Rich components are not loaded until accessed
-    import rich
-    initial_console_count = len([obj for name, obj in sys.modules.items() if 'rich' in name.lower()])
+    initial_console_count = len(
+        [obj for name, obj in sys.modules.items() if "rich" in name.lower()]
+    )
 
     # Access a Rich component
-    console_instance = console.get_console()
+    console.get_console()
 
-    after_console_count = len([obj for name, obj in sys.modules.items() if 'rich' in name.lower()])
+    after_console_count = len([obj for name, obj in sys.modules.items() if "rich" in name.lower()])
 
     print(f"Rich modules before access: {initial_console_count}")
     print(f"Rich modules after access: {after_console_count}")
@@ -82,6 +81,7 @@ def test_startup_import_time():
     assert after_console_count >= initial_console_count
 
     return import_time
+
 
 if __name__ == "__main__":
     print("Testing Rich UI lazy loading...")
@@ -92,5 +92,5 @@ if __name__ == "__main__":
     # Test import time
     import_time = test_startup_import_time()
 
-    print(f"\nLazy loading test completed successfully!")
+    print("\nLazy loading test completed successfully!")
     print(f"UI modules imported in {import_time:.4f}s without loading Rich components")
