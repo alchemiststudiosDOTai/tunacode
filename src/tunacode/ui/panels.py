@@ -2,15 +2,17 @@
 
 import asyncio
 import time
-from typing import Any, Optional, Union
+from typing import Any, Mapping, Optional, Union, TYPE_CHECKING
 
-from rich.box import ROUNDED
-from rich.live import Live
-from rich.markdown import Markdown
-from rich.padding import Padding
-from rich.panel import Panel
-from rich.pretty import Pretty
-from rich.table import Table
+if TYPE_CHECKING:
+    from rich.box import Box
+    from rich.live import Live
+    from rich.markdown import Markdown
+    from rich.padding import Padding
+    from rich.panel import Panel
+    from rich.pretty import Pretty
+    from rich.table import Table
+    from rich.text import Text
 
 from tunacode.configuration.models import ModelRegistry
 from tunacode.constants import (
@@ -45,11 +47,42 @@ from .output import print
 
 colors = DotDict(UI_COLORS)
 
+_rich_components: Optional[Mapping[str, Any]] = None
+
+
+def get_rich_components() -> Mapping[str, Any]:
+    """Get Rich components lazily with caching."""
+
+    global _rich_components
+    if _rich_components is not None:
+        return _rich_components
+
+    from rich.box import ROUNDED
+    from rich.live import Live
+    from rich.markdown import Markdown
+    from rich.padding import Padding
+    from rich.panel import Panel
+    from rich.pretty import Pretty
+    from rich.table import Table
+    from rich.text import Text
+
+    _rich_components = {
+        "ROUNDED": ROUNDED,
+        "Live": Live,
+        "Markdown": Markdown,
+        "Padding": Padding,
+        "Panel": Panel,
+        "Pretty": Pretty,
+        "Table": Table,
+        "Text": Text,
+    }
+    return _rich_components
+
 
 @create_sync_wrapper
 async def panel(
     title: str,
-    text: Union[str, Markdown, Pretty, Table],
+    text: Union[str, "Markdown", "Pretty", "Table"],
     top: int = DEFAULT_PANEL_PADDING["top"],
     right: int = DEFAULT_PANEL_PADDING["right"],
     bottom: int = DEFAULT_PANEL_PADDING["bottom"],
@@ -58,26 +91,28 @@ async def panel(
     **kwargs: Any,
 ) -> None:
     """Display a rich panel with modern styling."""
+    rich = get_rich_components()
     border_style = border_style or kwargs.get("style") or colors.border
 
-    panel_obj = Panel(
-        Padding(text, (0, 1, 0, 1)),
+    panel_obj = rich["Panel"](
+        rich["Padding"](text, (0, 1, 0, 1)),
         title=f"[bold]{title}[/bold]",
         title_align="left",
         border_style=border_style,
         padding=(0, 1),
-        box=ROUNDED,  # Use ROUNDED box style
+        box=rich["ROUNDED"],  # Use ROUNDED box style
     )
 
-    final_padding = Padding(panel_obj, (top, right, bottom, left))
+    final_padding = rich["Padding"](panel_obj, (top, right, bottom, left))
 
     await print(final_padding, **kwargs)
 
 
 async def agent(text: str, bottom: int = 1) -> None:
     """Display an agent panel with modern styling."""
+    rich = get_rich_components()
     title = f"[bold {colors.primary}]●[/bold {colors.primary}] {APP_NAME}"
-    await panel(title, Markdown(text), bottom=bottom, border_style=colors.primary)
+    await panel(title, rich["Markdown"](text), bottom=bottom, border_style=colors.primary)
 
 
 class StreamingAgentPanel:
@@ -86,7 +121,7 @@ class StreamingAgentPanel:
     bottom: int
     title: str
     content: str
-    live: Optional[Live]
+    live: Optional["rich.Live"]
     _last_update_time: float
     _dots_task: Optional[asyncio.Task]
     _dots_count: int
@@ -120,12 +155,10 @@ class StreamingAgentPanel:
         line = f"[ui] {label} ts_ns={ts}{(' ' + payload) if payload else ''}"
         self._debug_events.append(line)
 
-    def _create_panel(self) -> Padding:
+    def _create_panel(self) -> "Padding":
         """Create a Rich panel with current content."""
-        # Use the UI_THINKING_MESSAGE constant instead of hardcoded text
-        from rich.text import Text
-
         from tunacode.constants import UI_THINKING_MESSAGE
+        rich = get_rich_components()
 
         # Show "Thinking..." only when no content has arrived yet
         if not self.content:
@@ -137,7 +170,7 @@ class StreamingAgentPanel:
                 dots_patterns = ["", ".", "..", "..."]
                 dots = dots_patterns[self._dots_count % len(dots_patterns)]
                 thinking_msg = base_msg + dots
-            content_renderable: Union[Text, Markdown] = Text.from_markup(thinking_msg)
+            content_renderable: Union["rich.Text", "rich.Markdown"] = rich["Text"].from_markup(thinking_msg)
         else:
             # Once we have content, show it with optional dots animation
             display_content = self.content
@@ -147,16 +180,16 @@ class StreamingAgentPanel:
                 dots_patterns = ["", ".", "..", "..."]
                 dots = dots_patterns[self._dots_count % len(dots_patterns)]
                 display_content = self.content.rstrip() + dots
-            content_renderable = Markdown(display_content)
-        panel_obj = Panel(
-            Padding(content_renderable, (0, 1, 0, 1)),
+            content_renderable = rich["Markdown"](display_content)
+        panel_obj = rich["Panel"](
+            rich["Padding"](content_renderable, (0, 1, 0, 1)),
             title=f"[bold]{self.title}[/bold]",
             title_align="left",
             border_style=colors.primary,
             padding=(0, 1),
-            box=ROUNDED,
+            box=rich["ROUNDED"],
         )
-        return Padding(
+        return rich["Padding"](
             panel_obj,
             (
                 DEFAULT_PANEL_PADDING["top"],
@@ -195,9 +228,10 @@ class StreamingAgentPanel:
 
     async def start(self):
         """Start the live streaming display."""
-        from .output import console
+        from .output import get_console
+        rich = get_rich_components()
 
-        self.live = Live(self._create_panel(), console=console, refresh_per_second=4)
+        self.live = rich["Live"](self._create_panel(), console=get_console(), refresh_per_second=4)
         self.live.start()
         self._log_debug("start")
         # For "Thinking...", set time in past to trigger dots immediately
@@ -373,14 +407,15 @@ async def error(text: str) -> None:
 
 async def dump_messages(messages_list=None, state_manager: StateManager = None) -> None:
     """Display message history panel."""
+    rich = get_rich_components()
     if messages_list is None and state_manager:
         # Get messages from state manager
-        messages = Pretty(state_manager.session.messages)
+        messages = rich["Pretty"](state_manager.session.messages)
     elif messages_list is not None:
-        messages = Pretty(messages_list)
+        messages = rich["Pretty"](messages_list)
     else:
         # No messages available
-        messages = Pretty([])
+        messages = rich["Pretty"]([])
     await panel(PANEL_MESSAGE_HISTORY, messages, style=colors.muted)
 
 
@@ -396,7 +431,8 @@ async def models(state_manager: StateManager = None) -> None:
 
 async def help(command_registry=None) -> None:
     """Display the available commands organized by category."""
-    table = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
+    rich = get_rich_components()
+    table = rich["Table"](show_header=False, box=None, padding=(0, 2, 0, 0))
     table.add_column("Command", style=f"bold {colors.primary}", justify="right", min_width=18)
     table.add_column("Description", style=colors.muted)
 
@@ -456,7 +492,7 @@ async def help(command_registry=None) -> None:
 
 @create_sync_wrapper
 async def tool_confirm(
-    title: str, content: Union[str, Markdown], filepath: Optional[str] = None
+    title: str, content: Union[str, "Markdown"], filepath: Optional[str] = None
 ) -> None:
     """Display a tool confirmation panel."""
     bottom_padding = 0 if filepath else 1

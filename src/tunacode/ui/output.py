@@ -1,12 +1,10 @@
 """Output and display functions for TunaCode UI."""
 
-from typing import Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from prompt_toolkit.application import run_in_terminal
-from rich.console import Console
 from rich.padding import Padding
 
-from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import (
     MSG_UPDATE_AVAILABLE,
     MSG_UPDATE_INSTRUCTION,
@@ -22,7 +20,34 @@ from .constants import SPINNER_TYPE
 from .decorators import create_sync_wrapper
 from .logging_compat import ui_logger
 
-console = Console()
+# Lazy console initialization
+if TYPE_CHECKING:
+    from rich.console import Console
+
+_console: Optional["Console"] = None
+
+
+def get_console() -> "Console":
+    """Get console instance lazily."""
+    from rich.console import Console
+
+    global _console
+    if _console is None:
+        _console = Console()
+    return _console
+
+
+class _LazyConsole:
+    """Lightweight proxy that defers Console creation."""
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(get_console(), name)
+
+    def __str__(self) -> str:
+        return str(get_console())
+
+
+console = _LazyConsole()
 colors = DotDict(UI_COLORS)
 
 BANNER = """[bold cyan]
@@ -72,6 +97,8 @@ async def usage(usage: str) -> None:
 
 async def version() -> None:
     """Print version information."""
+    from tunacode.configuration.settings import ApplicationSettings
+
     app_settings = ApplicationSettings()
     await info(MSG_VERSION_DISPLAY.format(version=app_settings.version))
 
