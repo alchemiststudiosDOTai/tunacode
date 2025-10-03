@@ -2,6 +2,19 @@
   "version": 1,
   "sessions": [
     {
+      "id": "context-py-removal-20251003-000000",
+      "time": "2025-10-03T00:00:00Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Removed src/tunacode/context.py - identified as completely dead code with zero production usage",
+        "Context functions were never imported or called in production code, only existed in test files",
+        "Actual context loading uses agent_config.py:load_tunacode_context() directly, bypassing context.py entirely",
+        "Dead code analysis tools failed to detect this unused module despite it having no production dependencies"
+      ]
+    },
+    {
       "id": "check-file-length-cache-exclusion-20251005-000001",
       "time": "2025-10-05T00:00:01Z",
       "branch": "current",

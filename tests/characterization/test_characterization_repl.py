@@ -2,7 +2,6 @@
 Characterization tests for repl.py refactoring.
 
 These tests capture the current behavior of the REPL (Read-Eval-Print Loop)
-to ensure refactoring doesn't break existing functionality.
 """
 
 import asyncio
