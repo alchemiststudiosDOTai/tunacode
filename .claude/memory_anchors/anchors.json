@@ -16,9 +16,18 @@
       "path": "src/tunacode/constants.py",
       "line": 12,
       "kind": "line",
-      "description": "APP_VERSION updated to 0.0.77; keep in sync with pyproject metadata for releases.",
+      "description": "APP_VERSION updated to 0.0.77.2; keep in sync with pyproject metadata for releases.",
       "status": "active",
       "created": "2025-10-01T19:06:50Z"
+    },
+    {
+      "key": "9e2d3a1c",
+      "path": "tests/characterization/version/test_version_metadata.py",
+      "line": 1,
+      "kind": "file",
+      "description": "Golden characterization test pinning APP_VERSION to pyproject metadata to guard release workflow failures.",
+      "status": "active",
+      "created": "2025-10-02T00:00:00Z"
     }
   ]
 }

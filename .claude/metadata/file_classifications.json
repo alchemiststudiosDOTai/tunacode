@@ -150,6 +150,11 @@
       "classification": "test",
       "type": "test"
     },
+    "tests/characterization/version/test_version_metadata.py": {
+      "category": "version",
+      "classification": "test",
+      "type": "test"
+    },
     "tests/unit/test_react_tool.py": {
       "category": "tools",
       "classification": "test",

@@ -79,6 +79,18 @@
         "EXTENDED StateManager API with react_scratchpad helpers",
         "REMOVED react from registered tool list; process_request now issues up to five auto snapshots every two iterations"
       ]
+    },
+    {
+      "id": "version-bump-0.0.77.2-20251002-000002",
+      "time": "2025-10-02T00:00:02",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "BUMPED project metadata and APP_VERSION to 0.0.77.2 for next PyPI release",
+        "RENAMED publish workflow file back to publish-release.yml so docs and automation match",
+        "ADDED version characterization test ensuring pyproject and constants stay synchronized"
+      ]
     }
   ]
 }

@@ -19,6 +19,17 @@
       "notes": "Release pipeline fix: renamed publish workflow to publish-release.yml, added memory anchor, synced docs, and pinned Python 3.12 so Hatch test runs avoid the 3.13 --filter sentinel bug."
     },
     {
+      "id": "version-metadata-test-fallback-20251002-000004",
+      "time": "2025-10-02T00:00:04Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "changed_files": [
+        "tests/characterization/version/test_version_metadata.py"
+      ],
+      "notes": "Pytest run failed on Python 3.10 because tomllib is 3.11+. Added tomli fallback import in new characterization test to restore compatibility."
+    },
+    {
       "id": "smart-git-20250917-122934",
       "time": "2025-09-17T12:29:34",
       "branch": "main-agent-refactor",

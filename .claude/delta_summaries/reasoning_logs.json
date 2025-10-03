@@ -25,6 +25,29 @@
       }
     },
     {
+      "id": "version-bump-0.0.77.2-20251002-000001",
+      "time": "2025-10-02T00:00:01Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "reasoning": {
+        "problem": "Project metadata and runtime constant still reported 0.0.77.1, causing upcoming release tags to fail workflow version checks.",
+        "why_change": "Shipping v0.0.77.2 requires pyproject metadata, Hatch scripts, constants, and release docs to agree on the new patch version.",
+        "solution": "Bump pyproject version fields and src/tunacode/constants.APP_VERSION to 0.0.77.2, update publishing documentation, rename the workflow back to publish-release.yml, and add a characterization test locking the version contract.",
+        "benefits": [
+          "Prevents publish workflow from rejecting v0.0.77.2 tags",
+          "Keeps maintainers aligned on release commands and version files",
+          "Provides regression coverage so future bumps fail fast if a file is missed"
+        ],
+        "risks": [
+          "New version test could become brittle if metadata layout changes"
+        ],
+        "mitigations": [
+          "Characterization test reads TOML structure instead of relying on sed, and .claude anchors document the dependency"
+        ]
+      }
+    },
+    {
       "id": "version-bump-0.0.77-20251001-190642",
       "time": "2025-10-01T19:06:42Z",
       "branch": "master",

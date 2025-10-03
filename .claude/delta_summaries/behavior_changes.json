@@ -47,6 +47,18 @@
       ]
     },
     {
+      "id": "version-metadata-guard-20251002-000003",
+      "time": "2025-10-02T00:00:03Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Bumped release metadata to 0.0.77.2 across pyproject and runtime constants.",
+        "Renamed publish-release workflow file so GitHub Actions tracks the documented path.",
+        "Added characterization test asserting APP_VERSION stays aligned with both pyproject version declarations."
+      ]
+    },
+    {
       "id": "version-bump-0.0.77-20251001-190636",
       "time": "2025-10-01T19:06:36Z",
       "branch": "master",
