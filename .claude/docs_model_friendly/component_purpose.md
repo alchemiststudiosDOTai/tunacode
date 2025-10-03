@@ -65,13 +65,22 @@ This document describes the purpose and responsibilities of each component in th
 
 #### 4.1 Tool Executor (`tool_executor.py`)
 
-**Purpose**: Coordinates parallel execution of tools with proper error handling.
+**Purpose**: Coordinates tool execution with fail-fast cancellation and handler instantiation.
 
 **Key Responsibilities**:
-- Execute tools in parallel for performance
-- Handle tool execution errors gracefully
-- Provide fallback mechanisms for failed tools
-- Aggregate tool results
+- Execute tools with immediate cancellation when operation_cancelled=True
+- Manage ToolHandler lifecycle (create if None, reuse existing)
+- Handle tool confirmation dialogs and plan mode restrictions
+- Coordinate with prompt_toolkit for terminal interactions
+- Provide graceful error handling for user aborts
+
+**Critical Behavior Patterns**:
+- **Fail-Fast Cancellation**: Checks `state_manager.session.operation_cancelled` before any processing
+- **Handler Instantiation**: Creates `ToolHandler(state_manager)` only when needed, caches in `state_manager.tool_handler`
+- **Confirmation Flow**: Uses `run_in_terminal` for synchronous confirmation dialogs
+- **Plan Mode Enforcement**: Blocks write-only tools in plan mode with clear error messages
+
+**Test Coverage**: Golden baseline tests in `tests/characterization/repl_components/test_tool_handler.py` with semantic anchor `8f5a4d92`
 
 #### 4.2 Tool Buffer (`tool_buffer.py`)
 

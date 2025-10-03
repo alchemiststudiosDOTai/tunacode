@@ -262,6 +262,41 @@
           "purpose": "Inject guidance as system prompt to influence next LLM turn"
         }
       ]
+    },
+    "tool_handler_flow": {
+      "description": "Tool execution handler with fail-fast cancellation and instantiation",
+      "entry_point": "tunacode.cli.repl_components.tool_executor.tool_handler",
+      "flow": [
+        {
+          "step": 1,
+          "function": "cancellation_check",
+          "location": "tool_executor.py:31-34",
+          "purpose": "Fail-fast cancellation when operation_cancelled=True",
+          "raises": "CancelledError"
+        },
+        {
+          "step": 2,
+          "function": "handler_instantiation",
+          "location": "tool_executor.py:37-41",
+          "purpose": "Create ToolHandler if not exists, reuse existing instance",
+          "dependency": "tunacode.core.tool_handler.ToolHandler"
+        },
+        {
+          "step": 3,
+          "function": "confirmation_flow",
+          "location": "tool_executor.py:43-84",
+          "purpose": "Handle tool confirmation dialogs and plan mode restrictions",
+          "dependency": "prompt_toolkit.application.run_in_terminal"
+        }
+      ],
+      "test_coverage": {
+        "file": "tests/characterization/repl_components/test_tool_handler.py",
+        "anchor": "8f5a4d92",
+        "behaviors_tested": [
+          "fail_fast_cancellation",
+          "handler_instantiation_without_confirmation"
+        ]
+      }
     }
   },
   "refactor_summary": {

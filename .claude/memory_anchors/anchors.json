@@ -28,6 +28,15 @@
       "description": "Golden characterization test pinning APP_VERSION to pyproject metadata to guard release workflow failures.",
       "status": "active",
       "created": "2025-10-02T00:00:00Z"
+    },
+    {
+      "key": "8f5a4d92",
+      "path": "tests/characterization/repl_components/test_tool_handler.py",
+      "line": 18,
+      "kind": "line",
+      "description": "Golden baseline for tool_handler cancellation and handler creation - fail-fast behavior and instantiation path",
+      "status": "active",
+      "created": "2025-10-03T00:00:00Z"
     }
   ]
 }
