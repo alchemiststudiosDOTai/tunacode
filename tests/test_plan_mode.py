@@ -8,7 +8,8 @@ from tunacode.cli.commands.implementations.plan import ExitPlanCommand, PlanComm
 from tunacode.core.state import StateManager
 from tunacode.core.tool_handler import ToolHandler
 from tunacode.tools.exit_plan_mode import ExitPlanModeTool
-from tunacode.types import CommandContext
+from tunacode.types import CommandContext, ToolConfirmationResponse
+from tunacode.utils.message_utils import get_message_content
 
 
 class TestPlanModeState:
@@ -53,6 +54,16 @@ class TestPlanModeState:
 class TestToolHandler:
     """Test tool handler plan mode integration."""
 
+    def test_process_confirmation_honors_skip_future(self):
+        state_manager = StateManager()
+        tool_handler = ToolHandler(state_manager)
+        response = ToolConfirmationResponse(approved=True, skip_future=True)
+
+        should_proceed = tool_handler.process_confirmation(response, "bash")
+
+        assert should_proceed is True
+        assert "bash" in state_manager.session.tool_ignore
+
     def test_tool_blocking_in_plan_mode(self):
         """Test that write tools are blocked in plan mode."""
         state_manager = StateManager()
@@ -76,6 +87,23 @@ class TestToolHandler:
         assert not tool_handler.is_tool_blocked_in_plan_mode("grep")
         assert not tool_handler.is_tool_blocked_in_plan_mode("list_dir")
         assert not tool_handler.is_tool_blocked_in_plan_mode("glob")
+
+    def test_process_confirmation_with_feedback_aborts_and_records_message(self):
+        state_manager = StateManager()
+        tool_handler = ToolHandler(state_manager)
+
+        response = ToolConfirmationResponse(
+            approved=False,
+            abort=True,
+            instructions="Use list_dir on src",
+        )
+
+        should_proceed = tool_handler.process_confirmation(response, "bash")
+
+        assert should_proceed is False
+        assert len(state_manager.session.messages) == 1
+        recorded = state_manager.session.messages[0]
+        assert "Use list_dir on src" in get_message_content(recorded)
 
     def test_should_confirm_in_plan_mode(self):
         """Test that blocked tools require confirmation (for blocking)."""

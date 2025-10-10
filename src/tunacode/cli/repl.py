@@ -394,7 +394,8 @@ async def execute_repl_request(text: str, state_manager: StateManager, output: b
     except CancelledError:
         await ui.muted(MSG_REQUEST_CANCELLED)
     except UserAbortError:
-        await ui.muted(MSG_OPERATION_ABORTED)
+        # CLAUDE_ANCHOR[7b2c1d4e]: Guided aborts inject user instructions; skip legacy banner.
+        pass
     except UnexpectedModelBehavior as e:
         await ui.muted(str(e))
         patch_tool_messages(str(e), state_manager)

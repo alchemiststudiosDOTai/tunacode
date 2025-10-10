@@ -2,6 +2,19 @@
   "version": 1,
   "sessions": [
     {
+      "id": "tool-rejection-feedback-20251010-000000",
+      "time": "2025-10-10T00:00:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "ToolConfirmationResponse gains an optional instructions field emitted when the user rejects a tool.",
+        "ToolHandler.process_confirmation now calls create_user_message with rejection guidance so the agent can react.",
+        "ToolUI prompts for corrective instructions during option 3 without altering approval or skip semantics.",
+        "process_request stops emitting the legacy \"Operation aborted\" UI banner after guided aborts."
+      ]
+    },
+    {
       "id": "triple-redundancy-removal-20250919-115649",
       "time": "2025-09-19T11:56:49",
       "branch": "master",

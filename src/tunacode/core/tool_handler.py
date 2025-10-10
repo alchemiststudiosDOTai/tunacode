@@ -5,6 +5,7 @@ Tool handling business logic, separated from UI concerns.
 from typing import Optional
 
 from tunacode.constants import READ_ONLY_TOOLS
+from tunacode.core.agents.agent_components.agent_helpers import create_user_message
 from tunacode.core.state import StateManager
 from tunacode.templates.loader import Template
 from tunacode.types import (
@@ -85,6 +86,12 @@ class ToolHandler:
         """
         if response.skip_future:
             self.state.session.tool_ignore.append(tool_name)
+
+        guidance = getattr(response, "instructions", "").strip()
+        if guidance and (not response.approved or response.abort):
+            # CLAUDE_ANCHOR[3c8b1f70]: Route user rejection guidance back to the agent.
+            message = f"User rejected tool '{tool_name}' and provided guidance:\n{guidance}"
+            create_user_message(message, self.state)
 
         return response.approved and not response.abort
 

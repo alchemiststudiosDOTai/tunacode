@@ -125,6 +125,21 @@
       "classification": "implementation",
       "type": "source"
     },
+    "src/tunacode/core/tool_handler.py": {
+      "category": "core",
+      "classification": "implementation",
+      "type": "source"
+    },
+    "src/tunacode/types.py": {
+      "category": "core",
+      "classification": "support",
+      "type": "source"
+    },
+    "src/tunacode/ui/tool_ui.py": {
+      "category": "ui",
+      "classification": "interface",
+      "type": "source"
+    },
     "tests/characterization/agent/test_agent_creation.py": {
       "category": "agent",
       "classification": "test",
@@ -152,6 +167,21 @@
     },
     "tests/characterization/version/test_version_metadata.py": {
       "category": "version",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/characterization/ui/test_tool_confirmations.py": {
+      "category": "ui",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/characterization/repl/test_error_handling.py": {
+      "category": "repl",
+      "classification": "test",
+      "type": "test"
+    },
+    "tests/test_plan_mode.py": {
+      "category": "plan_mode",
       "classification": "test",
       "type": "test"
     },

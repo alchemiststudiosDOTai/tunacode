@@ -1,11 +1,30 @@
-"""
-Characterization tests for TunaCode UI tool confirmation flows.
-Covers: ToolUI, tool title logic, code block rendering, and argument rendering.
-"""
+"""Characterization tests for ToolUI confirmation flows."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 import tunacode.ui.tool_ui as tool_ui_mod
+from tunacode.core.tool_handler import ToolConfirmationRequest
+
+
+@pytest.mark.asyncio
+async def test_toolui_option_three_aborts_without_feedback(monkeypatch):
+    """Golden test: option 3 aborts without capturing user guidance."""
+
+    tool_ui = tool_ui_mod.ToolUI()
+    request = ToolConfirmationRequest(tool_name="bash", args={}, filepath=None)
+
+    monkeypatch.setattr(tool_ui_mod.ui, "tool_confirm", AsyncMock())
+    monkeypatch.setattr(tool_ui_mod.ui, "print", AsyncMock())
+    monkeypatch.setattr(tool_ui_mod.ui, "usage", AsyncMock())
+    monkeypatch.setattr(tool_ui_mod.ui, "input", AsyncMock(side_effect=["3", ""]))
+
+    response = await tool_ui.show_confirmation(request)
+
+    assert response.approved is False
+    assert response.abort is True
+    assert response.instructions == ""
 
 
 def test_toolui_get_tool_title_internal():

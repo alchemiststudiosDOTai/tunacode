@@ -19,8 +19,8 @@ from tunacode.exceptions import UserAbortError
     [
         # CancelledError: Shows cancellation message, no patch
         (CancelledError(), "muted", False),
-        # UserAbortError: Shows operation aborted message, no patch
-        (UserAbortError("User cancelled"), "muted", False),
+        # UserAbortError: No longer prints a muted message; guidance is handled elsewhere
+        (UserAbortError("User cancelled"), None, False),
         # UnexpectedModelBehavior: Shows error message AND patches tool messages
         (UnexpectedModelBehavior("Model error"), "muted", True),
     ],
@@ -63,6 +63,8 @@ async def test_process_request_simple_error_handling(
             assert ui_muted_mock.call_count >= 1  # May have other calls
         elif expected_ui_call == "error":
             assert ui_error_mock.call_count >= 1
+        else:
+            assert ui_muted_mock.call_count == 0
 
         # Verify patch_tool_messages behavior
         if expected_patch_call:

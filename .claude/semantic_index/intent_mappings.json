@@ -100,6 +100,17 @@
           "inject_system_prompt"
         ],
         "state_dependency": "increments SessionState.react_forced_calls"
+      },
+      "ToolHandler.process_confirmation": {
+        "file": "src/tunacode/core/tool_handler.py",
+        "intent": "TOOL_CONFIRMATION_ROUTING",
+        "purpose": "Resolve confirmation responses, persist trust choices, and surface rejection guidance to the agent",
+        "semantic_role": "Bridge between UI confirmation responses and agent state",
+        "key_responsibilities": [
+          "Persist skip-future decisions per tool",
+          "Abort execution when approval is denied",
+          "Promote rejection instructions into session user messages via create_user_message"
+        ]
       }
     },
     "node_processing": {

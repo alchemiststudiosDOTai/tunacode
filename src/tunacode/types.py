@@ -129,6 +129,7 @@ class ToolConfirmationResponse:
     approved: bool
     skip_future: bool = False
     abort: bool = False
+    instructions: str = ""
 
 
 # =============================================================================

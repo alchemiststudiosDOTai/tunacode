@@ -287,6 +287,13 @@
           "location": "tool_executor.py:43-84",
           "purpose": "Handle tool confirmation dialogs and plan mode restrictions",
           "dependency": "prompt_toolkit.application.run_in_terminal"
+        },
+        {
+          "step": 4,
+          "function": "user_feedback_routing",
+          "location": "core/tool_handler.py:60-93",
+          "purpose": "Convert rejection guidance into an inline user message the agent can consume",
+          "dependency": "agent_components.agent_helpers.create_user_message"
         }
       ],
       "test_coverage": {
@@ -294,7 +301,8 @@
         "anchor": "8f5a4d92",
         "behaviors_tested": [
           "fail_fast_cancellation",
-          "handler_instantiation_without_confirmation"
+          "handler_instantiation_without_confirmation",
+          "rejection_feedback_routing"
         ]
       }
     }

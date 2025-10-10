@@ -61,6 +61,25 @@
           "completion_detection": "Integrated with state machine",
           "thread_safety": "Through AgentStateMachine"
         }
+      },
+      "ToolConfirmationResponse": {
+        "definition": "src/tunacode/types.py",
+        "purpose": "Structured response emitted by tool confirmation dialogs",
+        "fields": {
+          "approved": "bool flag to allow tool execution",
+          "skip_future": "bool flag to trust future calls without prompting",
+          "abort": "bool flag indicating the tool should not run",
+          "instructions": "str with optional user guidance when aborting"
+        },
+        "relationships": {
+          "produced_by": [
+            "ToolUI.show_confirmation",
+            "ToolUI.show_sync_confirmation"
+          ],
+          "consumed_by": [
+            "ToolHandler.process_confirmation"
+          ]
+        }
       }
     },
     "state_machine_types": {

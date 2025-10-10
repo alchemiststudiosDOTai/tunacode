@@ -25,6 +25,11 @@ if TYPE_CHECKING:
 class ToolUI:
     """Handles tool confirmation UI presentation."""
 
+    REJECTION_FEEDBACK_SESSION = "tool_rejection_feedback"
+    REJECTION_GUIDANCE_PROMPT = (
+        "  Describe what the agent should do instead (leave blank to skip): "
+    )
+
     def __init__(self):
         self.colors = DotDict(UI_COLORS)
 
@@ -133,10 +138,14 @@ class ToolUI:
 
         if resp == "2":
             return ToolConfirmationResponse(approved=True, skip_future=True)
-        elif resp == "3":
-            return ToolConfirmationResponse(approved=False, abort=True)
-        else:
-            return ToolConfirmationResponse(approved=True)
+        if resp == "3":
+            instructions = await self._prompt_rejection_feedback(state_manager)
+            return ToolConfirmationResponse(
+                approved=False,
+                abort=True,
+                instructions=instructions,
+            )
+        return ToolConfirmationResponse(approved=True)
 
     def show_sync_confirmation(self, request: ToolConfirmationRequest) -> ToolConfirmationResponse:
         """
@@ -189,10 +198,23 @@ class ToolUI:
 
         if resp == "2":
             return ToolConfirmationResponse(approved=True, skip_future=True)
-        elif resp == "3":
-            return ToolConfirmationResponse(approved=False, abort=True)
-        else:
-            return ToolConfirmationResponse(approved=True)
+        if resp == "3":
+            instructions = self._prompt_rejection_feedback_sync()
+            return ToolConfirmationResponse(approved=False, abort=True, instructions=instructions)
+        return ToolConfirmationResponse(approved=True)
+
+    async def _prompt_rejection_feedback(self, state_manager: Optional["StateManager"]) -> str:
+        guidance = await ui.input(
+            session_key=self.REJECTION_FEEDBACK_SESSION,
+            pretext=self.REJECTION_GUIDANCE_PROMPT,
+            state_manager=state_manager,
+        )
+        return guidance.strip() if guidance else ""
+
+    def _prompt_rejection_feedback_sync(self) -> str:
+        guidance = input(self.REJECTION_GUIDANCE_PROMPT).strip()
+        ui.console.print()
+        return guidance
 
     async def log_mcp(self, title: str, args: ToolArgs) -> None:
         """

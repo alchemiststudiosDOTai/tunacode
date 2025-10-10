@@ -85,6 +85,12 @@ JSON Tool Parser → Tool Buffer → Tool Executor → Parallel Execution
 - **JSON Tool Parser** handles JSON-formatted tool calls
 - **Result Aggregation** combines tool results
 
+#### Rejection Guidance Loop
+
+- When the user rejects a tool via option 3, **ToolUI** now prompts for corrective guidance and stores it on `ToolConfirmationResponse.instructions`.
+- **ToolHandler.process_confirmation** detects guided aborts and calls `agent_helpers.create_user_message` so the agent receives the user's corrective instructions on the next turn.
+- The REPL suppresses the legacy "Operation aborted" banner once guidance is captured, keeping the transcript focused on the new instructions instead of noise.
+
 ## Dependency Graph
 
 ### Core Dependencies

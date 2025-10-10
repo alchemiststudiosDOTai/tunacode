@@ -2,6 +2,19 @@
   "version": 1,
   "sessions": [
     {
+      "id": "tool-rejection-feedback-20251010-000000",
+      "time": "2025-10-10T00:00:00Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Tool confirmation option 3 now prompts for follow-up guidance instead of silently aborting.",
+        "ToolHandler injects user-provided rejection instructions into session messages for the agent to read.",
+        "Skip-future and approval flows remain unchanged; only the abort path gains guidance capture.",
+        "REPL no longer prints the \"Operation aborted\" banner once guidance has been captured."
+      ]
+    },
+    {
       "id": "context-py-removal-20251003-000000",
       "time": "2025-10-03T00:00:00Z",
       "branch": "master",

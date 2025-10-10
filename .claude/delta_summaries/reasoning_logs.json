@@ -2,6 +2,32 @@
   "version": 1,
   "sessions": [
     {
+      "id": "tool-rejection-feedback-20251010-000001",
+      "time": "2025-10-10T00:00:01Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "reasoning": {
+        "problem": "Option 3 in the tool confirmation dialog promised to collect corrective guidance but only aborted tool execution.",
+        "why_change": "Agents need the user's replacement instructions to continue productively after a rejection, otherwise the workflow stalls without direction.",
+        "solution": "Expanded ToolUI to prompt for instructions, extended ToolConfirmationResponse with an instructions field, and taught ToolHandler.process_confirmation to dispatch the guidance via create_user_message when the tool is aborted.",
+        "benefits": [
+          "Agents immediately see what to do after a rejected tool call",
+          "Keeps skip-future and approval flows untouched, minimizing surface area",
+          "Characterization coverage documents both legacy abort behavior and the new guidance routing",
+          "REPL output stays quiet—no more legacy abort banner once guidance is captured"
+        ],
+        "risks": [
+          "Empty guidance texts would generate noise",
+          "Potential for duplicate prompts if the UI loop miscounts inputs"
+        ],
+        "mitigations": [
+          "Strip and ignore empty instructions before creating messages",
+          "Golden test ensures option sequencing remains stable"
+        ]
+      }
+    },
+    {
       "id": "publish-workflow-slim-20251001-195209",
       "time": "2025-10-01T19:52:09Z",
       "branch": "master",

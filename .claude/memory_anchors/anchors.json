@@ -37,6 +37,24 @@
       "description": "Golden baseline for tool_handler cancellation and handler creation - fail-fast behavior and instantiation path",
       "status": "active",
       "created": "2025-10-03T00:00:00Z"
+    },
+    {
+      "key": "3c8b1f70",
+      "path": "src/tunacode/core/tool_handler.py",
+      "line": 82,
+      "kind": "line",
+      "description": "Abort path routes user rejection guidance into create_user_message so the agent can react next turn.",
+      "status": "active",
+      "created": "2025-10-10T00:00:00Z"
+    },
+    {
+      "key": "7b2c1d4e",
+      "path": "src/tunacode/cli/repl.py",
+      "line": 392,
+      "kind": "line",
+      "description": "Guided aborts skip the legacy 'Operation aborted' banner; UI stays focused on user instructions.",
+      "status": "active",
+      "created": "2025-10-10T00:00:00Z"
     }
   ]
 }

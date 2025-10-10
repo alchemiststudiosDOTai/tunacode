@@ -2,6 +2,23 @@
   "version": 1,
   "sessions": [
     {
+      "id": "tool-rejection-feedback-20251010-000001",
+      "time": "2025-10-10T00:00:01",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "changed_files": [
+        "src/tunacode/ui/tool_ui.py",
+        "src/tunacode/core/tool_handler.py",
+        "src/tunacode/types.py",
+        "src/tunacode/cli/repl.py",
+        "tests/characterization/ui/test_tool_confirmations.py",
+        "tests/characterization/repl/test_error_handling.py",
+        "tests/test_plan_mode.py"
+      ],
+      "notes": "Golden test captured existing abort-only option 3, failing test asserted rejection guidance should become a user message. Added instructions field to ToolConfirmationResponse, prompted for feedback in ToolUI, and routed guidance via create_user_message so the agent receives corrective direction."
+    },
+    {
       "id": "publish-workflow-cache-bust-20250105-000000",
       "time": "2025-01-05T00:00:00",
       "branch": "master",
