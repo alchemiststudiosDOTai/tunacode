@@ -87,10 +87,19 @@ class ToolHandler:
         if response.skip_future:
             self.state.session.tool_ignore.append(tool_name)
 
-        guidance = getattr(response, "instructions", "").strip()
-        if guidance and (not response.approved or response.abort):
+        if not response.approved or response.abort:
+            guidance = getattr(response, "instructions", "").strip()
             # CLAUDE_ANCHOR[3c8b1f70]: Route user rejection guidance back to the agent.
-            message = f"User rejected tool '{tool_name}' and provided guidance:\n{guidance}"
+            if guidance:
+                guidance_section = f"User guidance:\n{guidance}"
+            else:
+                guidance_section = "User cancelled without additional instructions."
+
+            message = (
+                f"Tool '{tool_name}' execution cancelled before running.\n"
+                f"{guidance_section}\n"
+                "Do not assume the operation succeeded; request updated guidance or offer alternatives."
+            )
             create_user_message(message, self.state)
 
         return response.approved and not response.abort

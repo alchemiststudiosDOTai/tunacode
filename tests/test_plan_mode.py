@@ -105,6 +105,21 @@ class TestToolHandler:
         recorded = state_manager.session.messages[0]
         assert "Use list_dir on src" in get_message_content(recorded)
 
+    def test_process_confirmation_without_guidance_records_default_message(self):
+        state_manager = StateManager()
+        tool_handler = ToolHandler(state_manager)
+
+        response = ToolConfirmationResponse(approved=False, abort=True, instructions="  ")
+
+        should_proceed = tool_handler.process_confirmation(response, "update_file")
+
+        assert should_proceed is False
+        assert len(state_manager.session.messages) == 1
+        recorded = state_manager.session.messages[0]
+        content = get_message_content(recorded)
+        assert "cancelled before running" in content
+        assert "without additional instructions" in content
+
     def test_should_confirm_in_plan_mode(self):
         """Test that blocked tools require confirmation (for blocking)."""
         state_manager = StateManager()

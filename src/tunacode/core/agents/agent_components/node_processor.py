@@ -5,6 +5,7 @@ from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
+from tunacode.exceptions import UserAbortError
 from tunacode.types import AgentState, UsageTrackerProtocol
 from tunacode.ui.tool_descriptions import get_batch_description, get_tool_description
 
@@ -472,6 +473,8 @@ async def _process_tool_calls(
                     # Execute the tool with robust error handling so one failure doesn't crash the run
                     try:
                         await tool_callback(part, node)
+                    except UserAbortError:
+                        raise
                     except Exception as tool_err:
                         logger.error(
                             "Tool callback failed: tool=%s iter=%s err=%s",
