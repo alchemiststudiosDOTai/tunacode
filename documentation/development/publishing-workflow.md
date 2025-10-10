@@ -25,12 +25,12 @@ The project uses GitHub Actions to automatically publish releases to PyPI when a
 2. **Commit Changes**: Commit the version updates to the master branch
 3. **Create Tag**: Create and push a version tag:
    ```bash
-   git tag v0.0.77.2
-   git push origin v0.0.77.2
+   git tag v0.0.77.3
+   git push origin v0.0.77.3
    ```
 4. **Create Release**: Create a GitHub release:
    ```bash
-   gh release create v0.0.77.2 --generate-notes
+   gh release create v0.0.77.3 --generate-notes
    ```
 
 ### Workflow Steps
@@ -97,19 +97,19 @@ The workflow is configured in `.github/workflows/publish-release.yml` and:
 ## Example Release Commands
 
 ```bash
-# Update version to 0.0.77.2
-sed -i 's/version = "0.0.77.1"/version = "0.0.77.2"/g' pyproject.toml
-sed -i 's/APP_VERSION = "0.0.77.1"/APP_VERSION = "0.0.77.2"/' src/tunacode/constants.py
+# Update version to 0.0.77.3
+sed -i 's/version = "0.0.77.2"/version = "0.0.77.3"/g' pyproject.toml
+sed -i 's/APP_VERSION = "0.0.77.2"/APP_VERSION = "0.0.77.3"/' src/tunacode/constants.py
 
 # Commit and tag
 git add pyproject.toml src/tunacode/constants.py
-git commit -m "chore: bump version to 0.0.77.2"
-git tag v0.0.77.2
+git commit -m "chore: bump version to 0.0.77.3"
+git tag v0.0.77.3
 git push origin master
-git push origin v0.0.77.2
+git push origin v0.0.77.3
 
 # Create release
-gh release create v0.0.77.2 --generate-notes
+gh release create v0.0.77.3 --generate-notes
 ```
 
 ## Related Documentation

@@ -74,6 +74,31 @@
       }
     },
     {
+      "id": "version-bump-0.0.77.3-20251010-120002",
+      "time": "2025-10-10T12:00:02Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "reasoning": {
+        "problem": "All release metadata still advertised v0.0.77.2, so a fresh GitHub release would fail the version consistency checks baked into the publishing workflow.",
+        "why_change": "Preparing v0.0.77.3 demands that pyproject, hatch scripts, runtime constants, documentation, and knowledge base references share the same patch number.",
+        "solution": "Increment pyproject version declarations, update src/tunacode/constants.APP_VERSION and uv.lock, refresh changelog and publishing docs, and synchronize .claude anchors and delta summaries to the new release number.",
+        "benefits": [
+          "Guarantees the GitHub release workflow sees matching metadata before packaging",
+          "Keeps maintainers and future agents aligned on the current release number and commands",
+          "Extends knowledge base traceability so the 0.0.77.3 bump is discoverable via RAG tooling"
+        ],
+        "risks": [
+          "Missing an embedded version string would leave inconsistent metadata",
+          "Knowledge base edits could drift from the source files if the version changes again soon"
+        ],
+        "mitigations": [
+          "Searched repository for the previous version string and updated every hit in code and docs",
+          "Captured the change in .claude delta summaries and refreshed the memory anchor for APP_VERSION"
+        ]
+      }
+    },
+    {
       "id": "version-bump-0.0.77-20251001-190642",
       "time": "2025-10-01T19:06:42Z",
       "branch": "master",

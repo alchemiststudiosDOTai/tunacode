@@ -85,6 +85,18 @@
       ]
     },
     {
+      "id": "version-metadata-0.0.77.3-20251010-120001",
+      "time": "2025-10-10T12:00:01Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Updated pyproject version metadata and hatch script declarations to 0.0.77.3.",
+        "Synchronized src/tunacode/constants.APP_VERSION with the new 0.0.77.3 release number.",
+        "Refreshed changelog and publishing workflow documentation to point at the 0.0.77.3 release process."
+      ]
+    },
+    {
       "id": "version-bump-0.0.77-20251001-190636",
       "time": "2025-10-01T19:06:36Z",
       "branch": "master",

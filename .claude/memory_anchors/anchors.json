@@ -16,9 +16,9 @@
       "path": "src/tunacode/constants.py",
       "line": 12,
       "kind": "line",
-      "description": "APP_VERSION updated to 0.0.77.2; keep in sync with pyproject metadata for releases.",
+      "description": "APP_VERSION updated to 0.0.77.3; keep in sync with pyproject metadata for releases.",
       "status": "active",
-      "created": "2025-10-01T19:06:50Z"
+      "created": "2025-10-10T00:00:00Z"
     },
     {
       "key": "9e2d3a1c",

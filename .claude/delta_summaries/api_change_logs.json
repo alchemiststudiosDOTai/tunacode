@@ -104,6 +104,18 @@
         "RENAMED publish workflow file back to publish-release.yml so docs and automation match",
         "ADDED version characterization test ensuring pyproject and constants stay synchronized"
       ]
+    },
+    {
+      "id": "version-bump-0.0.77.3-20251010-120000",
+      "time": "2025-10-10T12:00:00",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "BUMPED project metadata and Hatch script versions to 0.0.77.3 for the upcoming release",
+        "SYNCHRONIZED src/tunacode/constants.APP_VERSION with the new patch number",
+        "UPDATED release documentation and changelog to guide GitHub release creation"
+      ]
     }
   ]
 }
