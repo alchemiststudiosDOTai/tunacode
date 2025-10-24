@@ -24,21 +24,14 @@ from typing import (
     Union,
 )
 
-# Try to import pydantic-ai types if available
-try:
-    from pydantic_ai import Agent
-    from pydantic_ai.messages import ModelRequest, ToolReturnPart
+# Import pydantic-ai types (required dependency)
+from pydantic_ai import Agent
+from pydantic_ai.messages import ModelRequest, ToolReturnPart
 
-    PydanticAgent = Agent
-    MessagePart = Union[ToolReturnPart, Any]
-    ModelRequest = ModelRequest  # type: ignore[misc]
-    ModelResponse = Any
-except ImportError:
-    # Fallback if pydantic-ai is not available
-    PydanticAgent = Any
-    MessagePart = Any  # type: ignore[misc]
-    ModelRequest = Any
-    ModelResponse = Any  # type: ignore[misc]
+PydanticAgent = Agent
+MessagePart = Union[ToolReturnPart, Any]
+ModelRequest = ModelRequest  # type: ignore[misc]
+ModelResponse = Any
 
 
 @dataclass
