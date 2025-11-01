@@ -9,6 +9,7 @@ from kosong.tooling import CallableTool, CallableTool2, Toolset
 from kimi_cli.agentspec import ResolvedAgentSpec, load_agent_spec
 from kimi_cli.config import Config
 from kimi_cli.session import Session
+from kimi_cli.shell_manager import ShellManager
 from kimi_cli.soul.approval import Approval
 from kimi_cli.soul.denwarenji import DenwaRenji
 from kimi_cli.soul.runtime import BuiltinSystemPromptArgs, Runtime
@@ -54,6 +55,7 @@ async def load_agent(
         Session: runtime.session,
         DenwaRenji: runtime.denwa_renji,
         Approval: runtime.approval,
+        ShellManager: runtime.shell_manager,
     }
     tools = agent_spec.tools
     if agent_spec.exclude_tools:
