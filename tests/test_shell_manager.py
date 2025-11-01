@@ -3,6 +3,7 @@
 import asyncio
 
 import pytest
+import pytest_asyncio
 
 from kimi_cli.shell_manager import PersistentShellConfig, ShellManager
 
@@ -17,7 +18,7 @@ def shell_config():
     )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def shell_manager(shell_config):
     """Create a ShellManager instance and cleanup after test."""
     manager = ShellManager(shell_config)

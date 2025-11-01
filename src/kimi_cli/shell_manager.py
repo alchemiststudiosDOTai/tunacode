@@ -99,7 +99,10 @@ class ShellManager:
             # Session exists and process is still alive
             return self._session
 
-        logger.info("Starting new shell session: {executable}", executable=self._config.shell_executable)
+        logger.info(
+            "Starting new shell session: {executable}",
+            executable=self._config.shell_executable
+        )
 
         try:
             # Start bash subprocess with pipes for stdin/stdout/stderr
@@ -180,7 +183,8 @@ class ShellManager:
             # Generate unique sentinel for this command execution
             import time
             sentinel_id = f"{self._config.exit_code_sentinel}{int(time.time() * 1000000)}"
-            sentinel_line = f"echo '{sentinel_id}$?'\n"
+            # Use double quotes to allow $? expansion
+            sentinel_line = f'echo "{sentinel_id}$?"\n'
 
             # Write command followed by exit code sentinel
             await self._write_to_stdin(session.process, f"{command}\n")
@@ -197,7 +201,8 @@ class ShellManager:
                 while True:
                     # Check if process died
                     if session.process.returncode is not None:
-                        raise RuntimeError(f"Shell process died with code {session.process.returncode}")
+                        returncode = session.process.returncode
+                        raise RuntimeError(f"Shell process died with code {returncode}")
 
                     # Read from stdout
                     if session.process.stdout is not None:
@@ -216,7 +221,10 @@ class ShellManager:
                                     try:
                                         exit_code = int(exit_code_str)
                                     except ValueError:
-                                        logger.warning("Failed to parse exit code: {code}", code=exit_code_str)
+                                        logger.warning(
+                                            "Failed to parse exit code: {code}",
+                                            code=exit_code_str
+                                        )
                                         exit_code = -1
                                     return exit_code
                                 else:
@@ -252,7 +260,11 @@ class ShellManager:
             return (stdout, stderr, exit_code)
 
         except asyncio.TimeoutError:
-            logger.error("Command timed out after {timeout}s: {command}", timeout=timeout, command=command)
+            logger.error(
+                "Command timed out after {timeout}s: {command}",
+                timeout=timeout,
+                command=command
+            )
             # Kill the session as it's likely in a bad state
             if self._session is not None:
                 try:
