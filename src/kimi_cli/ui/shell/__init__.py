@@ -43,7 +43,7 @@ class ShellApp:
 
         self._start_background_task(self._auto_update())
 
-        _print_welcome_info(self.soul.name or "Kimi CLI", self._welcome_info)
+        _print_welcome_info(self.soul.name or "tunacode!", self._welcome_info)
 
         if isinstance(self.soul, KimiSoul):
             await replay_recent_history(self.soul.context.history)
