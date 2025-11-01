@@ -9,6 +9,43 @@ Internal builds may append content to the Unreleased section.
 Only write entries that are worth mentioning to users.
 -->
 
+## [0.46-tunacode] - 2025-11-01
+
+**Tunacode Fork Release** - This version marks the first release of the tunacode fork with major enhancements.
+
+### Added
+
+- **Persistent Shell Sessions**: Major feature addition - bash commands now execute in a long-running shell process that maintains state across command executions
+  - Working directory changes (`cd`) persist between commands
+  - Environment variables (`export`) persist between commands
+  - Shell functions and aliases are maintained across the session
+  - Shell state is captured at checkpoints and restored during time-travel operations
+- Add `ShellManager` class for managing persistent shell subprocess lifecycle
+- Add `--no-persistent-shell` CLI flag to disable persistent shell and use ephemeral mode
+- Add shell state serialization to JSONL context history
+- Add shell state restoration on checkpoint revert operations
+- Add `persistent_shell` configuration section in config.json
+
+### Changed
+
+- Renamed command entry point from `kimi` to `tunacode` to reflect fork identity
+- Enhanced `Bash` tool with dual-mode execution (persistent vs ephemeral)
+- Improved dependency injection to support optional ShellManager
+- Enhanced Runtime with shell_manager field and initialization
+
+### Fixed
+
+- Add automatic fallback to ephemeral shell execution on persistent shell errors
+- Improved timeout handling in shell operations
+- Enhanced error recovery mechanisms for shell subprocess failures
+
+### Testing
+
+- Add comprehensive test suite for ShellManager (27+ tests)
+- Add dual-mode tests for Bash tool
+- Add integration tests for checkpoint/revert with shell state
+- All tests passing with full async support
+
 ## [0.45] - 2025-10-31
 
 ### Added

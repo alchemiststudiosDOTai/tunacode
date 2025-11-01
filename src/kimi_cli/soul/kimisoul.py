@@ -172,7 +172,10 @@ class KimiSoul(Soul):
                     if latest_state is not None:
                         try:
                             await self._runtime.shell_manager.restore_state(latest_state)
-                            logger.debug("Restored shell state after revert to checkpoint {id}", id=e.checkpoint_id)
+                            logger.debug(
+                                "Restored shell state after revert to checkpoint {id}",
+                                id=e.checkpoint_id,
+                            )
                         except Exception as err:
                             logger.warning("Failed to restore shell state: {error}", error=err)
 

@@ -1,97 +1,146 @@
-# Kimi CLI
+# tunacode
 
-[![Commit Activity](https://img.shields.io/github/commit-activity/w/MoonshotAI/kimi-cli)](https://github.com/MoonshotAI/kimi-cli/graphs/commit-activity)
-[![Checks](https://img.shields.io/github/check-runs/MoonshotAI/kimi-cli/main)](https://github.com/MoonshotAI/kimi-cli/actions)
-[![Version](https://img.shields.io/pypi/v/kimi-cli)](https://pypi.org/project/kimi-cli/)
-[![Downloads](https://img.shields.io/pypi/dw/kimi-cli)](https://pypistats.org/packages/kimi-cli)
+[![Fork](https://img.shields.io/badge/fork-MoonshotAI/kimi--cli-blue)](https://github.com/MoonshotAI/kimi-cli)
+[![Commit Activity](https://img.shields.io/github/commit-activity/w/alchemiststudiosDOTai/tunacode)](https://github.com/alchemiststudiosDOTai/tunacode/graphs/commit-activity)
 
-[中文](https://www.kimi.com/coding/docs/kimi-cli.html)
+**This is a fork of [MoonshotAI/kimi-cli](https://github.com/MoonshotAI/kimi-cli)** with persistent shell session support and other design/personal flavors choices.
 
-Kimi CLI is a new CLI agent that can help you with your software development tasks and terminal operations.
+Kimi CLI is a powerful CLI agent that helps you with software development tasks and terminal operations. This fork extends the original with stateful shell execution and other design/personal flavors choices.
 
-> [!IMPORTANT]
-> Kimi CLI is currently in technical preview.
-
-## Key features
-
-- Shell-like UI and raw shell command execution
-- Zsh integration
-- [Agent Client Protocol] support
-- MCP support
-- And more to come...
-
-[Agent Client Protocol]: https://github.com/agentclientprotocol/agent-client-protocol
-
-## Installation
+> [!NOTE]
+> **Fork Base:** Upstream v0.45 (2025-10-31)
+>
+> This fork includes ALL upstream features through v0.45, including:
+> - OpenAI responses chat provider with think part UI
+> - Image pasting support
+> - Markdown rendering (`--no-markdown` option)
+> - Model capabilities environment variable override (`KIMI_MODEL_CAPABILITIES`)
+> - Session history replay when continuing
+> - Basic Windows support (experimental)
+> - Improved startup performance
+>
+> This fork is maintained independently. We gratefully acknowledge the original Kimi CLI team at MoonshotAI for creating the foundation of this project.
 
 > [!IMPORTANT]
-> Kimi CLI currently only supports macOS and Linux. Windows support is coming soon.
+> This fork is currently in active development. 
 
-Kimi CLI is published as a Python package on PyPI. We highly recommend installing it with [uv](https://docs.astral.sh/uv/). If you have not installed uv yet, please follow the instructions [here](https://docs.astral.sh/uv/getting-started/installation/) to install it first.
+## Key Differences from Upstream
 
-Once uv is installed, you can install Kimi CLI with:
+This fork adds personal enhancements beyond the original Kimi CLI:
+
+### Persistent Shell Sessions (Primary Feature)
+
+### .claude commands/subagents/skills port over (in dev)
+
+### pass your own prompts (in dev)
+
+### extend custom tools (in dev)
+
+
+
+This fork is published as a Python package. We recommend installing it with [uv](https://docs.astral.sh/uv/).
+
+### Install uv (if not already installed)
+Follow instructions at: https://docs.astral.sh/uv/getting-started/installation/
+
+### Install This Fork
 
 ```sh
-uv tool install --python 3.13 kimi-cli
+# From source (recommended for this fork)
+git clone https://github.com/alchemiststudiosDOTai/tunacode.git
+cd tunacode
+uv sync
+uv run kimi
 ```
 
-Run `kimi --help` to check if Kimi CLI is installed successfully.
+Alternatively, if published to PyPI under a different name:
+```sh
+uv tool install --python 3.13 tunacode-kimi-cli
+```
+
+Run `kimi --help` to check if installation was successful.
 
 > [!IMPORTANT]
-> Due to the security checks on macOS, the first time you run `kimi` command may take 10 seconds or more depending on your system environment.
+> Due to security checks on macOS, the first run may take 10+ seconds depending on your system.
 
 ## Upgrading
 
-Upgrade Kimi CLI to the latest version with:
-
 ```sh
-uv tool upgrade kimi-cli --no-cache
+cd tunacode
+git pull
+uv sync
 ```
 
 ## Usage
 
-Run `kimi` command in the directory you want to work on, then send `/setup` to setup Kimi CLI:
+Run `kimi` command in your working directory, then send `/setup` to configure:
 
 ![](./docs/images/setup.png)
 
-After setup, Kimi CLI will be ready to use. You can send `/help` to get more information.
+After setup, send `/help` for more information.
 
 ## Features
 
-### Shell mode
+### Persistent Shell Sessions
 
-Kimi CLI is not only a coding agent, but also a shell. You can switch the mode by pressing `Ctrl-X`. In shell mode, you can directly run shell commands without leaving Kimi CLI.
+**Enabled by default.** All bash commands execute in a long-running shell process that maintains state.
+
+#### Configuration
+
+In `~/.kimi/config.json`, persistent shell is enabled by default:
+
+```json
+{
+  "persistent_shell": {
+    "enabled": true,
+    "timeout": 30,
+    "working_directory": null
+  }
+}
+```
+
+#### CLI Options
+
+```sh
+# Use persistent shell (default)
+kimi
+
+# Disable persistent shell for this session
+kimi --no-persistent-shell
+```
+
+
+
+### Shell Mode
+
+Kimi CLI functions as both a coding agent and a shell. Press `Ctrl-X` to switch modes and run shell commands directly.
 
 > [!NOTE]
-> Built-in shell commands like `cd` are not supported yet.
+> With persistent shell enabled in this fork, `cd` commands now work correctly and persist between commands!
 
-### Zsh integration
+### Zsh Integration
 
-You can use Kimi CLI together with Zsh, to empower your shell experience with AI agent capabilities.
+Use Kimi CLI with Zsh to enhance your shell with AI agent capabilities.
 
-Install the [zsh-kimi-cli](https://github.com/MoonshotAI/zsh-kimi-cli) plugin via:
+Install [zsh-kimi-cli](https://github.com/MoonshotAI/zsh-kimi-cli):
 
 ```sh
 git clone https://github.com/MoonshotAI/zsh-kimi-cli.git \
   ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/kimi-cli
 ```
 
-> [!NOTE]
-> If you are using a plugin manager other than Oh My Zsh, you may need to refer to the plugin's README for installation instructions.
-
-Then add `kimi-cli` to your Zsh plugin list in `~/.zshrc`:
-
+Add to `~/.zshrc`:
 ```sh
 plugins=(... kimi-cli)
 ```
 
-After restarting Zsh, you can switch to agent mode by pressing `Ctrl-X`.
+Restart Zsh and press `Ctrl-X` to switch to agent mode.
 
-### ACP support
+### ACP Support
 
-Kimi CLI supports [Agent Client Protocol] out of the box. You can use it together with any ACP-compatible editor or IDE.
+Kimi CLI supports [Agent Client Protocol](https://github.com/agentclientprotocol/agent-client-protocol) out of the box.
 
-For example, to use Kimi CLI with [Zed](https://zed.dev/), add the following configuration to your `~/.config/zed/settings.json`:
+Example configuration for [Zed](https://zed.dev/) in `~/.config/zed/settings.json`:
 
 ```json
 {
@@ -105,11 +154,9 @@ For example, to use Kimi CLI with [Zed](https://zed.dev/), add the following con
 }
 ```
 
-Then you can create Kimi CLI threads in Zed's agent panel.
+### Using MCP Tools
 
-### Using MCP tools
-
-Kimi CLI supports the well-established MCP config convention. For example:
+Kimi CLI supports MCP config convention:
 
 ```json
 {
@@ -128,36 +175,80 @@ Kimi CLI supports the well-established MCP config convention. For example:
 }
 ```
 
-Run `kimi` with `--mcp-config-file` option to connect to the specified MCP servers:
-
+Run with:
 ```sh
 kimi --mcp-config-file /path/to/mcp.json
 ```
 
+## Architecture & Documentation
+
+This fork includes extensive architectural documentation:
+
+- **[CLAUDE.md](./CLAUDE.md)**: Comprehensive project overview and development guidelines
+- **[.claude/](./.claude/)**: Knowledge base with patterns, architecture decisions, and development history
+- **Memory Bank**: Research and execution logs in `memory-bank/` directory
+
+Key architectural highlights:
+- Separation of concerns with modular tool system
+- Type-first design with full type safety
+- Constructor-based dependency injection
+- Async-by-default I/O
+- Production-grade error handling
+- Comprehensive test coverage
+
 ## Development
 
-To develop Kimi CLI, run:
+Clone and prepare the development environment:
 
 ```sh
-git clone https://github.com/MoonshotAI/kimi-cli.git
-cd kimi-cli
+git clone https://github.com/alchemiststudiosDOTai/tunacode.git
+cd tunacode
 
-make prepare  # prepare the development environment
+make prepare  # prepare development environment
 ```
 
-Then you can start working on Kimi CLI.
-
-Refer to the following commands after you make changes:
+Common development commands:
 
 ```sh
-uv run kimi  # run Kimi CLI
+uv run kimi           # run Kimi CLI
+make format           # format code
+make check            # run linting and type checking
+make test             # run tests
+make help             # show all make targets
+```
 
-make format  # format code
-make check  # run linting and type checking
-make test  # run tests
-make help  # show all make targets
+### Running Tests
+
+```sh
+# All tests
+uv run pytest tests -vv
+
+# Persistent shell tests specifically
+uv run pytest tests/test_shell_manager.py -vv
+uv run pytest tests/test_bash.py -vv
 ```
 
 ## Contributing
 
-We welcome contributions to Kimi CLI! Please refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for more information.
+We welcome contributions to this fork! Areas where contributions are especially valuable:
+
+- Testing and bug reports for the persistent shell feature
+- Documentation improvements
+- Additional shell state management features
+- Performance optimizations
+
+For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+### Upstream Sync
+
+This fork tracks upstream changes from [MoonshotAI/kimi-cli](https://github.com/MoonshotAI/kimi-cli). We periodically sync with upstream to incorporate improvements and bug fixes.
+
+## License
+
+Same license as upstream Kimi CLI (see [LICENSE](./LICENSE)).
+
+## Acknowledgments
+
+This project builds on the excellent work of the Kimi CLI team at MoonshotAI. We're grateful for their creation of the original foundation that made this fork possible.
+
+Upstream repository: https://github.com/MoonshotAI/kimi-cli

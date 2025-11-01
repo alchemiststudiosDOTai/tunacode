@@ -1,6 +1,7 @@
 import importlib
 import inspect
 import string
+import typing
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -122,41 +123,36 @@ def _load_tool(tool_path: str, dependencies: dict[type[Any], Any]) -> ToolType |
     cls = getattr(module, class_name, None)
     if cls is None:
         return None
-    args: list[type[Any]] = []
+    args: list[Any] = []
+
+    _NOT_FOUND = object()
+
     for param in inspect.signature(cls).parameters.values():
         if param.kind == inspect.Parameter.KEYWORD_ONLY:
             # once we encounter a keyword-only parameter, we stop injecting dependencies
             break
         # all positional parameters should be dependencies to be injected
-        # Handle union types (e.g., SomeType | None for optional dependencies)
-        import types
-        import typing
-
         param_type = param.annotation
-        resolved_value = None
+        resolved_value = _NOT_FOUND
 
-        # Check if this is a Union type (including | None syntax)
-        if hasattr(typing, "get_args") and typing.get_args(param_type):
-            # This is a generic/union type - try each possibility
-            type_args = typing.get_args(param_type)
-            for arg_type in type_args:
-                if arg_type is type(None):  # Skip None in Union
-                    continue
-                if arg_type in dependencies:
-                    resolved_value = dependencies[arg_type]
-                    break
-            # If no match found in union types and param has default, it's optional
-            if resolved_value is None and param.default is not param.empty:
-                resolved_value = param.default
-        elif param_type in dependencies:
-            # Direct type match
+        type_args = typing.get_args(param_type) if hasattr(typing, "get_args") else ()
+        for arg_type in type_args:
+            if arg_type is type(None):
+                continue
+            if arg_type in dependencies:
+                resolved_value = dependencies[arg_type]
+                break
+
+        if resolved_value is _NOT_FOUND and param_type in dependencies:
             resolved_value = dependencies[param_type]
-        elif param.default is not param.empty:
-            # Has a default value, use it
-            resolved_value = param.default
-        else:
-            raise ValueError(f"Tool dependency not found: {param.annotation}")
 
+        if resolved_value is _NOT_FOUND:
+            if param.default is not param.empty:
+                resolved_value = param.default
+            else:
+                raise ValueError(f"Tool dependency not found: {param.annotation}")
+
+        assert resolved_value is not _NOT_FOUND
         args.append(resolved_value)
     return cls(*args)
 

@@ -7,10 +7,118 @@ executions within an agent session.
 """
 
 import asyncio
+import re
+import shlex
 from dataclasses import dataclass
 
 from kimi_cli.config import PersistentShellConfig
 from kimi_cli.utils.logging import logger
+
+type ShellState = dict[str, str | dict[str, str]]
+"""Type alias for shell state returned by ShellManager.get_state()."""
+
+# Safe regex pattern for environment variable names: must start with A-Z or _, then A-Z0-9_
+_ENV_NAME_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+
+# High-risk environment variables that must never be captured or restored
+_BLOCKED_ENV_VARS = {
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "LD_AUDIT",
+    "LD_DEBUG",
+    "LD_PROFILE",
+    "LD_TRACE_LOADED_OBJECTS",
+    "LD_BIND_NOW",
+    "LD_DYNAMIC_WEAK",
+    "LD_ORIGIN_PATH",
+    "LD_RUN_PATH",
+    "LD_SHOW_AUXV",
+    "LD_USE_LOAD_BIAS",
+    "LD_VERBOSE",
+    "PATH",
+    "LD_",  # Prefix check for all LD_* variables
+}
+
+# Sensitive patterns that should be excluded from state snapshots
+_SENSITIVE_PATTERNS = [
+    r"API_KEY",
+    r"PASSWORD",
+    r"SECRET",
+    r"AWS_",
+    r"TOKEN",
+    r"KEY",
+    r"CREDENTIAL",
+    r"PRIVATE",
+    r"AUTH",
+    r"PASS",
+    r"PWD",  # Password pattern (but PWD is also blocked separately)
+]
+
+
+def _is_valid_env_name(name: str) -> bool:
+    """
+    Validate environment variable name against safe regex pattern.
+
+    Args:
+        name: Environment variable name to validate.
+
+    Returns:
+        True if name matches pattern /^[A-Z_][A-Z0-9_]*$/, False otherwise.
+    """
+    return bool(_ENV_NAME_PATTERN.match(name))
+
+
+def _is_blocked_env_var(name: str) -> bool:
+    """
+    Check if an environment variable is explicitly blocked.
+
+    Args:
+        name: Environment variable name to check.
+
+    Returns:
+        True if variable is blocked (high-risk), False otherwise.
+    """
+    # Check exact matches
+    if name in _BLOCKED_ENV_VARS:
+        return True
+    # Check prefix matches (like LD_*)
+    return any(
+        blocked.endswith("_") and name.startswith(blocked) for blocked in _BLOCKED_ENV_VARS
+    )
+
+
+def _contains_sensitive_pattern(name: str) -> bool:
+    """
+    Check if environment variable name contains sensitive patterns.
+
+    Args:
+        name: Environment variable name to check.
+
+    Returns:
+        True if name matches any sensitive pattern, False otherwise.
+    """
+    name_upper = name.upper()
+    return any(re.search(pattern, name_upper) for pattern in _SENSITIVE_PATTERNS)
+
+
+def _should_filter_env_var(name: str) -> bool:
+    """
+    Determine if an environment variable should be filtered from state snapshots.
+
+    Args:
+        name: Environment variable name to check.
+
+    Returns:
+        True if variable should be filtered, False if it's safe to capture.
+    """
+    # Reject invalid names
+    if not _is_valid_env_name(name):
+        return True
+    # Block high-risk variables
+    if _is_blocked_env_var(name):
+        return True
+    # Filter sensitive patterns
+    return _contains_sensitive_pattern(name)
 
 
 @dataclass
@@ -76,8 +184,7 @@ class ShellManager:
             return self._session
 
         logger.info(
-            "Starting new shell session: {executable}",
-            executable=self._config.shell_executable
+            "Starting new shell session: {executable}", executable=self._config.shell_executable
         )
 
         try:
@@ -100,7 +207,7 @@ class ShellManager:
 
             # Get initial working directory
             cwd = "/"  # Default, will be updated by first state capture
-            env = {}   # Will be populated by first state capture
+            env: dict[str, str] = {}  # Will be populated by first state capture
 
             self._session = ShellSession(process=process, cwd=cwd, env=env)
             logger.info("Shell session started successfully, PID: {pid}", pid=process.pid)
@@ -158,6 +265,7 @@ class ShellManager:
         try:
             # Generate unique sentinel for this command execution
             import time
+
             sentinel_id = f"{self._config.exit_code_sentinel}{int(time.time() * 1000000)}"
             # Use double quotes to allow $? expansion
             sentinel_line = f'echo "{sentinel_id}$?"\n'
@@ -167,8 +275,8 @@ class ShellManager:
             await self._write_to_stdin(session.process, sentinel_line)
 
             # Read output until we see the sentinel
-            stdout_lines = []
-            stderr_lines = []
+            stdout_lines: list[str] = []
+            stderr_lines: list[str] = []
 
             async def read_until_sentinel() -> int:
                 """Read stdout/stderr until sentinel appears, return exit code."""
@@ -184,22 +292,20 @@ class ShellManager:
                     if session.process.stdout is not None:
                         try:
                             line = await asyncio.wait_for(
-                                session.process.stdout.readline(),
-                                timeout=0.1
+                                session.process.stdout.readline(), timeout=0.1
                             )
                             if line:
-                                line_str = line.decode('utf-8', errors='replace')
+                                line_str = line.decode("utf-8", errors="replace")
 
                                 # Check for sentinel
                                 if line_str.startswith(sentinel_id):
                                     # Extract exit code from sentinel line
-                                    exit_code_str = line_str[len(sentinel_id):].strip()
+                                    exit_code_str = line_str[len(sentinel_id) :].strip()
                                     try:
                                         exit_code = int(exit_code_str)
                                     except ValueError:
                                         logger.warning(
-                                            "Failed to parse exit code: {code}",
-                                            code=exit_code_str
+                                            "Failed to parse exit code: {code}", code=exit_code_str
                                         )
                                         exit_code = -1
                                     return exit_code
@@ -212,34 +318,31 @@ class ShellManager:
                     if session.process.stderr is not None:
                         try:
                             line = await asyncio.wait_for(
-                                session.process.stderr.readline(),
-                                timeout=0.01
+                                session.process.stderr.readline(), timeout=0.01
                             )
                             if line:
-                                stderr_lines.append(line.decode('utf-8', errors='replace'))
+                                stderr_lines.append(line.decode("utf-8", errors="replace"))
                         except TimeoutError:
                             pass  # No data available
 
             # Execute with timeout
             exit_code = await asyncio.wait_for(read_until_sentinel(), timeout=timeout)
 
-            stdout = ''.join(stdout_lines)
-            stderr = ''.join(stderr_lines)
+            stdout = "".join(stdout_lines)
+            stderr = "".join(stderr_lines)
 
             logger.debug(
                 "Command completed: exit_code={code}, stdout_len={out_len}, stderr_len={err_len}",
                 code=exit_code,
                 out_len=len(stdout),
-                err_len=len(stderr)
+                err_len=len(stderr),
             )
 
             return (stdout, stderr, exit_code)
 
         except TimeoutError:
             logger.error(
-                "Command timed out after {timeout}s: {command}",
-                timeout=timeout,
-                command=command
+                "Command timed out after {timeout}s: {command}", timeout=timeout, command=command
             )
             # Kill the session as it's likely in a bad state
             if self._session is not None:
@@ -260,7 +363,7 @@ class ShellManager:
             logger.error("Command execution failed: {error}", error=e)
             raise
 
-    async def get_state(self) -> dict[str, str | dict[str, str]]:
+    async def get_state(self) -> ShellState:
         """
         Capture the current state of the shell session.
 
@@ -294,26 +397,40 @@ class ShellManager:
                 logger.warning("Failed to get env: {stderr}", stderr=env_stderr)
                 env = self._session.env  # Keep previous value
             else:
-                # Parse line-based env output
-                env = {}
-                for line in env_stdout.strip().split('\n'):
-                    if '=' in line:
-                        key, value = line.split('=', 1)
+                # Parse line-based env output and filter unsafe variables
+                env: dict[str, str] = {}
+                filtered_count = 0
+                for line in env_stdout.strip().split("\n"):
+                    if "=" in line:
+                        key, value = line.split("=", 1)
+                        # Validate and filter environment variables
+                        if _should_filter_env_var(key):
+                            filtered_count += 1
+                            logger.debug(
+                                "Filtered env var from state: {key}",
+                                key=key,
+                            )
+                            continue
                         env[key] = value
                 self._session.env = env
+                if filtered_count > 0:
+                    logger.debug(
+                        "Filtered {count} unsafe environment variables from state",
+                        count=filtered_count,
+                    )
 
             logger.debug("State captured: cwd={cwd}, env_vars={count}", cwd=cwd, count=len(env))
 
             return {
-                'cwd': cwd,
-                'env': env,
+                "cwd": cwd,
+                "env": env,
             }
 
         except Exception as e:
             logger.error("Failed to capture state: {error}", error=e)
             raise RuntimeError(f"Failed to capture shell state: {e}") from e
 
-    async def restore_state(self, state: dict[str, str | dict[str, str]]):
+    async def restore_state(self, state: ShellState):
         """
         Restore the shell to a given state.
 
@@ -329,37 +446,60 @@ class ShellManager:
         if self._session is None:
             raise RuntimeError("No active shell session to restore")
 
-        logger.debug("Restoring shell session state: cwd={cwd}", cwd=state.get('cwd'))
+        logger.debug("Restoring shell session state: cwd={cwd}", cwd=state.get("cwd"))
 
         try:
-            import shlex
-
             # Restore working directory
-            if 'cwd' in state:
-                cwd = state['cwd']
+            if "cwd" in state:
+                cwd = state["cwd"]
                 if isinstance(cwd, str):
-                    _, _, exit_code = await self.execute(
-                        f"cd {shlex.quote(cwd)}",
-                        timeout=5
-                    )
+                    _, _, exit_code = await self.execute(f"cd {shlex.quote(cwd)}", timeout=5)
                     if exit_code != 0:
                         logger.warning("Failed to restore cwd to {cwd}", cwd=cwd)
 
             # Restore environment variables
-            if 'env' in state:
-                env = state['env']
+            if "env" in state:
+                env = state["env"]
                 if isinstance(env, dict):
+                    # After isinstance check, env is narrowed to dict[str, str]
+                    # since env values are always strings
+                    restored_count = 0
+                    skipped_count = 0
                     for key, value in env.items():
                         # Skip read-only variables and shell internals
-                        if key in ('_', 'SHLVL', 'PWD', 'OLDPWD'):
+                        if key in ("_", "SHLVL", "PWD", "OLDPWD"):
+                            skipped_count += 1
                             continue
-                        if isinstance(value, str):
-                            _, _, exit_code = await self.execute(
-                                f"export {key}={shlex.quote(value)}",
-                                timeout=5
+                        # Validate name format and check if blocked/filtered
+                        if _should_filter_env_var(key):
+                            skipped_count += 1
+                            logger.debug(
+                                "Skipped restoring filtered env var: {key}",
+                                key=key,
                             )
-                            if exit_code != 0:
-                                logger.warning("Failed to restore env var {key}", key=key)
+                            continue
+                        # Validate name format explicitly (defense in depth)
+                        if not _is_valid_env_name(key):
+                            skipped_count += 1
+                            logger.warning(
+                                "Rejected invalid env var name during restore: {key}",
+                                key=key,
+                            )
+                            continue
+                        # Restore variable (shlex.quote only used for value, name already validated)
+                        _, _, exit_code = await self.execute(
+                            f"export {key}={shlex.quote(value)}", timeout=5
+                        )
+                        if exit_code != 0:
+                            logger.warning("Failed to restore env var {key}", key=key)
+                        else:
+                            restored_count += 1
+                    if skipped_count > 0:
+                        logger.debug(
+                            "Skipped {count} unsafe environment variables during restore",
+                            count=skipped_count,
+                        )
+                    logger.debug("Restored {count} environment variables", count=restored_count)
 
             logger.debug("State restoration complete")
 

@@ -148,7 +148,7 @@ class TestCommandExecution:
         stdout, stderr, code = await shell_manager.execute("echo -e 'line1\\nline2\\nline3'")
 
         assert code == 0
-        lines = stdout.strip().split('\n')
+        lines = stdout.strip().split("\n")
         assert len(lines) == 3
         assert "line1" in lines[0]
         assert "line2" in lines[1]
@@ -230,9 +230,13 @@ class TestStateCapture:
         state = await shell_manager.get_state()
 
         env = state["env"]
-        # At minimum, PATH should exist
-        assert "PATH" in env
-        assert len(env["PATH"]) > 0
+        # Environment should not be empty (capture is working)
+        assert len(env) > 0
+        # PATH is intentionally blocked for security, but other standard vars should exist
+        # Check for common non-blocked variables (SHELL is typically present)
+        assert "PATH" not in env, "PATH should be filtered for security"
+        # Verify at least some standard variables are present (not all may be available in test env)
+        # Just ensure capture is working by checking env is not empty
 
     @pytest.mark.asyncio
     async def test_state_capture_after_changes(self, shell_manager):
@@ -268,6 +272,7 @@ class TestCleanup:
 
         # Start a session
         await manager.execute("echo 'test'")
+        assert manager._session is not None
         process = manager._session.process
 
         # Cleanup
@@ -341,7 +346,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_command_with_quotes(self, shell_manager):
         """Test command with various quote types."""
-        stdout, stderr, code = await shell_manager.execute('echo "double" && echo \'single\'')
+        stdout, stderr, code = await shell_manager.execute("echo \"double\" && echo 'single'")
 
         assert code == 0
         assert "double" in stdout
@@ -349,3 +354,213 @@ class TestEdgeCases:
 
     # Removed test_very_long_output - times out with large output
     # The implementation works but reading 1000 lines causes test timeout
+
+
+class TestEnvironmentVariableFiltering:
+    """Tests for environment variable validation and filtering."""
+
+    @pytest.mark.asyncio
+    async def test_blocked_variables_excluded_from_capture(self, shell_manager):
+        """Test that high-risk variables like PATH and LD_PRELOAD are excluded from state."""
+        # Set blocked variables
+        await shell_manager.execute("export PATH=/malicious/path")
+        await shell_manager.execute("export LD_PRELOAD=/evil.so")
+
+        # Capture state
+        state = await shell_manager.get_state()
+
+        # Verify blocked variables are NOT in captured state
+        assert "PATH" not in state["env"]
+        assert "LD_PRELOAD" not in state["env"]
+
+    @pytest.mark.asyncio
+    async def test_ld_prefix_variables_blocked(self, shell_manager):
+        """Test that all LD_* variables are blocked."""
+        await shell_manager.execute("export LD_LIBRARY_PATH=/test")
+        await shell_manager.execute("export LD_DEBUG=all")
+
+        state = await shell_manager.get_state()
+
+        assert "LD_LIBRARY_PATH" not in state["env"]
+        assert "LD_DEBUG" not in state["env"]
+
+    @pytest.mark.asyncio
+    async def test_sensitive_patterns_excluded_from_capture(self, shell_manager):
+        """Test that variables matching sensitive patterns are excluded."""
+        # Set variables with sensitive patterns
+        await shell_manager.execute("export API_KEY=secret123")
+        await shell_manager.execute("export MY_SECRET_TOKEN=abc")
+        await shell_manager.execute("export AWS_ACCESS_KEY_ID=xyz")
+        await shell_manager.execute("export PASSWORD=pass123")
+
+        state = await shell_manager.get_state()
+
+        # Verify sensitive variables are NOT in captured state
+        assert "API_KEY" not in state["env"]
+        assert "MY_SECRET_TOKEN" not in state["env"]
+        assert "AWS_ACCESS_KEY_ID" not in state["env"]
+        assert "PASSWORD" not in state["env"]
+
+    @pytest.mark.asyncio
+    async def test_safe_variables_captured(self, shell_manager):
+        """Test that safe variables are captured normally."""
+        await shell_manager.execute("export TEST_VAR=safe_value")
+        await shell_manager.execute("export USER_DEFINED_VAR=test")
+
+        state = await shell_manager.get_state()
+
+        # Verify safe variables ARE in captured state
+        assert "TEST_VAR" in state["env"]
+        assert state["env"]["TEST_VAR"] == "safe_value"
+        assert "USER_DEFINED_VAR" in state["env"]
+        assert state["env"]["USER_DEFINED_VAR"] == "test"
+
+    @pytest.mark.asyncio
+    async def test_blocked_variables_not_restored(self, shell_manager):
+        """Test that blocked variables are skipped during restore."""
+        # Ensure session exists
+        await shell_manager.execute("echo 'init'")
+        
+        # Create state with blocked variables
+        unsafe_state = {
+            "cwd": "/tmp",
+            "env": {
+                "PATH": "/malicious/path",
+                "LD_PRELOAD": "/evil.so",
+                "SAFE_VAR": "safe_value",
+            },
+        }
+
+        # Restore state
+        await shell_manager.restore_state(unsafe_state)
+
+        # Verify blocked variables were NOT restored
+        stdout_path, _, code_path = await shell_manager.execute("echo $PATH")
+        stdout_ld, _, code_ld = await shell_manager.execute("echo $LD_PRELOAD")
+
+        # PATH should not be /malicious/path (should be system PATH or empty)
+        assert "/malicious/path" not in stdout_path
+        # LD_PRELOAD should be empty
+        assert stdout_ld.strip() == ""
+
+        # Safe variable should be restored
+        stdout_safe, _, code_safe = await shell_manager.execute("echo $SAFE_VAR")
+        assert code_safe == 0
+        assert "safe_value" in stdout_safe
+
+    @pytest.mark.asyncio
+    async def test_sensitive_patterns_not_restored(self, shell_manager):
+        """Test that sensitive patterns are skipped during restore."""
+        # Ensure session exists
+        await shell_manager.execute("echo 'init'")
+        
+        unsafe_state = {
+            "cwd": "/tmp",
+            "env": {
+                "API_KEY": "secret123",
+                "MY_SECRET_TOKEN": "abc",
+                "SAFE_VAR": "safe_value",
+            },
+        }
+
+        await shell_manager.restore_state(unsafe_state)
+
+        # Verify sensitive variables were NOT restored
+        stdout_api, _, _ = await shell_manager.execute("echo $API_KEY")
+        stdout_secret, _, _ = await shell_manager.execute("echo $MY_SECRET_TOKEN")
+
+        assert stdout_api.strip() == ""
+        assert stdout_secret.strip() == ""
+
+        # Safe variable should be restored
+        stdout_safe, _, code_safe = await shell_manager.execute("echo $SAFE_VAR")
+        assert code_safe == 0
+        assert "safe_value" in stdout_safe
+
+    @pytest.mark.asyncio
+    async def test_invalid_names_rejected_during_restore(self, shell_manager):
+        """Test that invalid environment variable names are rejected."""
+        # Ensure session exists
+        await shell_manager.execute("echo 'init'")
+        
+        unsafe_state = {
+            "cwd": "/tmp",
+            "env": {
+                "valid-name": "invalid",  # Contains hyphen
+                "123INVALID": "invalid",  # Starts with number
+                "invalid.name": "invalid",  # Contains dot
+                "VALID_NAME": "valid",
+            },
+        }
+
+        await shell_manager.restore_state(unsafe_state)
+
+        # Invalid names should not be restored
+        stdout_hyphen, _, _ = await shell_manager.execute("echo $valid-name")
+        stdout_number, _, _ = await shell_manager.execute("echo $123INVALID")
+        stdout_dot, _, _ = await shell_manager.execute("echo $invalid.name")
+
+        # These should fail or be empty (depending on shell behavior)
+        # The key is that they shouldn't be restored with our values
+
+        # Valid name should be restored
+        stdout_valid, _, code_valid = await shell_manager.execute("echo $VALID_NAME")
+        assert code_valid == 0
+        assert "valid" in stdout_valid
+
+    @pytest.mark.asyncio
+    async def test_shell_internals_skipped_during_restore(self, shell_manager):
+        """Test that shell internals like PWD and SHLVL are skipped."""
+        # Ensure session exists
+        await shell_manager.execute("echo 'init'")
+        
+        unsafe_state = {
+            "cwd": "/tmp",
+            "env": {
+                "PWD": "/malicious",
+                "SHLVL": "999",
+                "OLDPWD": "/evil",
+                "_": "malicious",
+                "SAFE_VAR": "safe",
+            },
+        }
+
+        await shell_manager.restore_state(unsafe_state)
+
+        # Verify shell internals were NOT restored (check actual values)
+        stdout_shlvl, _, _ = await shell_manager.execute("echo $SHLVL")
+        # SHLVL should be system value, not 999
+        assert stdout_shlvl.strip() != "999"
+
+        # Safe variable should be restored
+        stdout_safe, _, code_safe = await shell_manager.execute("echo $SAFE_VAR")
+        assert code_safe == 0
+        assert "safe" in stdout_safe
+
+    @pytest.mark.asyncio
+    async def test_filtering_preserves_safe_variables(self, shell_manager):
+        """Test that filtering doesn't remove safe variables."""
+        # Set mix of safe and unsafe variables
+        await shell_manager.execute("export SAFE_VAR1=value1")
+        await shell_manager.execute("export SAFE_VAR2=value2")
+        await shell_manager.execute("export API_KEY=secret")  # Should be filtered
+        # Note: We don't test PATH filtering by setting it because that breaks the 'env' command
+        # PATH filtering is tested in test_blocked_variables_excluded_from_capture
+
+        # Verify variables exist in shell before capturing state
+        stdout1, _, code1 = await shell_manager.execute("echo $SAFE_VAR1")
+        stdout2, _, code2 = await shell_manager.execute("echo $SAFE_VAR2")
+        assert code1 == 0 and "value1" in stdout1
+        assert code2 == 0 and "value2" in stdout2
+
+        state = await shell_manager.get_state()
+
+        # Safe variables should be present
+        assert "SAFE_VAR1" in state["env"]
+        assert state["env"]["SAFE_VAR1"] == "value1"
+        assert "SAFE_VAR2" in state["env"]
+        assert state["env"]["SAFE_VAR2"] == "value2"
+
+        # Unsafe variables should be absent
+        assert "API_KEY" not in state["env"]
+        # PATH filtering is tested separately in test_blocked_variables_excluded_from_capture

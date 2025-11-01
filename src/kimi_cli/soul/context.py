@@ -6,6 +6,7 @@ import aiofiles
 import aiofiles.os
 from kosong.base.message import Message
 
+from kimi_cli.shell_manager import ShellState
 from kimi_cli.soul.message import system
 from kimi_cli.utils.logging import logger
 from kimi_cli.utils.path import next_available_rotation
@@ -18,7 +19,7 @@ class Context:
         self._token_count: int = 0
         self._next_checkpoint_id: int = 0
         """The ID of the next checkpoint, starting from 0, incremented after each checkpoint."""
-        self._shell_states: dict[int, dict] = {}
+        self._shell_states: dict[int, ShellState] = {}
         """Shell states keyed by checkpoint ID."""
 
     async def restore(self) -> bool:
@@ -66,11 +67,11 @@ class Context:
         return self._next_checkpoint_id
 
     @property
-    def shell_states(self) -> dict[int, dict]:
+    def shell_states(self) -> dict[int, ShellState]:
         """Get shell states keyed by checkpoint ID."""
         return self._shell_states
 
-    def get_latest_shell_state(self) -> dict | None:
+    def get_latest_shell_state(self) -> ShellState | None:
         """Get the most recent shell state (highest checkpoint ID)."""
         if not self._shell_states:
             return None
@@ -163,7 +164,7 @@ class Context:
         async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
             await f.write(json.dumps({"role": "_usage", "token_count": token_count}) + "\n")
 
-    async def append_shell_state(self, checkpoint_id: int, state: dict):
+    async def append_shell_state(self, checkpoint_id: int, state: ShellState):
         """
         Append shell state marker to JSONL context file.
 
@@ -177,14 +178,11 @@ class Context:
         logger.debug(
             "Appending shell state for checkpoint {id}: cwd={cwd}",
             id=checkpoint_id,
-            cwd=state.get('cwd', 'unknown')
+            cwd=state.get("cwd", "unknown"),
         )
 
         async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
             await f.write(
-                json.dumps({
-                    "role": "_shell_state",
-                    "checkpoint_id": checkpoint_id,
-                    "state": state
-                }) + "\n"
+                json.dumps({"role": "_shell_state", "checkpoint_id": checkpoint_id, "state": state})
+                + "\n"
             )

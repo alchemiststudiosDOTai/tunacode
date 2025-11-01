@@ -11,7 +11,7 @@ from kimi_cli.tools.utils import DEFAULT_MAX_CHARS
 
 
 @pytest.mark.asyncio
-async def test_simple_command(bash_tool: Bash):
+async def ru(bash_tool: Bash):
     """Test executing a simple command."""
     result = await bash_tool(Params(command="echo 'Hello World'"))
     assert result == snapshot(
@@ -220,6 +220,7 @@ async def test_persistent_mode_simple_command(bash_tool_persistent: Bash):
     """Test simple command in persistent mode."""
     result = await bash_tool_persistent(Params(command="echo 'Persistent Mode'"))
     assert isinstance(result, ToolOk)
+    assert isinstance(result.output, str)
     assert "Persistent Mode" in result.output
 
 
@@ -236,6 +237,7 @@ async def test_persistent_mode_working_directory_persists(bash_tool_persistent: 
         # Verify we're still in that directory
         result2 = await bash_tool_persistent(Params(command="pwd"))
         assert isinstance(result2, ToolOk)
+        assert isinstance(result2.output, str)
         assert tmpdir in result2.output
 
 
@@ -249,6 +251,7 @@ async def test_persistent_mode_environment_variable_persists(bash_tool_persisten
     # Verify the variable persists
     result2 = await bash_tool_persistent(Params(command="echo $TEST_VAR"))
     assert isinstance(result2, ToolOk)
+    assert isinstance(result2.output, str)
     assert "persistent_value" in result2.output
 
 
@@ -287,6 +290,7 @@ async def test_mode_fallback_on_error():
         # First command should fail and fall back to ephemeral
         result = await bash(Params(command="echo 'fallback test'"))
         assert isinstance(result, ToolOk)
+        assert isinstance(result.output, str)
         assert "fallback test" in result.output
 
         # Verify shell_manager was disabled

@@ -1,7 +1,7 @@
 [project]
-name = "kimi-cli"
-version = "0.45"
-description = "Kimi CLI is your next CLI agent."
+name = "tunacode"
+version = "0.46.0"
+description = "tunacode - kimi CLI fork with persistent shell sessions and custom tooling"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -44,7 +44,7 @@ module-name = ["kimi_cli"]
 source-exclude = ["tests/**/*", "src/kimi_cli/deps/**/*"]
 
 [project.scripts]
-kimi = "kimi_cli.cli:main"
+tunacode = "kimi_cli.cli:main"
 
 [tool.ruff]
 line-length = 100
