@@ -225,19 +225,24 @@ def kimi(
             model_name=model_name,
             agent_file=agent_file,
         )
-        match ui:
-            case "shell":
-                return await instance.run_shell_mode(command, markdown=markdown)
-            case "print":
-                return await instance.run_print_mode(
-                    input_format or "text",
-                    output_format or "text",
-                    command,
-                )
-            case "acp":
-                if command is not None:
-                    logger.warning("ACP server ignores command argument")
-                return await instance.run_acp_server()
+        try:
+            match ui:
+                case "shell":
+                    return await instance.run_shell_mode(command, markdown=markdown)
+                case "print":
+                    return await instance.run_print_mode(
+                        input_format or "text",
+                        output_format or "text",
+                        command,
+                    )
+                case "acp":
+                    if command is not None:
+                        logger.warning("ACP server ignores command argument")
+                    return await instance.run_acp_server()
+        finally:
+            # Cleanup shell manager if it exists
+            if instance._runtime.shell_manager is not None:
+                await instance._runtime.shell_manager.cleanup()
 
     while True:
         try:
