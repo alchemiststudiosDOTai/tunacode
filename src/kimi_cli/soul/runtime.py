@@ -8,6 +8,7 @@ from typing import NamedTuple
 from kimi_cli.config import Config
 from kimi_cli.llm import LLM
 from kimi_cli.session import Session
+from kimi_cli.shell_manager import ShellManager
 from kimi_cli.soul.approval import Approval
 from kimi_cli.soul.denwarenji import DenwaRenji
 from kimi_cli.utils.logging import logger
@@ -68,6 +69,7 @@ class Runtime(NamedTuple):
     builtin_args: BuiltinSystemPromptArgs
     denwa_renji: DenwaRenji
     approval: Approval
+    shell_manager: ShellManager | None
 
     @staticmethod
     async def create(
@@ -81,6 +83,12 @@ class Runtime(NamedTuple):
             asyncio.to_thread(load_agents_md, session.work_dir),
         )
 
+        # Create ShellManager if enabled in config
+        shell_manager = None
+        if config.persistent_shell.enabled:
+            shell_manager = ShellManager(config.persistent_shell)
+            logger.info("Persistent shell enabled")
+
         return Runtime(
             config=config,
             llm=llm,
@@ -93,4 +101,5 @@ class Runtime(NamedTuple):
             ),
             denwa_renji=DenwaRenji(),
             approval=Approval(yolo=yolo),
+            shell_manager=shell_manager,
         )
