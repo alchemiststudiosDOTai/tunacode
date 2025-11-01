@@ -46,7 +46,7 @@ echo
 # Check for new upstream releases
 echo "Upstream releases since fork base:"
 git tag -l --sort=-version:refname | grep -E "^[0-9]+\.[0-9]+" | while read tag; do
-    if [[ $(echo -e "$tag\n0.45" | $SORT_CMD | head -n1) != "$tag" ]]; then
+    if [[ $(printf "%s\n%s\n" "$tag" "0.45" | eval "$SORT_CMD" | head -n1) != "$tag" ]]; then
         echo "   - $tag (NEW)"
     fi
 done | head -10

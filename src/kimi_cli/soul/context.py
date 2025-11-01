@@ -1,5 +1,6 @@
 import json
 from collections.abc import Sequence
+from copy import deepcopy
 from pathlib import Path
 
 import aiofiles
@@ -68,15 +69,15 @@ class Context:
 
     @property
     def shell_states(self) -> dict[int, ShellState]:
-        """Get shell states keyed by checkpoint ID."""
-        return self._shell_states
+        """Get a deep copy of shell states keyed by checkpoint ID."""
+        return deepcopy(self._shell_states)
 
     def get_latest_shell_state(self) -> ShellState | None:
         """Get the most recent shell state (highest checkpoint ID)."""
         if not self._shell_states:
             return None
         latest_checkpoint_id = max(self._shell_states.keys())
-        return self._shell_states[latest_checkpoint_id]
+        return deepcopy(self._shell_states[latest_checkpoint_id])
 
     async def checkpoint(self, add_user_message: bool):
         checkpoint_id = self._next_checkpoint_id
@@ -181,6 +182,7 @@ class Context:
             cwd=state.get("cwd", "unknown"),
         )
 
+        self._shell_states[checkpoint_id] = deepcopy(state)
         async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
             await f.write(
                 json.dumps({"role": "_shell_state", "checkpoint_id": checkpoint_id, "state": state})

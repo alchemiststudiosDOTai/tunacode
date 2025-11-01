@@ -489,7 +489,10 @@ class TestEnvironmentVariableFiltering:
                 "valid-name": "invalid",  # Contains hyphen
                 "123INVALID": "invalid",  # Starts with number
                 "invalid.name": "invalid",  # Contains dot
-                "VALID_NAME": "valid",
+                "VALID_NAME": "valid_uppercase",
+                "Valid_Name": "valid_mixed",
+                "testVar": "valid_camel",
+                "CamelCase": "valid_camelcase",
             },
         }
 
@@ -503,10 +506,22 @@ class TestEnvironmentVariableFiltering:
         # These should fail or be empty (depending on shell behavior)
         # The key is that they shouldn't be restored with our values
 
-        # Valid name should be restored
+        # Valid names (uppercase and mixed-case) should be restored
         stdout_valid, _, code_valid = await shell_manager.execute("echo $VALID_NAME")
         assert code_valid == 0
-        assert "valid" in stdout_valid
+        assert "valid_uppercase" in stdout_valid
+
+        stdout_mixed, _, code_mixed = await shell_manager.execute("echo $Valid_Name")
+        assert code_mixed == 0
+        assert "valid_mixed" in stdout_mixed
+
+        stdout_camel, _, code_camel = await shell_manager.execute("echo $testVar")
+        assert code_camel == 0
+        assert "valid_camel" in stdout_camel
+
+        stdout_camelcase, _, code_camelcase = await shell_manager.execute("echo $CamelCase")
+        assert code_camelcase == 0
+        assert "valid_camelcase" in stdout_camelcase
 
     @pytest.mark.asyncio
     async def test_shell_internals_skipped_during_restore(self, shell_manager):

@@ -17,8 +17,8 @@ from kimi_cli.utils.logging import logger
 type ShellState = dict[str, str | dict[str, str]]
 """Type alias for shell state returned by ShellManager.get_state()."""
 
-# Safe regex pattern for environment variable names: must start with A-Z or _, then A-Z0-9_
-_ENV_NAME_PATTERN = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+# Safe regex pattern for environment variable names: must start with A-Za-z or _, then A-Za-z0-9_
+_ENV_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # High-risk environment variables that must never be captured or restored
 _BLOCKED_ENV_VARS = {
@@ -63,7 +63,7 @@ def _is_valid_env_name(name: str) -> bool:
         name: Environment variable name to validate.
 
     Returns:
-        True if name matches pattern /^[A-Z_][A-Z0-9_]*$/, False otherwise.
+        True if name matches pattern /^[A-Za-z_][A-Za-z0-9_]*$/, False otherwise.
     """
     return bool(_ENV_NAME_PATTERN.match(name))
 

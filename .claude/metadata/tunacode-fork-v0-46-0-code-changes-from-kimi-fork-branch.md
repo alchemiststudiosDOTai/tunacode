@@ -342,7 +342,7 @@ New optional config section:
 - State serialization uses JSON (no code execution risk)
 - Shell escaping with `shlex.quote()` prevents injection (applied only to values, not names)
 - **Strict environment variable validation:**
-  - Variable names validated against regex pattern `/^[A-Z_][A-Z0-9_]*$/` (must start with A-Z or _, then A-Z0-9_)
+  - Variable names validated against regex pattern `/^[A-Za-z_][A-Za-z0-9_]*$/` (must start with A-Za-z or _, then A-Za-z0-9_)
   - Invalid names rejected during both capture and restore operations
 - **High-risk variable blocking:**
   - Explicitly blocked variables: `LD_PRELOAD`, `PATH`, `LD_LIBRARY_PATH`, and all `LD_*` linker/runtime variables

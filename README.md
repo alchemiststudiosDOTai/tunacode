@@ -65,20 +65,6 @@ Run `kimi --help` to check if installation was successful.
 
 ## Upgrading
 
-```sh
-cd tunacode
-git pull
-uv sync
-```
-
-## Usage
-
-Run `kimi` command in your working directory, then send `/setup` to configure:
-
-![](./docs/images/setup.png)
-
-After setup, send `/help` for more information.
-
 ## Features
 
 ### Persistent Shell Sessions
