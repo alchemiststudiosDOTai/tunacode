@@ -42,14 +42,22 @@ class Bash(CallableTool2[Params]):
 
     @override
     async def __call__(self, params: Params) -> ToolReturnType:
-        builder = ToolResultBuilder()
-
         if not await self._approval.request(
             self.name,
             "run shell command",
             f"Run command `{params.command}`",
         ):
             return ToolRejectedError()
+
+        # Mode selection: use persistent shell if available
+        if self._shell_manager is not None:
+            return await self._execute_persistent(params)
+        else:
+            return await self._execute_ephemeral(params)
+
+    async def _execute_ephemeral(self, params: Params) -> ToolReturnType:
+        """Execute command in ephemeral subprocess (original behavior)."""
+        builder = ToolResultBuilder()
 
         def stdout_cb(line: bytes):
             line_str = line.decode(errors="replace")
@@ -76,6 +84,11 @@ class Bash(CallableTool2[Params]):
                 f"Command killed by timeout ({params.timeout}s)",
                 brief=f"Killed by timeout ({params.timeout}s)",
             )
+
+    async def _execute_persistent(self, params: Params) -> ToolReturnType:
+        """Execute command in persistent shell session."""
+        # TODO: Implement persistent execution (Task 3.3)
+        return await self._execute_ephemeral(params)
 
 
 async def _stream_subprocess(command: str, stdout_cb, stderr_cb, timeout: int) -> int:
