@@ -5,7 +5,8 @@ import asyncio
 import pytest
 import pytest_asyncio
 
-from kimi_cli.shell_manager import PersistentShellConfig, ShellManager
+from kimi_cli.config import PersistentShellConfig
+from kimi_cli.shell_manager import ShellManager
 
 
 @pytest.fixture

@@ -9,32 +9,8 @@ executions within an agent session.
 import asyncio
 from dataclasses import dataclass
 
+from kimi_cli.config import PersistentShellConfig
 from kimi_cli.utils.logging import logger
-
-
-@dataclass
-class PersistentShellConfig:
-    """Configuration for persistent shell sessions."""
-
-    enabled: bool = True
-    """Whether persistent shell sessions are enabled."""
-
-    shell_executable: str = "/bin/bash"
-    """Path to the shell executable."""
-
-    shell_args: list[str] | None = None
-    """Arguments to pass to the shell. Defaults to ['--noprofile', '--norc']."""
-
-    command_timeout: int = 60
-    """Default timeout for command execution in seconds."""
-
-    exit_code_sentinel: str = "___KIMI_EXIT_"
-    """Sentinel pattern used to detect command exit codes."""
-
-    def __post_init__(self):
-        """Set default shell arguments if not provided."""
-        if self.shell_args is None:
-            self.shell_args = ["--noprofile", "--norc"]
 
 
 @dataclass

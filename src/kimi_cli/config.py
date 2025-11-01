@@ -73,6 +73,25 @@ class Services(BaseModel):
     """Moonshot Search configuration."""
 
 
+class PersistentShellConfig(BaseModel):
+    """Configuration for persistent shell sessions."""
+
+    enabled: bool = True
+    """Whether persistent shell sessions are enabled."""
+
+    shell_executable: str = "/bin/bash"
+    """Path to the shell executable."""
+
+    shell_args: list[str] = Field(default_factory=lambda: ["--noprofile", "--norc"])
+    """Arguments to pass to the shell."""
+
+    command_timeout: int = 60
+    """Default timeout for command execution in seconds."""
+
+    exit_code_sentinel: str = "___KIMI_EXIT_"
+    """Sentinel pattern used to detect command exit codes."""
+
+
 class Config(BaseModel):
     """Main configuration structure."""
 
@@ -83,6 +102,9 @@ class Config(BaseModel):
     )
     loop_control: LoopControl = Field(default_factory=LoopControl, description="Agent loop control")
     services: Services = Field(default_factory=Services, description="Services configuration")
+    persistent_shell: PersistentShellConfig = Field(
+        default_factory=PersistentShellConfig, description="Persistent shell configuration"
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
