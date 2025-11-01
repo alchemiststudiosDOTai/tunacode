@@ -313,6 +313,60 @@ class ShellManager:
             logger.error("Failed to capture state: {error}", error=e)
             raise RuntimeError(f"Failed to capture shell state: {e}") from e
 
+    async def restore_state(self, state: dict[str, str | dict[str, str]]):
+        """
+        Restore the shell to a given state.
+
+        This method restores the working directory and environment variables
+        captured from a previous get_state() call.
+
+        Args:
+            state: State dictionary from get_state() containing 'cwd' and 'env'
+
+        Raises:
+            RuntimeError: If unable to restore state or no active session.
+        """
+        if self._session is None:
+            raise RuntimeError("No active shell session to restore")
+
+        logger.debug("Restoring shell session state: cwd={cwd}", cwd=state.get('cwd'))
+
+        try:
+            import shlex
+
+            # Restore working directory
+            if 'cwd' in state:
+                cwd = state['cwd']
+                if isinstance(cwd, str):
+                    _, _, exit_code = await self.execute(
+                        f"cd {shlex.quote(cwd)}",
+                        timeout=5
+                    )
+                    if exit_code != 0:
+                        logger.warning("Failed to restore cwd to {cwd}", cwd=cwd)
+
+            # Restore environment variables
+            if 'env' in state:
+                env = state['env']
+                if isinstance(env, dict):
+                    for key, value in env.items():
+                        # Skip read-only variables and shell internals
+                        if key in ('_', 'SHLVL', 'PWD', 'OLDPWD'):
+                            continue
+                        if isinstance(value, str):
+                            _, _, exit_code = await self.execute(
+                                f"export {key}={shlex.quote(value)}",
+                                timeout=5
+                            )
+                            if exit_code != 0:
+                                logger.warning("Failed to restore env var {key}", key=key)
+
+            logger.debug("State restoration complete")
+
+        except Exception as e:
+            logger.error("Failed to restore state: {error}", error=e)
+            raise RuntimeError(f"Failed to restore shell state: {e}") from e
+
     async def cleanup(self):
         """
         Cleanup all shell sessions.
