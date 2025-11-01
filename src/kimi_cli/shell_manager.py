@@ -267,6 +267,58 @@ class ShellManager:
             logger.error("Command execution failed: {error}", error=e)
             raise
 
+    async def get_state(self) -> dict[str, str | dict[str, str]]:
+        """
+        Capture the current state of the shell session.
+
+        Returns:
+            A dictionary containing:
+                - 'cwd': Current working directory
+                - 'env': Dictionary of environment variables
+
+        Raises:
+            RuntimeError: If unable to capture state.
+        """
+        if self._session is None:
+            raise RuntimeError("No active shell session")
+
+        logger.debug("Capturing shell session state")
+
+        try:
+            # Get current working directory
+            cwd_stdout, cwd_stderr, cwd_code = await self.execute("pwd", timeout=5)
+            if cwd_code != 0:
+                logger.warning("Failed to get cwd: {stderr}", stderr=cwd_stderr)
+                cwd = self._session.cwd  # Keep previous value
+            else:
+                cwd = cwd_stdout.strip()
+                self._session.cwd = cwd
+
+            # Get environment variables using null-terminated format for safe parsing
+            env_stdout, env_stderr, env_code = await self.execute("env -0", timeout=5)
+            if env_code != 0:
+                logger.warning("Failed to get env: {stderr}", stderr=env_stderr)
+                env = self._session.env  # Keep previous value
+            else:
+                # Parse null-terminated env output
+                env = {}
+                for entry in env_stdout.split('\0'):
+                    if '=' in entry:
+                        key, value = entry.split('=', 1)
+                        env[key] = value
+                self._session.env = env
+
+            logger.debug("State captured: cwd={cwd}, env_vars={count}", cwd=cwd, count=len(env))
+
+            return {
+                'cwd': cwd,
+                'env': env,
+            }
+
+        except Exception as e:
+            logger.error("Failed to capture state: {error}", error=e)
+            raise RuntimeError(f"Failed to capture shell state: {e}") from e
+
     async def cleanup(self):
         """
         Cleanup all shell sessions.
