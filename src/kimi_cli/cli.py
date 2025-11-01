@@ -143,6 +143,12 @@ OutputFormat = Literal["text", "stream-json"]
     default=True,
     help="Enable/disable markdown rendering in shell UI. Default: yes.",
 )
+@click.option(
+    "--no-persistent-shell",
+    is_flag=True,
+    default=False,
+    help="Disable persistent shell sessions (use ephemeral shells for each command). Default: no.",
+)
 def kimi(
     verbose: bool,
     debug: bool,
@@ -158,6 +164,7 @@ def kimi(
     mcp_config: list[str],
     yolo: bool,
     markdown: bool,
+    no_persistent_shell: bool,
 ):
     """Kimi, your next CLI agent."""
     from kimi_cli.app import KimiCLI
@@ -224,6 +231,7 @@ def kimi(
             mcp_configs=mcp_configs,
             model_name=model_name,
             agent_file=agent_file,
+            no_persistent_shell=no_persistent_shell,
         )
         try:
             match ui:

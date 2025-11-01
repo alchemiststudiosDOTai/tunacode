@@ -30,6 +30,7 @@ class KimiCLI:
         config_file: Path | None = None,
         model_name: str | None = None,
         agent_file: Path | None = None,
+        no_persistent_shell: bool = False,
     ) -> "KimiCLI":
         """
         Create a KimiCLI instance.
@@ -78,6 +79,10 @@ class KimiCLI:
             logger.info("Using LLM provider: {provider}", provider=provider)
             logger.info("Using LLM model: {model}", model=model)
             llm = create_llm(provider, model, stream=stream, session_id=session.id)
+
+        # Override persistent shell config if CLI flag is set
+        if no_persistent_shell:
+            config.persistent_shell.enabled = False
 
         runtime = await Runtime.create(config, llm, session, yolo)
 
