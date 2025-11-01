@@ -116,6 +116,11 @@ class KimiCLI:
         return self._soul
 
     @property
+    def runtime(self) -> Runtime:
+        """Get the Runtime instance."""
+        return self._runtime
+
+    @property
     def session(self) -> Session:
         """Get the Session instance."""
         return self._runtime.session

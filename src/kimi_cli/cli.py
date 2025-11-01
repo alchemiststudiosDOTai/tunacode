@@ -249,8 +249,8 @@ def kimi(
                     return await instance.run_acp_server()
         finally:
             # Cleanup shell manager if it exists
-            if instance._runtime.shell_manager is not None:
-                await instance._runtime.shell_manager.cleanup()
+            if instance.runtime.shell_manager is not None:
+                await instance.runtime.shell_manager.cleanup()
 
     while True:
         try:
