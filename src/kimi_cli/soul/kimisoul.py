@@ -102,7 +102,18 @@ class KimiSoul(Soul):
         return 0.0
 
     async def _checkpoint(self):
+        checkpoint_id = self._context.n_checkpoints  # Get ID before incrementing
         await self._context.checkpoint(self._checkpoint_with_user_message)
+
+        # Capture shell state if persistent shell is enabled
+        if self._runtime.shell_manager is not None:
+            try:
+                state = await self._runtime.shell_manager.get_state()
+                await self._context.append_shell_state(checkpoint_id, state)
+                logger.debug("Captured shell state for checkpoint {id}", id=checkpoint_id)
+            except Exception as e:
+                # Don't fail checkpoint if shell state capture fails
+                logger.warning("Failed to capture shell state: {error}", error=e)
 
     async def run(self, user_input: str | list[ContentPart]):
         if self._runtime.llm is None:
@@ -154,6 +165,17 @@ class KimiSoul(Soul):
                 finished = await self._step()
             except BackToTheFuture as e:
                 await self._context.revert_to(e.checkpoint_id)
+
+                # Restore shell state after time-travel revert
+                if self._runtime.shell_manager is not None:
+                    latest_state = self._context.get_latest_shell_state()
+                    if latest_state is not None:
+                        try:
+                            await self._runtime.shell_manager.restore_state(latest_state)
+                            logger.debug("Restored shell state after revert to checkpoint {id}", id=e.checkpoint_id)
+                        except Exception as err:
+                            logger.warning("Failed to restore shell state: {error}", error=err)
+
                 await self._checkpoint()
                 await self._context.append_message(e.messages)
                 continue
