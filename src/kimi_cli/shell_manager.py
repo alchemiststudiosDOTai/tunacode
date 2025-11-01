@@ -323,13 +323,57 @@ class ShellManager:
         """
         Cleanup all shell sessions.
 
-        This method gracefully terminates the shell subprocess, waiting for
-        clean shutdown before forcing termination if necessary.
+        This method gracefully terminates the shell subprocess using a multi-stage
+        approach:
+        1. Send 'exit' command to stdin (graceful)
+        2. If no response after 5s, send SIGTERM (polite force)
+        3. If still running after 2s, send SIGKILL (hard force)
+
+        The session is cleared regardless of termination success.
         """
         if self._session is None:
             logger.debug("No active shell session to cleanup")
             return
 
-        logger.info("Cleaning up shell session")
-        # Implementation to be added in Task 1.5
-        pass
+        process = self._session.process
+        logger.info("Cleaning up shell session PID={pid}", pid=process.pid)
+
+        try:
+            # Stage 1: Graceful exit via 'exit' command
+            if process.returncode is None:
+                logger.debug("Sending 'exit' command to shell")
+                try:
+                    await self._write_to_stdin(process, "exit\n")
+                    await asyncio.wait_for(process.wait(), timeout=5.0)
+                    logger.info("Shell process exited gracefully")
+                    return
+                except asyncio.TimeoutError:
+                    logger.warning("Shell did not exit gracefully, sending SIGTERM")
+                except Exception as e:
+                    logger.warning("Error during graceful exit: {error}", error=e)
+
+            # Stage 2: SIGTERM (polite force)
+            if process.returncode is None:
+                try:
+                    process.terminate()
+                    await asyncio.wait_for(process.wait(), timeout=2.0)
+                    logger.info("Shell process terminated with SIGTERM")
+                    return
+                except asyncio.TimeoutError:
+                    logger.warning("Shell did not respond to SIGTERM, sending SIGKILL")
+                except Exception as e:
+                    logger.warning("Error during SIGTERM: {error}", error=e)
+
+            # Stage 3: SIGKILL (hard force)
+            if process.returncode is None:
+                try:
+                    process.kill()
+                    await asyncio.wait_for(process.wait(), timeout=1.0)
+                    logger.warning("Shell process killed with SIGKILL")
+                except Exception as e:
+                    logger.error("Failed to kill shell process: {error}", error=e)
+
+        finally:
+            # Always clear the session regardless of cleanup success
+            self._session = None
+            logger.debug("Shell session cleared")
