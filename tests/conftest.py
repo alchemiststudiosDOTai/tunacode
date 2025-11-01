@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from kosong.chat_provider import MockChatProvider
 
 from kimi_cli.agentspec import DEFAULT_AGENT_FILE, ResolvedAgentSpec, load_agent_spec
@@ -162,9 +163,27 @@ def set_todo_list_tool() -> SetTodoList:
 
 @pytest.fixture
 def bash_tool(approval: Approval) -> Generator[Bash]:
-    """Create a Bash tool instance."""
+    """Create a Bash tool instance (ephemeral mode)."""
     with tool_call_context("Bash"):
         yield Bash(approval)
+
+
+@pytest_asyncio.fixture
+async def bash_tool_persistent(approval: Approval):
+    """Create a Bash tool instance with persistent shell enabled."""
+    from kimi_cli.config import PersistentShellConfig
+    from kimi_cli.shell_manager import ShellManager
+
+    config = PersistentShellConfig(enabled=True)
+    shell_manager = ShellManager(config)
+
+    with tool_call_context("Bash"):
+        bash = Bash(approval, shell_manager=shell_manager)
+        try:
+            yield bash
+        finally:
+            # Cleanup shell session after tests
+            await shell_manager.cleanup()
 
 
 @pytest.fixture

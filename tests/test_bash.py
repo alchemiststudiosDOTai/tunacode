@@ -210,3 +210,84 @@ async def test_timeout_parameter_validation_bounds(bash_tool: Bash):
 
     with pytest.raises(ValueError, match="timeout"):
         Params(command="echo test", timeout=MAX_TIMEOUT + 1)
+
+
+# ========== Persistent Mode Tests ==========
+
+
+@pytest.mark.asyncio
+async def test_persistent_mode_simple_command(bash_tool_persistent: Bash):
+    """Test simple command in persistent mode."""
+    result = await bash_tool_persistent(Params(command="echo 'Persistent Mode'"))
+    assert isinstance(result, ToolOk)
+    assert "Persistent Mode" in result.output
+
+
+@pytest.mark.asyncio
+async def test_persistent_mode_working_directory_persists(bash_tool_persistent: Bash):
+    """Test that working directory persists across commands in persistent mode."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Change to temp directory
+        result1 = await bash_tool_persistent(Params(command=f"cd {tmpdir}"))
+        assert isinstance(result1, ToolOk)
+
+        # Verify we're still in that directory
+        result2 = await bash_tool_persistent(Params(command="pwd"))
+        assert isinstance(result2, ToolOk)
+        assert tmpdir in result2.output
+
+
+@pytest.mark.asyncio
+async def test_persistent_mode_environment_variable_persists(bash_tool_persistent: Bash):
+    """Test that environment variables persist across commands in persistent mode."""
+    # Set an environment variable
+    result1 = await bash_tool_persistent(Params(command="export TEST_VAR=persistent_value"))
+    assert isinstance(result1, ToolOk)
+
+    # Verify the variable persists
+    result2 = await bash_tool_persistent(Params(command="echo $TEST_VAR"))
+    assert isinstance(result2, ToolOk)
+    assert "persistent_value" in result2.output
+
+
+@pytest.mark.asyncio
+async def test_persistent_mode_exit_code_handling(bash_tool_persistent: Bash):
+    """Test that exit codes are properly reported in persistent mode."""
+    result = await bash_tool_persistent(Params(command="false"))
+    assert isinstance(result, ToolError)
+    assert "exit code: 1" in result.message
+
+
+@pytest.mark.asyncio
+async def test_persistent_mode_timeout(bash_tool_persistent: Bash):
+    """Test timeout handling in persistent mode."""
+    result = await bash_tool_persistent(Params(command="sleep 10", timeout=1))
+    assert isinstance(result, ToolError)
+    assert "timeout" in result.message.lower()
+
+
+@pytest.mark.asyncio
+async def test_mode_fallback_on_error():
+    """Test fallback to ephemeral mode when persistent shell fails."""
+    from kimi_cli.config import PersistentShellConfig
+    from kimi_cli.shell_manager import ShellManager
+    from kimi_cli.soul.approval import Approval
+    from tests.conftest import tool_call_context
+
+    # Create a shell manager that will fail
+    config = PersistentShellConfig(enabled=True, shell_executable="/nonexistent/shell")
+    broken_manager = ShellManager(config)
+    approval = Approval(yolo=True)
+
+    with tool_call_context("Bash"):
+        bash = Bash(approval, shell_manager=broken_manager)
+
+        # First command should fail and fall back to ephemeral
+        result = await bash(Params(command="echo 'fallback test'"))
+        assert isinstance(result, ToolOk)
+        assert "fallback test" in result.output
+
+        # Verify shell_manager was disabled
+        assert bash._shell_manager is None

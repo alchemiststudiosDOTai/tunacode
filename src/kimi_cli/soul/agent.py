@@ -128,9 +128,36 @@ def _load_tool(tool_path: str, dependencies: dict[type[Any], Any]) -> ToolType |
             # once we encounter a keyword-only parameter, we stop injecting dependencies
             break
         # all positional parameters should be dependencies to be injected
-        if param.annotation not in dependencies:
+        # Handle union types (e.g., SomeType | None for optional dependencies)
+        import types
+        import typing
+
+        param_type = param.annotation
+        resolved_value = None
+
+        # Check if this is a Union type (including | None syntax)
+        if hasattr(typing, "get_args") and typing.get_args(param_type):
+            # This is a generic/union type - try each possibility
+            type_args = typing.get_args(param_type)
+            for arg_type in type_args:
+                if arg_type is type(None):  # Skip None in Union
+                    continue
+                if arg_type in dependencies:
+                    resolved_value = dependencies[arg_type]
+                    break
+            # If no match found in union types and param has default, it's optional
+            if resolved_value is None and param.default is not param.empty:
+                resolved_value = param.default
+        elif param_type in dependencies:
+            # Direct type match
+            resolved_value = dependencies[param_type]
+        elif param.default is not param.empty:
+            # Has a default value, use it
+            resolved_value = param.default
+        else:
             raise ValueError(f"Tool dependency not found: {param.annotation}")
-        args.append(dependencies[param.annotation])
+
+        args.append(resolved_value)
     return cls(*args)
 
 
