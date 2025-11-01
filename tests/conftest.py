@@ -110,6 +110,7 @@ def runtime(
         denwa_renji=denwa_renji,
         session=session,
         approval=approval,
+        shell_manager=None,
     )
 
 

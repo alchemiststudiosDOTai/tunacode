@@ -113,7 +113,8 @@ class TestCommandExecution:
     @pytest.mark.asyncio
     async def test_command_with_stderr(self, shell_manager):
         """Test command that produces stderr output."""
-        stdout, stderr, code = await shell_manager.execute("ls /nonexistent_directory_test 2>&1 || true")
+        cmd = "ls /nonexistent_directory_test 2>&1 || true"
+        stdout, stderr, code = await shell_manager.execute(cmd)
 
         # Command should complete even with errors
         assert isinstance(stdout, str)
@@ -135,7 +136,8 @@ class TestCommandExecution:
     @pytest.mark.asyncio
     async def test_command_with_pipes(self, shell_manager):
         """Test command with pipes."""
-        stdout, stderr, code = await shell_manager.execute("echo 'line1\nline2\nline3' | grep 'line2'")
+        cmd = "echo 'line1\nline2\nline3' | grep 'line2'"
+        stdout, stderr, code = await shell_manager.execute(cmd)
 
         assert code == 0
         assert "line2" in stdout
@@ -267,7 +269,6 @@ class TestCleanup:
         # Start a session
         await manager.execute("echo 'test'")
         process = manager._session.process
-        pid = process.pid
 
         # Cleanup
         await manager.cleanup()

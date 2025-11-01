@@ -31,7 +31,17 @@ def test_default_config_dump():
     "max_steps_per_run": 100,
     "max_retries_per_step": 3
   },
-  "services": {}
+  "services": {},
+  "persistent_shell": {
+    "enabled": true,
+    "shell_executable": "/bin/bash",
+    "shell_args": [
+      "--noprofile",
+      "--norc"
+    ],
+    "command_timeout": 60,
+    "exit_code_sentinel": "___KIMI_EXIT_"
+  }
 }\
 """
     )
