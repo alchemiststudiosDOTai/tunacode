@@ -205,7 +205,7 @@ class ShellManager:
                                     return exit_code
                                 else:
                                     stdout_lines.append(line_str)
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             pass  # No data available, continue
 
                     # Read from stderr (non-blocking)
@@ -217,7 +217,7 @@ class ShellManager:
                             )
                             if line:
                                 stderr_lines.append(line.decode('utf-8', errors='replace'))
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             pass  # No data available
 
             # Execute with timeout
@@ -235,7 +235,7 @@ class ShellManager:
 
             return (stdout, stderr, exit_code)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(
                 "Command timed out after {timeout}s: {command}",
                 timeout=timeout,
@@ -244,11 +244,16 @@ class ShellManager:
             # Kill the session as it's likely in a bad state
             if self._session is not None:
                 try:
+                    # Close stdin/stdout/stderr before killing
+                    if self._session.process.stdin:
+                        self._session.process.stdin.close()
                     self._session.process.kill()
-                    await self._session.process.wait()
-                except Exception:
-                    pass
-                self._session = None
+                    # Wait for process to die with a short timeout
+                    await asyncio.wait_for(self._session.process.wait(), timeout=2.0)
+                except Exception as e:
+                    logger.warning("Failed to cleanly kill shell process: {error}", error=e)
+                finally:
+                    self._session = None
             raise
 
         except Exception as e:
@@ -282,7 +287,8 @@ class ShellManager:
                 cwd = cwd_stdout.strip()
                 self._session.cwd = cwd
 
-            # Get environment variables (use standard env, not null-terminated to avoid readline issues)
+            # Get environment variables (use standard env, not null-terminated
+            # to avoid readline issues)
             env_stdout, env_stderr, env_code = await self.execute("env", timeout=5)
             if env_code != 0:
                 logger.warning("Failed to get env: {stderr}", stderr=env_stderr)
@@ -335,7 +341,7 @@ class ShellManager:
                     await asyncio.wait_for(process.wait(), timeout=5.0)
                     logger.info("Shell process exited gracefully")
                     return
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning("Shell did not exit gracefully, sending SIGTERM")
                 except Exception as e:
                     logger.warning("Error during graceful exit: {error}", error=e)
@@ -347,7 +353,7 @@ class ShellManager:
                     await asyncio.wait_for(process.wait(), timeout=2.0)
                     logger.info("Shell process terminated with SIGTERM")
                     return
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning("Shell did not respond to SIGTERM, sending SIGKILL")
                 except Exception as e:
                     logger.warning("Error during SIGTERM: {error}", error=e)
