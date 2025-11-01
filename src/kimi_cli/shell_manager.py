@@ -149,6 +149,124 @@ class ShellManager:
         process.stdin.write(data.encode())
         await process.stdin.drain()
 
+    async def execute(
+        self,
+        command: str,
+        timeout: int | None = None,
+    ) -> tuple[str, str, int]:
+        """
+        Execute a command in the persistent shell session.
+
+        The command is executed in the existing shell session, preserving all
+        state changes (working directory, environment variables, etc.).
+
+        Args:
+            command: The shell command to execute.
+            timeout: Optional timeout in seconds. Defaults to config.command_timeout.
+
+        Returns:
+            A tuple of (stdout, stderr, exit_code).
+
+        Raises:
+            asyncio.TimeoutError: If command execution exceeds timeout.
+            RuntimeError: If shell process has died or communication fails.
+        """
+        session = await self._ensure_session()
+        timeout = timeout or self._config.command_timeout
+
+        logger.debug("Executing command in shell session: {command}", command=command)
+
+        try:
+            # Generate unique sentinel for this command execution
+            import time
+            sentinel_id = f"{self._config.exit_code_sentinel}{int(time.time() * 1000000)}"
+            sentinel_line = f"echo '{sentinel_id}$?'\n"
+
+            # Write command followed by exit code sentinel
+            await self._write_to_stdin(session.process, f"{command}\n")
+            await self._write_to_stdin(session.process, sentinel_line)
+
+            # Read output until we see the sentinel
+            stdout_lines = []
+            stderr_lines = []
+
+            async def read_until_sentinel() -> int:
+                """Read stdout/stderr until sentinel appears, return exit code."""
+                exit_code = 0
+
+                while True:
+                    # Check if process died
+                    if session.process.returncode is not None:
+                        raise RuntimeError(f"Shell process died with code {session.process.returncode}")
+
+                    # Read from stdout
+                    if session.process.stdout is not None:
+                        try:
+                            line = await asyncio.wait_for(
+                                session.process.stdout.readline(),
+                                timeout=0.1
+                            )
+                            if line:
+                                line_str = line.decode('utf-8', errors='replace')
+
+                                # Check for sentinel
+                                if line_str.startswith(sentinel_id):
+                                    # Extract exit code from sentinel line
+                                    exit_code_str = line_str[len(sentinel_id):].strip()
+                                    try:
+                                        exit_code = int(exit_code_str)
+                                    except ValueError:
+                                        logger.warning("Failed to parse exit code: {code}", code=exit_code_str)
+                                        exit_code = -1
+                                    return exit_code
+                                else:
+                                    stdout_lines.append(line_str)
+                        except asyncio.TimeoutError:
+                            pass  # No data available, continue
+
+                    # Read from stderr (non-blocking)
+                    if session.process.stderr is not None:
+                        try:
+                            line = await asyncio.wait_for(
+                                session.process.stderr.readline(),
+                                timeout=0.01
+                            )
+                            if line:
+                                stderr_lines.append(line.decode('utf-8', errors='replace'))
+                        except asyncio.TimeoutError:
+                            pass  # No data available
+
+            # Execute with timeout
+            exit_code = await asyncio.wait_for(read_until_sentinel(), timeout=timeout)
+
+            stdout = ''.join(stdout_lines)
+            stderr = ''.join(stderr_lines)
+
+            logger.debug(
+                "Command completed: exit_code={code}, stdout_len={out_len}, stderr_len={err_len}",
+                code=exit_code,
+                out_len=len(stdout),
+                err_len=len(stderr)
+            )
+
+            return (stdout, stderr, exit_code)
+
+        except asyncio.TimeoutError:
+            logger.error("Command timed out after {timeout}s: {command}", timeout=timeout, command=command)
+            # Kill the session as it's likely in a bad state
+            if self._session is not None:
+                try:
+                    self._session.process.kill()
+                    await self._session.process.wait()
+                except Exception:
+                    pass
+                self._session = None
+            raise
+
+        except Exception as e:
+            logger.error("Command execution failed: {error}", error=e)
+            raise
+
     async def cleanup(self):
         """
         Cleanup all shell sessions.
