@@ -306,17 +306,17 @@ class ShellManager:
                 cwd = cwd_stdout.strip()
                 self._session.cwd = cwd
 
-            # Get environment variables using null-terminated format for safe parsing
-            env_stdout, env_stderr, env_code = await self.execute("env -0", timeout=5)
+            # Get environment variables (use standard env, not null-terminated to avoid readline issues)
+            env_stdout, env_stderr, env_code = await self.execute("env", timeout=5)
             if env_code != 0:
                 logger.warning("Failed to get env: {stderr}", stderr=env_stderr)
                 env = self._session.env  # Keep previous value
             else:
-                # Parse null-terminated env output
+                # Parse line-based env output
                 env = {}
-                for entry in env_stdout.split('\0'):
-                    if '=' in entry:
-                        key, value = entry.split('=', 1)
+                for line in env_stdout.strip().split('\n'):
+                    if '=' in line:
+                        key, value = line.split('=', 1)
                         env[key] = value
                 self._session.env = env
 
