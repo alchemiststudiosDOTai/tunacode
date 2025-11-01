@@ -18,6 +18,8 @@ class Context:
         self._token_count: int = 0
         self._next_checkpoint_id: int = 0
         """The ID of the next checkpoint, starting from 0, incremented after each checkpoint."""
+        self._shell_states: dict[int, dict] = {}
+        """Shell states keyed by checkpoint ID."""
 
     async def restore(self) -> bool:
         logger.debug("Restoring context from file: {file_backend}", file_backend=self._file_backend)
@@ -42,6 +44,10 @@ class Context:
                 if line_json["role"] == "_checkpoint":
                     self._next_checkpoint_id = line_json["id"] + 1
                     continue
+                if line_json["role"] == "_shell_state":
+                    checkpoint_id = line_json["checkpoint_id"]
+                    self._shell_states[checkpoint_id] = line_json["state"]
+                    continue
                 message = Message.model_validate(line_json)
                 self._history.append(message)
 
@@ -58,6 +64,18 @@ class Context:
     @property
     def n_checkpoints(self) -> int:
         return self._next_checkpoint_id
+
+    @property
+    def shell_states(self) -> dict[int, dict]:
+        """Get shell states keyed by checkpoint ID."""
+        return self._shell_states
+
+    def get_latest_shell_state(self) -> dict | None:
+        """Get the most recent shell state (highest checkpoint ID)."""
+        if not self._shell_states:
+            return None
+        latest_checkpoint_id = max(self._shell_states.keys())
+        return self._shell_states[latest_checkpoint_id]
 
     async def checkpoint(self, add_user_message: bool):
         checkpoint_id = self._next_checkpoint_id
@@ -104,6 +122,7 @@ class Context:
         self._history.clear()
         self._token_count = 0
         self._next_checkpoint_id = 0
+        self._shell_states.clear()
         async with (
             aiofiles.open(rotated_file_path, encoding="utf-8") as old_file,
             aiofiles.open(self._file_backend, "w", encoding="utf-8") as new_file,
@@ -121,6 +140,9 @@ class Context:
                     self._token_count = line_json["token_count"]
                 elif line_json["role"] == "_checkpoint":
                     self._next_checkpoint_id = line_json["id"] + 1
+                elif line_json["role"] == "_shell_state":
+                    chkpt_id = line_json["checkpoint_id"]
+                    self._shell_states[chkpt_id] = line_json["state"]
                 else:
                     message = Message.model_validate(line_json)
                     self._history.append(message)
@@ -140,3 +162,29 @@ class Context:
 
         async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
             await f.write(json.dumps({"role": "_usage", "token_count": token_count}) + "\n")
+
+    async def append_shell_state(self, checkpoint_id: int, state: dict):
+        """
+        Append shell state marker to JSONL context file.
+
+        This allows shell state to be persisted and restored alongside checkpoints
+        for time-travel functionality.
+
+        Args:
+            checkpoint_id: The checkpoint ID this state is associated with
+            state: Shell state dict from ShellManager.get_state()
+        """
+        logger.debug(
+            "Appending shell state for checkpoint {id}: cwd={cwd}",
+            id=checkpoint_id,
+            cwd=state.get('cwd', 'unknown')
+        )
+
+        async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
+            await f.write(
+                json.dumps({
+                    "role": "_shell_state",
+                    "checkpoint_id": checkpoint_id,
+                    "state": state
+                }) + "\n"
+            )
