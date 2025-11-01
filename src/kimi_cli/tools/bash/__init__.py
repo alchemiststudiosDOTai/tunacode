@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from kimi_cli.shell_manager import ShellManager
 from kimi_cli.soul.approval import Approval
 from kimi_cli.tools.utils import ToolRejectedError, ToolResultBuilder, load_desc
+from kimi_cli.utils.logging import logger
 
 MAX_TIMEOUT = 5 * 60
 
@@ -51,7 +52,16 @@ class Bash(CallableTool2[Params]):
 
         # Mode selection: use persistent shell if available
         if self._shell_manager is not None:
-            return await self._execute_persistent(params)
+            try:
+                return await self._execute_persistent(params)
+            except (RuntimeError, OSError) as e:
+                # Persistent shell failed - fall back to ephemeral mode
+                logger.warning(
+                    "Persistent shell failed, falling back to ephemeral mode: {error}",
+                    error=str(e),
+                )
+                self._shell_manager = None  # Disable for remaining commands
+                return await self._execute_ephemeral(params)
         else:
             return await self._execute_ephemeral(params)
 
@@ -87,8 +97,33 @@ class Bash(CallableTool2[Params]):
 
     async def _execute_persistent(self, params: Params) -> ToolReturnType:
         """Execute command in persistent shell session."""
-        # TODO: Implement persistent execution (Task 3.3)
-        return await self._execute_ephemeral(params)
+        assert self._shell_manager is not None  # Caller ensures this
+        builder = ToolResultBuilder()
+
+        try:
+            stdout, stderr, exitcode = await self._shell_manager.execute(
+                params.command,
+                timeout=params.timeout,
+            )
+
+            # Write output to builder
+            if stdout:
+                builder.write(stdout)
+            if stderr:
+                builder.write(stderr)
+
+            if exitcode == 0:
+                return builder.ok("Command executed successfully.")
+            else:
+                return builder.error(
+                    f"Command failed with exit code: {exitcode}.",
+                    brief=f"Failed with exit code: {exitcode}",
+                )
+        except TimeoutError:
+            return builder.error(
+                f"Command killed by timeout ({params.timeout}s)",
+                brief=f"Killed by timeout ({params.timeout}s)",
+            )
 
 
 async def _stream_subprocess(command: str, stdout_cb, stderr_cb, timeout: int) -> int:
