@@ -5,6 +5,7 @@ from typing import override
 from kosong.tooling import CallableTool2, ToolReturnType
 from pydantic import BaseModel, Field
 
+from kimi_cli.shell_manager import ShellManager
 from kimi_cli.soul.approval import Approval
 from kimi_cli.tools.utils import ToolRejectedError, ToolResultBuilder, load_desc
 
@@ -29,9 +30,15 @@ class Bash(CallableTool2[Params]):
     description: str = load_desc(Path(__file__).parent / "bash.md", {})
     params: type[Params] = Params
 
-    def __init__(self, approval: Approval, **kwargs):
+    def __init__(
+        self,
+        approval: Approval,
+        shell_manager: ShellManager | None = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._approval = approval
+        self._shell_manager = shell_manager
 
     @override
     async def __call__(self, params: Params) -> ToolReturnType:
