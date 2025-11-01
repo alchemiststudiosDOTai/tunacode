@@ -85,6 +85,70 @@ class ShellManager:
         self._session: ShellSession | None = None
         logger.debug("ShellManager initialized with config: {config}", config=config)
 
+    async def _ensure_session(self) -> ShellSession:
+        """
+        Ensure a shell session exists, creating one if necessary.
+
+        Returns:
+            The active ShellSession.
+
+        Raises:
+            RuntimeError: If shell process fails to start.
+        """
+        if self._session is not None and self._session.process.returncode is None:
+            # Session exists and process is still alive
+            return self._session
+
+        logger.info("Starting new shell session: {executable}", executable=self._config.shell_executable)
+
+        try:
+            # Start bash subprocess with pipes for stdin/stdout/stderr
+            process = await asyncio.create_subprocess_exec(
+                self._config.shell_executable,
+                *self._config.shell_args,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            # Initialize shell environment
+            # Disable command history to prevent pollution
+            await self._write_to_stdin(process, "set +o history\n")
+
+            # Disable PS1/PS2 prompts to simplify output parsing
+            await self._write_to_stdin(process, 'PS1=""\n')
+            await self._write_to_stdin(process, 'PS2=""\n')
+
+            # Get initial working directory
+            cwd = "/"  # Default, will be updated by first state capture
+            env = {}   # Will be populated by first state capture
+
+            self._session = ShellSession(process=process, cwd=cwd, env=env)
+            logger.info("Shell session started successfully, PID: {pid}", pid=process.pid)
+
+            return self._session
+
+        except Exception as e:
+            logger.error("Failed to start shell process: {error}", error=e)
+            raise RuntimeError(f"Failed to start shell process: {e}") from e
+
+    async def _write_to_stdin(self, process: asyncio.subprocess.Process, data: str):
+        """
+        Write data to the process stdin.
+
+        Args:
+            process: The subprocess to write to.
+            data: String data to write.
+
+        Raises:
+            RuntimeError: If stdin is not available.
+        """
+        if process.stdin is None:
+            raise RuntimeError("Process stdin is not available")
+
+        process.stdin.write(data.encode())
+        await process.stdin.drain()
+
     async def cleanup(self):
         """
         Cleanup all shell sessions.
