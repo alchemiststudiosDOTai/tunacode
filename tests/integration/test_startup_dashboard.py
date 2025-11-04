@@ -15,7 +15,7 @@ class TestStartupIntegration:
 
     def test_show_config_flag_exists(self):
         """Test that --show-config flag is properly defined."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--help"])
 
         assert result.exit_code == 0
@@ -26,7 +26,7 @@ class TestStartupIntegration:
     @patch("tunacode.cli.main.show_config_dashboard")
     def test_show_config_flag_execution(self, mock_show_dashboard, mock_banner):
         """Test execution of --show-config flag."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--show-config"])
 
         assert result.exit_code == 0
@@ -38,7 +38,7 @@ class TestStartupIntegration:
     @patch("tunacode.cli.main.ui.version")
     def test_version_flag_priority(self, mock_version, mock_show_dashboard, mock_banner):
         """Test that --version flag takes priority over --show-config."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--version", "--show-config"])
 
         assert result.exit_code == 0
@@ -54,7 +54,7 @@ class TestStartupIntegration:
         self, mock_repl, mock_setup, mock_show_dashboard, mock_banner
     ):
         """Test normal execution flow without --show-config flag."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         runner.invoke(app, [])
 
         # The command should exit normally (not necessarily 0 due to async complexity)
@@ -70,7 +70,7 @@ class TestStartupIntegration:
         self, mock_repl, mock_setup, mock_show_dashboard, mock_banner
     ):
         """Test --show-config with other configuration flags."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--show-config", "--model", "test-model"])
 
         assert result.exit_code == 0
@@ -85,7 +85,7 @@ class TestStartupIntegration:
         """Test that --show-config handles exceptions gracefully."""
         mock_show_dashboard.side_effect = Exception("Dashboard error")
 
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--show-config"])
 
         # Should exit with error code when dashboard fails
@@ -103,7 +103,7 @@ class TestStartupIntegration:
                 raise ImportError("No module named 'tunacode.ui.config_dashboard'")
 
             with patch("builtins.__import__", side_effect=import_error):
-                runner = CliRunner()
+                runner = CliRunner(env={"COLUMNS": "200"})
                 result = runner.invoke(app, ["--show-config"])
 
                 # Should exit with error code when import fails
@@ -144,7 +144,7 @@ class TestBackwardCompatibility:
         self, mock_repl, mock_setup, mock_show_dashboard, mock_banner
     ):
         """Test that existing CLI flags still work as expected."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
 
         # Test --setup flag
         runner.invoke(app, ["--setup"])
@@ -166,7 +166,7 @@ class TestBackwardCompatibility:
     @patch("tunacode.cli.main.ui.version")
     def test_version_flag_unaffected(self, mock_version, mock_show_dashboard, mock_banner):
         """Test that --version flag is unaffected by new functionality."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--version"])
 
         assert result.exit_code == 0
@@ -182,7 +182,7 @@ class TestIntegrationScenarios:
     @patch("tunacode.cli.main.show_config_dashboard")
     def test_dashboard_display_workflow(self, mock_show_dashboard, mock_banner):
         """Test complete dashboard display workflow."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--show-config"])
 
         # Verify workflow: banner -> dashboard -> exit
@@ -197,7 +197,7 @@ class TestIntegrationScenarios:
         self, mock_check_updates, mock_show_dashboard, mock_banner
     ):
         """Test that --show-config skips the update check process."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         result = runner.invoke(app, ["--show-config"])
 
         assert result.exit_code == 0
@@ -211,7 +211,7 @@ class TestIntegrationScenarios:
     @patch("tunacode.cli.main.repl")
     def test_normal_flow_unchanged(self, mock_repl, mock_setup, mock_show_dashboard, mock_banner):
         """Test that normal startup flow is unchanged."""
-        runner = CliRunner()
+        runner = CliRunner(env={"COLUMNS": "200"})
         runner.invoke(app, [])
 
         # Normal flow should not trigger dashboard
