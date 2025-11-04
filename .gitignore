@@ -38,6 +38,7 @@ uv.lock
 .vscode/
 *.swp
 *.swo
+*.bak
 
 # PyPI config (contains secrets)
 .pypirc
