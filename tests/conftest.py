@@ -450,3 +450,19 @@ if "prompt_toolkit" not in sys.modules:
     sys.modules["prompt_toolkit.search"] = search_mod
     sys.modules["prompt_toolkit.widgets"] = widgets_mod
     sys.modules["prompt_toolkit.patch_stdout"] = patch_stdout_mod
+
+# Import pytest for fixtures
+import pytest
+from unittest.mock import patch
+
+
+@pytest.fixture(autouse=True)
+def mock_retry_sleep():
+    """Automatically mock time.sleep in retry logic for all tests.
+
+    This prevents tests from blocking for 26+ seconds when testing
+    retry behavior with invalid JSON. The retry logic still executes
+    but without actual sleep delays.
+    """
+    with patch("tunacode.utils.retry.time.sleep"):
+        yield
