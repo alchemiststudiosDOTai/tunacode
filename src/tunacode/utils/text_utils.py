@@ -66,10 +66,12 @@ def expand_file_refs(text: str) -> Tuple[str, List[str]]:
             - List of absolute paths of files that were successfully expanded.
 
     Raises:
-        ValueError: If a referenced path does not exist.
+        ValueError: If a referenced path does not exist or if attempting to expand
+                   TunaCode's own source directory.
     """
     import os
     import re
+    from pathlib import Path
 
     from tunacode.constants import (
         ERROR_DIR_TOO_LARGE,
@@ -78,6 +80,20 @@ def expand_file_refs(text: str) -> Tuple[str, List[str]]:
         MAX_FILES_IN_DIR,
         MAX_TOTAL_DIR_SIZE,
     )
+
+    # Detect if we're running from TunaCode's own directory
+    # This prevents accidentally expanding TunaCode's source instead of user's project
+    cwd = Path.cwd()
+    tunacode_marker = cwd / "src" / "tunacode" / "__init__.py"
+    if tunacode_marker.exists():
+        raise ValueError(
+            "Error: TunaCode cannot expand file references when running "
+            "from its own source directory.\n"
+            "Please run TunaCode from your project directory, not from "
+            "the TunaCode repository itself.\n"
+            f"Current directory: {cwd}\n"
+            "Expected: Your project's root directory"
+        )
 
     # Regex now includes trailing / and ** to capture directory intentions
     pattern = re.compile(r"@([\w./\-_*]+)")
