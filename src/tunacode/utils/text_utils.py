@@ -81,26 +81,27 @@ def expand_file_refs(text: str) -> Tuple[str, List[str]]:
         MAX_TOTAL_DIR_SIZE,
     )
 
-    # Detect if we're running from TunaCode's own directory
-    # This prevents accidentally expanding TunaCode's source instead of user's project
-    cwd = Path.cwd()
-    tunacode_marker = cwd / "src" / "tunacode" / "__init__.py"
-    if tunacode_marker.exists():
-        raise ValueError(
-            "Error: TunaCode cannot expand file references when running "
-            "from its own source directory.\n"
-            "Please run TunaCode from your project directory, not from "
-            "the TunaCode repository itself.\n"
-            f"Current directory: {cwd}\n"
-            "Expected: Your project's root directory"
-        )
-
     # Regex now includes trailing / and ** to capture directory intentions
     pattern = re.compile(r"@([\w./\-_*]+)")
     expanded_files: list[str] = []
 
     def replacer(match: re.Match) -> str:
         path_spec = match.group(1)
+
+        # Detect if we're expanding TunaCode's own src/ from TunaCode's repo
+        # This prevents accidentally expanding TunaCode's source instead of user's project
+        if path_spec.startswith("src/") or path_spec.startswith("src/**"):
+            cwd = Path.cwd()
+            tunacode_marker = cwd / "src" / "tunacode" / "__init__.py"
+            if tunacode_marker.exists():
+                raise ValueError(
+                    "Error: TunaCode cannot expand file references when running "
+                    "from its own source directory.\n"
+                    "Please run TunaCode from your project directory, not from "
+                    "the TunaCode repository itself.\n"
+                    f"Current directory: {cwd}\n"
+                    "Expected: Your project's root directory"
+                )
 
         is_recursive = path_spec.endswith("/**")
         is_dir = path_spec.endswith("/")
