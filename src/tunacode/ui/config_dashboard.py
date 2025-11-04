@@ -537,8 +537,12 @@ class ConfigDashboard:
 
         return layout
 
-    def show(self) -> None:
-        """Display the interactive dashboard."""
+    def show(self, wait_for_input: bool = True) -> None:
+        """Display the interactive dashboard.
+
+        Args:
+            wait_for_input: If True, wait for user to press Enter. Set to False for non-interactive usage.
+        """
         if not self.analysis:
             self.console.print("[red]No configuration analysis available[/red]")
             return
@@ -549,7 +553,8 @@ class ConfigDashboard:
             with Live(layout, console=self.console, refresh_per_second=4):
                 # In a real implementation, this would handle user input
                 # For now, we'll just display the dashboard
-                input("Press Enter to continue...")
+                if wait_for_input:
+                    input("Press Enter to continue...")
         except KeyboardInterrupt:
             self.console.print("\n[dim]Dashboard closed[/dim]")
 
@@ -561,10 +566,17 @@ class ConfigDashboard:
         return create_config_report(self.analysis)
 
 
-def show_config_dashboard(user_config: Optional[Dict[str, Any]] = None) -> None:
-    """Convenience function to show the configuration dashboard."""
+def show_config_dashboard(
+    user_config: Optional[Dict[str, Any]] = None, wait_for_input: bool = False
+) -> None:
+    """Convenience function to show the configuration dashboard.
+
+    Args:
+        user_config: Optional user configuration dictionary.
+        wait_for_input: If True, wait for user to press Enter. Defaults to False for CLI usage.
+    """
     dashboard = ConfigDashboard(user_config)
-    dashboard.show()
+    dashboard.show(wait_for_input=wait_for_input)
 
 
 def generate_config_report(user_config: Optional[Dict[str, Any]] = None) -> str:
