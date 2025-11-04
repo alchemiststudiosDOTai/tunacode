@@ -227,7 +227,8 @@ class TestModelSelectionCharacterization:
 
         NEW BEHAVIOR:
         - `/model provider:model` → Updates session state AND persists to config (auto-persist)
-        - `/model provider:model default` → Updates session, persists to config, and returns 'restart'
+        - `/model provider:model default` → Updates session, persists to config,
+          and returns 'restart'
 
         NOTES:
         - This reduces friction by persisting selections by default

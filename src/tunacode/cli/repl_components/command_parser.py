@@ -31,7 +31,8 @@ def parse_args(args) -> ToolArgs:
         dict: The parsed arguments.
 
     Raises:
-        ValidationError: If 'args' is not a string or dictionary, or if the string is not valid JSON.
+        ValidationError: If 'args' is not a string or dictionary, or if the string
+        is not valid JSON.
     """
     if isinstance(args, str):
         try:

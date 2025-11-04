@@ -45,7 +45,8 @@ class TodoCommand(SimpleCommand):
             await self.clear_todos(context)
         else:
             await ui.error(
-                "Invalid todo subcommand. Available subcommands: list, add, done, update, priority, remove, clear"
+                "Invalid todo subcommand. Available subcommands: list, add, done, "
+                "update, priority, remove, clear"
             )
 
     async def list_todos(self, context: CommandContext) -> None:

@@ -56,7 +56,8 @@ class ConfigSetup(BaseSetup):
         # Initialize first-time user settings if needed
         user_configuration.initialize_first_time_user(self.state_manager)
 
-        # Fast path: if config fingerprint matches last loaded and config is already present, skip reprocessing
+        # Fast path: if config fingerprint matches last loaded and config is already present,
+        # skip reprocessing
         new_fp = None
         if loaded_config:
             b = json.dumps(loaded_config, sort_keys=True).encode()
@@ -214,7 +215,8 @@ class ConfigSetup(BaseSetup):
                 required_key, provider_name = get_required_api_key_for_model(model)
                 setup_hint = (
                     f"Missing API key for {provider_name}.\n"
-                    f"Either run 'tunacode --wizard' (recommended) or add it manually to: {self.config_file}\n\n"
+                    f"Either run 'tunacode --wizard' (recommended) or add it manually to: "
+                    f"{self.config_file}\n\n"
                     "Example snippet (add under 'env'):\n"
                     '  "env": {\n'
                     f'    "{required_key or "PROVIDER_API_KEY"}": "your-key-here"\n'

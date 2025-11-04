@@ -137,7 +137,10 @@ class PresentPlanTool(BaseTool):
         # Validate the plan
         is_valid, missing_sections = plan_doc.validate()
         if not is_valid:
-            return f"❌ Plan incomplete. Missing sections: {', '.join(missing_sections)}. Continue researching and refining your plan."
+            return (
+                f"❌ Plan incomplete. Missing sections: {', '.join(missing_sections)}. "
+                "Continue researching and refining your plan."
+            )
 
         # Set plan phase to PLAN_READY and store the plan
         # The REPL will handle displaying the plan when it detects PLAN_READY phase

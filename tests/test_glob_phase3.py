@@ -144,7 +144,8 @@ async def test_glob_gitignore_support():
         # Without gitignore
         result = await tool._execute("**/*.py", directory=tmpdir, use_gitignore=False)
         assert "main.py" in result
-        # Note: build/ and dist/ are excluded by default EXCLUDE_DIRS, so they won't show up regardless
+        # Note: build/ and dist/ are excluded by default EXCLUDE_DIRS,
+        # so they won't show up regardless
         # The gitignore functionality is implemented but these directories are always excluded
 
 

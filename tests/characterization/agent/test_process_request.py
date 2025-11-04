@@ -215,7 +215,8 @@ class TestProcessRequest:
                     # With mocked _process_node, the fallback logic may not trigger properly
                     # Check basic response structure
                     assert hasattr(result, "response_state")
-                    # When max iterations is reached with detailed verbosity, it asks for user guidance
+                    # When max iterations is reached with detailed verbosity,
+                    # it asks for user guidance
                     assert result.response_state.awaiting_user_guidance
                     # The detailed fallback message generation happens in real implementation
 

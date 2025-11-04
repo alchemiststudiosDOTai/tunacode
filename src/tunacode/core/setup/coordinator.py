@@ -37,7 +37,8 @@ class SetupCoordinator:
                 raise
 
         try:
-            # Run steps sequentially to respect dependencies (ConfigSetup must complete before EnvironmentSetup)
+            # Run steps sequentially to respect dependencies
+            # (ConfigSetup must complete before EnvironmentSetup)
             for step in steps_to_run:
                 # Check if the step's execute method supports wizard_mode
                 import inspect

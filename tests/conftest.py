@@ -79,7 +79,10 @@ if "rich" not in sys.modules:
     sys.modules["rich.box"] = box_mod
 
 # Stub typer if not installed
-if "typer" not in sys.modules:
+try:
+    import typer  # noqa: F401
+except ImportError:
+    # Only create stub if typer is truly not available
     typer = types.ModuleType("typer")
 
     class Typer:
@@ -97,7 +100,28 @@ if "typer" not in sys.modules:
 
     typer.Typer = Typer
     typer.Option = lambda *args, **kwargs: None
+    
+    # Create testing submodule with CliRunner
+    testing = types.ModuleType("typer.testing")
+    
+    class CliRunner:
+        def __init__(self, *args, **kwargs):
+            pass
+            
+        def invoke(self, *args, **kwargs):
+            # Return a mock result object
+            class Result:
+                def __init__(self):
+                    self.exit_code = 0
+                    self.stdout = ""
+                    self.stderr = ""
+            return Result()
+            
+    testing.CliRunner = CliRunner
+    typer.testing = testing
+    
     sys.modules["typer"] = typer
+    sys.modules["typer.testing"] = testing
 
 # Stub pydantic_ai if not installed
 if "pydantic_ai" not in sys.modules:

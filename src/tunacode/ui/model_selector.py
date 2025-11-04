@@ -313,7 +313,8 @@ class ModelSelector:
         help_text = Window(
             FormattedTextControl(
                 HTML(
-                    "<muted>↑↓: Navigate | Enter: Select | /: Search | Tab: Next provider | Esc: Cancel</muted>"
+                    "<muted>↑↓: Navigate | Enter: Select | /: Search | Tab: Next provider | "
+                    "Esc: Cancel</muted>"
                 )
             ),
             height=1,

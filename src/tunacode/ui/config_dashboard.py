@@ -109,10 +109,9 @@ class ConfigDashboard:
                     self._add_diff_to_tree(section_node, diff)
 
                 if len(section_diffs) > self.config.max_section_items:
+                    more_count = len(section_diffs) - self.config.max_section_items
                     section_node.add(
-                        Text(
-                            f"[dim]... and {len(section_diffs) - self.config.max_section_items} more[/dim]"
-                        )
+                        Text(f"[dim]... and {more_count} more[/dim]")
                     )
             else:
                 tree.add(f"[dim]{section}[/dim]")
@@ -344,9 +343,13 @@ class ConfigDashboard:
         ]
 
         if not custom_diffs:
+            message = (
+                "✨ You're using all default settings!\n\n"
+                "This means TunaCode is running with its built-in configuration. "
+                "You can customize settings by editing ~/.config/tunacode.json"
+            )
             return Panel(
-                "✨ You're using all default settings!\n\nThis means TunaCode is running with its built-in configuration. "
-                "You can customize settings by editing ~/.config/tunacode.json",
+                message,
                 title="🔧 Your Customizations (0)",
                 box=ROUNDED,
                 border_style="green",
@@ -379,7 +382,10 @@ class ConfigDashboard:
         if len(custom_diffs) > 15:
             table.add_row("", f"[dim]... and {len(custom_diffs) - 15} more[/dim]", "", "")
 
-        summary = f"You have customized {len(custom_diffs)} out of {self.analysis.total_keys} available settings"
+        summary = (
+            f"You have customized {len(custom_diffs)} out of "
+            f"{self.analysis.total_keys} available settings"
+        )
 
         content = Group(Text(summary, style="bold"), Text(""), table)
 

@@ -264,7 +264,8 @@ class StreamingAgentPanel:
         ):
             return
 
-        # Special handling for the training data phrase - only filter if it's a complete system message
+        # Special handling for the training data phrase - filter only if it's a complete
+        # system message
         if "You are trained on data up to" in content_str and len(content_str) > 50:
             # Only filter if this looks like a complete system message, not user content
             if (
@@ -318,7 +319,8 @@ class StreamingAgentPanel:
         ):
             return
 
-        # Special handling for the training data phrase - only filter if it's a complete system message
+        # Special handling for the training data phrase - filter only if it's a complete
+        # system message
         if "You are trained on data up to" in content_str and len(content_str) > 50:
             # Only filter if this looks like a complete system message, not user content
             if (
@@ -372,8 +374,9 @@ class StreamingAgentPanel:
             # Summarize UI buffer state
             ui_prefix = "[debug]"
             ui_buffer_first5 = repr((self.content or "")[:5])
+            total_len = len(self.content or '')
             lines = [
-                f"{ui_prefix} ui_buffer_first5={ui_buffer_first5} total_len={len(self.content or '')}",
+                f"{ui_prefix} ui_buffer_first5={ui_buffer_first5} total_len={total_len}",
             ]
             # Include recorded event lines
             lines.extend(self._debug_events)

@@ -65,7 +65,8 @@ async def attempt_json_args_recovery(e: Exception, state_manager: StateManager) 
 
                             await ui.warning(f"Warning: {MSG_JSON_ARGS_RECOVERY}")
                             logger.info(
-                                f"Successfully recovered tool {part.tool_name} with split JSON args",
+                                f"Successfully recovered tool {part.tool_name} with "
+                                f"split JSON args",
                                 extra={
                                     "original_args": part.args,
                                     "recovered_args": json_objects[0],
@@ -79,7 +80,8 @@ async def attempt_json_args_recovery(e: Exception, state_manager: StateManager) 
 
             except Exception as recovery_exc:
                 logger.error(
-                    f"Error during JSON args recovery for tool {getattr(part, 'tool_name', 'unknown')}",
+                    f"Error during JSON args recovery for tool "
+                    f"{getattr(part, 'tool_name', 'unknown')}",
                     exc_info=True,
                     extra={"recovery_exception": str(recovery_exc)},
                 )
@@ -127,7 +129,8 @@ async def attempt_tool_recovery(e: Exception, state_manager: StateManager) -> bo
             },
         )
         await ui.muted(
-            f"⚠️ Model response error. Attempting to recover by parsing tools from text: {str(e)[:100]}..."
+            f"⚠️ Model response error. Attempting to recover by parsing tools "
+            f"from text: {str(e)[:100]}..."
         )
 
         try:

@@ -197,7 +197,8 @@ class FileReferenceCompleter(Completer):
             pass
 
     @classmethod
-    # CLAUDE_ANCHOR[key=1f0911c7] Prompt Toolkit fuzzy matching consolidates file and directory suggestions
+    # CLAUDE_ANCHOR[key=1f0911c7] Prompt Toolkit fuzzy matching consolidates file and
+    # directory suggestions
     def _collect_fuzzy_matches(cls, prefix: str, candidates: Sequence[str]) -> List[str]:
         """Return fuzzy-ordered candidate names respecting configured limit."""
 

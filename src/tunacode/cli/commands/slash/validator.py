@@ -203,7 +203,8 @@ class CommandValidator:
                         violations.append(
                             SecurityViolation(
                                 type="invalid_subcommand",
-                                message=f"Subcommand '{subcommand}' not allowed for '{base_command}'",
+                                message=f"Subcommand '{subcommand}' not allowed "
+                                f"for '{base_command}'",
                                 command=command,
                                 severity="error",
                             )

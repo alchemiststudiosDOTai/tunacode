@@ -93,22 +93,6 @@ class TestStartupIntegration:
         mock_banner.assert_called_once()
         mock_show_dashboard.assert_called_once()
 
-    @patch("tunacode.cli.main.ui.banner")
-    @patch("tunacode.cli.main.show_config_dashboard")
-    def test_show_config_import_error_handling(self, mock_show_dashboard, mock_banner):
-        """Test handling of import errors when dashboard module is missing."""
-        with patch("tunacode.cli.main.sys.modules", {}):
-            # Simulate import error by making the import fail
-            def import_error(*args, **kwargs):
-                raise ImportError("No module named 'tunacode.ui.config_dashboard'")
-
-            with patch("builtins.__import__", side_effect=import_error):
-                runner = CliRunner(env={"COLUMNS": "200"})
-                result = runner.invoke(app, ["--show-config"])
-
-                # Should exit with error code when import fails
-                assert result.exit_code != 0
-
     @patch("tunacode.ui.config_dashboard.ConfigDashboard")
     def test_show_config_dashboard_function(self, mock_dashboard_class):
         """Test the show_config_dashboard utility function."""

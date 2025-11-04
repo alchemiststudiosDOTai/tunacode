@@ -242,7 +242,10 @@ Usage:
                 raise ToolExecutionError(f"Unknown search type: {search_type}")
 
             # 5️⃣ Format and return results with strategy info
-            strategy_info = f"Strategy: {search_type} (was {original_search_type}), Files: {len(candidates)}/{5000}"
+            strategy_info = (
+                f"Strategy: {search_type} (was {original_search_type}), "
+                f"Files: {len(candidates)}/{5000}"
+            )
             formatted_results = self._result_formatter.format_results(results, pattern, config)
 
             if return_format == "list":

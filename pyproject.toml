@@ -68,8 +68,8 @@ Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I"]
-ignore = ["E203", "E501"]
+extend-select = ["I", "E501"]
+ignore = ["E203"]
 exclude = [
     ".bzr",
     ".direnv",

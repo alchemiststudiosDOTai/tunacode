@@ -97,7 +97,8 @@ def create_empty_response_message(
     """Create a constructive message for handling empty responses."""
     tools_context = get_recent_tools_context(tool_calls)
 
-    content = f"""Response appears {empty_reason if empty_reason != "empty" else "empty"} or incomplete. Let's troubleshoot and try again.
+    reason = empty_reason if empty_reason != "empty" else "empty"
+    content = f"""Response appears {reason} or incomplete. Let's troubleshoot and try again.
 
 Task: {message[:200]}...
 {tools_context}
@@ -223,7 +224,8 @@ async def handle_empty_response(
         await ui.warning("\nEMPTY RESPONSE FAILURE - AGGRESSIVE RETRY TRIGGERED")
         await ui.muted(f"   Reason: {reason}")
         await ui.muted(
-            f"   Recent tools: {get_recent_tools_context(getattr(state.sm.session, 'tool_calls', []))}"
+            f"   Recent tools: "
+            f"{get_recent_tools_context(getattr(state.sm.session, 'tool_calls', []))}"
         )
         await ui.muted("   Injecting retry guidance prompt")
 

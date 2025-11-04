@@ -185,8 +185,10 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 "TUNACODE_TASK_COMPLETE",
                 "TUNACODE DONE:",
                 "[Your summary of what was accomplished]",
-                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, use TUNACODE_TASK_COMPLETE.",
-                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, use TUNACODE DONE:",
+                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, "
+                "use TUNACODE_TASK_COMPLETE.",
+                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, use "
+                "TUNACODE DONE:",
                 "This prevents wasting iterations and API calls.",
             ]
             for line in lines_to_remove:
@@ -242,11 +244,17 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
         try:
             current_todos = todo_tool.get_current_todos_sync()
             if current_todos != "No todos found":
-                system_prompt += f'\n\n# Current Todo List\n\nYou have existing todos that need attention:\n\n{current_todos}\n\nRemember to check progress on these todos and update them as you work. Use todo("list") to see current status anytime.'
+                system_prompt += (
+                    f'\n\n# Current Todo List\n\n'
+                    f'You have existing todos that need attention:\n\n{current_todos}\n\n'
+                    f'Remember to check progress on these todos and update them as you work. '
+                    f'Use todo("list") to see current status anytime.'
+                )
         except Exception as e:
             logger.warning(f"Warning: Failed to load todos: {e}")
 
-        # Get tool strict validation setting from config (default to False for backward compatibility)
+        # Get tool strict validation setting from config (default to False for backward
+        # compatibility)
         tool_strict_validation = state_manager.session.user_config.get("settings", {}).get(
             "tool_strict_validation", False
         )

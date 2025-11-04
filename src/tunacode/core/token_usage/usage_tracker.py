@@ -136,8 +136,10 @@ class UsageTracker(UsageTrackerProtocol):
         last_cost_safe = last_cost if last_cost is not None else 0.0
         session_cost_safe = session_cost if session_cost is not None else 0.0
 
+        total_tokens = prompt_safe + completion_safe
         usage_summary = (
-            f"[ Tokens: {prompt_safe + completion_safe:,} (P: {prompt_safe:,}, C: {completion_safe:,}) | "
+            f"[ Tokens: {total_tokens:,} "
+            f"(P: {prompt_safe:,}, C: {completion_safe:,}) | "
             f"Cost: ${last_cost_safe:.4f} | "
             f"Session Total: ${session_cost_safe:.4f} ]"
         )

@@ -146,9 +146,13 @@ async def stream_model_request_node(
                                                 break
                             except Exception:
                                 pass
-                            state_manager.session._debug_events.append(
-                                f"[src] event[{debug_event_count}] etype={etype} d={dtype} clen={clen} cprev={cpreview} rtype={rtype} rprev={rpreview} rlen={rplen} ptype={ptype} pkind={pkind} pprev={ppreview} plen={pplen}"
+                            event_info = (
+                                f"[src] event[{debug_event_count}] etype={etype} d={dtype} "
+                                f"clen={clen} cprev={cpreview} rtype={rtype} "
+                                f"rprev={rpreview} rlen={rplen} ptype={ptype} "
+                                f"pkind={pkind} pprev={ppreview} plen={pplen}"
                             )
+                            state_manager.session._debug_events.append(event_info)
                         except Exception:
                             pass
 
@@ -179,7 +183,8 @@ async def stream_model_request_node(
                                             and len(pre_first_delta_text) <= 100
                                             and not seeded_prefix_sent
                                         ):
-                                            # If delta contains the candidate, emit the prefix up to that point
+                                            # If delta contains the candidate, 
+                                        # emit the prefix up to that point
                                             probe = pre_first_delta_text[:20]
                                             idx = pre_first_delta_text.find(probe)
                                             if idx > 0:
@@ -187,23 +192,34 @@ async def stream_model_request_node(
                                                 if prefix:
                                                     await streaming_callback(prefix)
                                                     seeded_prefix_sent = True
-                                                    state_manager.session._debug_events.append(
-                                                        f"[src] seeded_prefix idx={idx} len={len(prefix)} preview={repr(prefix)}"
+                                                    preview_msg = (
+                                                        f"[src] seeded_prefix idx={idx} "
+                                                        f"len={len(prefix)} preview={repr(prefix)}"
                                                     )
+                                                    state_manager.session._debug_events.append(preview_msg)
                                             elif idx == -1:
-                                                # Delta text does not appear in pre-text; emit the pre-text directly as a seed
-                                                # Safe for short pre-text (e.g., first word) to avoid duplication
+                                                # Delta text does not appear in pre-text; 
+                                                # emit the pre-text directly as a seed
+                                                # Safe for short pre-text (e.g., first word) 
+                                                # to avoid duplication
                                                 if pre_first_delta_text.strip():
                                                     await streaming_callback(pre_first_delta_text)
                                                     seeded_prefix_sent = True
-                                                    state_manager.session._debug_events.append(
-                                                        f"[src] seeded_prefix_direct len={len(pre_first_delta_text)} preview={repr(pre_first_delta_text)}"
+                                                    text_len = len(pre_first_delta_text)
+                                                    preview_repr = repr(pre_first_delta_text)
+                                                    direct_msg = (
+                                                        f"[src] seeded_prefix_direct "
+                                                        f"len={text_len} preview={preview_repr}"
                                                     )
+                                                    state_manager.session._debug_events.append(direct_msg)
                                             else:
-                                                # idx == 0 means pre-text is already the start of delta; skip
-                                                state_manager.session._debug_events.append(
-                                                    f"[src] seed_skip idx={idx} delta_len={len(delta_text)}"
+                                                # idx == 0 means pre-text is already the
+                                                # start of delta; skip
+                                                skip_msg = (
+                                                    f"[src] seed_skip idx={idx} "
+                                                    f"delta_len={len(delta_text)}"
                                                 )
+                                                state_manager.session._debug_events.append(skip_msg)
                                     except Exception:
                                         pass
                                     finally:
@@ -218,9 +234,16 @@ async def stream_model_request_node(
                                     except Exception:
                                         ts_ns = 0
                                     # Store debug event summary for later display
-                                    state_manager.session._debug_events.append(
-                                        f"[src] first_delta_received ts_ns={ts_ns} chunk_repr={repr(event.delta.content_delta[:5] if event.delta.content_delta else '')} len={len(event.delta.content_delta or '')}"
+                                    chunk_preview = repr(
+                                        event.delta.content_delta[:5]
+                                        if event.delta.content_delta else ''
                                     )
+                                    chunk_len = len(event.delta.content_delta or '')
+                                    delta_msg = (
+                                        f"[src] first_delta_received ts_ns={ts_ns} "
+                                        f"chunk_repr={chunk_preview} len={chunk_len}"
+                                    )
+                                    state_manager.session._debug_events.append(delta_msg)
                                     first_delta_logged = True
 
                                 # Accumulate full raw stream for comparison and forward delta
@@ -237,9 +260,11 @@ async def stream_model_request_node(
                         try:
                             final_text = _extract_text(getattr(event, "result", None))
                             if final_text:
-                                state_manager.session._debug_events.append(
-                                    f"[src] final_text_preview len={len(final_text)} preview={repr(final_text[:20])}"
+                                final_msg = (
+                                    f"[src] final_text_preview len={len(final_text)} "
+                                    f"preview={repr(final_text[:20])}"
                                 )
+                                state_manager.session._debug_events.append(final_msg)
                         except Exception:
                             pass
             # Successful streaming; exit retry loop

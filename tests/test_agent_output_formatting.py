@@ -55,7 +55,10 @@ class TestAgentOutputFormatting:
         state_manager = self._create_mock_state_manager()
 
         # Mock agent response with clean text
-        expected_output = "Here are my suggestions for improving your code:\n1. Add comments\n2. Improve error handling"
+        expected_output = (
+            "Here are my suggestions for improving your code:\n"
+            "1. Add comments\n2. Improve error handling"
+        )
         mock_response = MagicMock()
         mock_response.result = SimpleResult(output=expected_output)
 
@@ -79,15 +82,20 @@ class TestAgentOutputFormatting:
         # Expected clean formatted output
         expected_output = """Code Review Results:
 
-The JavaScript code has a good structure with clear separation of concerns. Here are some suggestions for improvement:
+The JavaScript code has a good structure with clear separation of concerns.
+Here are some suggestions for improvement:
 
-1. **Add comments to functions** - Document the purpose and parameters of major functions for better maintainability.
+1. **Add comments to functions** - Document the purpose and parameters of major
+   functions for better maintainability.
 
-2. **Consistent error handling** - Use try-catch blocks consistently and provide user-friendly error messages instead of alerts.
+2. **Consistent error handling** - Use try-catch blocks consistently and
+   provide user-friendly error messages instead of alerts.
 
-3. **Form validation** - Implement validation before submitting to ensure required fields are properly filled.
+3. **Form validation** - Implement validation before submitting to ensure
+   required fields are properly filled.
 
-4. **Debounce input handlers** - Consider debouncing the updateSubmitButtonState function to prevent excessive calls.
+4. **Debounce input handlers** - Consider debouncing the updateSubmitButtonState
+   function to prevent excessive calls.
 
 5. **Accessibility improvements** - Add ARIA labels and ensure keyboard navigation works properly.
 

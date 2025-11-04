@@ -40,8 +40,9 @@ async def _process_node(
     """Process a single node from the agent response.
 
     Returns:
-        tuple: (is_empty: bool, reason: Optional[str]) - True if empty/problematic response detected,
-               with reason being one of: "empty", "truncated", "intention_without_action"
+        tuple: (is_empty: bool, reason: Optional[str]) - True if empty/problematic
+               response detected, with reason being one of: "empty", "truncated",
+               "intention_without_action"
     """
     from tunacode.ui import console as ui
 
@@ -100,15 +101,21 @@ async def _process_node(
                             # Agent is trying to complete with pending tools!
                             if state_manager.session.show_thoughts:
                                 await ui.warning(
-                                    "⚠️ PREMATURE COMPLETION DETECTED - Agent queued tools but marked complete"
+                                    "⚠️ PREMATURE COMPLETION DETECTED - "
+                                    "Agent queued tools but marked complete"
                                 )
                                 await ui.muted("   Overriding completion to allow tool execution")
                             # Don't mark as complete - let the tools run first
                             # Update the content to remove the marker but don't set task_completed
                             part.content = cleaned_content
                             # Log this as an issue
+                            pending_tools_count = sum(
+                                1 for p in node.model_response.parts 
+                                if getattr(p, 'part_kind', '') == 'tool-call'
+                            )
                             logger.warning(
-                                f"Agent attempted premature completion with {sum(1 for p in node.model_response.parts if getattr(p, 'part_kind', '') == 'tool-call')} pending tools"
+                                f"Agent attempted premature completion with {pending_tools_count} "
+                                    f"pending tools"
                             )
                         else:
                             # Check if content suggests pending actions
@@ -132,7 +139,8 @@ async def _process_node(
                                 phrase in combined_text for phrase in pending_phrases
                             )
 
-                            # Also check for action verbs at end of content suggesting incomplete action
+                            # Also check for action verbs at end of content 
+                            # suggesting incomplete action
                             action_endings = [
                                 "checking",
                                 "searching",
@@ -151,21 +159,29 @@ async def _process_node(
                                 # Too early to complete with pending intentions
                                 if state_manager.session.show_thoughts:
                                     await ui.warning(
-                                        "⚠️ SUSPICIOUS COMPLETION - Stated intentions but completing early"
+                                        "⚠️ SUSPICIOUS COMPLETION - "
+                                        "Stated intentions but completing early"
                                     )
                                     found_phrases = [
                                         p for p in pending_phrases if p in combined_text
                                     ]
-                                    await ui.muted(
-                                        f"   Iteration {state_manager.session.iteration_count} with pending: {found_phrases}"
+                                    iteration_msg = (
+                                        f"   Iteration {state_manager.session.iteration_count} "
+                                        f"with pending: {found_phrases}"
                                     )
+                                    await ui.muted(iteration_msg)
                                     if ends_with_action:
+                                        action_verb = (
+                                            combined_text.split()[-1]
+                                            if combined_text.split() else ''
+                                        )
                                         await ui.muted(
-                                            f"   Content ends with action verb: '{combined_text.split()[-1] if combined_text.split() else ''}'"
+                                            f"   Content ends with action verb: '{action_verb}'"
                                         )
                                 # Still allow it but log warning
                                 logger.warning(
-                                    f"Task completion with pending intentions detected: {found_phrases}"
+                                    f"Task completion with pending intentions detected: "
+                                    f"{found_phrases}"
                                 )
 
                             # Normal completion - transition to RESPONSE state and mark completion
@@ -185,7 +201,8 @@ async def _process_node(
                 combined_content = " ".join(all_content_parts).strip()
                 appears_truncated = check_for_truncation(combined_content)
 
-            # If we only got empty content and no tool calls, we should NOT consider this a valid response
+            # If we only got empty content and no tool calls, we should NOT consider this
+            # a valid response
             # This prevents the agent from stopping when it gets empty responses
             if not has_non_empty_content and not any(
                 hasattr(part, "part_kind") and part.part_kind == "tool-call"
@@ -358,10 +375,11 @@ async def _process_tool_calls(
 
                     # Update spinner to show we're collecting tools
                     buffered_count = len(tool_buffer.read_only_tasks)
-                    await ui.update_spinner_message(
-                        f"[bold #00d7ff]Collecting tools ({buffered_count} buffered)...[/bold #00d7ff]",
-                        state_manager,
+                    spinner_msg = (
+                        f"[bold #00d7ff]Collecting tools ({buffered_count}) "
+                        f"buffered...[/bold #00d7ff]"
                     )
+                    await ui.update_spinner_message(spinner_msg, state_manager)
 
                     if state_manager.session.show_thoughts:
                         await ui.muted(
@@ -390,9 +408,11 @@ async def _process_tool_calls(
                         # Enhanced visual feedback for parallel execution (suppress in plan mode)
                         if not state_manager.is_plan_mode():
                             await ui.muted("\n" + "=" * 60)
-                            await ui.muted(
-                                f"🚀 PARALLEL BATCH #{batch_id}: Executing {len(buffered_tasks)} read-only tools concurrently"
+                            batch_title = (
+                                f"🚀 PARALLEL BATCH #{batch_id}: "
+                                f"Executing {len(buffered_tasks)} read-only tools concurrently"
                             )
+                            await ui.muted(batch_title)
                             await ui.muted("=" * 60)
 
                             # Display details of what's being executed
@@ -470,7 +490,8 @@ async def _process_tool_calls(
                         f"[bold #00d7ff]{tool_desc}...[/bold #00d7ff]", state_manager
                     )
 
-                    # Execute the tool with robust error handling so one failure doesn't crash the run
+                    # Execute the tool with robust error handling 
+                    # so one failure doesn't crash the run
                     try:
                         await tool_callback(part, node)
                     except UserAbortError:
@@ -486,7 +507,8 @@ async def _process_tool_calls(
                         # Surface to UI when thoughts are enabled, then continue gracefully
                         if getattr(state_manager.session, "show_thoughts", False):
                             await ui.warning(
-                                f"❌ Tool failed: {getattr(part, 'tool_name', '<unknown>')} — continuing"
+                                f"❌ Tool failed: {getattr(part, 'tool_name', '<unknown>')} — "
+                                    f"continuing"
                             )
 
     # Track tool calls in session

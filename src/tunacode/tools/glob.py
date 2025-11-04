@@ -553,9 +553,11 @@ async def glob(
         directory: Directory to search in (default: current directory)
         recursive: Whether to search recursively (default: True)
         include_hidden: Whether to include hidden files/directories (default: False)
-        exclude_dirs: Additional directories to exclude from search (default: common build/cache dirs)
+        exclude_dirs: Additional directories to exclude from search
+                         (default: common build/cache dirs)
         max_results: Maximum number of results to return (default: 5000)
-        sort_by: How to sort results - "modified", "size", "alphabetical", or "depth" (default: "modified")
+        sort_by: How to sort results - "modified", "size", "alphabetical", or "depth"
+                 (default: "modified")
         case_sensitive: Whether pattern matching is case-sensitive (default: False)
         use_gitignore: Whether to respect .gitignore patterns (default: True)
 

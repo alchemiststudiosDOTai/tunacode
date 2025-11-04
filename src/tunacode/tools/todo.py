@@ -163,7 +163,8 @@ class TodoTool(BaseTool):
             todo_id: ID of existing todo for updates/completion
             status: Status to set for updates
             priority: Priority to set for new/updated todos
-            todos: List of todo dictionaries for add_multiple action (format: [{"content": "...", "priority": "..."}])
+            todos: List of todo dictionaries for add_multiple action
+                  (format: [{"content": "...", "priority": "..."}])
 
         Returns:
             str: Result message describing what was done
@@ -189,7 +190,8 @@ class TodoTool(BaseTool):
             return await self._remove_todo(todo_id)
         else:
             raise ModelRetry(
-                f"Invalid action '{action}'. Must be one of: add, add_multiple, update, complete, list, remove"
+                f"Invalid action '{action}'. Must be one of: "
+                "add, add_multiple, update, complete, list, remove"
             )
 
     async def _add_todo(self, content: Optional[str], priority: Optional[str]) -> ToolResult:
@@ -206,7 +208,8 @@ class TodoTool(BaseTool):
         # Check todo limit
         if len(self.state_manager.session.todos) >= MAX_TODOS_PER_SESSION:
             raise ModelRetry(
-                f"Cannot add more todos. Maximum of {MAX_TODOS_PER_SESSION} todos allowed per session"
+                f"Cannot add more todos. Maximum of {MAX_TODOS_PER_SESSION} "
+                "todos allowed per session"
             )
 
         # Generate UUID for guaranteed uniqueness
@@ -216,7 +219,8 @@ class TodoTool(BaseTool):
         todo_priority = priority or TodoPriority.MEDIUM
         if todo_priority not in [p.value for p in TodoPriority]:
             raise ModelRetry(
-                f"Invalid priority '{todo_priority}'. Must be one of: {', '.join([p.value for p in TodoPriority])}"
+                f"Invalid priority '{todo_priority}'. Must be one of: "
+                f"{', '.join([p.value for p in TodoPriority])}"
             )
 
         new_todo = TodoItem(
@@ -250,7 +254,8 @@ class TodoTool(BaseTool):
                 todo_priority = todo_data.get("priority", priority or TodoPriority.MEDIUM)
                 if todo_priority not in TODO_PRIORITIES:
                     raise ModelRetry(
-                        f"Invalid priority '{todo_priority}'. Must be one of: {', '.join(TODO_PRIORITIES)}"
+                        f"Invalid priority '{todo_priority}'. Must be one of: "
+                        f"{', '.join(TODO_PRIORITIES)}"
                     )
                 todos_to_add.append((todo_content, todo_priority))
         elif isinstance(content, list):
@@ -258,7 +263,8 @@ class TodoTool(BaseTool):
             default_priority = priority or TodoPriority.MEDIUM
             if default_priority not in TODO_PRIORITIES:
                 raise ModelRetry(
-                    f"Invalid priority '{default_priority}'. Must be one of: {', '.join(TODO_PRIORITIES)}"
+                    f"Invalid priority '{default_priority}'. Must be one of: "
+                    f"{', '.join(TODO_PRIORITIES)}"
                 )
             for task_content in content:
                 if not isinstance(task_content, str):
@@ -277,7 +283,8 @@ class TodoTool(BaseTool):
         if current_count + len(todos_to_add) > MAX_TODOS_PER_SESSION:
             available = MAX_TODOS_PER_SESSION - current_count
             raise ModelRetry(
-                f"Cannot add {len(todos_to_add)} todos. Only {available} slots available (max {MAX_TODOS_PER_SESSION} per session)"
+                f"Cannot add {len(todos_to_add)} todos. Only {available} slots available "
+                f"(max {MAX_TODOS_PER_SESSION} per session)"
             )
 
         # Add all todos
@@ -286,7 +293,8 @@ class TodoTool(BaseTool):
             # Validate content length
             if len(task_content) > MAX_TODO_CONTENT_LENGTH:
                 raise ModelRetry(
-                    f"Todo content is too long: '{task_content[:50]}...'. Maximum length is {MAX_TODO_CONTENT_LENGTH} characters"
+                    f"Todo content is too long: '{task_content[:50]}...'. "
+                    f"Maximum length is {MAX_TODO_CONTENT_LENGTH} characters"
                 )
 
             # Generate UUID for guaranteed uniqueness
@@ -333,7 +341,8 @@ class TodoTool(BaseTool):
         if status:
             if status not in [s.value for s in TodoStatus]:
                 raise ModelRetry(
-                    f"Invalid status '{status}'. Must be one of: {', '.join([s.value for s in TodoStatus])}"
+                    f"Invalid status '{status}'. Must be one of: "
+                    f"{', '.join([s.value for s in TodoStatus])}"
                 )
             todo.status = status
             if status == TodoStatus.COMPLETED.value and not todo.completed_at:
@@ -344,7 +353,8 @@ class TodoTool(BaseTool):
         if priority:
             if priority not in [p.value for p in TodoPriority]:
                 raise ModelRetry(
-                    f"Invalid priority '{priority}'. Must be one of: {', '.join([p.value for p in TodoPriority])}"
+                    f"Invalid priority '{priority}'. Must be one of: "
+                    f"{', '.join([p.value for p in TodoPriority])}"
                 )
             todo.priority = priority
             changes.append(f"priority to {priority}")

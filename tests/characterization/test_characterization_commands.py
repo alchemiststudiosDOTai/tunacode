@@ -1,7 +1,8 @@
 """
 Characterization tests for commands.py
 
-These tests aim to capture and document the current behavior of the commands module, providing a safety net for future refactoring.
+These tests aim to capture and document the current behavior of the commands module,
+providing a safety net for future refactoring.
 """
 
 # Provide a minimal stub for defusedxml if not installed, to avoid import errors
@@ -98,7 +99,8 @@ class TestCommandBehaviors:
         cmd = commands.ModelCommand()
         # CLAUDE_ANCHOR[model-command-registry-validation-skip]
         # Pydantic validation in ModelsRegistry may reject cached API entries (e.g., zero limits).
-        # For characterization, we skip live registry loading to avoid brittle cache/network coupling.
+        # For characterization, we skip live registry loading to avoid brittle
+        # cache/network coupling.
         # This preserves the intent: command prints current model info when invoked with no args.
         cmd._registry_loaded = True
         context = mock.Mock()
@@ -386,4 +388,3 @@ class TestCommandEdgeCases:
             assert mock_info.called or mock_success.called
 
 
-# Note: These are characterization tests. If you change the underlying implementation and these tests fail, update the tests only if you intend to change the behavior!

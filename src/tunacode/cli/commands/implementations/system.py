@@ -179,7 +179,8 @@ class UpdateCommand(SimpleCommand):
             await ui.muted("  pip:     pip install --upgrade tunacode-cli")
             await ui.muted("  uv tool: uv tool upgrade tunacode-cli")
             await ui.muted(
-                "  venv:    uv pip install --python ~/.tunacode-venv/bin/python --upgrade tunacode-cli"
+                "  venv:    uv pip install --python ~/.tunacode-venv/bin/python "
+                "--upgrade tunacode-cli"
             )
             return
 

@@ -139,12 +139,19 @@ class ExitPlanModeTool(BaseTool):
             self.state_manager.set_current_plan(plan)
             self.state_manager.exit_plan_mode(plan)
             await ui.success("✅ Plan approved! Exiting Plan Mode.")
-            return "Plan approved and Plan Mode exited. You can now execute the implementation using write tools (write_file, update_file, bash, run_command)."
+            return (
+                "Plan approved and Plan Mode exited. "
+                "You can now execute the implementation using write tools "
+                "(write_file, update_file, bash, run_command)."
+            )
         else:
             # Keep the plan but stay in plan mode
             self.state_manager.set_current_plan(plan)
             await ui.warning("❌ Plan rejected. Staying in Plan Mode for further research.")
-            return "Plan rejected. Continue researching and refine your approach. You remain in Plan Mode - only read-only tools are available."
+            return (
+                "Plan rejected. Continue researching and refine your approach. "
+                "You remain in Plan Mode - only read-only tools are available."
+            )
 
     async def _present_plan(self, plan: Dict[str, Any]) -> None:
         """Present the plan in a formatted way."""

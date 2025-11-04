@@ -31,7 +31,8 @@ class ConfigWizard:
         await ui.panel(
             "Welcome to TunaCode Setup Wizard!",
             "This guided setup will help you configure TunaCode in under 5 minutes.\n"
-            "We'll help you choose a provider, set up your API keys, and configure your preferred model.",
+            "We'll help you choose a provider, set up your API keys, and configure your "
+            "preferred model.",
             border_style=UI_COLORS["primary"],
         )
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Iterable, List, Sequence
 
-# CLAUDE_ANCHOR[key=0b3f320e] Cross-ecosystem skip directory defaults for FileReferenceCompleter global roots
+# CLAUDE_ANCHOR[key=0b3f320e] Cross-ecosystem skip directory defaults for FileReferenceCompleter
 DEFAULT_SKIP_DIRECTORY_NAMES: Sequence[str] = (
     ".git",
     ".hg",
@@ -19,7 +19,8 @@ DEFAULT_SKIP_DIRECTORY_NAMES: Sequence[str] = (
     "build",
     "out",
     "target",
-    # CLAUDE_ANCHOR[key=6fd59413] Skip list includes __pycache__ to avoid noisy Python build artifacts in suggestions
+    # CLAUDE_ANCHOR[key=6fd59413] Skip list includes __pycache__ to avoid noisy
+  # Python build artifacts
     "vendor",
     "__pycache__",
     ".mypy_cache",
@@ -28,7 +29,8 @@ DEFAULT_SKIP_DIRECTORY_NAMES: Sequence[str] = (
     ".tox",
     "coverage",
     ".cache",
-    # CLAUDE_ANCHOR[key=2bcebd52] Skip heuristic checks every path component to prune nested junk directories such as __pycache__
+    # CLAUDE_ANCHOR[key=2bcebd52] Skip heuristic checks every path component to prune
+    # nested junk directories
 )
 
 DEFAULT_PRIORITY_PREFIXES: Sequence[str] = (

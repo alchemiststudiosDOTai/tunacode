@@ -219,8 +219,9 @@ class TestParseArgs:
 
         result = parse_args('{"first": 1}{"second": 2}')
 
+        concatenated_json = '{"first": 1}{"second": 2}'
         mock_safe_parse.assert_called_once_with(
-            '{"first": 1}{"second": 2}', allow_concatenated=True
+            concatenated_json, allow_concatenated=True
         )
         assert result == {"recovered": True}
 

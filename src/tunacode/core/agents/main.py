@@ -256,7 +256,8 @@ async def _maybe_force_react_snapshot(
                 )
                 # CLAUDE_ANCHOR[react-system-injection]
                 # Append synthetic system message so LLM receives react guidance next turn
-                # This mutates the active run context so the very next model prompt includes the guidance
+                # This mutates the active run context so the very next model prompt
+                # includes the guidance
                 ctx_messages.append(ModelRequest(parts=[system_part], kind="request"))
 
         if show_debug:
@@ -355,7 +356,8 @@ async def _finalize_buffered_tasks(
         sequential_estimate = len(buffered_tasks) * 100.0
         speedup = (sequential_estimate / elapsed_ms) if elapsed_ms > 0 else 1.0
         await ui.muted(
-            f"Final batch completed in {elapsed_ms:.0f}ms (~{speedup:.1f}x faster than sequential)\n"
+            f"Final batch completed in {elapsed_ms:.0f}ms "
+            f"(~{speedup:.1f}x faster than sequential)\n"
         )
         from tunacode.constants import UI_THINKING_MESSAGE  # local import OK (rare path)
 
@@ -552,7 +554,8 @@ async def process_request(
                     ac.create_user_message(extend_content, state.sm)
                     if state.show_thoughts:
                         await ui.muted(
-                            f"\nITERATION LIMIT: Awaiting user guidance at {ctx.max_iterations} iterations"
+                            f"\nITERATION LIMIT: Awaiting user guidance at "
+                            f"{ctx.max_iterations} iterations"
                         )
                     response_state.awaiting_user_guidance = True
                     # Do not auto-increase max_iterations here (avoid infinite loops)

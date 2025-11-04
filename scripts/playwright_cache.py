@@ -56,7 +56,8 @@ def remove_playwright_cache() -> int:
 
     if cache_path is None:
         print(
-            "No Playwright binaries found. Please run 'playwright install' first if you want to test the reinstall flow."
+            "No Playwright binaries found. Please run 'playwright install' first "
+            "if you want to test the reinstall flow."
         )
         return 0
 

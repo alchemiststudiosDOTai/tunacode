@@ -16,6 +16,7 @@ from tunacode.core.tool_handler import ToolHandler
 from tunacode.exceptions import UserAbortError
 from tunacode.setup import setup
 from tunacode.ui import console as ui
+from tunacode.ui.config_dashboard import show_config_dashboard
 from tunacode.utils.system import check_for_updates
 
 app_settings = ApplicationSettings()
@@ -53,8 +54,6 @@ def main(
             return
 
         if show_config:
-            from tunacode.ui.config_dashboard import show_config_dashboard
-
             await ui.banner()
             show_config_dashboard()
             return

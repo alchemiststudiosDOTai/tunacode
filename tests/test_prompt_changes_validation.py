@@ -11,10 +11,11 @@ def test_system_prompt_no_json_in_responses():
 
     # Check that we have the core instruction structure
     assert "<instructions>" in content
-    assert (
-        "YOU ARE NOT A CHATBOT. YOU ARE AN OPERATIONAL EXPERIENCED DEVELOPER WITH AGENT WITH TOOLS."
-        in content
+    agent_instruction = (
+        "YOU ARE NOT A CHATBOT. YOU ARE AN OPERATIONAL EXPERIENCED "
+        "DEVELOPER WITH AGENT WITH TOOLS."
     )
+    assert agent_instruction in content
 
     # Check critical behavior rules
     assert "CRITICAL BEHAVIOR RULES:" in content

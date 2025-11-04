@@ -76,7 +76,10 @@ class TestJsonToolParsing:
     async def test_parse_json_tool_calls_nested_braces(self):
         """Capture behavior with nested braces in JSON."""
         # Arrange
-        text = '{"tool": "update_file", "args": {"file_path": "test.py", "pattern": "def func():", "replacement": "def func(arg: dict = {}):"}}'
+        text = (
+              '{"tool": "update_file", "args": {"file_path": "test.py", '
+              '"pattern": "def func():", "replacement": "def func(arg: dict = {}):"}}'
+          )
         tool_callback = AsyncMock()
 
         # Act

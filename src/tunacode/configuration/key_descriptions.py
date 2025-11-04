@@ -29,7 +29,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="default_model",
         description="Which AI model TunaCode uses by default",
         example="openrouter:openai/gpt-4.1",
-        help_text="Format: provider:model-name. Examples: openai:gpt-4, anthropic:claude-3-sonnet, google:gemini-pro",
+        help_text="Format: provider:model-name. Examples: openai:gpt-4, "
+          "anthropic:claude-3-sonnet, google:gemini-pro",
         category="AI Models",
     ),
     # Environment variables (API Keys)
@@ -37,7 +38,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="OPENAI_API_KEY",
         description="Your OpenAI API key for GPT models",
         example="sk-proj-abc123...",
-        help_text="Get this from https://platform.openai.com/api-keys. Required for OpenAI models like GPT-4.",
+        help_text="Get this from https://platform.openai.com/api-keys. "
+          "Required for OpenAI models like GPT-4.",
         category="API Keys",
         is_sensitive=True,
         service_type="openai",
@@ -55,7 +57,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="OPENROUTER_API_KEY",
         description="Your OpenRouter API key for accessing multiple models",
         example="sk-or-v1-abc123...",
-        help_text="Get this from https://openrouter.ai/keys. Gives access to many different AI models.",
+        help_text="Get this from https://openrouter.ai/keys. "
+          "Gives access to many different AI models.",
         category="API Keys",
         is_sensitive=True,
         service_type="openrouter",
@@ -73,7 +76,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="OPENAI_BASE_URL",
         description="Custom API endpoint for OpenAI-compatible services",
         example="https://api.cerebras.ai/v1",
-        help_text="Use this to connect to local models (LM Studio, Ollama) or alternative providers like Cerebras.",
+        help_text="Use this to connect to local models (LM Studio, Ollama) or "
+          "alternative providers like Cerebras.",
         category="API Configuration",
     ),
     # Settings
@@ -81,28 +85,32 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="max_retries",
         description="How many times to retry failed API calls",
         example=10,
-        help_text="Higher values = more resilient to temporary API issues, but slower when APIs are down.",
+        help_text="Higher values = more resilient to temporary API issues, "
+          "but slower when APIs are down.",
         category="Behavior Settings",
     ),
     "settings.max_iterations": KeyDescription(
         name="max_iterations",
         description="Maximum conversation turns before stopping",
         example=40,
-        help_text="Prevents infinite loops. TunaCode will stop after this many back-and-forth exchanges.",
+        help_text="Prevents infinite loops. TunaCode will stop after this many "
+          "back-and-forth exchanges.",
         category="Behavior Settings",
     ),
     "settings.tool_ignore": KeyDescription(
         name="tool_ignore",
         description="List of tools TunaCode should not use",
         example=["read_file", "write_file"],
-        help_text="Useful for restricting what TunaCode can do. Empty list means all tools are available.",
+        help_text="Useful for restricting what TunaCode can do. Empty list means "
+          "all tools are available.",
         category="Tool Configuration",
     ),
     "settings.guide_file": KeyDescription(
         name="guide_file",
         description="Name of your project guide file",
         example="AGENTS.md",
-        help_text="TunaCode looks for this file to understand your project. Usually AGENTS.md or README.md.",
+        help_text="TunaCode looks for this file to understand your project. "
+            "Usually AGENTS.md or README.md.",
         category="Project Settings",
     ),
     "settings.fallback_response": KeyDescription(
@@ -116,21 +124,24 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="fallback_verbosity",
         description="How detailed fallback responses should be",
         example="normal",
-        help_text="Options: minimal, normal, detailed. Controls how much TunaCode explains when things go wrong.",
+        help_text="Options: minimal, normal, detailed. Controls how much "
+            "TunaCode explains when things go wrong.",
         category="Behavior Settings",
     ),
     "settings.context_window_size": KeyDescription(
         name="context_window_size",
         description="Maximum tokens TunaCode can use in one conversation",
         example=200000,
-        help_text="Larger values = TunaCode remembers more context, but costs more. Adjust based on your model's limits.",
+        help_text="Larger values = TunaCode remembers more context, but costs more. "
+            "Adjust based on your model's limits.",
         category="Performance Settings",
     ),
     "settings.enable_streaming": KeyDescription(
         name="enable_streaming",
         description="Show AI responses as they're generated",
         example=True,
-        help_text="When true, you see responses appear word-by-word. When false, you wait for complete responses.",
+        help_text="When true, you see responses appear word-by-word. "
+            "When false, you wait for complete responses.",
         category="User Experience",
     ),
     # Ripgrep settings
@@ -138,7 +149,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="ripgrep.use_bundled",
         description="Use TunaCode's built-in ripgrep instead of system version",
         example=False,
-        help_text="Usually false is better - uses your system's ripgrep which may be newer/faster.",
+        help_text="Usually false is better - uses your system's ripgrep which may be "
+            "newer/faster.",
         category="Search Settings",
     ),
     "settings.ripgrep.timeout": KeyDescription(
@@ -159,7 +171,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="ripgrep.max_results",
         description="Maximum number of search results to return",
         example=100,
-        help_text="Prevents overwhelming output. Increase if you need more comprehensive search results.",
+        help_text="Prevents overwhelming output. Increase if you need more "
+            "comprehensive search results.",
         category="Search Settings",
     ),
     "settings.ripgrep.enable_metrics": KeyDescription(
@@ -195,7 +208,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="tutorial_declined",
         description="Whether user declined the tutorial",
         example=True,
-        help_text="Automatically set when you skip the tutorial. Prevents repeated tutorial prompts.",
+        help_text="Automatically set when you skip the tutorial. Prevents repeated "
+            "tutorial prompts.",
         category="User Experience",
     ),
     # MCP Servers
@@ -203,7 +217,8 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         name="mcpServers",
         description="Model Context Protocol server configurations",
         example={},
-        help_text="Advanced feature for connecting external tools and services. Usually empty for basic usage.",
+        help_text="Advanced feature for connecting external tools and services. "
+            "Usually empty for basic usage.",
         category="Advanced Features",
     ),
 }
@@ -243,8 +258,10 @@ def get_configuration_glossary() -> str:
 [bold]Configuration Key Glossary[/bold]
 
 [cyan]What are configuration keys?[/cyan]
-Configuration keys are setting names (like 'default_model', 'max_retries') that control how TunaCode behaves.
-Think of them like preferences in any app - they let you customize TunaCode to work the way you want.
+Configuration keys are setting names (like 'default_model', 'max_retries') that
+control how TunaCode behaves.
+Think of them like preferences in any app - they let you customize TunaCode to work
+the way you want.
 
 [cyan]Key Categories:[/cyan]
 • [yellow]AI Models[/yellow]: Which AI to use (GPT-4, Claude, etc.)

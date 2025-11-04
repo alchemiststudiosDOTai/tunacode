@@ -74,7 +74,8 @@ class SlashCommandLoader:
                 logger.error(f"Error scanning {directory}: {e}")
 
         logger.info(
-            f"Discovered {len(all_commands)} slash commands from {stats['scanned_dirs']} directories"
+            f"Discovered {len(all_commands)} slash commands from "
+            f"{stats['scanned_dirs']} directories"
         )
         return CommandDiscoveryResult(all_commands, conflicts, errors, stats)
 
