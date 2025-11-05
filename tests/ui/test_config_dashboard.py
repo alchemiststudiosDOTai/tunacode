@@ -59,7 +59,7 @@ class TestConfigDashboard:
 
     def test_init_without_user_config(self):
         """Test initialization without user configuration (loads from file)."""
-        with patch("tunacode.ui.config_dashboard.load_config") as mock_load_config:
+        with patch("tunacode.utils.user_configuration.load_config") as mock_load_config:
             mock_load_config.return_value = {"default_model": "loaded:model"}
 
             dashboard = ConfigDashboard()
@@ -69,7 +69,7 @@ class TestConfigDashboard:
 
     def test_init_with_no_config_available(self):
         """Test initialization when no configuration is available."""
-        with patch("tunacode.ui.config_dashboard.load_config") as mock_load_config:
+        with patch("tunacode.utils.user_configuration.load_config") as mock_load_config:
             mock_load_config.return_value = None
 
             with pytest.raises(ValueError, match="No user configuration found"):

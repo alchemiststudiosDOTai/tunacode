@@ -340,10 +340,10 @@ class TestQuickStartCommand:
 
         # Mock tutorial manager
         with patch(
-            "tunacode.cli.commands.implementations.quickstart.TutorialManager"
+            "tunacode.tutorial.TutorialManager"
         ) as mock_tutorial_cls:
             mock_tutorial = mock_tutorial_cls.return_value
-            mock_tutorial.run_tutorial.return_value = True
+            mock_tutorial.run_tutorial = AsyncMock(return_value=True)
 
             await command.execute([], context)
 
@@ -364,10 +364,10 @@ class TestQuickStartCommand:
 
         # Mock tutorial manager
         with patch(
-            "tunacode.cli.commands.implementations.quickstart.TutorialManager"
+            "tunacode.tutorial.TutorialManager"
         ) as mock_tutorial_cls:
             mock_tutorial = mock_tutorial_cls.return_value
-            mock_tutorial.run_tutorial.return_value = False
+            mock_tutorial.run_tutorial = AsyncMock(return_value=False)
 
             await command.execute([], context)
 
@@ -384,11 +384,17 @@ class TestQuickStartCommand:
         # Create command instance
         command = QuickStartCommand()
 
-        # Mock import error
-        with patch(
-            "tunacode.cli.commands.implementations.quickstart.TutorialManager",
-            side_effect=ImportError,
-        ):
+        # Mock import error by making the import fail
+        import sys
+        import builtins
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "tunacode.tutorial" or "tutorial" in name:
+                raise ImportError("Tutorial module not available")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
             await command.execute([], context)
 
         mock_ui.error.assert_called_once_with("Tutorial system is not available")
