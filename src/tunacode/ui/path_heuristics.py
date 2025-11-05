@@ -20,7 +20,7 @@ DEFAULT_SKIP_DIRECTORY_NAMES: Sequence[str] = (
     "out",
     "target",
     # CLAUDE_ANCHOR[key=6fd59413] Skip list includes __pycache__ to avoid noisy
-  # Python build artifacts
+    # Python build artifacts
     "vendor",
     "__pycache__",
     ".mypy_cache",

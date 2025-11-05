@@ -183,8 +183,8 @@ async def stream_model_request_node(
                                             and len(pre_first_delta_text) <= 100
                                             and not seeded_prefix_sent
                                         ):
-                                            # If delta contains the candidate, 
-                                        # emit the prefix up to that point
+                                            # If delta contains the candidate,
+                                            # emit the prefix up to that point
                                             probe = pre_first_delta_text[:20]
                                             idx = pre_first_delta_text.find(probe)
                                             if idx > 0:
@@ -196,11 +196,13 @@ async def stream_model_request_node(
                                                         f"[src] seeded_prefix idx={idx} "
                                                         f"len={len(prefix)} preview={repr(prefix)}"
                                                     )
-                                                    state_manager.session._debug_events.append(preview_msg)
+                                                    state_manager.session._debug_events.append(
+                                                        preview_msg
+                                                    )
                                             elif idx == -1:
-                                                # Delta text does not appear in pre-text; 
+                                                # Delta text does not appear in pre-text;
                                                 # emit the pre-text directly as a seed
-                                                # Safe for short pre-text (e.g., first word) 
+                                                # Safe for short pre-text (e.g., first word)
                                                 # to avoid duplication
                                                 if pre_first_delta_text.strip():
                                                     await streaming_callback(pre_first_delta_text)
@@ -211,7 +213,9 @@ async def stream_model_request_node(
                                                         f"[src] seeded_prefix_direct "
                                                         f"len={text_len} preview={preview_repr}"
                                                     )
-                                                    state_manager.session._debug_events.append(direct_msg)
+                                                    state_manager.session._debug_events.append(
+                                                        direct_msg
+                                                    )
                                             else:
                                                 # idx == 0 means pre-text is already the
                                                 # start of delta; skip
@@ -236,9 +240,10 @@ async def stream_model_request_node(
                                     # Store debug event summary for later display
                                     chunk_preview = repr(
                                         event.delta.content_delta[:5]
-                                        if event.delta.content_delta else ''
+                                        if event.delta.content_delta
+                                        else ""
                                     )
-                                    chunk_len = len(event.delta.content_delta or '')
+                                    chunk_len = len(event.delta.content_delta or "")
                                     delta_msg = (
                                         f"[src] first_delta_received ts_ns={ts_ns} "
                                         f"chunk_repr={chunk_preview} len={chunk_len}"

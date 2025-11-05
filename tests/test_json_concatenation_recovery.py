@@ -220,9 +220,7 @@ class TestParseArgs:
         result = parse_args('{"first": 1}{"second": 2}')
 
         concatenated_json = '{"first": 1}{"second": 2}'
-        mock_safe_parse.assert_called_once_with(
-            concatenated_json, allow_concatenated=True
-        )
+        mock_safe_parse.assert_called_once_with(concatenated_json, allow_concatenated=True)
         assert result == {"recovered": True}
 
     @patch("tunacode.cli.repl_components.command_parser.retry_json_parse")

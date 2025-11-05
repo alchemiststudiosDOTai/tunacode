@@ -98,7 +98,8 @@ class ToolHandler:
             message = (
                 f"Tool '{tool_name}' execution cancelled before running.\n"
                 f"{guidance_section}\n"
-                "Do not assume the operation succeeded; request updated guidance or offer alternatives."
+                "Do not assume the operation succeeded; "
+                "request updated guidance or offer alternatives."
             )
             create_user_message(message, self.state)
 

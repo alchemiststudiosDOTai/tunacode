@@ -386,5 +386,3 @@ class TestCommandEdgeCases:
             mock_popen.assert_not_called()
             # One of the UI functions should have been called to inform the user
             assert mock_info.called or mock_success.called
-
-
