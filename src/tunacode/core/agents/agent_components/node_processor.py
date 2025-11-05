@@ -110,12 +110,13 @@ async def _process_node(
                             part.content = cleaned_content
                             # Log this as an issue
                             pending_tools_count = sum(
-                                1 for p in node.model_response.parts 
-                                if getattr(p, 'part_kind', '') == 'tool-call'
+                                1
+                                for p in node.model_response.parts
+                                if getattr(p, "part_kind", "") == "tool-call"
                             )
                             logger.warning(
                                 f"Agent attempted premature completion with {pending_tools_count} "
-                                    f"pending tools"
+                                f"pending tools"
                             )
                         else:
                             # Check if content suggests pending actions
@@ -139,7 +140,7 @@ async def _process_node(
                                 phrase in combined_text for phrase in pending_phrases
                             )
 
-                            # Also check for action verbs at end of content 
+                            # Also check for action verbs at end of content
                             # suggesting incomplete action
                             action_endings = [
                                 "checking",
@@ -173,7 +174,8 @@ async def _process_node(
                                     if ends_with_action:
                                         action_verb = (
                                             combined_text.split()[-1]
-                                            if combined_text.split() else ''
+                                            if combined_text.split()
+                                            else ""
                                         )
                                         await ui.muted(
                                             f"   Content ends with action verb: '{action_verb}'"
@@ -490,7 +492,7 @@ async def _process_tool_calls(
                         f"[bold #00d7ff]{tool_desc}...[/bold #00d7ff]", state_manager
                     )
 
-                    # Execute the tool with robust error handling 
+                    # Execute the tool with robust error handling
                     # so one failure doesn't crash the run
                     try:
                         await tool_callback(part, node)
@@ -508,7 +510,7 @@ async def _process_tool_calls(
                         if getattr(state_manager.session, "show_thoughts", False):
                             await ui.warning(
                                 f"❌ Tool failed: {getattr(part, 'tool_name', '<unknown>')} — "
-                                    f"continuing"
+                                f"continuing"
                             )
 
     # Track tool calls in session

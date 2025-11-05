@@ -59,10 +59,10 @@ def _transform_to_implementation_request(original_request: str) -> str:
 
     # Add clear implementation instruction
     implementation_request = (
-          f"{request}\n\nIMPORTANT: Actually implement and create the file(s) - "
-          "do not just plan or outline. The plan has been approved, "
-          "now execute the implementation."
-      )
+        f"{request}\n\nIMPORTANT: Actually implement and create the file(s) - "
+        "do not just plan or outline. The plan has been approved, "
+        "now execute the implementation."
+    )
 
     return implementation_request
 

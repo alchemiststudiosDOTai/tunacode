@@ -124,9 +124,7 @@ class TestRealWorldScenarios:
         """Test the specific pattern mentioned in the incident report."""
         # This is the exact pattern from the incident report
         concatenated_args = (
-            '{"filepath": "main.py"}'
-            '{"filepath": "__init__.py"}'
-            '{"filepath": "cli/main.py"}'
+            '{"filepath": "main.py"}{"filepath": "__init__.py"}{"filepath": "cli/main.py"}'
         )
 
         # Should not raise an exception due to our recovery mechanism

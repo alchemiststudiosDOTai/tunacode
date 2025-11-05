@@ -245,9 +245,9 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
             current_todos = todo_tool.get_current_todos_sync()
             if current_todos != "No todos found":
                 system_prompt += (
-                    f'\n\n# Current Todo List\n\n'
-                    f'You have existing todos that need attention:\n\n{current_todos}\n\n'
-                    f'Remember to check progress on these todos and update them as you work. '
+                    f"\n\n# Current Todo List\n\n"
+                    f"You have existing todos that need attention:\n\n{current_todos}\n\n"
+                    f"Remember to check progress on these todos and update them as you work. "
                     f'Use todo("list") to see current status anytime.'
                 )
         except Exception as e:

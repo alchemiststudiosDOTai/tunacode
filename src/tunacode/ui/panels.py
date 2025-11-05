@@ -374,7 +374,7 @@ class StreamingAgentPanel:
             # Summarize UI buffer state
             ui_prefix = "[debug]"
             ui_buffer_first5 = repr((self.content or "")[:5])
-            total_len = len(self.content or '')
+            total_len = len(self.content or "")
             lines = [
                 f"{ui_prefix} ui_buffer_first5={ui_buffer_first5} total_len={total_len}",
             ]

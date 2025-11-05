@@ -1,6 +1,9 @@
 import os
 import sys
 import types
+from unittest.mock import patch
+
+import pytest
 
 # Ensure prompt_toolkit is imported when available so real completions are exercised
 try:  # pragma: no cover - environment guard
@@ -104,14 +107,14 @@ except ImportError:
 
     typer.Typer = Typer
     typer.Option = lambda *args, **kwargs: None
-    
+
     # Create testing submodule with CliRunner
     testing = types.ModuleType("typer.testing")
-    
+
     class CliRunner:
         def __init__(self, *args, **kwargs):
             pass
-            
+
         def invoke(self, *args, **kwargs):
             # Return a mock result object
             class Result:
@@ -119,11 +122,12 @@ except ImportError:
                     self.exit_code = 0
                     self.stdout = ""
                     self.stderr = ""
+
             return Result()
-            
+
     testing.CliRunner = CliRunner
     typer.testing = testing
-    
+
     sys.modules["typer"] = typer
     sys.modules["typer.testing"] = testing
 
@@ -454,10 +458,6 @@ if "prompt_toolkit" not in sys.modules:
     sys.modules["prompt_toolkit.search"] = search_mod
     sys.modules["prompt_toolkit.widgets"] = widgets_mod
     sys.modules["prompt_toolkit.patch_stdout"] = patch_stdout_mod
-
-# Import pytest for fixtures
-import pytest
-from unittest.mock import patch
 
 
 @pytest.fixture(autouse=True)

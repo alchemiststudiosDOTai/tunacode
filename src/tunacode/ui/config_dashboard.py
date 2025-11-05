@@ -110,9 +110,7 @@ class ConfigDashboard:
 
                 if len(section_diffs) > self.config.max_section_items:
                     more_count = len(section_diffs) - self.config.max_section_items
-                    section_node.add(
-                        Text(f"[dim]... and {more_count} more[/dim]")
-                    )
+                    section_node.add(Text(f"[dim]... and {more_count} more[/dim]"))
             else:
                 tree.add(f"[dim]{section}[/dim]")
 
@@ -541,7 +539,8 @@ class ConfigDashboard:
         """Display the interactive dashboard.
 
         Args:
-            wait_for_input: If True, wait for user to press Enter. Set to False for non-interactive usage.
+            wait_for_input: If True, wait for user to press Enter.
+                Set to False for non-interactive usage.
         """
         if not self.analysis:
             self.console.print("[red]No configuration analysis available[/red]")

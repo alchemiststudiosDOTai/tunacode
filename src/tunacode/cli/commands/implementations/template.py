@@ -121,8 +121,6 @@ class TemplateCommand(SimpleCommand):
         await ui.muted('  "allowed_tools": ["read_file", "grep", "list_dir", "run_command"]')
         await ui.muted("}")
 
-        # TODO: Implement interactive creation when proper input handling is available
-
     async def _clear_template(self, context: CommandContext) -> None:
         """Clear the currently active template."""
         if hasattr(context.state_manager, "tool_handler") and context.state_manager.tool_handler:
