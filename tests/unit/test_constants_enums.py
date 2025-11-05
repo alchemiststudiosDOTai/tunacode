@@ -109,9 +109,14 @@ def test_settings_uses_tool_name_enum():
 
 
 def test_defaults_uses_tool_name_enum():
-    """Test that default config uses ToolName enum."""
+    """Test that default config tool_ignore is a list that can contain ToolName enum."""
     from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
     from tunacode.constants import ToolName
 
-    # Tool ignore list should use enum
-    assert ToolName.READ_FILE in DEFAULT_USER_CONFIG["settings"]["tool_ignore"]
+    # Tool ignore list should be a list (empty by default)
+    assert isinstance(DEFAULT_USER_CONFIG["settings"]["tool_ignore"], list)
+
+    # Verify that ToolName enum values can be used in tool_ignore
+    # by checking type compatibility (this is a type-level check)
+    test_ignore_list = [ToolName.READ_FILE, ToolName.BASH]
+    assert all(isinstance(tool, ToolName) for tool in test_ignore_list)

@@ -273,7 +273,8 @@ class TestTutorialManager:
 
         with patch.object(tutorial_manager, "state_manager") as mock_sm:
             mock_sm.session.user_config = {}
-            result = await tutorial_manager.offer_tutorial()
+            with patch("tunacode.tutorial.manager.ui", mock_ui):
+                result = await tutorial_manager.offer_tutorial()
 
         assert result
         mock_ui.panel.assert_called_once()
@@ -286,8 +287,9 @@ class TestTutorialManager:
 
         with patch.object(tutorial_manager, "state_manager") as mock_sm:
             mock_sm.session.user_config = {}
-            with patch("tunacode.tutorial.manager.mark_tutorial_declined") as mock_decline:
-                result = await tutorial_manager.offer_tutorial()
+            with patch("tunacode.tutorial.manager.ui", mock_ui):
+                with patch("tunacode.tutorial.manager.mark_tutorial_declined") as mock_decline:
+                    result = await tutorial_manager.offer_tutorial()
 
         assert not result
         mock_decline.assert_called_once()
@@ -338,12 +340,12 @@ class TestQuickStartCommand:
 
         # Mock tutorial manager
         with patch(
-            "tunacode.cli.commands.implementations.quickstart.TutorialManager"
+            "tunacode.tutorial.TutorialManager"
         ) as mock_tutorial_cls:
             mock_tutorial = mock_tutorial_cls.return_value
-            mock_tutorial.run_tutorial.return_value = True
+            mock_tutorial.run_tutorial = AsyncMock(return_value=True)
 
-            await command.execute(context)
+            await command.execute([], context)
 
         mock_tutorial_cls.assert_called_once_with(context.state_manager)
         mock_tutorial.run_tutorial.assert_called_once()
@@ -362,12 +364,12 @@ class TestQuickStartCommand:
 
         # Mock tutorial manager
         with patch(
-            "tunacode.cli.commands.implementations.quickstart.TutorialManager"
+            "tunacode.tutorial.TutorialManager"
         ) as mock_tutorial_cls:
             mock_tutorial = mock_tutorial_cls.return_value
-            mock_tutorial.run_tutorial.return_value = False
+            mock_tutorial.run_tutorial = AsyncMock(return_value=False)
 
-            await command.execute(context)
+            await command.execute([], context)
 
         mock_ui.info.assert_called_once()
 
@@ -382,12 +384,18 @@ class TestQuickStartCommand:
         # Create command instance
         command = QuickStartCommand()
 
-        # Mock import error
-        with patch(
-            "tunacode.cli.commands.implementations.quickstart.TutorialManager",
-            side_effect=ImportError,
-        ):
-            await command.execute(context)
+        # Mock import error by making the import fail
+        import sys
+        import builtins
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "tunacode.tutorial" or "tutorial" in name:
+                raise ImportError("Tutorial module not available")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            await command.execute([], context)
 
         mock_ui.error.assert_called_once_with("Tutorial system is not available")
 

@@ -57,23 +57,23 @@ class TestConfigDashboard:
         assert dashboard.console is not None
         assert dashboard.config == DashboardConfig()
 
-    def test_init_without_user_config(self, mocker):
+    def test_init_without_user_config(self):
         """Test initialization without user configuration (loads from file)."""
-        mock_load_config = mocker.patch("tunacode.ui.config_dashboard.load_config")
-        mock_load_config.return_value = {"default_model": "loaded:model"}
+        with patch("tunacode.utils.user_configuration.load_config") as mock_load_config:
+            mock_load_config.return_value = {"default_model": "loaded:model"}
 
-        dashboard = ConfigDashboard()
+            dashboard = ConfigDashboard()
 
-        mock_load_config.assert_called_once()
-        assert dashboard.analysis is not None
+            mock_load_config.assert_called_once()
+            assert dashboard.analysis is not None
 
-    def test_init_with_no_config_available(self, mocker):
+    def test_init_with_no_config_available(self):
         """Test initialization when no configuration is available."""
-        mock_load_config = mocker.patch("tunacode.ui.config_dashboard.load_config")
-        mock_load_config.return_value = None
+        with patch("tunacode.utils.user_configuration.load_config") as mock_load_config:
+            mock_load_config.return_value = None
 
-        with pytest.raises(ValueError, match="No user configuration found"):
-            ConfigDashboard()
+            with pytest.raises(ValueError, match="No user configuration found"):
+                ConfigDashboard()
 
     def test_load_analysis(self):
         """Test configuration analysis loading."""
@@ -308,55 +308,55 @@ class TestConfigDashboard:
 class TestUtilityFunctions:
     """Test suite for utility functions."""
 
-    def test_show_config_dashboard_with_config(self, mocker):
+    def test_show_config_dashboard_with_config(self):
         """Test show_config_dashboard function with config."""
-        mock_dashboard = mocker.patch("tunacode.ui.config_dashboard.ConfigDashboard")
-        mock_instance = Mock()
-        mock_dashboard.return_value = mock_instance
+        with patch("tunacode.ui.config_dashboard.ConfigDashboard") as mock_dashboard:
+            mock_instance = Mock()
+            mock_dashboard.return_value = mock_instance
 
-        user_config = {"test": "config"}
-        show_config_dashboard(user_config)
+            user_config = {"test": "config"}
+            show_config_dashboard(user_config)
 
-        mock_dashboard.assert_called_once_with(user_config)
-        mock_instance.show.assert_called_once()
+            mock_dashboard.assert_called_once_with(user_config)
+            mock_instance.show.assert_called_once()
 
-    def test_show_config_dashboard_without_config(self, mocker):
+    def test_show_config_dashboard_without_config(self):
         """Test show_config_dashboard function without config."""
-        mock_dashboard = mocker.patch("tunacode.ui.config_dashboard.ConfigDashboard")
-        mock_instance = Mock()
-        mock_dashboard.return_value = mock_instance
+        with patch("tunacode.ui.config_dashboard.ConfigDashboard") as mock_dashboard:
+            mock_instance = Mock()
+            mock_dashboard.return_value = mock_instance
 
-        show_config_dashboard()
+            show_config_dashboard()
 
-        mock_dashboard.assert_called_once_with(None)
-        mock_instance.show.assert_called_once()
+            mock_dashboard.assert_called_once_with(None)
+            mock_instance.show.assert_called_once()
 
-    def test_generate_config_report_with_config(self, mocker):
+    def test_generate_config_report_with_config(self):
         """Test generate_config_report function with config."""
-        mock_dashboard = mocker.patch("tunacode.ui.config_dashboard.ConfigDashboard")
-        mock_instance = Mock()
-        mock_instance.generate_report.return_value = "test report"
-        mock_dashboard.return_value = mock_instance
+        with patch("tunacode.ui.config_dashboard.ConfigDashboard") as mock_dashboard:
+            mock_instance = Mock()
+            mock_instance.generate_report.return_value = "test report"
+            mock_dashboard.return_value = mock_instance
 
-        user_config = {"test": "config"}
-        result = generate_config_report(user_config)
+            user_config = {"test": "config"}
+            result = generate_config_report(user_config)
 
-        assert result == "test report"
-        mock_dashboard.assert_called_once_with(user_config)
-        mock_instance.generate_report.assert_called_once()
+            assert result == "test report"
+            mock_dashboard.assert_called_once_with(user_config)
+            mock_instance.generate_report.assert_called_once()
 
-    def test_generate_config_report_without_config(self, mocker):
+    def test_generate_config_report_without_config(self):
         """Test generate_config_report function without config."""
-        mock_dashboard = mocker.patch("tunacode.ui.config_dashboard.ConfigDashboard")
-        mock_instance = Mock()
-        mock_instance.generate_report.return_value = "test report"
-        mock_dashboard.return_value = mock_instance
+        with patch("tunacode.ui.config_dashboard.ConfigDashboard") as mock_dashboard:
+            mock_instance = Mock()
+            mock_instance.generate_report.return_value = "test report"
+            mock_dashboard.return_value = mock_instance
 
-        result = generate_config_report()
+            result = generate_config_report()
 
-        assert result == "test report"
-        mock_dashboard.assert_called_once_with(None)
-        mock_instance.generate_report.assert_called_once()
+            assert result == "test report"
+            mock_dashboard.assert_called_once_with(None)
+            mock_instance.generate_report.assert_called_once()
 
 
 class TestIntegration:

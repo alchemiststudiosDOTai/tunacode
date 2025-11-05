@@ -19,8 +19,12 @@ STUBS_DIR = os.path.join(os.path.dirname(__file__), "stubs")
 if os.path.isdir(STUBS_DIR):
     sys.path.insert(0, STUBS_DIR)
 
-# Stub rich if not installed
-if "rich" not in sys.modules:
+# Stub rich if not installed - first try to import the real package
+try:
+    import rich  # type: ignore  # noqa: F401
+    # Rich is installed, don't create stub
+except ImportError:
+    # Rich not installed, create minimal stub
     rich = types.ModuleType("rich")
     console_mod = types.ModuleType("rich.console")
 

@@ -38,17 +38,16 @@ class TestParseJsonToolCalls:
         """Test that retry logic works when JSON parsing eventually succeeds."""
         # This will simulate a transient failure that succeeds on retry
         parse_attempts = 0
+        original_loads = json.loads
 
-        async def mock_retry_parse_impl(*args, **kwargs):
+        def mock_loads_impl(s, *args, **kwargs):
             nonlocal parse_attempts
             parse_attempts += 1
             if parse_attempts < 3:
                 raise json.JSONDecodeError("Expecting value", "", 0)
-            return {"tool": "bash", "args": {"command": "ls"}}
+            return original_loads(s, *args, **kwargs)
 
-        mock_retry_parse = AsyncMock(side_effect=mock_retry_parse_impl)
-
-        with patch("tunacode.core.agents.utils.retry_json_parse_async", new=mock_retry_parse):
+        with patch("json.loads", side_effect=mock_loads_impl):
             text = '{"tool": "bash", "args": {"command": "ls"}}'
 
             tool_callback = AsyncMock()
@@ -260,17 +259,16 @@ class TestRetryBehavior:
     async def test_successful_recovery_within_retries(self):
         """Test successful JSON parsing after a few retries."""
         attempt_count = 0
+        original_loads = json.loads
 
-        async def mock_parse_impl(*args, **kwargs):
+        def mock_loads_impl(s, *args, **kwargs):
             nonlocal attempt_count
             attempt_count += 1
             if attempt_count < 4:
                 raise json.JSONDecodeError("Transient error", "", 0)
-            return {"tool": "bash", "args": {"command": "echo 'success'"}}
+            return original_loads(s, *args, **kwargs)
 
-        mock_parse = AsyncMock(side_effect=mock_parse_impl)
-
-        with patch("tunacode.core.agents.utils.retry_json_parse_async", new=mock_parse):
+        with patch("json.loads", side_effect=mock_loads_impl):
             text = '{"tool": "bash", "args": {"command": "echo \'success\'"}}'
 
             tool_callback = AsyncMock()
