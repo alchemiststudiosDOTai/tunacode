@@ -1,12 +1,24 @@
 """
 Tool handling business logic, separated from UI concerns.
+
+Refactored to use composition with specialized authorization components:
+- AuthorizationPolicy: Determines if tools require confirmation
+- ToolRejectionNotifier: Handles agent communication on rejection
+- ConfirmationRequestFactory: Creates confirmation requests for UI
+
+This eliminates the "God Object" anti-pattern by delegating to focused components.
 """
 
 from typing import Optional
 
-from tunacode.constants import READ_ONLY_TOOLS
-from tunacode.core.agents.agent_components.agent_helpers import create_user_message
 from tunacode.core.state import StateManager
+from tunacode.core.tool_authorization import (
+    AuthContext,
+    AuthorizationPolicy,
+    ConfirmationRequestFactory,
+    ToolRejectionNotifier,
+    create_default_authorization_policy,
+)
 from tunacode.templates.loader import Template
 from tunacode.types import (
     ToolArgs,
@@ -17,15 +29,49 @@ from tunacode.types import (
 
 
 class ToolHandler:
-    """Handles tool confirmation logic separate from UI."""
+    """Coordinates tool authorization, confirmation, and rejection handling.
 
-    def __init__(self, state_manager: StateManager):
+    Refactored to use Facade pattern, delegating to specialized components:
+    - AuthorizationPolicy: Determines if confirmation is needed
+    - ToolRejectionNotifier: Handles agent communication
+    - ConfirmationRequestFactory: Creates confirmation requests
+
+    This eliminates the "God Object" anti-pattern by separating concerns.
+    """
+
+    def __init__(
+        self,
+        state_manager: StateManager,
+        policy: Optional[AuthorizationPolicy] = None,
+        notifier: Optional[ToolRejectionNotifier] = None,
+        factory: Optional[ConfirmationRequestFactory] = None,
+    ):
+        """Initialize tool handler with injected dependencies.
+
+        Dependencies are optional to maintain backward compatibility during
+        refactoring. Defaults are provided for gradual migration.
+
+        Args:
+            state_manager: State manager for session state access
+            policy: Authorization policy (default: create standard policy)
+            notifier: Rejection notifier (default: create standard notifier)
+            factory: Confirmation factory (default: create standard factory)
+        """
         self.state = state_manager
-        self.active_template: Optional[Template] = None
+        self.active_template: Optional[Template] = None  # Kept for compatibility
+
+        # Inject dependencies with defaults
+        self._policy = policy or create_default_authorization_policy()
+        self._notifier = notifier or ToolRejectionNotifier()
+        self._factory = factory or ConfirmationRequestFactory()
+
+        # Register self with state manager if not already set
+        # This ensures AuthContext can read active_template
+        if state_manager.tool_handler is None:
+            state_manager.set_tool_handler(self)
 
     def set_active_template(self, template: Optional[Template]) -> None:
-        """
-        Set the currently active template.
+        """Set the currently active template.
 
         Args:
             template: The template to activate, or None to clear the active template.
@@ -33,103 +79,59 @@ class ToolHandler:
         self.active_template = template
 
     def should_confirm(self, tool_name: ToolName) -> bool:
-        """
-        Determine if a tool requires confirmation.
+        """Determine if a tool requires confirmation.
 
         Args:
             tool_name: Name of the tool to check.
 
         Returns:
-            bool: True if confirmation is required, False otherwise.
+            True if confirmation is required, False otherwise.
         """
-        # Never confirm present_plan - it has its own approval flow
-        if tool_name == "present_plan":
-            return False
-
-        # Block write tools in plan mode
-        if self.is_tool_blocked_in_plan_mode(tool_name):
-            return True  # Force confirmation for blocked tools
-
-        # Skip confirmation for read-only tools
-        if is_read_only_tool(tool_name):
-            return False
-
-        # Check if tool is allowed by active template
-        if self.active_template and self.active_template.allowed_tools:
-            if tool_name in self.active_template.allowed_tools:
-                return False
-
-        return not (self.state.session.yolo or tool_name in self.state.session.tool_ignore)
+        context = AuthContext.from_state(self.state)
+        return self._policy.should_confirm(tool_name, context)
 
     def is_tool_blocked_in_plan_mode(self, tool_name: ToolName) -> bool:
-        """Check if tool is blocked in plan mode."""
-        if not self.state.is_plan_mode():
-            return False
+        """Check if tool is blocked in plan mode.
 
-        # Allow present_plan tool to end planning phase
-        if tool_name == "present_plan":
-            return False
+        Args:
+            tool_name: Name of the tool to check.
 
-        # Allow read-only tools
-        return not is_read_only_tool(tool_name)
+        Returns:
+            True if tool is blocked in plan mode, False otherwise.
+        """
+        context = AuthContext.from_state(self.state)
+        return self._policy.is_tool_blocked(tool_name, context)
 
     def process_confirmation(self, response: ToolConfirmationResponse, tool_name: ToolName) -> bool:
-        """
-        Process the confirmation response.
+        """Process the confirmation response.
+
+        Handles skip_future preference and rejection notification.
 
         Args:
             response: The confirmation response from the user.
             tool_name: Name of the tool being confirmed.
 
         Returns:
-            bool: True if tool should proceed, False if aborted.
+            True if tool should proceed, False if aborted.
         """
         if response.skip_future:
             self.state.session.tool_ignore.append(tool_name)
 
         if not response.approved or response.abort:
-            guidance = getattr(response, "instructions", "").strip()
-            # CLAUDE_ANCHOR[3c8b1f70]: Route user rejection guidance back to the agent.
-            if guidance:
-                guidance_section = f"User guidance:\n{guidance}"
-            else:
-                guidance_section = "User cancelled without additional instructions."
-
-            message = (
-                f"Tool '{tool_name}' execution cancelled before running.\n"
-                f"{guidance_section}\n"
-                "Do not assume the operation succeeded; "
-                "request updated guidance or offer alternatives."
-            )
-            create_user_message(message, self.state)
+            self._notifier.notify_rejection(tool_name, response, self.state)
 
         return response.approved and not response.abort
 
     def create_confirmation_request(
         self, tool_name: ToolName, args: ToolArgs
     ) -> ToolConfirmationRequest:
-        """
-        Create a confirmation request from tool information.
+        """Create a confirmation request from tool information.
 
         Args:
             tool_name: Name of the tool.
             args: Tool arguments.
 
         Returns:
-            ToolConfirmationRequest: The confirmation request.
+            Structured confirmation request for UI.
         """
-        filepath = args.get("filepath")
-        return ToolConfirmationRequest(tool_name=tool_name, args=args, filepath=filepath)
-
-
-def is_read_only_tool(tool_name: str) -> bool:
-    """
-    Check if a tool is read-only (safe to execute without confirmation).
-
-    Args:
-        tool_name: Name of the tool to check.
-
-    Returns:
-        bool: True if the tool is read-only, False otherwise.
-    """
-    return tool_name in READ_ONLY_TOOLS
+        return self._factory.create(tool_name, args)
