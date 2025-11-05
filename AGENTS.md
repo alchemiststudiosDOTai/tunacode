@@ -15,7 +15,7 @@ Act: Search the tests/ directory for existing coverage.
 - Never begin coding until the objective is **explicitly defined**. If unclear, ask questions or use best practices.
 - Always use `.venv` and `uv` for package management.
 - Small, focused diffs only. Commit frequently.
-- As needed, use the MCP tool get_code_context_exa to ground code context:
+- As needed, use the MCP tool get_code_context_exa:
   - When you need code examples, docs, or implementation patterns from open source projects, use this tool.
   - Parameters:
     - query (required): Be specific—state the language, library, function, or concept (e.g., "React useState examples", "Python pandas filter").
@@ -114,34 +114,48 @@ You are asked to implement a new API client.
 6. Add a `delta_summaries/api_change_logs.json` entry documenting the new endpoint.
 7. Commit with a focused diff.
 
-## RAG-TOOL
+## KB TOOL
 
-In /llm-agent-tools/rag_modules/ a tool exists to search the .claude/ directory via RAG
+- Capture every meaningful fix, feature, or debugging pattern immediately with `claude-kb add` (pick the right entry type, set `--component`, keep the summary actionable, and include error + solution context).
+- If you are iterating on an existing pattern, prefer `claude-kb update` so history stays linear; the command fails loudly if the entry is missing—stop and audit instead of recreating it.
+- Once the entry is accurate, run `claude-kb sync --verbose` to refresh `.claude/manifest.json` and surface drift against the repo.
+- Finish with `claude-kb validate` to guarantee schema integrity before you move on; do not skip even for small edits.
+- When cleaning up stale knowledge, use `claude-kb delete …` and immediately re-run `sync` + `validate` so Git reflects the removal.
+- Treat the KB like production code: review diffs, keep entries typed, and never leave `.claude/` out of sync with the changes you just shipped.
 
-/llm-agent-tools/rag_modules/rag-cli.sh index # Index .claude/ directory
-/llm-agent-tools/rag_modules/rag-cli.sh index --full # Full reindex
-/llm-agent-tools/rag_modules/rag-cli.sh search "query" # Search across .claude/
-/llm-agent-tools/rag_modules/rag-cli.sh stats # Show index stats
+.claude layout
+The tool keeps everything under .claude/ and will create the folders on demand:
 
-## Filtered / formatted search
+.claude/
+metadata/ component summaries
+debug_history/ debugging timelines
+qa/ question & answer entries
+code_index/ file references
+patterns/ reusable fixes or snippets
+cheatsheets/ quick reference sections
+manifest.json last sync snapshot
+Everyday workflow
 
-/llm-agent-tools/rag_modules/rag-cli.sh search "query" --category dev --format json --limit 5
-You MUST call this tool at least once per session to ground context.
-Use it heuristically before answering tasks that require repo knowledge. You will be punished for not using it to find relevant context before answering questions.
+# create a typed entry
 
-**Problem**: Search for "query regarding issue " in the .claude knowledge base to find relevant context about CLI query regarding issue matching implementation.
+claude-kb add pattern --component ui.auth --summary "Retry login" \
+ --error "Explain retry UX" --solution "Link to pattern doc"
 
-```bash
-# First index the .claude directory
-./rag-cli.sh index --dir .claude
+# modify an existing entry (errors when the item is missing)
 
-# Search for specific content
-# Use your own query
-./rag-cli.sh search " " --format text
+claude-kb update pattern --component ui.auth \
+ --error "Retry login" --solution "Updated copy"
 
-# Results found:
-# 1. behavior_changes.json - CLI query regarding issue  matching enhancement details
-# 2. file_classifications.json - Test file classification for query regarding issue  matching
-```
+# list or validate your KB
 
----
+claude-kb list --type pattern
+claude-kb validate
+
+# sync manifest and inspect git drift
+
+claude-kb sync --verbose
+claude-kb diff --since HEAD~3
+
+# remove stale data
+
+claude-kb delete pattern --component ui.auth

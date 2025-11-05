@@ -385,7 +385,6 @@ class TestQuickStartCommand:
         command = QuickStartCommand()
 
         # Mock import error by making the import fail
-        import sys
         import builtins
         real_import = builtins.__import__
 
