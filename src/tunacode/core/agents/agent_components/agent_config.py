@@ -137,9 +137,11 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
     # Check module-level cache
     if model in _AGENT_CACHE:
         # Verify cache is still valid (check for config changes)
+        settings = state_manager.session.user_config.get("settings", {})
         current_version = hash(
             (
-                str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
+                str(settings.get("max_retries", 3)),
+                str(settings.get("tool_strict_validation", False)),
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )
