@@ -82,7 +82,6 @@ class TestAgentCreation:
         self.state_manager.session = Mock()
         self.state_manager.session.agents = {}
         self.state_manager.session.user_config = {"settings": {"max_retries": 3}}
-        self.state_manager.is_plan_mode = Mock(return_value=False)
         self.state_manager.todos = []
         self.state_manager.session.todos = []
         clear_all_caches()
@@ -118,7 +117,7 @@ class TestAgentCreation:
         call_kwargs = mock_agent_class.call_args.kwargs
         assert call_kwargs["model"] == model
         assert call_kwargs["system_prompt"] == system_prompt
-        assert len(call_kwargs["tools"]) == 10  # All 10 tools registered
+        assert len(call_kwargs["tools"]) == 9  # All 9 tools registered
         assert call_kwargs["mcp_servers"] == []
 
     def test_get_or_create_agent_cached(self):
@@ -215,8 +214,8 @@ class TestAgentCreation:
         call_kwargs = mock_agent_class.call_args.kwargs
         tools = call_kwargs["tools"]
 
-        # Verify all 10 tools are registered
-        assert len(tools) == 10
+        # Verify all 9 tools are registered
+        assert len(tools) == 9
 
         # Verify each tool has max_retries set
         for tool in tools:

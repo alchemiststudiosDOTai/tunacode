@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "cli.tool_confirmation",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "User feedback from Option 3 tool rejection never reached agent because patch_tool_messages() adds 'Operation aborted by user.' message AFTER the feedback message, and extraction only checked the last message",
+      "solution": "Modified _extract_feedback_from_last_message() in repl.py to check last 3 messages instead of just the last one, accounting for patch_tool_messages() appending after feedback",
+      "date": "2025-11-11T18:25:06.557636695Z"
+    }
+  ],
+  "last_updated": "2025-11-11T18:25:06.557638078Z"
+}

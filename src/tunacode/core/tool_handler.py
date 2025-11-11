@@ -90,18 +90,6 @@ class ToolHandler:
         context = AuthContext.from_state(self.state)
         return self._policy.should_confirm(tool_name, context)
 
-    def is_tool_blocked_in_plan_mode(self, tool_name: ToolName) -> bool:
-        """Check if tool is blocked in plan mode.
-
-        Args:
-            tool_name: Name of the tool to check.
-
-        Returns:
-            True if tool is blocked in plan mode, False otherwise.
-        """
-        context = AuthContext.from_state(self.state)
-        return self._policy.is_tool_blocked(tool_name, context)
-
     def process_confirmation(self, response: ToolConfirmationResponse, tool_name: ToolName) -> bool:
         """Process the confirmation response.
 

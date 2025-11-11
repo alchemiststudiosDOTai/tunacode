@@ -44,9 +44,6 @@ class TestMainAgentCharacterization:
         state_manager.session.error_count = 0
         state_manager.session.consecutive_empty_responses = 0
 
-        # Add is_plan_mode mock for plan mode UI
-        state_manager.is_plan_mode = MagicMock(return_value=False)
-
         return state_manager
 
     def test_check_task_completion_with_marker(self):

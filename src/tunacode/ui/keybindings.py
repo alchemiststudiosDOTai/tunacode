@@ -50,22 +50,4 @@ def create_key_bindings(state_manager: StateManager = None) -> KeyBindings:
 
         os.kill(os.getpid(), signal.SIGINT)
 
-    @kb.add("s-tab")  # shift+tab
-    def _toggle_plan_mode(event):
-        """Toggle between Plan Mode and normal mode."""
-        if state_manager:
-            # Toggle the state
-            if state_manager.is_plan_mode():
-                state_manager.exit_plan_mode()
-                logger.debug("Toggled to normal mode via Shift+Tab")
-            else:
-                state_manager.enter_plan_mode()
-                logger.debug("Toggled to Plan Mode via Shift+Tab")
-
-            # Clear the current buffer and refresh the display
-            event.current_buffer.reset()
-
-            # Force a refresh of the application without exiting
-            event.app.invalidate()
-
     return kb

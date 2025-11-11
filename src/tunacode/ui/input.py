@@ -89,7 +89,6 @@ async def multiline_input(
             "<bold>Enter</bold> to submit • "
             "<bold>Esc + Enter</bold> for new line • "
             "<bold>Esc twice</bold> to cancel • "
-            "<bold>Shift + Tab</bold> toggle plan mode • "
             "<bold>/help</bold> for commands"
             "</darkgrey>"
         )
@@ -101,7 +100,7 @@ async def multiline_input(
     models_registry = ModelsRegistry()
     # Note: Registry will be loaded lazily by the completer when needed
 
-    # Display input area (Plan Mode indicator is handled dynamically in prompt manager)
+    # Display input area
     result = await input(
         "multiline",
         pretext="> ",

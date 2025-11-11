@@ -46,13 +46,11 @@ class AuthContext:
     authorization inputs visible and testable.
 
     Attributes:
-        is_plan_mode: Whether system is in plan mode (blocks write operations)
         yolo_mode: Whether YOLO mode is active (skip all confirmations)
         tool_ignore_list: Tools user has chosen to skip confirmation for
         active_template: Currently active template with allowed tools
     """
 
-    is_plan_mode: bool
     yolo_mode: bool
     tool_ignore_list: tuple[ToolName, ...]  # Immutable tuple
     active_template: Optional[Template]
@@ -73,7 +71,6 @@ class AuthContext:
             active_template = getattr(state.tool_handler, "active_template", None)
 
         return cls(
-            is_plan_mode=state.is_plan_mode(),
             yolo_mode=state.session.yolo,
             tool_ignore_list=tuple(state.session.tool_ignore),
             active_template=active_template,
@@ -92,8 +89,6 @@ class AuthorizationRule(Protocol):
     in priority order by AuthorizationPolicy.
 
     Priority Ranges:
-        0-99: Override rules (present_plan)
-        100-199: Blocking rules (plan mode)
         200-299: Allowlist rules (read-only, templates)
         300-399: User preference rules (YOLO, ignore list)
     """
@@ -122,53 +117,6 @@ class AuthorizationRule(Protocol):
 # =============================================================================
 # Concrete Authorization Rules
 # =============================================================================
-
-
-class PresentPlanRule:
-    """present_plan tool never requires confirmation.
-
-    The present_plan tool has its own approval flow via ExitPlanModeTool,
-    so it should never trigger tool confirmation.
-
-    Priority: 0 (highest - overrides all other rules)
-    """
-
-    def priority(self) -> int:
-        return 0
-
-    def should_allow_without_confirmation(self, tool_name: ToolName, context: AuthContext) -> bool:
-        return tool_name == "present_plan"
-
-
-class PlanModeBlockingRule:
-    """Block write tools in plan mode by forcing confirmation.
-
-    In plan mode, only read-only tools are allowed. Write tools must be blocked
-    by returning False (meaning "don't allow without confirmation"), which forces
-    confirmation to be required. The tool_executor will then show an error message.
-
-    This rule must have higher priority than user preference rules (YOLO, ignore list)
-    to ensure plan mode restrictions cannot be bypassed.
-
-    Priority: 100 (blocks before allowlist rules, overrides user preferences)
-    """
-
-    def priority(self) -> int:
-        return 100
-
-    def should_allow_without_confirmation(self, tool_name: ToolName, context: AuthContext) -> bool:
-        # Not in plan mode - this rule doesn't apply
-        if not context.is_plan_mode:
-            return False
-
-        # In plan mode, we need to force confirmation for write tools
-        # Return False for write tools (don't allow) which causes should_confirm to return True
-        # Return True for read-only tools (allow) which causes should_confirm to return False
-        is_read_only = is_read_only_tool(tool_name)
-
-        # Read-only tools are allowed in plan mode
-        # Write tools are NOT allowed (return False) which forces confirmation
-        return is_read_only
 
 
 class ReadOnlyToolRule:
@@ -250,10 +198,8 @@ class ToolIgnoreListRule:
 class AuthorizationPolicy:
     """Orchestrates authorization rules to determine if tools require confirmation.
 
-    Uses Strategy pattern to compose multiple authorization rules. The authorization
-    process has two phases:
-    1. Check if tool is blocked (plan mode) - this overrides everything
-    2. Evaluate allowlist rules in priority order
+    Uses Strategy pattern to compose multiple authorization rules.
+    Evaluates allowlist rules in priority order.
 
     This replaces the complex nested conditionals in the original ToolHandler
     with a declarative, testable approach.
@@ -271,9 +217,7 @@ class AuthorizationPolicy:
     def should_confirm(self, tool_name: ToolName, context: AuthContext) -> bool:
         """Determine if tool requires user confirmation.
 
-        Two-phase evaluation:
-        1. Check blocking rules (plan mode) - if blocked, require confirmation
-        2. Check allowlist rules in priority order
+        Evaluates allowlist rules in priority order.
 
         Args:
             tool_name: Tool to authorize
@@ -282,11 +226,7 @@ class AuthorizationPolicy:
         Returns:
             True if confirmation required, False otherwise
         """
-        # Phase 1: Check if tool is blocked (plan mode overrides everything)
-        if self.is_tool_blocked(tool_name, context):
-            return True  # Force confirmation for blocked tools
-
-        # Phase 2: Evaluate allowlist rules in priority order
+        # Evaluate allowlist rules in priority order
         for rule in self._rules:
             if rule.should_allow_without_confirmation(tool_name, context):
                 return False  # Rule allows tool without confirmation
@@ -295,25 +235,12 @@ class AuthorizationPolicy:
         return True
 
     def is_tool_blocked(self, tool_name: ToolName, context: AuthContext) -> bool:
-        """Check if tool is blocked in plan mode.
-
-        Blocked tools require confirmation regardless of other rules (YOLO, ignore list).
-        This ensures plan mode restrictions cannot be bypassed.
-
-        Args:
-            tool_name: Tool to check
-            context: Current authorization context
+        """Check if tool is blocked.
 
         Returns:
-            True if tool is blocked and should require confirmation
+            Always False (no tools are blocked)
         """
-        if not context.is_plan_mode:
-            return False
-
-        if tool_name == "present_plan":
-            return False
-
-        return not is_read_only_tool(tool_name)
+        return False
 
 
 # =============================================================================
@@ -417,8 +344,6 @@ def create_default_authorization_policy() -> AuthorizationPolicy:
         Authorization policy with standard rules in correct priority order
     """
     rules: list[AuthorizationRule] = [
-        PresentPlanRule(),
-        PlanModeBlockingRule(),
         ReadOnlyToolRule(),
         TemplateAllowedToolsRule(),
         YoloModeRule(),
