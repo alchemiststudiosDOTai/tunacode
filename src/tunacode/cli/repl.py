@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import os
-import re
 import subprocess
 from asyncio.exceptions import CancelledError
 from pathlib import Path
@@ -42,221 +41,6 @@ DEFAULT_SHELL = "bash"
 logger = logging.getLogger(__name__)
 
 
-def _transform_to_implementation_request(original_request: str) -> str:
-    """
-    Transform a planning request into an implementation request.
-
-    This ensures that after plan approval, the agent understands it should
-    implement rather than plan again.
-    """
-    request = original_request.lower()
-
-    if "plan" in request:
-        request = request.replace("plan a ", "create a ")
-        request = request.replace("plan an ", "create an ")
-        request = request.replace("plan to ", "")
-        request = request.replace("plan ", "create ")
-
-    # Add clear implementation instruction
-    implementation_request = (
-        f"{request}\n\nIMPORTANT: Actually implement and create the file(s) - "
-        "do not just plan or outline. The plan has been approved, "
-        "now execute the implementation."
-    )
-
-    return implementation_request
-
-
-async def _display_plan(plan_doc) -> None:
-    """Display the plan in a formatted way."""
-    if not plan_doc:
-        await ui.error("⚠️ Error: No plan document found to display")
-        return
-
-    output = [f"[bold cyan]🎯 {plan_doc.title}[/bold cyan]", ""]
-
-    if plan_doc.overview:
-        output.extend([f"[bold]📝 Overview:[/bold] {plan_doc.overview}", ""])
-
-    sections = [
-        ("📝 Files to Modify:", plan_doc.files_to_modify, "•"),
-        ("📄 Files to Create:", plan_doc.files_to_create, "•"),
-        ("🧪 Testing Approach:", plan_doc.tests, "•"),
-        ("✅ Success Criteria:", plan_doc.success_criteria, "•"),
-        ("⚠️ Risks & Considerations:", plan_doc.risks, "•"),
-        ("❓ Open Questions:", plan_doc.open_questions, "•"),
-        ("📚 References:", plan_doc.references, "•"),
-    ]
-
-    for title, items, prefix in sections:
-        if items:
-            output.append(f"[bold]{title}[/bold]")
-            output.extend(f"  {prefix} {item}" for item in items)
-            output.append("")
-
-    output.append("[bold]🔧 Implementation Steps:[/bold]")
-    output.extend(f"  {i}. {step}" for i, step in enumerate(plan_doc.steps, 1))
-    output.append("")
-
-    if plan_doc.rollback:
-        output.extend([f"[bold]🔄 Rollback Plan:[/bold] {plan_doc.rollback}", ""])
-
-    await ui.panel("📋 IMPLEMENTATION PLAN", "\n".join(output), border_style="cyan")
-
-
-async def _detect_and_handle_text_plan(state_manager, agent_response, original_request):
-    """Detect if agent presented a plan in text format and handle it."""
-    try:
-        # Extract response text
-        response_text = ""
-        if hasattr(agent_response, "messages") and agent_response.messages:
-            msg = agent_response.messages[-1]
-            response_text = str(getattr(msg, "content", getattr(msg, "text", msg)))
-        elif hasattr(agent_response, "result"):
-            response_text = str(getattr(agent_response.result, "output", agent_response.result))
-        else:
-            response_text = str(agent_response)
-
-        if re.search(r"^\s*TUNACODE\s+DONE:\s*", response_text, re.IGNORECASE):
-            await ui.warning(
-                "⚠️ Agent failed to call present_plan tool. Please provide clearer instructions."
-            )
-            return
-
-        if "present_plan(" in response_text:
-            await ui.error(
-                "❌ Agent showed present_plan as text instead of EXECUTING it as a tool!"
-            )
-            await ui.info("Try again with: 'Execute the present_plan tool to create a plan for...'")
-            return
-
-        # Check for plan indicators
-        plan_indicators = {
-            "plan for",
-            "implementation plan",
-            "here's a plan",
-            "i'll create a plan",
-            "plan to",
-            "outline for",
-            "overview:",
-            "steps:",
-        }
-        has_plan = any(ind in response_text.lower() for ind in plan_indicators)
-        has_structure = (
-            any(x in response_text for x in ["1.", "2.", "•"]) and response_text.count("\n") > 5
-        )
-
-        if has_plan and has_structure:
-            await ui.info("📋 Plan detected in text format - extracting for review")
-            from tunacode.types import PlanDoc, PlanPhase
-
-            plan_doc = PlanDoc(
-                title="Implementation Plan",
-                overview="Automated plan extraction from text",
-                steps=["Review and implement the described functionality"],
-                files_to_modify=[],
-                files_to_create=[],
-                success_criteria=[],
-            )
-
-            state_manager.session.plan_phase = PlanPhase.PLAN_READY
-            state_manager.session.current_plan = plan_doc
-            await _handle_plan_approval(state_manager, original_request)
-
-    except Exception as e:
-        logger.error(f"Error detecting text plan: {e}")
-
-
-async def _handle_plan_approval(state_manager, original_request=None):
-    """Handle plan approval when a plan has been presented via present_plan tool."""
-    try:
-        import time
-
-        from tunacode.types import PlanPhase
-        from tunacode.ui.keybindings import create_key_bindings
-
-        state_manager.session.plan_phase = PlanPhase.REVIEW_DECISION
-        plan_doc = state_manager.session.current_plan
-        state_manager.exit_plan_mode(plan_doc)
-
-        await ui.info("📋 Plan has been prepared and Plan Mode exited")
-        await _display_plan(plan_doc)
-
-        content = (
-            "[bold cyan]The implementation plan has been presented.[/bold cyan]\n\n"
-            "[yellow]Choose your action:[/yellow]\n\n"
-            "  [bold green]a[/bold green] → Approve and proceed\n"
-            "  [bold yellow]m[/bold yellow] → Modify the plan\n"
-            "  [bold red]r[/bold red] → Reject and recreate\n"
-        )
-        await ui.panel("🎯 Plan Review", content, border_style="cyan")
-
-        kb = create_key_bindings(state_manager)
-        while True:
-            try:
-                response = await ui.input(
-                    "plan_approval", "  → Your choice [a/m/r]: ", kb, state_manager
-                )
-                response = response.strip().lower()
-                state_manager.session.approval_abort_pressed = False
-                state_manager.session.approval_last_abort_time = 0.0
-                break
-            except UserAbortError:
-                current_time = time.time()
-                abort_pressed = getattr(state_manager.session, "approval_abort_pressed", False)
-                last_abort = getattr(state_manager.session, "approval_last_abort_time", 0.0)
-
-                if current_time - last_abort > 3.0:
-                    abort_pressed = False
-
-                if abort_pressed:
-                    await ui.info("🔄 Returning to Plan Mode")
-                    state_manager.enter_plan_mode()
-                    state_manager.session.approval_abort_pressed = False
-                    return
-
-                state_manager.session.approval_abort_pressed = True
-                state_manager.session.approval_last_abort_time = current_time
-                await ui.warning("Hit ESC or Ctrl+C again to return to Plan Mode")
-
-        actions = {
-            "a": (
-                "✅ Plan approved - proceeding with implementation",
-                lambda: state_manager.approve_plan(),
-            ),
-            "m": (
-                "📝 Returning to Plan Mode for modifications",
-                lambda: state_manager.enter_plan_mode(),
-            ),
-            "r": (
-                "🔄 Plan rejected - returning to Plan Mode",
-                lambda: state_manager.enter_plan_mode(),
-            ),
-        }
-
-        if response in actions or response in ["approve", "modify", "reject"]:
-            key = response[0] if len(response) > 1 else response
-            msg, action = actions.get(key, (None, None))
-            if msg:
-                await ui.info(msg) if key == "a" else await ui.warning(msg)
-                action()
-                if key == "a" and original_request:
-                    await ui.info("🚀 Executing implementation...")
-                    await execute_repl_request(
-                        _transform_to_implementation_request(original_request),
-                        state_manager,
-                        output=True,
-                    )
-        else:
-            await ui.warning("⚠️ Invalid choice - please enter a, m, or r")
-
-        state_manager.session.plan_phase = None
-
-    except Exception as e:
-        logger.error(f"Error in plan approval: {e}")
-        state_manager.session.plan_phase = None
-
-
 _command_registry = CommandRegistry()
 _command_registry.register_all_default_commands()
 
@@ -272,11 +56,54 @@ async def _handle_command(command: str, state_manager: StateManager) -> CommandR
         return None
 
 
+def _extract_feedback_from_last_message(state_manager: StateManager) -> str | None:
+    """Extract user guidance feedback from recent messages in session.messages.
+
+    When option 3 is selected with feedback, a message is added with format:
+    "Tool '...' execution cancelled before running.\nUser guidance:\n{guidance}\n..."
+
+    Note: patch_tool_messages() adds "Operation aborted by user." AFTER the feedback,
+    so we check the last few messages, not just the last one.
+
+    Args:
+        state_manager: State manager containing session messages
+
+    Returns:
+        The guidance text if found, None otherwise
+    """
+    if not state_manager.session.messages:
+        return None
+
+    # Check last 3 messages since patch_tool_messages() adds a message after feedback
+    messages_to_check = state_manager.session.messages[-3:]
+
+    for msg in reversed(messages_to_check):
+        # Extract content from message parts
+        if not hasattr(msg, "parts"):
+            continue
+
+        for part in msg.parts:
+            if hasattr(part, "content") and isinstance(part.content, str):
+                content = part.content
+
+                # Look for "User guidance:" pattern
+                if "User guidance:" in content:
+                    lines = content.split("\n")
+                    for i, line in enumerate(lines):
+                        if "User guidance:" in line and i + 1 < len(lines):
+                            guidance = lines[i + 1].strip()
+                            # Only return non-empty guidance
+                            cancelled_msg = "User cancelled without additional instructions."
+                            if guidance and guidance != cancelled_msg:
+                                return guidance
+
+    return None
+
+
 async def execute_repl_request(text: str, state_manager: StateManager, output: bool = True):
     """Process input using the agent, handling cancellation safely."""
     import uuid
 
-    from tunacode.types import PlanPhase
     from tunacode.utils.text_utils import expand_file_refs
 
     state_manager.session.request_id = str(uuid.uuid4())
@@ -366,17 +193,6 @@ async def execute_repl_request(text: str, state_manager: StateManager, output: b
                 usage_tracker=usage_tracker,
             )
 
-        # Handle plan approval or detection
-        if (
-            hasattr(state_manager.session, "plan_phase")
-            and state_manager.session.plan_phase == PlanPhase.PLAN_READY
-        ):
-            await _handle_plan_approval(state_manager, text)
-        elif state_manager.is_plan_mode() and not getattr(
-            state_manager.session, "_continuing_from_plan", False
-        ):
-            await _detect_and_handle_text_plan(state_manager, res, text)
-
         if output:
             if state_manager.session.show_thoughts:
                 for msg in state_manager.session.messages[start_idx:]:
@@ -399,6 +215,22 @@ async def execute_repl_request(text: str, state_manager: StateManager, output: b
         await ui.muted(MSG_REQUEST_CANCELLED)
     except UserAbortError:
         # CLAUDE_ANCHOR[7b2c1d4e]: Guided aborts inject user instructions; skip legacy banner.
+        # Check if there's feedback to process immediately
+        feedback = _extract_feedback_from_last_message(state_manager)
+        if feedback:
+            # Process the feedback as a new request immediately
+            # Stop spinner first to clean up state before recursive call
+            await ui.spinner(False, state_manager.session.spinner, state_manager)
+            # Clear current_task so recursive call can set its own
+            state_manager.session.current_task = None
+            try:
+                await execute_repl_request(feedback, state_manager, output=output)
+            except Exception:
+                # If recursive call fails, don't let it bubble up - just continue
+                pass
+            # Return early to skip the finally block's cleanup (already done above)
+            return
+        # No feedback, just abort normally
         pass
     except UnexpectedModelBehavior as e:
         await ui.muted(str(e))

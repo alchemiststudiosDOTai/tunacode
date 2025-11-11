@@ -6,14 +6,12 @@ method before refactoring. They serve as regression tests to ensure the refactor
 implementation maintains identical behavior.
 
 Test Coverage:
-1. present_plan special case (never confirm)
-2. Plan mode blocking (force confirmation for write tools)
-3. Read-only tools (skip confirmation)
-4. Template allowed tools (skip confirmation)
-5. YOLO mode (skip confirmation)
-6. Tool ignore list (skip confirmation)
-7. Default behavior (require confirmation)
-8. Priority ordering of rules
+1. Read-only tools (skip confirmation)
+2. Template allowed tools (skip confirmation)
+3. YOLO mode (skip confirmation)
+4. Tool ignore list (skip confirmation)
+5. Default behavior (require confirmation)
+6. Priority ordering of rules
 """
 
 import pytest
@@ -21,91 +19,6 @@ import pytest
 from tunacode.core.state import StateManager
 from tunacode.core.tool_handler import ToolHandler
 from tunacode.templates.loader import Template
-
-
-class TestPresentPlanSpecialCase:
-    """Test present_plan tool never requires confirmation."""
-
-    def test_present_plan_never_confirms_in_normal_mode(self):
-        """present_plan should never require confirmation in normal mode."""
-        state = StateManager()
-        handler = ToolHandler(state)
-
-        assert not handler.should_confirm("present_plan")
-
-    def test_present_plan_never_confirms_even_without_yolo(self):
-        """present_plan should skip confirmation even when YOLO is off."""
-        state = StateManager()
-        state.session.yolo = False
-        handler = ToolHandler(state)
-
-        assert not handler.should_confirm("present_plan")
-
-    def test_present_plan_never_confirms_in_plan_mode(self):
-        """present_plan should skip confirmation even in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        assert not handler.should_confirm("present_plan")
-
-
-class TestPlanModeBlocking:
-    """Test plan mode blocks write tools."""
-
-    def test_write_tools_blocked_in_plan_mode(self):
-        """Write tools should be blocked (require confirmation) in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        # Write tools should require confirmation in plan mode
-        assert handler.should_confirm("write_file")
-        assert handler.should_confirm("update_file")
-
-    def test_execute_tools_blocked_in_plan_mode(self):
-        """Execute tools should be blocked in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        assert handler.should_confirm("bash")
-        assert handler.should_confirm("run_command")
-
-    def test_read_only_tools_not_blocked_in_plan_mode(self):
-        """Read-only tools should not be blocked in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        assert not handler.should_confirm("read_file")
-        assert not handler.should_confirm("grep")
-        assert not handler.should_confirm("list_dir")
-        assert not handler.should_confirm("glob")
-        assert not handler.should_confirm("react")
-        assert not handler.should_confirm("exit_plan_mode")
-
-    def test_plan_mode_overrides_yolo(self):
-        """Plan mode blocking should override YOLO mode for write tools."""
-        state = StateManager()
-        state.session.yolo = True
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        # Even with YOLO, write tools should be blocked in plan mode
-        assert handler.should_confirm("write_file")
-        assert handler.should_confirm("bash")
-
-    def test_plan_mode_overrides_tool_ignore_list(self):
-        """Plan mode blocking should override tool ignore list for write tools."""
-        state = StateManager()
-        state.session.tool_ignore = ["write_file", "bash"]
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        # Even with ignore list, write tools should be blocked in plan mode
-        assert handler.should_confirm("write_file")
-        assert handler.should_confirm("bash")
 
 
 class TestReadOnlyTools:
@@ -122,7 +35,6 @@ class TestReadOnlyTools:
         assert not handler.should_confirm("list_dir")
         assert not handler.should_confirm("glob")
         assert not handler.should_confirm("react")
-        assert not handler.should_confirm("exit_plan_mode")
 
     def test_read_only_tools_skip_even_without_yolo(self):
         """Read-only tools should skip confirmation even when YOLO is off."""
@@ -309,50 +221,6 @@ class TestDefaultBehavior:
 class TestPriorityOrdering:
     """Test priority ordering of authorization rules."""
 
-    def test_present_plan_has_highest_priority(self):
-        """present_plan should skip confirmation regardless of other settings."""
-        state = StateManager()
-        state.session.yolo = False
-        state.session.tool_ignore = []
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        # Even in plan mode with YOLO off, present_plan should skip confirmation
-        assert not handler.should_confirm("present_plan")
-
-    def test_plan_mode_has_priority_over_yolo(self):
-        """Plan mode blocking should have priority over YOLO mode."""
-        state = StateManager()
-        state.session.yolo = True
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        # Write tools should be blocked even with YOLO
-        assert handler.should_confirm("write_file")
-
-        # Read-only tools should still skip
-        assert not handler.should_confirm("read_file")
-
-    def test_plan_mode_has_priority_over_template(self):
-        """Plan mode blocking should have priority over template permissions."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        template = Template(
-            name="test_template",
-            description="Test template",
-            prompt="Test prompt",
-            allowed_tools=["write_file", "bash"],
-            parameters={},
-            shortcut=None,
-        )
-        handler.set_active_template(template)
-
-        # Write tools should be blocked even with template permission
-        assert handler.should_confirm("write_file")
-        assert handler.should_confirm("bash")
-
     def test_read_only_has_priority_over_default(self):
         """Read-only tools should skip confirmation even without YOLO."""
         state = StateManager()
@@ -457,48 +325,6 @@ class TestProcessConfirmation:
         content = get_message_content(message)
         assert "cancelled before running" in content
         assert "Use different approach" in content
-
-
-class TestToolBlockingInPlanMode:
-    """Test is_tool_blocked_in_plan_mode method."""
-
-    def test_not_blocked_in_normal_mode(self):
-        """No tools should be blocked in normal mode."""
-        state = StateManager()
-        handler = ToolHandler(state)
-
-        assert not handler.is_tool_blocked_in_plan_mode("write_file")
-        assert not handler.is_tool_blocked_in_plan_mode("bash")
-        assert not handler.is_tool_blocked_in_plan_mode("read_file")
-
-    def test_write_tools_blocked_in_plan_mode(self):
-        """Write tools should be blocked in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        assert handler.is_tool_blocked_in_plan_mode("write_file")
-        assert handler.is_tool_blocked_in_plan_mode("update_file")
-        assert handler.is_tool_blocked_in_plan_mode("bash")
-        assert handler.is_tool_blocked_in_plan_mode("run_command")
-
-    def test_read_only_tools_not_blocked_in_plan_mode(self):
-        """Read-only tools should not be blocked in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        assert not handler.is_tool_blocked_in_plan_mode("read_file")
-        assert not handler.is_tool_blocked_in_plan_mode("grep")
-        assert not handler.is_tool_blocked_in_plan_mode("list_dir")
-
-    def test_present_plan_not_blocked_in_plan_mode(self):
-        """present_plan should not be blocked in plan mode."""
-        state = StateManager()
-        state.enter_plan_mode()
-        handler = ToolHandler(state)
-
-        assert not handler.is_tool_blocked_in_plan_mode("present_plan")
 
 
 if __name__ == "__main__":

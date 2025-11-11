@@ -51,9 +51,14 @@ console = _LazyConsole()
 colors = DotDict(UI_COLORS)
 
 BANNER = """[bold cyan]
-><>
-  ><(((°>
-    ><> TunaCode <>
+      ▐█████▌
+   ▐█▛█▛█▛█▛█▛█▌
+  ▐█████████████▌
+  ▐██   ⬤   ██▌
+  ▐█████████████▌
+   ▐█▛█▛█▛█▛█▛█▌
+      ▐█████▌
+        TunaCode
 [/bold cyan]
 
 """

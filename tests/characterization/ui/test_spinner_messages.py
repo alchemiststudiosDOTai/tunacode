@@ -74,7 +74,6 @@ async def test_tool_execution_spinner_behavior():
     mock_state_manager.session.spinner = mock_spinner
     mock_state_manager.session.is_streaming_active = False
     mock_state_manager.tool_handler = None
-    mock_state_manager.is_plan_mode = MagicMock(return_value=False)
 
     # Mock tool part
     mock_part = MagicMock()
@@ -84,7 +83,6 @@ async def test_tool_execution_spinner_behavior():
     with patch("tunacode.cli.repl_components.tool_executor.ToolHandler") as mock_handler_class:
         mock_handler = MagicMock()
         mock_handler.should_confirm.return_value = False
-        mock_handler.is_tool_blocked_in_plan_mode = MagicMock(return_value=False)
         mock_handler_class.return_value = mock_handler
 
         with patch("tunacode.cli.repl_components.tool_executor.ui"):

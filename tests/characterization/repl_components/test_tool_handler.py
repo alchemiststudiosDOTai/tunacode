@@ -52,7 +52,6 @@ async def test_tool_handler_creates_handler_without_confirmation() -> None:
 
     mock_handler = MagicMock()
     mock_handler.should_confirm.return_value = False
-    mock_handler.is_tool_blocked_in_plan_mode.return_value = False
 
     async def run_in_terminal_stub(callback: Callable[[], bool]) -> bool:
         return bool(callback())

@@ -26,7 +26,6 @@ from .implementations.debug import (
 )
 from .implementations.development import BranchCommand, InitCommand
 from .implementations.model import ModelCommand
-from .implementations.plan import ExitPlanCommand, PlanCommand
 from .implementations.quickstart import QuickStartCommand
 from .implementations.system import (
     ClearCommand,
@@ -155,8 +154,6 @@ class CommandRegistry:
             TemplateCommand,
             TodoCommand,
             CommandReloadCommand,
-            PlanCommand,  # Add plan command
-            ExitPlanCommand,  # Add exit plan command
             QuickStartCommand,  # Add quickstart command
         ]
 

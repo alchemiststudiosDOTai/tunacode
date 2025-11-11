@@ -12,7 +12,6 @@ from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
-from tunacode.tools.present_plan import create_present_plan_tool
 from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
 from tunacode.tools.todo import TodoTool
@@ -140,7 +139,6 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # Verify cache is still valid (check for config changes)
         current_version = hash(
             (
-                state_manager.is_plan_mode(),
                 str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
@@ -155,9 +153,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             del _AGENT_CACHE_VERSION[model]
 
     if model not in _AGENT_CACHE:
-        logger.debug(
-            f"Creating new agent for model {model}, plan_mode={state_manager.is_plan_mode()}"
-        )
+        logger.debug(f"Creating new agent for model {model}")
         max_retries = state_manager.session.user_config.get("settings", {}).get("max_retries", 3)
 
         # Lazy import Agent and Tool
@@ -170,75 +166,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # Load AGENTS.md context
         system_prompt += load_tunacode_context()
 
-        # Add plan mode context if in plan mode
-        if state_manager.is_plan_mode():
-            # REMOVE completion instructions from the system prompt in plan mode
-            for marker in ("TUNACODE_TASK_COMPLETE", "TUNACODE DONE:"):
-                system_prompt = system_prompt.replace(marker, "PLAN_MODE_TASK_PLACEHOLDER")
-            # Remove the completion guidance that conflicts with plan mode
-            lines_to_remove = [
-                "When a task is COMPLETE, start your response with: TUNACODE DONE:",
-                "4. When a task is COMPLETE, start your response with: TUNACODE DONE:",
-                "When a task is COMPLETE, start your response with: TUNACODE_TASK_COMPLETE",
-                "4. When a task is COMPLETE, start your response with: TUNACODE_TASK_COMPLETE",
-                "**How to signal completion:**",
-                "TUNACODE_TASK_COMPLETE",
-                "TUNACODE DONE:",
-                "[Your summary of what was accomplished]",
-                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, "
-                "use TUNACODE_TASK_COMPLETE.",
-                "**IMPORTANT**: Always evaluate if you've completed the task. If yes, use "
-                "TUNACODE DONE:",
-                "This prevents wasting iterations and API calls.",
-            ]
-            for line in lines_to_remove:
-                system_prompt = system_prompt.replace(line, "")
-            # COMPLETELY REPLACE system prompt in plan mode - nuclear option
-            system_prompt = """
-🔧 PLAN MODE - TOOL EXECUTION ONLY 🔧
-
-You are a planning assistant that ONLY communicates through tool execution.
-
-CRITICAL: You cannot respond with text. You MUST use tools for everything.
-
-AVAILABLE TOOLS:
-- read_file(filepath): Read file contents
-- grep(pattern): Search for text patterns
-- list_dir(directory): List directory contents
-- glob(pattern): Find files matching patterns
-- present_plan(title, overview, steps, files_to_create, success_criteria): Present structured plan
-
-MANDATORY WORKFLOW:
-1. User asks you to plan something
-2. You research using read-only tools (if needed)
-3. You EXECUTE present_plan tool with structured data
-4. DONE
-
-FORBIDDEN:
-- Text responses
-- Showing function calls as code
-- Saying "here is the plan"
-- Any text completion
-
-EXAMPLE:
-User: "plan a markdown file"
-You: [Call read_file or grep for research if needed]
-     [Call present_plan tool with actual parameters - NOT as text]
-
-The present_plan tool takes these parameters:
-- title: Brief title string
-- overview: What the plan accomplishes
-- steps: List of implementation steps
-- files_to_create: List of files to create
-- success_criteria: List of success criteria
-
-YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
-"""
-
         # Initialize tools that need state manager
         todo_tool = TodoTool(state_manager=state_manager)
-        present_plan = create_present_plan_tool(state_manager)
-        logger.debug(f"Tools initialized, present_plan available: {present_plan is not None}")
 
         # Add todo context if available
         try:
@@ -259,43 +188,20 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
             "tool_strict_validation", False
         )
 
-        # Create tool list based on mode
-        if state_manager.is_plan_mode():
-            # Plan mode: Only read-only tools + present_plan
-            tools_list = [
-                Tool(present_plan, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
-            ]
-        else:
-            # Normal mode: All tools
-            tools_list = [
-                Tool(bash, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(present_plan, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(run_command, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(todo_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
-                Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
-            ]
+        # Create tool list
+        tools_list = [
+            Tool(bash, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(run_command, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(todo_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
+            Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
+        ]
 
-        # Log which tools are being registered
-        logger.debug(
-            f"Creating agent: plan_mode={state_manager.is_plan_mode()}, tools={len(tools_list)}"
-        )
-        if state_manager.is_plan_mode():
-            logger.debug(f"PLAN MODE TOOLS: {[str(tool) for tool in tools_list]}")
-            logger.debug(f"present_plan tool type: {type(present_plan)}")
-
-        if "PLAN MODE - YOU MUST USE THE present_plan TOOL" in system_prompt:
-            logger.debug("✅ Plan mode instructions ARE in system prompt")
-        else:
-            logger.debug("❌ Plan mode instructions NOT in system prompt")
+        logger.debug(f"Creating agent with {len(tools_list)} tools")
 
         agent = Agent(
             model=model,
@@ -308,7 +214,6 @@ YOU MUST EXECUTE present_plan TOOL TO COMPLETE ANY PLANNING TASK.
         _AGENT_CACHE[model] = agent
         _AGENT_CACHE_VERSION[model] = hash(
             (
-                state_manager.is_plan_mode(),
                 str(state_manager.session.user_config.get("settings", {}).get("max_retries", 3)),
                 str(
                     state_manager.session.user_config.get("settings", {}).get(

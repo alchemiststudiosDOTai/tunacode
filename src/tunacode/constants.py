@@ -45,7 +45,6 @@ class ToolName(str, Enum):
     GLOB = "glob"
     TODO = "todo"
     REACT = "react"
-    EXIT_PLAN_MODE = "exit_plan_mode"
 
 
 # Tool names (backward compatibility)
@@ -59,7 +58,6 @@ TOOL_LIST_DIR = ToolName.LIST_DIR
 TOOL_GLOB = ToolName.GLOB
 TOOL_TODO = ToolName.TODO
 TOOL_REACT = ToolName.REACT
-TOOL_EXIT_PLAN_MODE = ToolName.EXIT_PLAN_MODE
 
 # Tool categorization
 READ_ONLY_TOOLS = [
@@ -68,7 +66,6 @@ READ_ONLY_TOOLS = [
     ToolName.LIST_DIR,
     ToolName.GLOB,
     ToolName.REACT,
-    ToolName.EXIT_PLAN_MODE,
 ]
 WRITE_TOOLS = [ToolName.WRITE_FILE, ToolName.UPDATE_FILE]
 EXECUTE_TOOLS = [ToolName.BASH, ToolName.RUN_COMMAND]

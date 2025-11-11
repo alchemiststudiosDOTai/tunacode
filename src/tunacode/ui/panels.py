@@ -249,15 +249,12 @@ class StreamingAgentPanel:
         if content_chunk is None:
             content_chunk = ""
 
-        # Filter out plan mode system prompts and tool definitions from streaming
+        # Filter out system prompts and tool definitions from streaming
         # Use more precise filtering to avoid false positives
         content_str = str(content_chunk).strip()
         if content_str and any(
             content_str.startswith(phrase) or phrase in content_str
             for phrase in [
-                "🔧 PLAN MODE",
-                "TOOL EXECUTION ONLY",
-                "planning assistant that ONLY communicates",
                 "namespace functions {",
                 "namespace multi_tool_use {",
             ]
@@ -310,9 +307,6 @@ class StreamingAgentPanel:
         if content_str and any(
             content_str.startswith(phrase) or phrase in content_str
             for phrase in [
-                "🔧 PLAN MODE",
-                "TOOL EXECUTION ONLY",
-                "planning assistant that ONLY communicates",
                 "namespace functions {",
                 "namespace multi_tool_use {",
             ]
