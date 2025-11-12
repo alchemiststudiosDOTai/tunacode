@@ -4,8 +4,9 @@ This module provides a base class that implements common patterns
 for all tools including error handling, UI logging, and ModelRetry support.
 """
 
+import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic_ai.exceptions import ModelRetry
 
@@ -27,6 +28,7 @@ class BaseTool(ABC):
         self.logger = get_logger(self.__class__.__name__)
         self._prompt_cache: Optional[str] = None
         self._context: Dict[str, Any] = {}
+        self._resources: List[Any] = []  # Track resources for cleanup
 
     async def execute(self, *args, **kwargs) -> ToolResult:
         """Execute the tool with error handling and logging.
@@ -35,6 +37,7 @@ class BaseTool(ABC):
         - UI logging of the operation
         - Exception handling (except ModelRetry and ToolExecutionError)
         - Consistent error message formatting
+        - Resource cleanup on any exception
 
         Returns:
             str: Success message
@@ -62,6 +65,9 @@ class BaseTool(ABC):
         except Exception as e:
             # Handle any other exceptions
             await self._handle_error(e, *args, **kwargs)
+        finally:
+            # Ensure resource cleanup even on success or failure
+            await self.cleanup()
 
     @property
     @abstractmethod
@@ -83,6 +89,53 @@ class BaseTool(ABC):
             Exception: Any other errors will be caught and handled
         """
         pass
+
+    async def cleanup(self) -> None:
+        """Clean up any resources created during tool execution.
+
+        This method is called automatically in a finally block after tool execution.
+        Subclasses should override this to implement tool-specific cleanup logic.
+
+        The base implementation handles cleanup of any resources registered via
+        register_resource(), attempting to call close() or cleanup() methods.
+        """
+        for resource in self._resources:
+            try:
+                if hasattr(resource, "close"):
+                    if asyncio.iscoroutinefunction(resource.close):
+                        await resource.close()
+                    else:
+                        resource.close()
+                elif hasattr(resource, "cleanup"):
+                    if asyncio.iscoroutinefunction(resource.cleanup):
+                        await resource.cleanup()
+                    else:
+                        resource.cleanup()
+            except Exception as e:
+                self.logger.warning(f"Failed to clean up resource {resource}: {e}")
+
+        # Clear the resource list
+        self._resources.clear()
+
+    def register_resource(self, resource: Any) -> None:
+        """Register a resource for automatic cleanup.
+
+        Resources registered here will be automatically cleaned up in the finally
+        block of execute(), regardless of success or failure.
+
+        Args:
+            resource: Any object with a close() or cleanup() method
+        """
+        self._resources.append(resource)
+
+    async def __aenter__(self):
+        """Enter async context manager."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit async context manager and cleanup resources."""
+        await self.cleanup()
+        return False
 
     async def _handle_error(self, error: Exception, *args, **kwargs) -> ToolResult:
         """Handle errors by logging and raising proper exceptions.

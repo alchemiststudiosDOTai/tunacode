@@ -35,9 +35,10 @@ async def execute_tools_parallel(
             logger.error(f"Error executing parallel tool: {e}", exc_info=True)
             return e
         finally:
-            # Ensure resource cleanup even if tool callback raises exception
-            # Tool callbacks may create resources (file handles, connections, etc.)
-            # that need cleanup regardless of success or failure
+            # Tool execution completed - resource cleanup handled by BaseTool.execute()
+            # Each tool's cleanup() method is called automatically in its execute()
+            # finally block. This ensures resources (file handles, connections,
+            # processes) are freed regardless of success or failure.
             tool_name = getattr(part, "tool_name", "<unknown>")
             logger.debug(
                 "Parallel tool execution completed (success or failure): tool=%s",

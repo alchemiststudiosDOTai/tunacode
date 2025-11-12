@@ -178,6 +178,7 @@ class BashTool(BaseTool):
         # Set working directory
         exec_cwd = cwd or os.getcwd()
 
+        process = None
         try:
             # Execute command with timeout
             process = await asyncio.create_subprocess_shell(
@@ -238,6 +239,19 @@ class BashTool(BaseTool):
                 f"Shell not found. Cannot execute command: {command}\n"
                 "This typically indicates a system configuration issue."
             )
+        finally:
+            # Ensure process cleanup regardless of success or failure
+            if process is not None and process.returncode is None:
+                try:
+                    # Multi-stage escalation: graceful → terminate → kill
+                    try:
+                        process.terminate()
+                        await asyncio.wait_for(process.wait(), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        process.kill()
+                        await asyncio.wait_for(process.wait(), timeout=1.0)
+                except Exception as cleanup_error:
+                    self.logger.warning(f"Failed to cleanup process: {cleanup_error}")
 
     def _format_output(
         self,

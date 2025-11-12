@@ -144,6 +144,7 @@ class RunCommandTool(BaseTool):
             CommandSecurityError: If command fails security validation
             Exception: Any command execution errors
         """
+        process = None
         try:
             # Use secure subprocess execution with validation
             process = safe_subprocess_popen(
@@ -158,6 +159,20 @@ class RunCommandTool(BaseTool):
         except CommandSecurityError as e:
             # Security validation failed - return error without execution
             return f"Security validation failed: {str(e)}"
+        finally:
+            # Ensure process cleanup regardless of success or failure
+            if process is not None and process.poll() is None:
+                try:
+                    # Multi-stage escalation: graceful → terminate → kill
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5.0)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=1.0)
+                except Exception as cleanup_error:
+                    self.logger.warning(f"Failed to cleanup process: {cleanup_error}")
+
         output = stdout.strip() or CMD_OUTPUT_NO_OUTPUT
         error = stderr.strip() or CMD_OUTPUT_NO_ERRORS
         resp = CMD_OUTPUT_FORMAT.format(output=output, error=error).strip()

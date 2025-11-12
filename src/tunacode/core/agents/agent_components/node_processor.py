@@ -511,9 +511,10 @@ async def _process_tool_calls(
                                 f"continuing"
                             )
                     finally:
-                        # Ensure resource cleanup even if tool callback raises exception
-                        # Tool callbacks may create resources (file handles, connections, etc.)
-                        # that need cleanup regardless of success or failure
+                        # Tool execution completed - resource cleanup handled by BaseTool.execute()
+                        # Each tool's cleanup() method is called automatically in its execute()
+                        # finally block. This ensures resources (file handles, connections,
+                        # processes) are freed regardless of success or failure.
                         tool_name = getattr(part, "tool_name", "<unknown>")
                         logger.debug(
                             "Tool execution completed (success or failure): tool=%s",
