@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "agent.state",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Race conditions in ResponseState boolean flags (_has_user_response, _task_completed, etc.) during concurrent async operations via asyncio.gather(). Flags accessed without locks causing potential data corruption.",
+      "solution": "Added threading.RLock() to ResponseState class. Protected all boolean flag property getters/setters with 'with self._lock:' context manager. Ensures atomic flag updates during concurrent async operations.",
+      "date": "2025-11-12T21:57:03.726620160Z"
+    }
+  ],
+  "last_updated": "2025-11-12T21:57:03.726621009Z"
+}

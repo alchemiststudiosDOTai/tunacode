@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "agent.state",
+  "patterns": [
+    {
+      "name": "thread_safe_boolean_flags",
+      "description": "Pattern for protecting boolean flags in dataclasses with threading.RLock() to prevent race conditions during concurrent async operations"
+    }
+  ],
+  "last_updated": "2025-11-12T21:57:09.526138021Z"
+}

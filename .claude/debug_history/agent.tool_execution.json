@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "agent.tool_execution",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Missing finally blocks in tool execution error handlers. Tool callbacks may create resources (file handles, connections, memory buffers) that aren't cleaned up when exceptions occur in node_processor.py and tool_executor.py.",
+      "solution": "Added finally blocks to all try/except blocks in tool execution paths. Ensures resource cleanup logging and cleanup code execution regardless of success or failure. Applied to node_processor.py:495-512 and tool_executor.py:31-36.",
+      "date": "2025-11-12T21:57:04.442932340Z"
+    }
+  ],
+  "last_updated": "2025-11-12T21:57:04.442933554Z"
+}
