@@ -97,6 +97,13 @@ def main(
         has_update, latest_version = await update_task
         if has_update:
             await ui.update_available(latest_version)
+        else:
+            # Normal exit - cleanup MCP servers
+            try:
+                from tunacode.core.agents import cleanup_mcp_servers
+                await cleanup_mcp_servers()
+            except Exception:
+                pass  # Best effort cleanup
 
     asyncio.run(async_main())
 
