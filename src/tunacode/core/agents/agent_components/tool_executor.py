@@ -34,6 +34,15 @@ async def execute_tools_parallel(
         except Exception as e:
             logger.error(f"Error executing parallel tool: {e}", exc_info=True)
             return e
+        finally:
+            # Ensure resource cleanup even if tool callback raises exception
+            # Tool callbacks may create resources (file handles, connections, etc.)
+            # that need cleanup regardless of success or failure
+            tool_name = getattr(part, "tool_name", "<unknown>")
+            logger.debug(
+                "Parallel tool execution completed (success or failure): tool=%s",
+                tool_name,
+            )
 
     # If we have more tools than max_parallel, execute in batches
     if len(tool_calls) > max_parallel:

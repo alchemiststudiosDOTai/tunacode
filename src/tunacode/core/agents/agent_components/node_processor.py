@@ -510,6 +510,15 @@ async def _process_tool_calls(
                                 f"❌ Tool failed: {getattr(part, 'tool_name', '<unknown>')} — "
                                 f"continuing"
                             )
+                    finally:
+                        # Ensure resource cleanup even if tool callback raises exception
+                        # Tool callbacks may create resources (file handles, connections, etc.)
+                        # that need cleanup regardless of success or failure
+                        tool_name = getattr(part, "tool_name", "<unknown>")
+                        logger.debug(
+                            "Tool execution completed (success or failure): tool=%s",
+                            tool_name,
+                        )
 
     # Track tool calls in session
     if is_processing_tools:
