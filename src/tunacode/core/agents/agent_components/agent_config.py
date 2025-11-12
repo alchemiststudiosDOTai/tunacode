@@ -7,7 +7,7 @@ from pydantic_ai import Agent
 
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
-from tunacode.services.mcp import get_mcp_servers
+from tunacode.services.mcp import get_mcp_servers, register_mcp_agent
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
@@ -205,12 +205,18 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
 
         logger.debug(f"Creating agent with {len(tools_list)} tools")
 
+        mcp_servers = get_mcp_servers(state_manager)
         agent = Agent(
             model=model,
             system_prompt=system_prompt,
             tools=tools_list,
-            mcp_servers=get_mcp_servers(state_manager),
+            mcp_servers=mcp_servers,
         )
+
+        # Register agent for MCP cleanup tracking
+        mcp_server_names = state_manager.session.user_config.get("mcpServers", {}).keys()
+        for server_name in mcp_server_names:
+            register_mcp_agent(server_name, agent)
 
         # Store in both caches
         _AGENT_CACHE[model] = agent

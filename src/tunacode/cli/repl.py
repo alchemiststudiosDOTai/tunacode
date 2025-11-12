@@ -248,6 +248,7 @@ async def execute_repl_request(text: str, state_manager: StateManager, output: b
                 lambda: state_manager.session.input_sessions["multiline"].app.invalidate()
             )
 
+  
 
 # Backwards compatibility: exported name expected by external integrations/tests
 process_request = execute_repl_request
