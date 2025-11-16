@@ -7,8 +7,8 @@
       "last_modified": "2025-10-01T16:11:57Z"
     },
     "delta_summaries/behavior_changes.json": {
-      "hash": "3a488926016e99d07b17b6c416a22da3c8fca7319b84823bb5ba4daeb58a3bae",
-      "last_modified": "2025-11-05T00:09:11Z"
+      "hash": "00bc7c3d9e05b701d38a42f34b667e736cfc8b2112d6854ab24fdd3f4a47c32e",
+      "last_modified": "2025-11-16T19:27:29Z"
     },
     "debug_history/agent.tool_execution.json": {
       "hash": "d4a7442c3b28d22e57e5d80b63f067469c80508dc7beb03c30a837cfdde55b42",
@@ -107,8 +107,8 @@
       "last_modified": "2025-10-01T16:11:57Z"
     },
     "delta_summaries/reasoning_logs.json": {
-      "hash": "61a4a8e81f6e34d8315d8225a04954df9ecfa576dbbd30484a662010788c0e43",
-      "last_modified": "2025-11-05T00:09:11Z"
+      "hash": "439fd43b48cb80797c2a2774d75b44a9830c5a2ae5c632d0146280defede9551",
+      "last_modified": "2025-11-16T19:27:29Z"
     },
     "patterns/json_retry_implementation.md": {
       "hash": "71d6b04a2fb1bb9dd5929c1ec153485313f8f3ee9b15f8b97d9b092adf940373",
@@ -223,8 +223,8 @@
       "last_modified": "2025-10-01T16:11:57Z"
     },
     "debug_history/debug_sessions.json": {
-      "hash": "b13bd492ca3432c844c708d93b87569a53f087b094defde9cb32c521276817c7",
-      "last_modified": "2025-11-05T00:09:11Z"
+      "hash": "fe98ceb16fe148f79ffd3ab700a26f10b3afa2be82582dfb1bc6e3e0fd35e56b",
+      "last_modified": "2025-11-16T19:27:29Z"
     },
     "qa/context_logs/react-tool-session-20250120-000002/summary.md": {
       "hash": "c04c538c9eef68d6bf3eb30781009f54c9107954ec6ebaf1835569f2121ed24d",

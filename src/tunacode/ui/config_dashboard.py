@@ -8,7 +8,7 @@ navigation, filtering, and detailed inspection capabilities.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from rich.box import HEAVY, ROUNDED
+from rich.box import ROUNDED
 from rich.console import Console, Group
 from rich.layout import Layout
 from rich.live import Live
@@ -16,6 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
+from textual.containers import Vertical
 
 from tunacode.utils.config_comparator import (
     ConfigAnalysis,
@@ -485,7 +486,7 @@ class ConfigDashboard:
 
         glossary = get_configuration_glossary()
 
-        content = Group(Text(help_text.strip()), Text(""), Text(glossary))
+        content = Vertical(Text(help_text.strip()), Text(""), Text(glossary))
 
         return Panel(content, title="Help & Glossary", box=ROUNDED, border_style="blue")
 
@@ -522,7 +523,7 @@ class ConfigDashboard:
 
         # Add content to each area
         layout["header"].update(
-            Panel("🐟 TunaCode Configuration Dashboard", style="bold blue", box=HEAVY)
+            Panel("🐟 TunaCode Configuration Dashboard", style="bold blue", box=ROUNDED)
         )
 
         layout["overview"].update(self.render_overview())

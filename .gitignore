@@ -28,6 +28,7 @@ test-env/
 # Virtual environments
 env/
 venv/
+.venv/
 ENV/
 .env
 .deploy_venv/

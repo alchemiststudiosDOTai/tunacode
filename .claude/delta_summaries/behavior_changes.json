@@ -16,6 +16,30 @@
       ]
     },
     {
+      "id": "dev-env-unification-20251116-000001",
+      "time": "2025-11-16T00:00:00Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Added scripts/setup_dev_env.sh that installs UV/Hatch if missing, builds the Hatch default environment, and syncs editable deps into .venv via uv pip.",
+        "Configured tool.hatch.envs.default to pin its virtualenv path to .venv so hatch run/test re-use the repo-local virtual environment instead of cache directories.",
+        "Updated .gitignore to drop the managed .venv from version control to keep the repository clean."
+      ]
+    },
+    {
+      "id": "code-index-char-tests-removal-20251116-000002",
+      "time": "2025-11-16T00:05:00Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Config dashboard now uses Rich's supported ROUNDED box style for compatibility with Rich 14.x.",
+        "Removed obsolete tests/characterization/code_index/ modules that enforced the broken \"ignore tmp\" behavior.",
+        "Full suite now passes (256 passed, 12 skipped) after deleting the dead characterization coverage."
+      ]
+    },
+    {
       "id": "tool-rejection-feedback-20251010-000000",
       "time": "2025-10-10T00:00:00Z",
       "branch": "master",

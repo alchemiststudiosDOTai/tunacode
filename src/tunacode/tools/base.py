@@ -132,7 +132,7 @@ class BaseTool(ABC):
         """Enter async context manager."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, _, __):
         """Exit async context manager and cleanup resources."""
         await self.cleanup()
         return False

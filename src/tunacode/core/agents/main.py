@@ -31,12 +31,9 @@ from tunacode.types import (
     ToolCallback,
     UsageTrackerProtocol,
 )
-
-# CLAUDE_ANCHOR[key=d595ceb5] Direct UI console import aligns with removal of defensive shim
 from tunacode.ui import console as ui
 from tunacode.ui.tool_descriptions import get_batch_description
 
-# Streaming parts (keep guarded import but avoid per-iteration imports)
 try:
     from pydantic_ai.messages import PartDeltaEvent, TextPartDelta  # type: ignore
 
@@ -122,7 +119,6 @@ class StateFacade:
         if not getattr(self.sm.session, "original_query", None):
             setattr(self.sm.session, "original_query", q)
 
-    # ---- progress helpers ----
     def set_iteration(self, i: int) -> None:
         setattr(self.sm.session, "current_iteration", i)
         setattr(self.sm.session, "iteration_count", i)

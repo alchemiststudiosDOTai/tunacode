@@ -156,6 +156,8 @@ disable_error_code = ["annotation-unchecked"]
 [tool.hatch.envs.default]
 installer = "uv"
 features = ["dev"]
+type = "virtual"
+path = ".venv"
 
 [tool.hatch.envs.default.scripts]
 # Development
