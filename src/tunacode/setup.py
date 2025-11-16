@@ -38,5 +38,3 @@ async def setup(
 
     # Run all setup steps
     await coordinator.run_setup(force_setup=run_setup, wizard_mode=wizard_mode)
-
-

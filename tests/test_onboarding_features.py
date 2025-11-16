@@ -339,9 +339,7 @@ class TestQuickStartCommand:
         command = QuickStartCommand()
 
         # Mock tutorial manager
-        with patch(
-            "tunacode.tutorial.TutorialManager"
-        ) as mock_tutorial_cls:
+        with patch("tunacode.tutorial.TutorialManager") as mock_tutorial_cls:
             mock_tutorial = mock_tutorial_cls.return_value
             mock_tutorial.run_tutorial = AsyncMock(return_value=True)
 
@@ -363,9 +361,7 @@ class TestQuickStartCommand:
         command = QuickStartCommand()
 
         # Mock tutorial manager
-        with patch(
-            "tunacode.tutorial.TutorialManager"
-        ) as mock_tutorial_cls:
+        with patch("tunacode.tutorial.TutorialManager") as mock_tutorial_cls:
             mock_tutorial = mock_tutorial_cls.return_value
             mock_tutorial.run_tutorial = AsyncMock(return_value=False)
 
@@ -386,6 +382,7 @@ class TestQuickStartCommand:
 
         # Mock import error by making the import fail
         import builtins
+
         real_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):

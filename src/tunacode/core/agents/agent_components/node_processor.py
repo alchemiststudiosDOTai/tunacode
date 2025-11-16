@@ -431,9 +431,7 @@ async def _process_tool_calls(
                                     buffered_part.tool_name == "grep"
                                     and "pattern" in buffered_part.args
                                 ):
-                                    tool_desc += (
-                                        f" → pattern: '{buffered_part.args['pattern']}'"
-                                    )
+                                    tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
                                     if "include_files" in buffered_part.args:
                                         tool_desc += (
                                             f", files: '{buffered_part.args['include_files']}'"
@@ -447,9 +445,7 @@ async def _process_tool_calls(
                                     buffered_part.tool_name == "glob"
                                     and "pattern" in buffered_part.args
                                 ):
-                                    tool_desc += (
-                                        f" → pattern: '{buffered_part.args['pattern']}'"
-                                    )
+                                    tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
                             await ui.muted(tool_desc)
                         await ui.muted("=" * 60)
 

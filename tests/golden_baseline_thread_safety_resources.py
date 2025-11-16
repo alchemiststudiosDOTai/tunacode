@@ -316,4 +316,3 @@ class TestThreadSafetyAndResources:
 
         # If we get here without exceptions, test passed
         assert True
-

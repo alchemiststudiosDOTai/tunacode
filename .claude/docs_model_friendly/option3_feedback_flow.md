@@ -48,19 +48,19 @@
 - **Line 332-364:** `ToolRejectionNotifier.notify_rejection()`:
   ```python
   guidance = getattr(response, "instructions", "").strip()  # "do caps"
-  
+
   if guidance:
       guidance_section = f"User guidance:\n{guidance}"  # "User guidance:\ndo caps"
   else:
       guidance_section = "User cancelled without additional instructions."
-  
+
   message = (
       f"Tool '{tool_name}' execution cancelled before running.\n"
       f"{guidance_section}\n"
       "Do not assume the operation succeeded; "
       "request updated guidance or offer alternatives."
   )
-  
+
   create_user_message(message, state)  # ✅ FEEDBACK IS ADDED TO MESSAGES HERE
   ```
 
@@ -205,4 +205,3 @@ The feedback IS being added to the session messages correctly, but the agent loo
 - Feedback added during execution updates `session.messages` but not the snapshot
 - Agent continues with stale snapshot that doesn't include feedback
 - Even if we didn't catch `UserAbortError`, the agent wouldn't see the feedback in the current request
-

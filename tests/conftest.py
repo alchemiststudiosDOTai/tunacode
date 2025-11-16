@@ -69,6 +69,7 @@ except ImportError:
     panel_mod.Panel = Panel
     box_mod = types.ModuleType("rich.box")
     box_mod.ROUNDED = None
+    box_mod.HEAVY = None
 
     rich.console = console_mod
     rich.markdown = markdown_mod
