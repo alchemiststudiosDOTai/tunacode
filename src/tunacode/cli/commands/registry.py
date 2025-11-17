@@ -35,7 +35,6 @@ from .implementations.system import (
     UpdateCommand,
 )
 from .implementations.template import TemplateCommand
-from .implementations.todo import TodoCommand
 from .template_shortcut import TemplateShortcutCommand
 
 logger = logging.getLogger(__name__)
@@ -152,7 +151,6 @@ class CommandRegistry:
             ModelCommand,
             InitCommand,
             TemplateCommand,
-            TodoCommand,
             CommandReloadCommand,
             QuickStartCommand,  # Add quickstart command
         ]
