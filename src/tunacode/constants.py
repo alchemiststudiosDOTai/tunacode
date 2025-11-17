@@ -43,7 +43,6 @@ class ToolName(str, Enum):
     GREP = "grep"
     LIST_DIR = "list_dir"
     GLOB = "glob"
-    TODO = "todo"
     REACT = "react"
 
 
@@ -56,7 +55,6 @@ TOOL_BASH = ToolName.BASH
 TOOL_GREP = ToolName.GREP
 TOOL_LIST_DIR = ToolName.LIST_DIR
 TOOL_GLOB = ToolName.GLOB
-TOOL_TODO = ToolName.TODO
 TOOL_REACT = ToolName.REACT
 
 # Tool categorization
@@ -166,40 +164,6 @@ MSG_UPDATE_AVAILABLE = "Update available: v{latest_version}"
 MSG_UPDATE_INSTRUCTION = "Exit, and run: [bold]pip install --upgrade tunacode-cli"
 MSG_VERSION_DISPLAY = "TunaCode CLI {version}"
 MSG_FILE_SIZE_LIMIT = " Please specify a smaller file or use other tools to process it."
-
-
-class TodoStatus(str, Enum):
-    """Enumeration of todo statuses."""
-
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
-class TodoPriority(str, Enum):
-    """Enumeration of todo priorities."""
-
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-
-
-# Todo-related constants (backward compatibility)
-TODO_STATUS_PENDING = TodoStatus.PENDING
-TODO_STATUS_IN_PROGRESS = TodoStatus.IN_PROGRESS
-TODO_STATUS_COMPLETED = TodoStatus.COMPLETED
-TODO_STATUSES = [TodoStatus.PENDING, TodoStatus.IN_PROGRESS, TodoStatus.COMPLETED]
-
-TODO_PRIORITY_HIGH = TodoPriority.HIGH
-TODO_PRIORITY_MEDIUM = TodoPriority.MEDIUM
-TODO_PRIORITY_LOW = TodoPriority.LOW
-TODO_PRIORITIES = [TodoPriority.HIGH, TodoPriority.MEDIUM, TodoPriority.LOW]
-
-# Maximum number of todos allowed per session
-MAX_TODOS_PER_SESSION = 100
-
-# Maximum length for todo content
-MAX_TODO_CONTENT_LENGTH = 500
 
 # JSON parsing retry configuration
 JSON_PARSE_MAX_RETRIES = 10

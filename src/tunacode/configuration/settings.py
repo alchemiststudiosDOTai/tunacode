@@ -30,7 +30,6 @@ class ApplicationSettings:
             ToolName.LIST_DIR,
             ToolName.READ_FILE,
             ToolName.RUN_COMMAND,
-            ToolName.TODO,
             ToolName.UPDATE_FILE,
             ToolName.WRITE_FILE,
         ]

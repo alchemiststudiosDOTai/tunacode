@@ -6,7 +6,6 @@ used throughout the TunaCode codebase.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
 
 # Plan types will be defined below
 from enum import Enum
@@ -17,7 +16,6 @@ from typing import (
     Callable,
     Dict,
     List,
-    Literal,
     Optional,
     Protocol,
     Tuple,
@@ -32,17 +30,6 @@ PydanticAgent = Agent
 MessagePart = Union[ToolReturnPart, Any]
 ModelRequest = ModelRequest  # type: ignore[misc]
 ModelResponse = Any
-
-
-@dataclass
-class TodoItem:
-    id: str
-    content: str
-    status: Literal["pending", "in_progress", "completed"]
-    priority: Literal["high", "medium", "low"]
-    created_at: datetime
-    completed_at: Optional[datetime] = None
-    tags: list[str] = field(default_factory=list)
 
 
 # =============================================================================

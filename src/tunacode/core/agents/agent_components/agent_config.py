@@ -14,7 +14,6 @@ from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
 from tunacode.tools.read_file import read_file
 from tunacode.tools.run_command import run_command
-from tunacode.tools.todo import TodoTool
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
 from tunacode.types import ModelName, PydanticAgent
@@ -172,22 +171,6 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # coding/testing/documentation standards.
         system_prompt += load_tunacode_context()
 
-        # Initialize tools that need state manager
-        todo_tool = TodoTool(state_manager=state_manager)
-
-        # Add todo context if available
-        try:
-            current_todos = todo_tool.get_current_todos_sync()
-            if current_todos != "No todos found":
-                system_prompt += (
-                    f"\n\n# Current Todo List\n\n"
-                    f"You have existing todos that need attention:\n\n{current_todos}\n\n"
-                    f"Remember to check progress on these todos and update them as you work. "
-                    f'Use todo("list") to see current status anytime.'
-                )
-        except Exception as e:
-            logger.warning(f"Warning: Failed to load todos: {e}")
-
         # Get tool strict validation setting from config (default to False for backward
         # compatibility)
         tool_strict_validation = state_manager.session.user_config.get("settings", {}).get(
@@ -202,7 +185,6 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
             Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
             Tool(run_command, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(todo_tool._execute, max_retries=max_retries, strict=tool_strict_validation),
             Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
             Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
         ]

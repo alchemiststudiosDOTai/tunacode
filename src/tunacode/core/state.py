@@ -17,7 +17,6 @@ from tunacode.types import (
     MessageHistory,
     ModelName,
     SessionId,
-    TodoItem,
     ToolName,
     UserConfig,
 )
@@ -49,7 +48,6 @@ class SessionState:
     device_id: Optional[DeviceId] = None
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Optional[Any] = None
-    todos: list[TodoItem] = field(default_factory=list)
     # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
     react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
     react_forced_calls: int = 0
@@ -117,19 +115,6 @@ class StateManager:
     def set_tool_handler(self, handler: "ToolHandler") -> None:
         self._tool_handler = handler
 
-    def add_todo(self, todo: TodoItem) -> None:
-        self._session.todos.append(todo)
-
-    def update_todo(self, todo_id: str, status: str) -> None:
-        from datetime import datetime
-
-        for todo in self._session.todos:
-            if todo.id == todo_id:
-                todo.status = status
-                if status == "completed" and not todo.completed_at:
-                    todo.completed_at = datetime.now()
-                break
-
     def push_recursive_context(self, context: dict[str, Any]) -> None:
         """Push a new context onto the recursive execution stack."""
         self._session.recursive_context_stack.append(context)
@@ -163,12 +148,6 @@ class StateManager:
         self._session.task_hierarchy.clear()
         self._session.iteration_budgets.clear()
         self._session.recursive_context_stack.clear()
-
-    def remove_todo(self, todo_id: str) -> None:
-        self._session.todos = [todo for todo in self._session.todos if todo.id != todo_id]
-
-    def clear_todos(self) -> None:
-        self._session.todos = []
 
     # React scratchpad helpers
     def get_react_scratchpad(self) -> dict[str, Any]:
