@@ -356,8 +356,6 @@ async def _process_tool_calls(
 
     # Phase 2: Execute read-only tools in ONE parallel batch
     if read_only_tasks and tool_callback:
-        import time
-
         from .tool_executor import execute_tools_parallel
 
         batch_id = getattr(state_manager.session, "batch_counter", 0) + 1
@@ -369,8 +367,6 @@ async def _process_tool_calls(
             state_manager,
         )
 
-        start_time = time.time()
-
         # Update spinner message for batch execution
         tool_names = [part.tool_name for part, _ in read_only_tasks]
         batch_msg = get_batch_description(len(read_only_tasks), tool_names)
@@ -378,42 +374,32 @@ async def _process_tool_calls(
             f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
         )
 
-        # Enhanced visual feedback for parallel execution
-        await ui.muted("\n" + "=" * 60)
-        batch_title = (
-            f"PARALLEL BATCH #{batch_id}: "
-            f"Executing {len(read_only_tasks)} read-only tools concurrently"
+        # Build batch content as markdown for Rich panel
+        batch_content = (
+            f"**PARALLEL BATCH #{batch_id}**: "
+            f"Executing {len(read_only_tasks)} read-only tools concurrently\n\n"
         )
-        await ui.muted(batch_title)
-        await ui.muted("=" * 60)
 
         # Display details of what's being executed
         for idx, (part, _) in enumerate(read_only_tasks, 1):
-            tool_desc = f"  [{idx}] {part.tool_name}"
+            tool_desc = f"  **[{idx}]** `{part.tool_name}`"
             if hasattr(part, "args") and isinstance(part.args, dict):
                 if part.tool_name == "read_file" and "file_path" in part.args:
-                    tool_desc += f" → {part.args['file_path']}"
+                    tool_desc += f" → `{part.args['file_path']}`"
                 elif part.tool_name == "grep" and "pattern" in part.args:
-                    tool_desc += f" → pattern: '{part.args['pattern']}'"
+                    tool_desc += f" → pattern: `{part.args['pattern']}`"
                     if "include_files" in part.args:
-                        tool_desc += f", files: '{part.args['include_files']}'"
+                        tool_desc += f", files: `{part.args['include_files']}`"
                 elif part.tool_name == "list_dir" and "directory" in part.args:
-                    tool_desc += f" → {part.args['directory']}"
+                    tool_desc += f" → `{part.args['directory']}`"
                 elif part.tool_name == "glob" and "pattern" in part.args:
-                    tool_desc += f" → pattern: '{part.args['pattern']}'"
-            await ui.muted(tool_desc)
-        await ui.muted("=" * 60)
+                    tool_desc += f" → pattern: `{part.args['pattern']}`"
+            batch_content += f"{tool_desc}\n"
 
         await execute_tools_parallel(read_only_tasks, tool_callback)
 
-        elapsed_time = (time.time() - start_time) * 1000
-        sequential_estimate = len(read_only_tasks) * 100  # Assume 100ms per tool average
-        speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
-
-        await ui.muted(
-            f"Parallel batch completed in {elapsed_time:.0f}ms "
-            f"(~{speedup:.1f}x faster than sequential)\n"
-        )
+        # Display batch execution in green Rich panel
+        await ui.batch(batch_content)
 
         # Reset spinner message back to thinking
         from tunacode.constants import UI_THINKING_MESSAGE

@@ -27,6 +27,7 @@ from .panels import (
     StreamingAgentPanel,
     agent,
     agent_streaming,
+    batch,
     dump_messages,
     help,
     models,
@@ -156,6 +157,7 @@ __all__ = [
     # From panels module
     "agent",
     "agent_streaming",
+    "batch",
     "dump_messages",
     "help",
     "models",

@@ -114,6 +114,13 @@ async def agent(text: str, bottom: int = 1) -> None:
     await panel(title, rich["Markdown"](text), bottom=bottom, border_style=colors.primary)
 
 
+async def batch(text: str, bottom: int = 1) -> None:
+    """Display a parallel batch execution panel with green styling."""
+    rich = get_rich_components()
+    title = "[bold green]Parallel Execution[/bold green]"
+    await panel(title, rich["Markdown"](text), bottom=bottom, border_style="green")
+
+
 class StreamingAgentPanel:
     """Streaming agent panel using Rich.Live for progressive display."""
 

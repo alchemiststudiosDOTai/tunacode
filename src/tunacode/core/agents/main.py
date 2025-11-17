@@ -8,7 +8,6 @@ CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle mana
 
 from __future__ import annotations
 
-import time
 import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional
@@ -312,42 +311,39 @@ async def _finalize_buffered_tasks(
         tool_names = [part.tool_name for part, _ in buffered_tasks]
         batch_msg = get_batch_description(len(buffered_tasks), tool_names)
         await ui.update_spinner_message(f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state.sm)
-        await ui.muted("\n" + "=" * 60)
-        await ui.muted(f"FINAL BATCH: Executing {len(buffered_tasks)} buffered read-only tools")
-        await ui.muted("=" * 60)
+
+        # Build batch content as markdown for Rich panel
+        batch_content = (
+            f"**FINAL BATCH**: Executing {len(buffered_tasks)} buffered read-only tools\n\n"
+        )
         for idx, (part, _node) in enumerate(buffered_tasks, 1):
-            tool_desc = f"  [{idx}] {getattr(part, 'tool_name', 'tool')}"
+            tool_desc = f"  **[{idx}]** `{getattr(part, 'tool_name', 'tool')}`"
             args = getattr(part, "args", {})
             if isinstance(args, dict):
                 if part.tool_name == "read_file" and "file_path" in args:
-                    tool_desc += f" → {args['file_path']}"
+                    tool_desc += f" → `{args['file_path']}`"
                 elif part.tool_name == "grep" and "pattern" in args:
-                    tool_desc += f" → pattern: '{args['pattern']}'"
+                    tool_desc += f" → pattern: `{args['pattern']}`"
                     if "include_files" in args:
-                        tool_desc += f", files: '{args['include_files']}'"
+                        tool_desc += f", files: `{args['include_files']}`"
                 elif part.tool_name == "list_dir" and "directory" in args:
-                    tool_desc += f" → {args['directory']}"
+                    tool_desc += f" → `{args['directory']}`"
                 elif part.tool_name == "glob" and "pattern" in args:
-                    tool_desc += f" → pattern: '{args['pattern']}'"
-            await ui.muted(tool_desc)
-        await ui.muted("=" * 60)
+                    tool_desc += f" → pattern: `{args['pattern']}`"
+            batch_content += f"{tool_desc}\n"
     except Exception:
         # UI is best-effort; never fail request because of display
         logger.debug("UI batch prelude failed (non-fatal)", exc_info=True)
+        batch_content = None
 
     # Execute
-    start = time.time()
     await ac.execute_tools_parallel(buffered_tasks, tool_callback)
-    elapsed_ms = (time.time() - start) * 1000
 
-    # Post metrics (best-effort)
+    # Post metrics and display (best-effort)
     try:
-        sequential_estimate = len(buffered_tasks) * 100.0
-        speedup = (sequential_estimate / elapsed_ms) if elapsed_ms > 0 else 1.0
-        await ui.muted(
-            f"Final batch completed in {elapsed_ms:.0f}ms "
-            f"(~{speedup:.1f}x faster than sequential)\n"
-        )
+        if batch_content:
+            await ui.batch(batch_content)
+
         from tunacode.constants import UI_THINKING_MESSAGE  # local import OK (rare path)
 
         await ui.update_spinner_message(UI_THINKING_MESSAGE, state.sm)
