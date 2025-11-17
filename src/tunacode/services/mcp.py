@@ -115,12 +115,12 @@ async def _cleanup_single_server(server_name: str) -> None:
 
     try:
         # Use agent's run_mcp_servers context manager if available
-        if agent and hasattr(agent, 'run_mcp_servers'):
+        if agent and hasattr(agent, "run_mcp_servers"):
             # The agent should handle proper cleanup via context manager exit
             logger.debug(f"Agent cleanup for {server_name} handled by run_mcp_servers context")
         else:
             # Fallback: try to stop the server subprocess directly
-            if hasattr(server, 'is_running') and server.is_running:
+            if hasattr(server, "is_running") and server.is_running:
                 # MCPServerStdio doesn't expose direct cleanup, so we log this
                 logger.debug(f"MCP server {server_name} is running but no direct cleanup available")
     except Exception as e:
@@ -165,10 +165,7 @@ def get_mcp_servers(state_manager: "StateManager") -> List[MCPServerStdio]:
     # Config changed or first load - cleanup old servers and rebuild cache
     if _MCP_CONFIG_HASH is not None and _MCP_SERVER_CACHE:
         # Config changed - schedule cleanup of stale servers
-        removed_servers = [
-            name for name in _MCP_SERVER_CACHE.keys()
-            if name not in mcp_servers
-        ]
+        removed_servers = [name for name in _MCP_SERVER_CACHE.keys() if name not in mcp_servers]
         if removed_servers:
             logger.debug(
                 f"Configuration changed, cleaning up removed MCP servers: {removed_servers}"

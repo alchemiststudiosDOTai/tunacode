@@ -353,14 +353,26 @@ async def _process_tool_calls(
     tool_buffer: Optional[ToolBuffer],
     response_state: Optional[ResponseState],
 ) -> None:
-    """Process tool calls from the node."""
+    """
+    Process tool calls from the node using smart batching strategy.
+
+    Smart batching optimization:
+    - Collect all read-only tools into a single batch (regardless of write tools in between)
+    - Execute all read-only tools in one parallel batch
+    - Execute write/execute tools sequentially in their original order
+
+    This maximizes parallel execution efficiency by avoiding premature buffer flushes.
+    """
     from tunacode.constants import READ_ONLY_TOOLS
     from tunacode.ui import console as ui
 
     # Track if we're processing tool calls
     is_processing_tools = False
 
-    # Process tool calls
+    # Phase 1: Collect and categorize all tools
+    read_only_tasks = []
+    write_execute_tasks = []
+
     for part in node.model_response.parts:
         if hasattr(part, "part_kind") and part.part_kind == "tool-call":
             is_processing_tools = True
@@ -369,153 +381,133 @@ async def _process_tool_calls(
                 response_state.transition_to(AgentState.TOOL_EXECUTION)
                 if state_manager.session.show_thoughts:
                     await ui.muted("STATE → TOOL_EXECUTION (executing tools)")
+
             if tool_callback:
-                # Check if this is a read-only tool that can be batched
-                if tool_buffer is not None and part.tool_name in READ_ONLY_TOOLS:
-                    # Add to buffer instead of executing immediately
-                    tool_buffer.add(part, node)
-
-                    # Update spinner to show we're collecting tools
-                    buffered_count = len(tool_buffer.read_only_tasks)
-                    spinner_msg = (
-                        f"[bold #00d7ff]Collecting tools ({buffered_count}) "
-                        f"buffered...[/bold #00d7ff]"
-                    )
-                    await ui.update_spinner_message(spinner_msg, state_manager)
-
+                # Categorize: read-only vs write/execute
+                if part.tool_name in READ_ONLY_TOOLS:
+                    read_only_tasks.append((part, node))
                     if state_manager.session.show_thoughts:
                         await ui.muted(
-                            f"⏸️ BUFFERED: {part.tool_name} (will execute in parallel batch)"
+                            f"⏸️ COLLECTED: {part.tool_name} (will execute in parallel batch)"
                         )
                 else:
-                    # Write/execute tool - process any buffered reads first
-                    if tool_buffer is not None and tool_buffer.has_tasks():
-                        import time
-
-                        from .tool_executor import execute_tools_parallel
-
-                        buffered_tasks = tool_buffer.flush()
-                        batch_id = getattr(state_manager.session, "batch_counter", 0) + 1
-                        state_manager.session.batch_counter = batch_id
-
-                        start_time = time.time()
-
-                        # Update spinner message for batch execution
-                        tool_names = [part.tool_name for part, _ in buffered_tasks]
-                        batch_msg = get_batch_description(len(buffered_tasks), tool_names)
-                        await ui.update_spinner_message(
-                            f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
-                        )
-
-                        # Enhanced visual feedback for parallel execution
-                        await ui.muted("\n" + "=" * 60)
-                        batch_title = (
-                            f"🚀 PARALLEL BATCH #{batch_id}: "
-                            f"Executing {len(buffered_tasks)} read-only tools concurrently"
-                        )
-                        await ui.muted(batch_title)
-                        await ui.muted("=" * 60)
-
-                        # Display details of what's being executed
-                        for idx, (buffered_part, _) in enumerate(buffered_tasks, 1):
-                            tool_desc = f"  [{idx}] {buffered_part.tool_name}"
-                            if hasattr(buffered_part, "args") and isinstance(
-                                buffered_part.args, dict
-                            ):
-                                if (
-                                    buffered_part.tool_name == "read_file"
-                                    and "file_path" in buffered_part.args
-                                ):
-                                    tool_desc += f" → {buffered_part.args['file_path']}"
-                                elif (
-                                    buffered_part.tool_name == "grep"
-                                    and "pattern" in buffered_part.args
-                                ):
-                                    tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
-                                    if "include_files" in buffered_part.args:
-                                        tool_desc += (
-                                            f", files: '{buffered_part.args['include_files']}'"
-                                        )
-                                elif (
-                                    buffered_part.tool_name == "list_dir"
-                                    and "directory" in buffered_part.args
-                                ):
-                                    tool_desc += f" → {buffered_part.args['directory']}"
-                                elif (
-                                    buffered_part.tool_name == "glob"
-                                    and "pattern" in buffered_part.args
-                                ):
-                                    tool_desc += f" → pattern: '{buffered_part.args['pattern']}'"
-                            await ui.muted(tool_desc)
-                        await ui.muted("=" * 60)
-
-                        await execute_tools_parallel(buffered_tasks, tool_callback)
-
-                        elapsed_time = (time.time() - start_time) * 1000
-                        sequential_estimate = (
-                            len(buffered_tasks) * 100
-                        )  # Assume 100ms per tool average
-                        speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
-
-                        await ui.muted(
-                            f"✅ Parallel batch completed in {elapsed_time:.0f}ms "
-                            f"(~{speedup:.1f}x faster than sequential)\n"
-                        )
-
-                        # Reset spinner message back to thinking
-                        from tunacode.constants import UI_THINKING_MESSAGE
-
-                        await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
-
-                    # Now execute the write/execute tool
+                    write_execute_tasks.append((part, node))
                     if state_manager.session.show_thoughts:
-                        await ui.warning(f"⚠️ SEQUENTIAL: {part.tool_name} (write/execute tool)")
-
-                    # Update spinner for sequential tool
-                    tool_args = getattr(part, "args", {}) if hasattr(part, "args") else {}
-                    # Parse args if they're a JSON string
-                    if isinstance(tool_args, str):
-                        import json
-
-                        try:
-                            tool_args = json.loads(tool_args)
-                        except (json.JSONDecodeError, TypeError):
-                            tool_args = {}
-                    tool_desc = get_tool_description(part.tool_name, tool_args)
-                    await ui.update_spinner_message(
-                        f"[bold #00d7ff]{tool_desc}...[/bold #00d7ff]", state_manager
-                    )
-
-                    # Execute the tool with robust error handling
-                    # so one failure doesn't crash the run
-                    try:
-                        await tool_callback(part, node)
-                    except UserAbortError:
-                        raise
-                    except Exception as tool_err:
-                        logger.error(
-                            "Tool callback failed: tool=%s iter=%s err=%s",
-                            getattr(part, "tool_name", "<unknown>"),
-                            getattr(state_manager.session, "current_iteration", "?"),
-                            tool_err,
-                            exc_info=True,
+                        await ui.muted(
+                            f"📝 COLLECTED: {part.tool_name} (will execute sequentially)"
                         )
-                        # Surface to UI when thoughts are enabled, then continue gracefully
-                        if getattr(state_manager.session, "show_thoughts", False):
-                            await ui.warning(
-                                f"❌ Tool failed: {getattr(part, 'tool_name', '<unknown>')} — "
-                                f"continuing"
-                            )
-                    finally:
-                        # Tool execution completed - resource cleanup handled by BaseTool.execute()
-                        # Each tool's cleanup() method is called automatically in its execute()
-                        # finally block. This ensures resources (file handles, connections,
-                        # processes) are freed regardless of success or failure.
-                        tool_name = getattr(part, "tool_name", "<unknown>")
-                        logger.debug(
-                            "Tool execution completed (success or failure): tool=%s",
-                            tool_name,
-                        )
+
+    # Phase 2: Execute read-only tools in ONE parallel batch
+    if read_only_tasks and tool_callback:
+        import time
+
+        from .tool_executor import execute_tools_parallel
+
+        batch_id = getattr(state_manager.session, "batch_counter", 0) + 1
+        state_manager.session.batch_counter = batch_id
+
+        # Update spinner to show batch collection
+        await ui.update_spinner_message(
+            f"[bold #00d7ff]Collected {len(read_only_tasks)} read-only tools...[/bold #00d7ff]",
+            state_manager,
+        )
+
+        start_time = time.time()
+
+        # Update spinner message for batch execution
+        tool_names = [part.tool_name for part, _ in read_only_tasks]
+        batch_msg = get_batch_description(len(read_only_tasks), tool_names)
+        await ui.update_spinner_message(
+            f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
+        )
+
+        # Enhanced visual feedback for parallel execution
+        await ui.muted("\n" + "=" * 60)
+        batch_title = (
+            f"🚀 PARALLEL BATCH #{batch_id}: "
+            f"Executing {len(read_only_tasks)} read-only tools concurrently"
+        )
+        await ui.muted(batch_title)
+        await ui.muted("=" * 60)
+
+        # Display details of what's being executed
+        for idx, (part, _) in enumerate(read_only_tasks, 1):
+            tool_desc = f"  [{idx}] {part.tool_name}"
+            if hasattr(part, "args") and isinstance(part.args, dict):
+                if part.tool_name == "read_file" and "file_path" in part.args:
+                    tool_desc += f" → {part.args['file_path']}"
+                elif part.tool_name == "grep" and "pattern" in part.args:
+                    tool_desc += f" → pattern: '{part.args['pattern']}'"
+                    if "include_files" in part.args:
+                        tool_desc += f", files: '{part.args['include_files']}'"
+                elif part.tool_name == "list_dir" and "directory" in part.args:
+                    tool_desc += f" → {part.args['directory']}"
+                elif part.tool_name == "glob" and "pattern" in part.args:
+                    tool_desc += f" → pattern: '{part.args['pattern']}'"
+            await ui.muted(tool_desc)
+        await ui.muted("=" * 60)
+
+        await execute_tools_parallel(read_only_tasks, tool_callback)
+
+        elapsed_time = (time.time() - start_time) * 1000
+        sequential_estimate = len(read_only_tasks) * 100  # Assume 100ms per tool average
+        speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
+
+        await ui.muted(
+            f"✅ Parallel batch completed in {elapsed_time:.0f}ms "
+            f"(~{speedup:.1f}x faster than sequential)\n"
+        )
+
+        # Reset spinner message back to thinking
+        from tunacode.constants import UI_THINKING_MESSAGE
+
+        await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
+
+    # Phase 3: Execute write/execute tools sequentially
+    for part, node in write_execute_tasks:
+        if state_manager.session.show_thoughts:
+            await ui.warning(f"⚠️ SEQUENTIAL: {part.tool_name} (write/execute tool)")
+
+        # Update spinner for sequential tool
+        tool_args = getattr(part, "args", {}) if hasattr(part, "args") else {}
+        # Parse args if they're a JSON string
+        if isinstance(tool_args, str):
+            import json
+
+            try:
+                tool_args = json.loads(tool_args)
+            except (json.JSONDecodeError, TypeError):
+                tool_args = {}
+        tool_desc = get_tool_description(part.tool_name, tool_args)
+        await ui.update_spinner_message(
+            f"[bold #00d7ff]{tool_desc}...[/bold #00d7ff]", state_manager
+        )
+
+        # Execute the tool with robust error handling
+        try:
+            await tool_callback(part, node)
+        except UserAbortError:
+            raise
+        except Exception as tool_err:
+            logger.error(
+                "Tool callback failed: tool=%s iter=%s err=%s",
+                getattr(part, "tool_name", "<unknown>"),
+                getattr(state_manager.session, "current_iteration", "?"),
+                tool_err,
+                exc_info=True,
+            )
+            # Surface to UI when thoughts are enabled, then continue gracefully
+            if getattr(state_manager.session, "show_thoughts", False):
+                await ui.warning(
+                    f"❌ Tool failed: {getattr(part, 'tool_name', '<unknown>')} — continuing"
+                )
+        finally:
+            # Tool execution completed - resource cleanup handled by BaseTool.execute()
+            tool_name = getattr(part, "tool_name", "<unknown>")
+            logger.debug(
+                "Tool execution completed (success or failure): tool=%s",
+                tool_name,
+            )
 
     # Track tool calls in session
     if is_processing_tools:

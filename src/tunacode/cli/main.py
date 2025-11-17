@@ -101,6 +101,7 @@ def main(
             # Normal exit - cleanup MCP servers
             try:
                 from tunacode.core.agents import cleanup_mcp_servers
+
                 await cleanup_mcp_servers()
             except Exception:
                 pass  # Best effort cleanup

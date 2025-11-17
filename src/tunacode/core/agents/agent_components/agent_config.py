@@ -166,6 +166,10 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         system_prompt = load_system_prompt(base_path)
 
         # Load AGENTS.md context
+        # IMPORTANT: Injects project workflow rules and optimization mandates from
+        # AGENTS.md directly into the agent's system prompt.
+        # This makes all agent behavior a product of the repository's latest
+        # coding/testing/documentation standards.
         system_prompt += load_tunacode_context()
 
         # Initialize tools that need state manager

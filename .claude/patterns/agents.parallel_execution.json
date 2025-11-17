@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "agents.parallel_execution",
+  "patterns": [
+    {
+      "name": "smart_batching_optimization",
+      "description": "Smart batching strategy that maximizes parallel tool execution by avoiding premature buffer flushes"
+    }
+  ],
+  "last_updated": "2025-11-17T17:39:54.376152380Z"
+}

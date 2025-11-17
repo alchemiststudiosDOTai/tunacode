@@ -102,10 +102,10 @@ if [ -d "$VENV_DIR" ] && [ "${FORCE_REBUILD:-false}" = "true" ]; then
 fi
 
 log_info "Creating/updating Hatch environment via Hatch (installer: uv)"
-hatch env create "$HATCH_ENV_NAME"
+hatch -v env create "$HATCH_ENV_NAME"
 
 log_info "Installing editable project + dev extras with uv (editable mode)"
-uv pip install --python "${VENV_DIR}/bin/python" -e ".[dev]"
+uv pip install -v --python "${VENV_DIR}/bin/python" -e ".[dev]"
 
 log_info "Verifying CLI entry point via Hatch-managed environment"
 "${VENV_DIR}/bin/tunacode" --version

@@ -2,6 +2,18 @@
   "version": 1,
   "sessions": [
     {
+      "id": "smart-batching-test-alignment-20251130-000000",
+      "time": "2025-11-30T00:00:00Z",
+      "branch": "main",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Adjusted smart batching tests to count every tool callback because read-only tools now batch across the entire sequence.",
+        "Asserted sequential write invocations separately so write tools remain sequential while still expecting the total callback count to equal the tool list length.",
+        "Documented that both baseline and target cases rely on a single parallel batch containing all read-only tools followed by sequential write execution."
+      ]
+    },
+    {
       "id": "types-pydantic-defensive-removal-20251024-000000",
       "time": "2025-10-24T00:00:00Z",
       "branch": "master",

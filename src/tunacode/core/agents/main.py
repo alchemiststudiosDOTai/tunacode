@@ -480,7 +480,6 @@ async def process_request(
                         state.clear_empty_response()
                 else:
                     state.clear_empty_response()
-
                 # Track whether we produced visible user output this iteration
                 if getattr(getattr(node, "result", None), "output", None):
                     response_state.has_user_response = True
@@ -491,7 +490,6 @@ async def process_request(
                     last_productive_iteration = i
                 else:
                     unproductive_iterations += 1
-
                 # Force action if no tool usage for several iterations
                 if (
                     unproductive_iterations >= UNPRODUCTIVE_LIMIT
@@ -506,7 +504,6 @@ async def process_request(
                         state,
                     )
                     unproductive_iterations = 0  # reset after nudge
-
                 await _maybe_force_react_snapshot(
                     i,
                     state_manager,
@@ -514,7 +511,6 @@ async def process_request(
                     state.show_thoughts,
                     agent_run.ctx,
                 )
-
                 # Optional debug progress
                 if state.show_thoughts:
                     await ui.muted(
@@ -526,7 +522,6 @@ async def process_request(
                             f"{name}: {count}" for name, count in tool_summary.items()
                         )
                         await ui.muted(f"TOOLS USED: {summary_str}")
-
                 # Ask for clarification if agent requested it
                 if response_state.awaiting_user_guidance:
                     await _ask_for_clarification(i, state)
@@ -561,7 +556,6 @@ async def process_request(
                         )
                     response_state.awaiting_user_guidance = True
                     # Do not auto-increase max_iterations here (avoid infinite loops)
-
                 i += 1
 
             await _finalize_buffered_tasks(tool_buffer, tool_callback, state)

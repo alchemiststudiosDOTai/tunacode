@@ -91,7 +91,7 @@ repos:
       # Run test suite using hatch for consistency
       - id: run-tests
         name: Run test suite
-        entry: hatch run test
+        entry: .venv/bin/pytest
         language: system
         pass_filenames: false
         always_run: true

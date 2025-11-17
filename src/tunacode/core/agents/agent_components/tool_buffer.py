@@ -1,6 +1,6 @@
 """Tool buffer for managing parallel execution of read-only tools."""
 
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class ToolBuffer:
@@ -22,3 +22,23 @@ class ToolBuffer:
     def has_tasks(self) -> bool:
         """Check if there are buffered tasks."""
         return len(self.read_only_tasks) > 0
+
+    def size(self) -> int:
+        """Return the number of buffered tasks."""
+        return len(self.read_only_tasks)
+
+    def peek(self) -> List[Tuple[Any, Any]]:
+        """Return buffered tasks without clearing the buffer."""
+        return self.read_only_tasks.copy()
+
+    def count_by_type(self) -> Dict[str, int]:
+        """Count buffered tools by type for metrics and debugging."""
+        counts: Dict[str, int] = {}
+        for part, _ in self.read_only_tasks:
+            tool_name = getattr(part, "tool_name", "unknown")
+            counts[tool_name] = counts.get(tool_name, 0) + 1
+        return counts
+
+    def clear(self) -> None:
+        """Clear all buffered tasks without executing them."""
+        self.read_only_tasks.clear()
