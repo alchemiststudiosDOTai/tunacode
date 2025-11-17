@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/qa/v1",
+  "component": "agents.core",
+  "questions": [
+    {
+      "q": "How does the main agent loop operate and what weakness should we watch for?",
+      "a": "Loop resets session state, iterates async nodes, streams tokens, runs _process_node for tool orchestration, tracks productivity/React enforcement, and finalizes buffered tasks before optional fallback. Major weakness: fallback synthesis never triggers once any user-visible text was emitted because _should_build_fallback requires response_state.has_user_response == False, so long-running tasks that speak early but never finish exit silently without fail-safe output.\nSee documentation/agent/main-agent-key-sections.md for detailed outline."
+    }
+  ],
+  "last_updated": "2025-11-17T18:12:02.865945522Z"
+}

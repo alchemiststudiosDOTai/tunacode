@@ -2,6 +2,18 @@
   "version": 1,
   "sessions": [
     {
+      "id": "agent-fallback-removal-20251208-000000",
+      "time": "2025-12-08T00:00:00Z",
+      "branch": "master",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "Removed the fallback response synthesizer from src/tunacode/core/agents/main.py so unfinished runs no longer pretend a summary is coming.",
+        "Dropped the fallback_enabled request context wiring and the settings toggle since no code referenced the synthesized output.",
+        "Simplified process_request to always return the AgentRunWithState wrapper, making iteration caps rely on explicit DONE markers or user prompts."
+      ]
+    },
+    {
       "id": "smart-batching-test-alignment-20251130-000000",
       "time": "2025-11-30T00:00:00Z",
       "branch": "main",

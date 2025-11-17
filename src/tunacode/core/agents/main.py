@@ -18,7 +18,6 @@ from pydantic_ai import Agent
 if TYPE_CHECKING:
     from pydantic_ai import Tool  # noqa: F401
 
-    from tunacode.core.agents.agent_components import ResponseState, ToolBuffer
 
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
@@ -38,15 +37,6 @@ from tunacode.types import (
 from tunacode.ui import console as ui
 from tunacode.ui.tool_descriptions import get_batch_description
 
-try:
-    from pydantic_ai.messages import PartDeltaEvent, TextPartDelta  # type: ignore
-
-    STREAMING_AVAILABLE = True
-except Exception:  # pragma: no cover
-    PartDeltaEvent = None  # type: ignore
-    TextPartDelta = None  # type: ignore
-    STREAMING_AVAILABLE = False
-
 from . import agent_components as ac
 
 logger = get_logger(__name__)
@@ -61,8 +51,7 @@ __all__ = [
 ]
 
 DEFAULT_MAX_ITERATIONS = 15
-UNPRODUCTIVE_LIMIT = 3  # iterations without tool use before forcing action
-FALLBACK_VERBOSITY_DEFAULT = "normal"
+UNPRODUCTIVE_LIMIT = 3
 DEBUG_METRICS_DEFAULT = False
 FORCED_REACT_INTERVAL = 2
 FORCED_REACT_LIMIT = 5
@@ -73,7 +62,6 @@ class RequestContext:
     request_id: str
     max_iterations: int
     debug_metrics: bool
-    fallback_enabled: bool
 
 
 class StateFacade:
@@ -138,7 +126,7 @@ class StateFacade:
         setattr(self.sm.session, "consecutive_empty_responses", 0)
 
 
-def _init_context(state: StateFacade, fallback_enabled: bool) -> RequestContext:
+def _init_context(state: StateFacade) -> RequestContext:
     req_id = str(uuid.uuid4())[:8]
     state.set_request_id(req_id)
 
@@ -149,7 +137,6 @@ def _init_context(state: StateFacade, fallback_enabled: bool) -> RequestContext:
         request_id=req_id,
         max_iterations=max_iters,
         debug_metrics=debug_metrics,
-        fallback_enabled=fallback_enabled,
     )
 
 
@@ -165,7 +152,7 @@ async def _maybe_stream_node_tokens(
     request_id: str,
     iteration_index: int,
 ) -> None:
-    if not streaming_cb or not STREAMING_AVAILABLE:
+    if not streaming_cb:
         return
 
     # Delegate to component streaming helper (already optimized)
@@ -311,7 +298,7 @@ async def _ask_for_clarification(i: int, state: StateFacade) -> None:
 
 
 async def _finalize_buffered_tasks(
-    tool_buffer: ToolBuffer,
+    tool_buffer: ac.ToolBuffer,
     tool_callback: Optional[ToolCallback],
     state: StateFacade,
 ) -> None:
@@ -368,36 +355,6 @@ async def _finalize_buffered_tasks(
         logger.debug("UI batch epilogue failed (non-fatal)", exc_info=True)
 
 
-def _should_build_fallback(
-    response_state: ResponseState,
-    iter_idx: int,
-    max_iterations: int,
-    fallback_enabled: bool,
-) -> bool:
-    return (
-        fallback_enabled
-        and not response_state.has_user_response
-        and not response_state.task_completed
-        and iter_idx >= max_iterations
-    )
-
-
-def _build_fallback_output(
-    iter_idx: int,
-    max_iterations: int,
-    state: StateFacade,
-) -> str:
-    verbosity = state.get_setting("settings.fallback_verbosity", FALLBACK_VERBOSITY_DEFAULT)
-    fallback = ac.create_fallback_response(
-        iter_idx,
-        max_iterations,
-        getattr(state.sm.session, "tool_calls", []),
-        getattr(state.sm.session, "messages", []),
-        verbosity,
-    )
-    return ac.format_fallback_output(fallback)
-
-
 def get_agent_tool() -> tuple[type[Agent], type["Tool"]]:
     """Return Agent and Tool classes without importing at module load time."""
     from pydantic_ai import Agent as AgentCls
@@ -425,7 +382,6 @@ async def process_request(
     usage_tracker: Optional[
         UsageTrackerProtocol
     ] = None,  # currently passed through to _process_node
-    fallback_enabled: bool = True,
 ) -> AgentRun:
     """
     Process a single request to the agent.
@@ -433,8 +389,7 @@ async def process_request(
     CLAUDE_ANCHOR[process-request-entry]: Main entry point for all agent requests
     """
     state = StateFacade(state_manager)
-    fallback_config_enabled = bool(state.get_setting("settings.fallback_response", True))
-    ctx = _init_context(state, fallback_enabled=fallback_enabled and fallback_config_enabled)
+    ctx = _init_context(state)
     state.reset_for_new_request()
     state.set_original_query_once(message)
 
@@ -559,16 +514,6 @@ async def process_request(
                 i += 1
 
             await _finalize_buffered_tasks(tool_buffer, tool_callback, state)
-
-            # Build fallback synthesis if needed
-            if _should_build_fallback(response_state, i, ctx.max_iterations, ctx.fallback_enabled):
-                ac.patch_tool_messages("Task incomplete", state_manager=state_manager)
-                response_state.has_final_synthesis = True
-                comprehensive_output = _build_fallback_output(i, ctx.max_iterations, state)
-                wrapper = ac.AgentRunWrapper(
-                    agent_run, ac.SimpleResult(comprehensive_output), response_state
-                )
-                return wrapper
 
             # Normal path: return a wrapper that carries response_state
             return ac.AgentRunWithState(agent_run, response_state)

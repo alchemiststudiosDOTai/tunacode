@@ -9,19 +9,10 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable, Optional
 
+from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
-
-# Import streaming types with fallback for older versions
-try:  # pragma: no cover - import guard for pydantic_ai streaming types
-    from pydantic_ai.messages import PartDeltaEvent, TextPartDelta  # type: ignore
-
-    STREAMING_AVAILABLE = True
-except Exception:  # pragma: no cover - fallback when streaming types unavailable
-    PartDeltaEvent = None  # type: ignore
-    TextPartDelta = None  # type: ignore
-    STREAMING_AVAILABLE = False
-
 
 logger = get_logger(__name__)
 
@@ -40,7 +31,7 @@ async def stream_model_request_node(
     keep main.py lean. It performs up to one retry on streaming failure and then
     degrades to non-streaming for that node.
     """
-    if not (STREAMING_AVAILABLE and streaming_callback):
+    if not streaming_callback:
         return
 
     # Gracefully handle streaming errors from LLM provider
@@ -169,7 +160,7 @@ async def stream_model_request_node(
                             pass
 
                     # Handle delta events
-                    if PartDeltaEvent and isinstance(event, PartDeltaEvent):
+                    if isinstance(event, PartDeltaEvent):
                         if isinstance(event.delta, TextPartDelta):
                             if event.delta.content_delta is not None and streaming_callback:
                                 # Seed prefix logic before the first true delta

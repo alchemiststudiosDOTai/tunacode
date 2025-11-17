@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "agents.main_beta",
+  "patterns": [
+    {
+      "name": "init_iterate_finish_loop",
+      "description": "Beta agent loop splits lifecycle into init_run, iterate_run, and finish_run helpers so process_request composes via ctx = init_run(...); await iterate_run(...); return finish_run(...). Implemented in src/tunacode/core/agents/main_beta.py for structured orchestration."
+    }
+  ],
+  "last_updated": "2025-11-17T18:25:15.309873968Z"
+}

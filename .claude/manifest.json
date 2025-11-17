@@ -1,86 +1,10 @@
 {
   "version": "1.0.0",
-  "timestamp": "2025-11-17T17:40:10.863309032Z",
+  "timestamp": "2025-11-17T18:25:17.728996138Z",
   "files": {
-    "delta_summaries/2025-11-05_tool_handler_api_changes.md": {
-      "hash": "aed3101dfd488e2ab0f76b4c72e6570e88d409b45f62c0f41ca535447e303133",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "qa/context_logs/smart-git-20250917-122934/files.json": {
-      "hash": "8c4e854edabf624979b3feb10b0af3d8d0a95ad5f30d63f0321c374cb1d344c5",
-      "last_modified": "2025-09-26T17:15:35Z"
-    },
-    "patterns/canonical_patterns/backward_compatibility_refactor.md": {
-      "hash": "9da59b2e0481bf1eb1d6a0958232129e8d04e49bc7c522bbe3dc23b07de729e7",
-      "last_modified": "2025-09-19T15:28:30Z"
-    },
-    "development/uv-hatch-setup.md": {
-      "hash": "405a4411e6ae6aaa4ca624a81514d0597e92a26228ae909d96a24a242e4ec9b8",
-      "last_modified": "2025-08-25T16:29:30Z"
-    },
-    "docs_model_friendly/component_purpose.md": {
-      "hash": "1d9244177be6605a645c03e2e8349dd396720fb094510e8ce738df5d8f72bb87",
-      "last_modified": "2025-10-03T16:36:18Z"
-    },
-    "docs_model_friendly/rag_modules_overview.md": {
-      "hash": "137a980ecb6b9ee473bbfb5f939c3d19182909a66beac5fc32d265ca5c030a67",
-      "last_modified": "2025-09-25T17:15:26Z"
-    },
-    "qa/context_logs/tool-rejection-feedback-20251010-000001/summary.md": {
-      "hash": "a1f89ff31e61cf0dc2838fdb6e43386234366ec9ca8828119798d87b84552c9c",
-      "last_modified": "2025-10-10T17:16:25Z"
-    },
-    "development/model-updates-2025.md": {
-      "hash": "0fc1e4bb5bd97d3728955d35c65530d3b4043eaf1375473423b94bf9cd1fcbec",
-      "last_modified": "2025-08-25T16:29:30Z"
-    },
-    "delta_summaries/api_change_logs.json": {
-      "hash": "28ecd45506a6d45c85747704a6e4d2d91d2f92962518564e9be5236c0f8d9c96",
-      "last_modified": "2025-10-10T19:18:11Z"
-    },
-    "development/phase5-prompt-injection-system.md": {
-      "hash": "39a4b19b6b43c91eea26a12eaa86cb7bbf291c3163f52b16923c939b8e9018c0",
-      "last_modified": "2025-08-25T16:29:30Z"
-    },
-    "qa/reasoning_docs/main-agent-integration-20250917-123100.md": {
-      "hash": "75b3b7cfc2c24a8cb6448f9be7bfee1c01af6d666ef9171d434166a5addeaf8b",
-      "last_modified": "2025-09-19T15:28:30Z"
-    },
-    "patterns/tool_handler_refactoring_pattern.md": {
-      "hash": "1c58216e7cf3455cd2a72c342fcf02099ca8bc3311afc1bfab19b9cadeddae07",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "development/openai_tool_calling_evaluation.md": {
-      "hash": "ed50388c27035082ab7dde8c4d586887ee8e3001ffe9d6d5c6e54fb678c397ff",
-      "last_modified": "2025-09-11T16:27:44Z"
-    },
-    "development/always-on-display-implementation.md": {
-      "hash": "c7804b4113a07abd6582c88d5bad8671449ec8f1f68d734e5abc68c70ed9b7a9",
-      "last_modified": "2025-08-25T16:29:30Z"
-    },
-    "qa/context_logs/react-tool-session-20250120-000002/summary.md": {
-      "hash": "c04c538c9eef68d6bf3eb30781009f54c9107954ec6ebaf1835569f2121ed24d",
-      "last_modified": "2025-09-19T19:11:54Z"
-    },
-    "delta_summaries/2025-10-01-startup-banner-panel.md": {
-      "hash": "0f84da3f62faa837c6391cffad1ceba9de8072f470c6e16bf25b679fdfa27b56",
-      "last_modified": "2025-10-02T16:39:05Z"
-    },
     "delta_summaries/2025-09-21-models_registry-pydantic-conversion.md": {
       "hash": "e1af17f6582ce84bc5d05872ddb5a5da9320b16a5d88693a8b40f84e36468f57",
       "last_modified": "2025-09-25T17:15:26Z"
-    },
-    "debug_history/2025-09-21-rag-search-hyphen-gotcha.md": {
-      "hash": "6ed9eaf4cfcd502b298f6139b890d2d6353487f1a01ff65d44ea5d1287d292fe",
-      "last_modified": "2025-09-25T17:15:26Z"
-    },
-    "development/uv-installer-updates.md": {
-      "hash": "318b9b287561791d5bcd15b86a3344a47bfe10a73537882b45156ba5a28a3062",
-      "last_modified": "2025-08-25T16:29:30Z"
-    },
-    "qa/context_logs/main-agent-integration-20250917-141518/files.json": {
-      "hash": "b775b7188d8cd8bc7edc6df2495c232172d1b2b45c0b4c506ca58100059bb6ea",
-      "last_modified": "2025-09-19T15:28:30Z"
     },
     "debug_history/agent.state.json": {
       "hash": "403c09bbb1a9a0bc08b8e939a1a6323eb150b6293ec1518de45449fc4a3e7001",
@@ -90,157 +14,245 @@
       "hash": "10f5d614bdb7f5bf81dbc0c53dad7962f494558ba1c9a77ecfb79a1fe0ae918a",
       "last_modified": "2025-08-25T16:29:30Z"
     },
-    "docs_model_friendly/component_relationships.md": {
-      "hash": "70195042daf0c1178da6bd1e6cf655c3ce108c9efea89c2e0400f6e581dd05e3",
-      "last_modified": "2025-10-10T17:16:19Z"
-    },
-    "qa/reasoning_docs/main-agent-integration-20250917-141518.md": {
-      "hash": "eb66213a13638feef23454dd3235bc41850e5bbf3ec0a7e7500c43020319c7fc",
-      "last_modified": "2025-09-19T15:28:30Z"
-    },
-    "delta_summaries/2025-10-03-tool_handler-behavior-optimization.md": {
-      "hash": "3f41ba78e3c81e04902286729616ff037ba174e142bb7620a894267922069820",
-      "last_modified": "2025-10-03T16:39:36Z"
-    },
-    "debug_history/2025-11-05_tool_handler_refactoring.md": {
-      "hash": "15448259e7671e2f8376037ec9e5744cc4e643af8e19d5991e0e4ed6cf4e21db",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "debug_history/debug_sessions.json": {
-      "hash": "92e998e9e86744849a2f5e998ceb21b911c8b364b009a9f8412abfdaab49432b",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "qa/reasoning_docs/simplified-agent-handoff-20250929.md": {
-      "hash": "7b49ecba0572be670e0f03d08236e3a0bc08c5268dcaf128293bdbdcd74e035b",
-      "last_modified": "2025-09-29T16:28:05Z"
-    },
-    "semantic_index/function_call_graphs.json": {
-      "hash": "b5b7cd71cb3aea04aceff2c3ee14632227d31a415cc129a3210691c53aaf06b9",
-      "last_modified": "2025-10-10T17:00:36Z"
-    },
-    "delta_summaries/reasoning_logs.json": {
-      "hash": "cac17d4eb58c6927b86be340f981b84d73e71d720b4dea99cdcd0e0b56e30622",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "docs_model_friendly/option3_feedback_flow.md": {
-      "hash": "10bc07491f9793811fb918639162a49fcb072b015d56e1a248c7a441e591440b",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "qa/context_logs/main-agent-integration-20250917-123100/files.json": {
-      "hash": "8b9eb0eb8c38e4a830db1b273b5cee67a87c1f09ad88ec2892be248932dfb9c1",
-      "last_modified": "2025-09-19T15:28:30Z"
-    },
-    "metadata/file_classifications.json": {
-      "hash": "4cfad70a8f572a7ff4909f0249fafe62fcc045e75636c30f657f6eee999afef2",
-      "last_modified": "2025-10-10T17:16:44Z"
-    },
-    "delta_summaries/2025-09-21-models_registry-validation-tests.md": {
-      "hash": "604f7a1d5303954b55173d28ba07fbf2687a06f905ebd0601dca14beed6cde7c",
-      "last_modified": "2025-09-25T17:15:26Z"
-    },
-    "development/cli-json-recovery-incident.md": {
-      "hash": "b5bbf70cbf2841a31a96768762579e55a2376f6cca72a303f680b8c5477709c4",
-      "last_modified": "2025-08-25T16:29:30Z"
+    "qa/reasoning_docs/smart-git-20250917-122934.md": {
+      "hash": "d361ae1c9d76121236b4060beabbab91e4c1006140d482d3a06763380549e23f",
+      "last_modified": "2025-09-26T17:15:35Z"
     },
     "debug_history/agent.tool_execution.json": {
       "hash": "b93548e35cbcc8111388d00cb3e0ef24446c0ba181baf91042e8509a1d2a7d35",
       "last_modified": "2025-11-17T16:58:45Z"
     },
-    "README.md": {
-      "hash": "4edfcbf7c107706882e9e1f48026c1671268db5fedddbb2c3066f1e539272ea4",
-      "last_modified": "2025-09-19T16:51:42Z"
+    "qa/reasoning_docs/main-agent-integration-20250917-123100.md": {
+      "hash": "75b3b7cfc2c24a8cb6448f9be7bfee1c01af6d666ef9171d434166a5addeaf8b",
+      "last_modified": "2025-09-19T15:28:30Z"
     },
-    "qa/reasoning_docs/tool-rejection-feedback-20251010-000001.md": {
-      "hash": "53a035ce6f26cf227a99c0c75dbbf7e75fd89fc0493a0f6972ae5e9ca1cceaee",
-      "last_modified": "2025-10-10T17:16:28Z"
+    "delta_summaries/reasoning_logs.json": {
+      "hash": "cac17d4eb58c6927b86be340f981b84d73e71d720b4dea99cdcd0e0b56e30622",
+      "last_modified": "2025-11-17T16:58:45Z"
+    },
+    "development/directory-caching-optimization.md": {
+      "hash": "5591cb5d459edfe9861dd4b60645e5174207a1f095832833f569948f66b0ec7c",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "cheatsheets/agents.core.json": {
+      "hash": "e4b3560fd81e5a5cd9c6c4dcc5f460f782bb6040fa6057da57698f13611656be",
+      "last_modified": "2025-11-17T18:01:44Z"
+    },
+    "qa/context_logs/main-agent-integration-20250917-123100/files.json": {
+      "hash": "8b9eb0eb8c38e4a830db1b273b5cee67a87c1f09ad88ec2892be248932dfb9c1",
+      "last_modified": "2025-09-19T15:28:30Z"
+    },
+    "delta_summaries/behavior_changes.json": {
+      "hash": "93259fe8fdb92da29d4f307e0a4f86a59cbc870a2318a92992d6895824833ee1",
+      "last_modified": "2025-11-17T18:15:58Z"
+    },
+    "patterns/agents.parallel_execution.json": {
+      "hash": "9bda200665852ca21da4554e275991e9e19339bba0c4dc3f3a34c5830f8eeba4",
+      "last_modified": "2025-11-17T17:45:23Z"
+    },
+    "debug_history/2025-11-05_tool_handler_refactoring.md": {
+      "hash": "15448259e7671e2f8376037ec9e5744cc4e643af8e19d5991e0e4ed6cf4e21db",
+      "last_modified": "2025-11-17T16:58:45Z"
     },
     "development/onboarding-improvements.md": {
       "hash": "941fbccf98d54f1f67a2a3d5bdc793618fe94b72bc4da505260b94cf3ae480e5",
       "last_modified": "2025-08-25T16:29:30Z"
     },
-    "development/hatch-commands.md": {
-      "hash": "998c13e49acb970327ff045be79f9988a684e36b76491059be9c912479731016",
-      "last_modified": "2025-08-25T16:29:30Z"
+    "debug_history/2025-09-21-rag-search-hyphen-gotcha.md": {
+      "hash": "6ed9eaf4cfcd502b298f6139b890d2d6353487f1a01ff65d44ea5d1287d292fe",
+      "last_modified": "2025-09-25T17:15:26Z"
     },
-    "development/esc-investigation/ESC_KEY_INVESTIGATION.md": {
-      "hash": "866b2cc66e31a916bfba8b983a542e356b0e258a36f5dd2d78bfbfc58472b3f5",
-      "last_modified": "2025-08-25T16:29:30Z"
+    "development/openai_tool_calling_evaluation.md": {
+      "hash": "ed50388c27035082ab7dde8c4d586887ee8e3001ffe9d6d5c6e54fb678c397ff",
+      "last_modified": "2025-09-11T16:27:44Z"
     },
-    "qa/reasoning_docs/smart-git-20250917-122934.md": {
-      "hash": "d361ae1c9d76121236b4060beabbab91e4c1006140d482d3a06763380549e23f",
-      "last_modified": "2025-09-26T17:15:35Z"
-    },
-    "patterns/agent.state.json": {
-      "hash": "b7201a125da90fa71bf9d0075e0d4eb1cfd592aee9c4461a6dc61669862c5e44",
-      "last_modified": "2025-11-17T16:58:45Z"
-    },
-    "memory_anchors/anchors.json": {
-      "hash": "9c9e1c2c85f5eb5f18fc4e48f29c12d144669e443bd053b6508dc56dbff9523a",
-      "last_modified": "2025-10-10T19:18:11Z"
-    },
-    "settings.local.json": {
-      "hash": "e594050f806ffb86769fc4397e1e7f0a9b096dbe7a7ae73f92e361fbd8ec4e80",
-      "last_modified": "2025-11-17T17:38:07Z"
-    },
-    "development/slash-commands.md": {
-      "hash": "da860872134826fae64102e2991c143fee04293bf0bdc8514d36a37f35f09856",
-      "last_modified": "2025-08-25T16:29:30Z"
-    },
-    "development/version-management.md": {
-      "hash": "c32165f6127dc6ba1eb7d261fd0b775329be74eed3ce70cc1d7c02eaaf5f84b6",
-      "last_modified": "2025-10-02T16:32:12Z"
+    "qa/context_logs/tool-rejection-feedback-20251010-000001/summary.md": {
+      "hash": "a1f89ff31e61cf0dc2838fdb6e43386234366ec9ca8828119798d87b84552c9c",
+      "last_modified": "2025-10-10T17:16:25Z"
     },
     "semantic_index/intent_mappings.json": {
       "hash": "e2dab3f8d51257f2cec918d3ebcf29ee3431390f89e6b80690ab2071b36c72f9",
       "last_modified": "2025-10-10T17:02:21Z"
     },
-    "delta_summaries/2025-09-21-test-update-model-command-characterization.md": {
-      "hash": "b67df17d98df6643d1c3ba72206c33642c431afd2812a919c27e41f3e6548ae2",
-      "last_modified": "2025-09-25T17:15:26Z"
+    "docs_model_friendly/component_purpose.md": {
+      "hash": "1d9244177be6605a645c03e2e8349dd396720fb094510e8ce738df5d8f72bb87",
+      "last_modified": "2025-10-03T16:36:18Z"
+    },
+    "development/hatch-commands.md": {
+      "hash": "998c13e49acb970327ff045be79f9988a684e36b76491059be9c912479731016",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "development/uv-hatch-setup.md": {
+      "hash": "405a4411e6ae6aaa4ca624a81514d0597e92a26228ae909d96a24a242e4ec9b8",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "qa/context_logs/main-agent-integration-20250917-141518/files.json": {
+      "hash": "b775b7188d8cd8bc7edc6df2495c232172d1b2b45c0b4c506ca58100059bb6ea",
+      "last_modified": "2025-09-19T15:28:30Z"
+    },
+    "debug_history/debug_sessions.json": {
+      "hash": "92e998e9e86744849a2f5e998ceb21b911c8b364b009a9f8412abfdaab49432b",
+      "last_modified": "2025-11-17T16:58:45Z"
     },
     "debug_history/cli.tool_confirmation.json": {
       "hash": "3677ac952480ce9696561cca948a78837292c8afdc55834bd1cdf0d478a86bda",
       "last_modified": "2025-11-17T16:58:45Z"
     },
-    "delta_summaries/task4_ui_formatting_fix.md": {
-      "hash": "ff532914607a6c6a19b084fcf701175043443feeb492942b8335e72319b052bc",
-      "last_modified": "2025-09-19T15:28:30Z"
+    "patterns/agents.main_beta.json": {
+      "hash": "20e7d89b55358dbc03a6ad288cdb3d7e7ca5c94cb9e82fd6033e9273a3b12e0a",
+      "last_modified": "2025-11-17T18:25:15Z"
     },
-    "delta_summaries/behavior_changes.json": {
-      "hash": "5af0e94b3b76d3bafa037fd6fce5eb2936d3a57778bbed469ed15f30b004a036",
-      "last_modified": "2025-11-17T17:31:14Z"
+    "docs_model_friendly/rag_modules_overview.md": {
+      "hash": "137a980ecb6b9ee473bbfb5f939c3d19182909a66beac5fc32d265ca5c030a67",
+      "last_modified": "2025-09-25T17:15:26Z"
     },
-    "delta_summaries/prompt_system_xml_migration.json": {
-      "hash": "fb24f86df4ff56a42a9cc4b6f0f959f4ee8c15e0c4d0007921365b30ae48e90e",
+    "development/version-management.md": {
+      "hash": "c32165f6127dc6ba1eb7d261fd0b775329be74eed3ce70cc1d7c02eaaf5f84b6",
+      "last_modified": "2025-10-02T16:32:12Z"
+    },
+    "README.md": {
+      "hash": "4edfcbf7c107706882e9e1f48026c1671268db5fedddbb2c3066f1e539272ea4",
+      "last_modified": "2025-09-19T16:51:42Z"
+    },
+    "kv/github-actions-release-fix.json": {
+      "hash": "d3a2886fcbbf0f6ebd4cc4d368cf84893cb864e6311258407167d4e7fcd04f82",
       "last_modified": "2025-09-26T17:15:35Z"
     },
     "patterns/json_retry_implementation.md": {
       "hash": "71d6b04a2fb1bb9dd5929c1ec153485313f8f3ee9b15f8b97d9b092adf940373",
       "last_modified": "2025-08-25T16:29:30Z"
     },
+    "delta_summaries/prompt_system_xml_migration.json": {
+      "hash": "fb24f86df4ff56a42a9cc4b6f0f959f4ee8c15e0c4d0007921365b30ae48e90e",
+      "last_modified": "2025-09-26T17:15:35Z"
+    },
+    "patterns/canonical_patterns/backward_compatibility_refactor.md": {
+      "hash": "9da59b2e0481bf1eb1d6a0958232129e8d04e49bc7c522bbe3dc23b07de729e7",
+      "last_modified": "2025-09-19T15:28:30Z"
+    },
+    "delta_summaries/2025-09-21-models_registry-validation-tests.md": {
+      "hash": "604f7a1d5303954b55173d28ba07fbf2687a06f905ebd0601dca14beed6cde7c",
+      "last_modified": "2025-09-25T17:15:26Z"
+    },
+    "qa/agents.core.json": {
+      "hash": "4ded3c4200207b8908aaf2adffbdadcedc10166d70c21a58faabb4fd3db007bd",
+      "last_modified": "2025-11-17T18:12:02Z"
+    },
+    "delta_summaries/2025-09-21-test-update-model-command-characterization.md": {
+      "hash": "b67df17d98df6643d1c3ba72206c33642c431afd2812a919c27e41f3e6548ae2",
+      "last_modified": "2025-09-25T17:15:26Z"
+    },
+    "development/slash-commands.md": {
+      "hash": "da860872134826fae64102e2991c143fee04293bf0bdc8514d36a37f35f09856",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "development/always-on-display-implementation.md": {
+      "hash": "c7804b4113a07abd6582c88d5bad8671449ec8f1f68d734e5abc68c70ed9b7a9",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "patterns/agent.state.json": {
+      "hash": "b7201a125da90fa71bf9d0075e0d4eb1cfd592aee9c4461a6dc61669862c5e44",
+      "last_modified": "2025-11-17T16:58:45Z"
+    },
+    "delta_summaries/2025-11-05_tool_handler_api_changes.md": {
+      "hash": "aed3101dfd488e2ab0f76b4c72e6570e88d409b45f62c0f41ca535447e303133",
+      "last_modified": "2025-11-17T16:58:45Z"
+    },
+    "docs_model_friendly/option3_feedback_flow.md": {
+      "hash": "10bc07491f9793811fb918639162a49fcb072b015d56e1a248c7a441e591440b",
+      "last_modified": "2025-11-17T16:58:45Z"
+    },
+    "qa/reasoning_docs/simplified-agent-handoff-20250929.md": {
+      "hash": "7b49ecba0572be670e0f03d08236e3a0bc08c5268dcaf128293bdbdcd74e035b",
+      "last_modified": "2025-09-29T16:28:05Z"
+    },
+    "delta_summaries/task4_ui_formatting_fix.md": {
+      "hash": "ff532914607a6c6a19b084fcf701175043443feeb492942b8335e72319b052bc",
+      "last_modified": "2025-09-19T15:28:30Z"
+    },
+    "development/esc-investigation/ESC_KEY_INVESTIGATION.md": {
+      "hash": "866b2cc66e31a916bfba8b983a542e356b0e258a36f5dd2d78bfbfc58472b3f5",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "settings.local.json": {
+      "hash": "0d0eac93e8d43f01053704dada211d968c95a7fd007894ca01477370e8b3367c",
+      "last_modified": "2025-11-17T17:40:35Z"
+    },
+    "development/cli-json-recovery-incident.md": {
+      "hash": "b5bbf70cbf2841a31a96768762579e55a2376f6cca72a303f680b8c5477709c4",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "qa/context_logs/smart-git-20250917-122934/files.json": {
+      "hash": "8c4e854edabf624979b3feb10b0af3d8d0a95ad5f30d63f0321c374cb1d344c5",
+      "last_modified": "2025-09-26T17:15:35Z"
+    },
     "delta_summaries/fix-text-alignment-layout-task3.md": {
       "hash": "fb8a8074614df584dc436f30f3bd64dd2e1e0d3e59409aeab2c872a1e01e3ed4",
       "last_modified": "2025-09-19T15:28:30Z"
     },
-    "kv/github-actions-release-fix.json": {
-      "hash": "d3a2886fcbbf0f6ebd4cc4d368cf84893cb864e6311258407167d4e7fcd04f82",
-      "last_modified": "2025-09-26T17:15:35Z"
+    "development/uv-installer-updates.md": {
+      "hash": "318b9b287561791d5bcd15b86a3344a47bfe10a73537882b45156ba5a28a3062",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "qa/reasoning_docs/tool-rejection-feedback-20251010-000001.md": {
+      "hash": "53a035ce6f26cf227a99c0c75dbbf7e75fd89fc0493a0f6972ae5e9ca1cceaee",
+      "last_modified": "2025-10-10T17:16:28Z"
+    },
+    "delta_summaries/api_change_logs.json": {
+      "hash": "28ecd45506a6d45c85747704a6e4d2d91d2f92962518564e9be5236c0f8d9c96",
+      "last_modified": "2025-10-10T19:18:11Z"
+    },
+    "patterns/tool_handler_refactoring_pattern.md": {
+      "hash": "1c58216e7cf3455cd2a72c342fcf02099ca8bc3311afc1bfab19b9cadeddae07",
+      "last_modified": "2025-11-17T16:58:45Z"
+    },
+    "delta_summaries/2025-10-03-tool_handler-behavior-optimization.md": {
+      "hash": "3f41ba78e3c81e04902286729616ff037ba174e142bb7620a894267922069820",
+      "last_modified": "2025-10-03T16:39:36Z"
+    },
+    "memory_anchors/anchors.json": {
+      "hash": "9c9e1c2c85f5eb5f18fc4e48f29c12d144669e443bd053b6508dc56dbff9523a",
+      "last_modified": "2025-10-10T19:18:11Z"
     },
     "semantic_index/type_relationships.json": {
       "hash": "0b175ae4851f00bd03fc6223bcdc445fef59209eb1d060c5bc216832cc4391a8",
       "last_modified": "2025-10-10T17:02:07Z"
     },
+    "metadata/file_classifications.json": {
+      "hash": "4cfad70a8f572a7ff4909f0249fafe62fcc045e75636c30f657f6eee999afef2",
+      "last_modified": "2025-10-10T17:16:44Z"
+    },
+    "development/phase5-prompt-injection-system.md": {
+      "hash": "39a4b19b6b43c91eea26a12eaa86cb7bbf291c3163f52b16923c939b8e9018c0",
+      "last_modified": "2025-08-25T16:29:30Z"
+    },
     "semantic_index/prompt_system_changes.json": {
       "hash": "22c352dee237d700377ef4f4b98327470ff928846690712a6631d2bfa5b0dfdd",
       "last_modified": "2025-09-26T17:15:35Z"
     },
-    "patterns/agents.parallel_execution.json": {
-      "hash": "e1ee8f6af699636856518bc150703109c7537a66e3e2aaf9eac9da936840827c",
-      "last_modified": "2025-11-17T17:39:54Z"
+    "delta_summaries/2025-10-01-startup-banner-panel.md": {
+      "hash": "0f84da3f62faa837c6391cffad1ceba9de8072f470c6e16bf25b679fdfa27b56",
+      "last_modified": "2025-10-02T16:39:05Z"
     },
-    "development/directory-caching-optimization.md": {
-      "hash": "5591cb5d459edfe9861dd4b60645e5174207a1f095832833f569948f66b0ec7c",
+    "semantic_index/function_call_graphs.json": {
+      "hash": "b5b7cd71cb3aea04aceff2c3ee14632227d31a415cc129a3210691c53aaf06b9",
+      "last_modified": "2025-10-10T17:00:36Z"
+    },
+    "development/model-updates-2025.md": {
+      "hash": "0fc1e4bb5bd97d3728955d35c65530d3b4043eaf1375473423b94bf9cd1fcbec",
       "last_modified": "2025-08-25T16:29:30Z"
+    },
+    "docs_model_friendly/component_relationships.md": {
+      "hash": "70195042daf0c1178da6bd1e6cf655c3ce108c9efea89c2e0400f6e581dd05e3",
+      "last_modified": "2025-10-10T17:16:19Z"
+    },
+    "qa/context_logs/react-tool-session-20250120-000002/summary.md": {
+      "hash": "c04c538c9eef68d6bf3eb30781009f54c9107954ec6ebaf1835569f2121ed24d",
+      "last_modified": "2025-09-19T19:11:54Z"
+    },
+    "qa/reasoning_docs/main-agent-integration-20250917-141518.md": {
+      "hash": "eb66213a13638feef23454dd3235bc41850e5bbf3ec0a7e7500c43020319c7fc",
+      "last_modified": "2025-09-19T15:28:30Z"
     }
   }
 }

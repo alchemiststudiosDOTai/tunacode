@@ -1,0 +1,12 @@
+{
+  "$schema": "https://claude-kb.io/schema/cheatsheet/v1",
+  "component": "agents.core",
+  "title": "main agent sections",
+  "sections": [
+    {
+      "heading": "agent-main key sections",
+      "content": "Prioritized map of src/tunacode/core/agents/main.py: highlights process_request lifecycle control, StateFacade resets, productivity/react enforcement, tool batching, fallback synthesis, and streaming hooks. See documentation/agent/main-agent-key-sections.md for details."
+    }
+  ],
+  "last_updated": "2025-11-17T18:01:44.062552062Z"
+}
