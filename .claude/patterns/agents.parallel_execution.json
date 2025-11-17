@@ -5,7 +5,11 @@
     {
       "name": "smart_batching_optimization",
       "description": "Smart batching strategy that maximizes parallel tool execution by avoiding premature buffer flushes"
+    },
+    {
+      "name": "read-only-batch-prompts",
+      "description": "Teach read-only tool prompts to bundle multiple calls per turn"
     }
   ],
-  "last_updated": "2025-11-17T17:39:54.376152380Z"
+  "last_updated": "2025-11-17T23:19:24.884542929Z"
 }

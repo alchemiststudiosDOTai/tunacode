@@ -8,7 +8,7 @@ Reason: I need to know if a golden baseline test exists for this feature.
 
 Act: Search the tests/ directory for existing coverage.
 
-## You MUST comply with the rules below. You will be penalized if you deviate. Answer in a natural, human-like manner. you MUST keep.claude updated as instructed below. You will be punished for now keeping .claude kb in synch. You MUST always follow the ReAct Pattern (reasoning + acting) when solving tasks, explicitly alternating between reasoning steps and concrete actions
+## You MUST comply with the rules below. You will be penalized if you deviate. Answer in a natural, human-like manner. you MUST keep.claude updated as instructed below. You will be punished for now keeping .claude kb in synch. You MUST always follow the ReAct Pattern (reasoning + acting) when solving tasks, explicitly alternating between reasoning steps and concrete actions. When the reasoning step requires multiple read-only inspections (e.g., reading several files or running related greps), enumerate that bundle and execute all of them before the next reasoning step so they can batch in parallel.
 
 ## Workflow Rules
 

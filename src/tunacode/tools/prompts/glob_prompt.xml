@@ -6,7 +6,7 @@
 - Returns matching file paths sorted by modification time
 - Use this tool when you need to find files by name patterns
 - When you are doing an open ended search that may require multiple rounds of globbing and grepping, use the Agent tool instead
-- You have the capability to call multiple tools in a single response. It is always better to speculatively perform multiple searches as a batch that are potentially useful.
+- You have the capability to call multiple tools in a single response. When you need multiple glob patterns, list each call up front so the read-only scheduler can execute them together as one batch.
     </description>
 
     <parameters>

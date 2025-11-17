@@ -381,7 +381,7 @@ async def _process_tool_calls(
         # Enhanced visual feedback for parallel execution
         await ui.muted("\n" + "=" * 60)
         batch_title = (
-            f"🚀 PARALLEL BATCH #{batch_id}: "
+            f"PARALLEL BATCH #{batch_id}: "
             f"Executing {len(read_only_tasks)} read-only tools concurrently"
         )
         await ui.muted(batch_title)
@@ -411,7 +411,7 @@ async def _process_tool_calls(
         speedup = sequential_estimate / elapsed_time if elapsed_time > 0 else 1.0
 
         await ui.muted(
-            f"✅ Parallel batch completed in {elapsed_time:.0f}ms "
+            f"Parallel batch completed in {elapsed_time:.0f}ms "
             f"(~{speedup:.1f}x faster than sequential)\n"
         )
 
