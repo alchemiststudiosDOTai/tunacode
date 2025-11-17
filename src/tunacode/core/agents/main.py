@@ -23,7 +23,11 @@ if TYPE_CHECKING:
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
-from tunacode.services.mcp import get_mcp_servers  # re-exported by design
+from tunacode.services.mcp import (  # re-exported by design
+    cleanup_mcp_servers,
+    get_mcp_servers,
+    register_mcp_agent,
+)
 from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
@@ -50,6 +54,8 @@ logger = get_logger(__name__)
 __all__ = [
     "process_request",
     "get_mcp_servers",
+    "cleanup_mcp_servers",
+    "register_mcp_agent",
     "get_agent_tool",
     "check_query_satisfaction",
 ]
