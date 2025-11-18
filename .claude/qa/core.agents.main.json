@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/qa/v1",
+  "component": "core.agents.main",
+  "questions": [
+    {
+      "q": "Why was main.py refactored from StateFacade pattern to focused responsibility classes?",
+      "a": "The refactoring improved maintainability and testability by: 1) Eliminating the StateFacade wrapper that obscured direct state access, 2) Extracting intervention mechanisms (empty response handling, productivity tracking, react snapshots, iteration limits) into focused classes with single responsibilities, 3) Centralizing prompt formatting in prompts.py to separate presentation from logic, 4) Creating RequestOrchestrator to coordinate the main loop. All functionality from main_legact.py was preserved including the 5 core intervention mechanisms. The new architecture makes each component independently testable and easier to reason about."
+    }
+  ],
+  "last_updated": "2025-11-18T21:24:21.818945163Z"
+}

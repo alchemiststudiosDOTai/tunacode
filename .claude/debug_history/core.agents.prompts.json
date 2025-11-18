@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "core.agents.prompts",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Typo 'Plese add more context to the task' in format_iteration_limit() function at line 60",
+      "solution": "Changed 'Plese' to 'Please' in prompts.py:60. Pre-existing typo from legacy main.py:500 that was carried over during refactoring.",
+      "date": "2025-11-18T21:24:09.655244587Z"
+    }
+  ],
+  "last_updated": "2025-11-18T21:24:09.655245175Z"
+}

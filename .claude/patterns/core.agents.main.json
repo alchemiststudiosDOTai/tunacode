@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "core.agents.main",
+  "patterns": [
+    {
+      "name": "focused_responsibility_classes",
+      "description": "Refactored main.py from monolithic StateFacade pattern to focused responsibility classes: EmptyResponseHandler (tracks empty responses), IterationManager (productivity + iteration limits + clarifications), ReactSnapshotManager (forced react snapshots), RequestOrchestrator (main loop coordination). Eliminated StateFacade in favor of direct SessionState access. Centralized prompts in prompts.py. Implemented in src/tunacode/core/agents/main.py for cleaner separation of concerns and testability."
+    }
+  ],
+  "last_updated": "2025-11-18T21:23:58.084642329Z"
+}
