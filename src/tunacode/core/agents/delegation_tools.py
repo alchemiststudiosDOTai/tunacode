@@ -51,6 +51,14 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Get current model from session (same model as parent agent)
         model = state_manager.session.current_model
 
+        # Show delegation status if streaming panel available
+        streaming_panel = getattr(state_manager.session, "streaming_panel", None)
+        if streaming_panel:
+            dirs_str = ", ".join(directories)
+            streaming_panel.update(
+                f"🔍 Delegating to research agent...\nQuery: {query}\nDirectories: {dirs_str}"
+            )
+
         # Create research agent with same model as parent
         research_agent = create_research_agent(model, state_manager)
 
@@ -72,6 +80,9 @@ Return a structured summary with:
             prompt,
             usage=ctx.usage,  # Share usage tracking with parent agent
         )
+
+        if streaming_panel:
+            streaming_panel.update("✓ Research agent completed")
 
         return result.output
 
