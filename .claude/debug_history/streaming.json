@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "streaming",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "You must finish streaming before calling run() - occurs when provider errors happen mid-stream after HTTP connection established",
+      "solution": "Reset node._did_stream=False in streaming.py exception handler (lines 275-291) to allow graceful degradation to non-streaming mode",
+      "date": "2025-11-18T20:04:29.550773578Z"
+    }
+  ],
+  "last_updated": "2025-11-18T20:04:29.550774865Z"
+}

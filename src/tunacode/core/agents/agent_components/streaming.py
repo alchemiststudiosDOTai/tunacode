@@ -271,6 +271,25 @@ async def stream_model_request_node(
             stream_err,
             exc_info=True,
         )
+
+        # Reset node state to allow graceful degradation to non-streaming mode
+        try:
+            if hasattr(node, "_did_stream"):
+                node._did_stream = False
+                logger.debug(
+                    "Reset node._did_stream after streaming error (req=%s iter=%s)",
+                    request_id,
+                    iteration_index,
+                )
+        except Exception as reset_err:
+            logger.debug(
+                "Failed to reset node._did_stream (req=%s iter=%s): %s",
+                request_id,
+                iteration_index,
+                reset_err,
+                exc_info=True,
+            )
+
         if getattr(state_manager.session, "show_thoughts", False):
             from tunacode.ui import console as ui
 
