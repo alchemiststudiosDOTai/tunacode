@@ -28,8 +28,6 @@ _TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
 _AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
 
-_PROMPT_FILENAMES: Tuple[str, ...] = ("system.xml", "system.md", "system.txt")
-_DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant."
 
 
 def clear_all_caches():
@@ -71,21 +69,21 @@ def _read_prompt_from_path(prompt_path: Path) -> str:
 
 
 def load_system_prompt(base_path: Path) -> str:
-    """Load the system prompt from file with caching."""
+    """Load the system prompt from system.xml file with caching.
+    
+    Raises:
+        FileNotFoundError: If system.xml does not exist in the prompts directory.
+    """
     prompts_dir = base_path / "prompts"
+    prompt_path = prompts_dir / "system.xml"
 
-    for prompt_name in _PROMPT_FILENAMES:
-        prompt_path = prompts_dir / prompt_name
-        if not prompt_path.exists():
-            continue
+    if not prompt_path.exists():
+        raise FileNotFoundError(
+            f"Required system prompt file not found: {prompt_path}. "
+            "The system.xml file must exist in the prompts directory."
+        )
 
-        try:
-            return _read_prompt_from_path(prompt_path)
-        except FileNotFoundError:
-            # File disappeared between exists() check and read. Try next candidate.
-            continue
-
-    return _DEFAULT_SYSTEM_PROMPT
+    return _read_prompt_from_path(prompt_path)
 
 
 def load_tunacode_context() -> str:

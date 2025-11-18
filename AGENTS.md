@@ -41,7 +41,7 @@ Act: Search the tests/ directory for existing coverage.
 ## Error Handling
 
 - Fail fast, fail loud. No silent fallbacks.
-- Minimize branching: every `if`/`try` must be justified.
+- Minimize branching: every `if`/`try` must be justified with a reason. You MUST always provide a reason for the branching. But in general, you should avoid branching if possible.
 
 ## Dependencies
 
@@ -54,8 +54,7 @@ Act: Search the tests/ directory for existing coverage.
 3. Implement until tests pass.
 4. Refactor cleanly.
 
-- Run with: `hatch run test`.
-
+- Run with: ` source .venv/bin/activate && pytest`.
 ## Documentation
 
 - Keep concise and actionable.

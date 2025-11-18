@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "agent_components.streaming",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "AssertionError: stream() should only be called once per node; You must finish streaming before calling run()",
+      "solution": "Reset node._did_stream=False in exception handler (streaming.py:268-289); Remove retry loop at line 38; Full analysis: memory-bank/research/2025-11-18_13-08-42_streaming-retry-state-corruption.md",
+      "date": "2025-11-18T19:12:07.767679069Z"
+    }
+  ],
+  "last_updated": "2025-11-18T19:12:07.767679814Z"
+}
