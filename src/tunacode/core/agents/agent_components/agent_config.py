@@ -12,6 +12,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from tenacity import retry_if_exception_type, stop_after_attempt
 
+from tunacode.core.agents.delegation_tools import create_research_codebase_tool
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.services.mcp import get_mcp_servers, register_mcp_agent
@@ -250,6 +251,12 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
             Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
         ]
+
+        # Add delegation tool (multi-agent pattern)
+        research_codebase = create_research_codebase_tool(state_manager)
+        tools_list.append(
+            Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
+        )
 
         logger.debug(f"Creating agent with {len(tools_list)} tools")
 
