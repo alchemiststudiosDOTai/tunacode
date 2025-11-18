@@ -292,9 +292,12 @@ async def repl(state_manager: StateManager):
         if state_manager.session.session_total_usage:
             session_cost = float(state_manager.session.session_total_usage.get("cost", 0.0) or 0.0)
 
+        # Subtle, unified styling - mostly muted with minimal accent on cost
         await ui.muted(f"• Model: {state_manager.session.current_model} • {context}")
         if session_cost > 0:
-            await ui.muted(f"• Session Cost: ${session_cost:.4f}")
+            await ui.print(
+                f"[dim]• Session Cost:[/dim] [dim #00d7ff]${session_cost:.4f}[/dim #00d7ff]"
+            )
 
     # Always show context
     await show_context()

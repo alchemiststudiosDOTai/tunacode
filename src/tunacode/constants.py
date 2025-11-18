@@ -118,7 +118,7 @@ UI_COLORS = {
 }
 
 # UI text and formatting
-UI_PROMPT_PREFIX = "> "
+UI_PROMPT_PREFIX = '<style fg="#00d7ff"><b>> </b></style>'
 UI_THINKING_MESSAGE = "[bold #00d7ff]Thinking...[/bold #00d7ff]"
 UI_DARKGREY_OPEN = "<darkgrey>"
 UI_DARKGREY_CLOSE = "</darkgrey>"
