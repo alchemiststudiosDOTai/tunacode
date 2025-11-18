@@ -1,11 +1,11 @@
-"""Module: tunacode.core.agents.main2
+"""Module: tunacode.core.agents.main
 
 Refactored main agent functionality with focused responsibility classes.
 Handles agent creation, configuration, and request processing.
 
 CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle management
 
-This is a refactored version of main.py that:
+This is a refactored version of old main.py that:
 - Eliminates StateFacade in favor of direct SessionState access
 - Extracts intervention logic into focused classes
 - Centralizes prompts in prompts.py module
@@ -58,10 +58,7 @@ __all__ = [
 
 @dataclass
 class AgentConfig:
-    """Configuration for agent behavior.
-
-    Reference: main.py lines 52-56
-    """
+    """Configuration for agent behavior."""
 
     max_iterations: int = 15
     unproductive_limit: int = 3
@@ -72,10 +69,7 @@ class AgentConfig:
 
 @dataclass(slots=True)
 class RequestContext:
-    """Context for a single request.
-
-    Reference: main.py lines 59-63
-    """
+    """Context for a single request."""
 
     request_id: str
     max_iterations: int
@@ -83,10 +77,7 @@ class RequestContext:
 
 
 class EmptyResponseHandler:
-    """Handles tracking and intervention for empty responses.
-
-    Reference: main.py lines 428-433
-    """
+    """Handles tracking and intervention for empty responses."""
 
     def __init__(self, state_manager: StateManager) -> None:
         self.state_manager = state_manager
@@ -105,6 +96,7 @@ class EmptyResponseHandler:
 
     async def prompt_action(self, message: str, reason: str, iteration: int) -> None:
         """Delegate to agent_components.handle_empty_response."""
+
         # Create a minimal state-like object for compatibility
         class StateProxy:
             def __init__(self, sm: StateManager) -> None:
@@ -118,10 +110,7 @@ class EmptyResponseHandler:
 
 
 class IterationManager:
-    """Manages iteration tracking, productivity monitoring, and limit handling.
-
-    Reference: main.py lines 439-457 (productivity), 488-509 (limit)
-    """
+    """Manages iteration tracking, productivity monitoring, and limit handling."""
 
     def __init__(self, state_manager: StateManager, config: AgentConfig) -> None:
         self.state_manager = state_manager
@@ -152,9 +141,7 @@ class IterationManager:
             _, tools_str = ac.create_progress_summary(
                 getattr(self.state_manager.session, "tool_calls", [])
             )
-            limit_message = format_iteration_limit(
-                self.config.max_iterations, iteration, tools_str
-            )
+            limit_message = format_iteration_limit(self.config.max_iterations, iteration, tools_str)
             ac.create_user_message(limit_message, self.state_manager)
 
             if getattr(self.state_manager.session, "show_thoughts", False):
@@ -208,10 +195,7 @@ class IterationManager:
 
 
 class ReactSnapshotManager:
-    """Manages forced react snapshots and guidance injection.
-
-    Reference: main.py _maybe_force_react_snapshot() lines 174-254
-    """
+    """Manages forced react snapshots and guidance injection."""
 
     def __init__(
         self, state_manager: StateManager, react_tool: ReactTool, config: AgentConfig
@@ -230,9 +214,7 @@ class ReactSnapshotManager:
         forced_calls = getattr(self.state_manager.session, "react_forced_calls", 0)
         return forced_calls < self.config.forced_react_limit
 
-    async def capture_snapshot(
-        self, iteration: int, agent_run_ctx: Any, show_debug: bool
-    ) -> None:
+    async def capture_snapshot(self, iteration: int, agent_run_ctx: Any, show_debug: bool) -> None:
         """Capture react snapshot and inject guidance."""
         if not self.should_snapshot(iteration):
             return
@@ -275,9 +257,7 @@ class ReactSnapshotManager:
                 elif tool_name == "read_file" and isinstance(args, dict):
                     path = args.get("file_path") or args.get("filepath")
                     detail = (
-                        f"Extract key notes from {path}"
-                        if path
-                        else "Summarize read_file output"
+                        f"Extract key notes from {path}" if path else "Summarize read_file output"
                     )
                 else:
                     detail = f"Act on {tool_name} findings"
@@ -310,18 +290,13 @@ class ReactSnapshotManager:
                     ctx_messages.append(ModelRequest(parts=[system_part], kind="request"))
 
             if show_debug:
-                await ui.muted(
-                    "\n[react → LLM] BEGIN\n" + guidance_entry + "\n[react → LLM] END\n"
-                )
+                await ui.muted("\n[react → LLM] BEGIN\n" + guidance_entry + "\n[react → LLM] END\n")
         except Exception:
             logger.debug("Forced react snapshot failed", exc_info=True)
 
 
 class RequestOrchestrator:
-    """Orchestrates the main request processing loop.
-
-    Reference: main.py process_request() lines 372-538
-    """
+    """Orchestrates the main request processing loop."""
 
     def __init__(
         self,
@@ -369,10 +344,7 @@ class RequestOrchestrator:
         )
 
     def _reset_session_state(self) -> None:
-        """Reset/initialize fields needed for a new run.
-
-        Reference: main.py StateFacade.reset_for_new_request() lines 95-109
-        """
+        """Reset/initialize fields needed for a new run."""
         self.state_manager.session.current_iteration = 0
         self.state_manager.session.iteration_count = 0
         self.state_manager.session.tool_calls = []
@@ -439,9 +411,7 @@ class RequestOrchestrator:
                     # Handle empty response
                     self.empty_handler.track(empty_response)
                     if empty_response and self.empty_handler.should_intervene():
-                        await self.empty_handler.prompt_action(
-                            self.message, empty_reason, i
-                        )
+                        await self.empty_handler.prompt_action(self.message, empty_reason, i)
 
                     # Track whether we produced visible user output this iteration
                     if getattr(getattr(node, "result", None), "output", None):
@@ -460,15 +430,12 @@ class RequestOrchestrator:
                     show_thoughts = bool(
                         getattr(self.state_manager.session, "show_thoughts", False)
                     )
-                    await self.react_manager.capture_snapshot(
-                        i, agent_run.ctx, show_thoughts
-                    )
+                    await self.react_manager.capture_snapshot(i, agent_run.ctx, show_thoughts)
 
                     # Optional debug progress
                     if show_thoughts:
                         await ui.muted(
-                            f"\nITERATION: {i}/{ctx.max_iterations} "
-                            f"(Request ID: {ctx.request_id})"
+                            f"\nITERATION: {i}/{ctx.max_iterations} (Request ID: {ctx.request_id})"
                         )
                         tool_summary = ac.get_tool_summary(
                             getattr(self.state_manager.session, "tool_calls", [])
@@ -494,9 +461,7 @@ class RequestOrchestrator:
 
                     i += 1
 
-                await _finalize_buffered_tasks(
-                    tool_buffer, self.tool_callback, self.state_manager
-                )
+                await _finalize_buffered_tasks(tool_buffer, self.tool_callback, self.state_manager)
 
                 # Return wrapper that carries response_state
                 return ac.AgentRunWithState(agent_run, response_state)
@@ -504,9 +469,7 @@ class RequestOrchestrator:
         except UserAbortError:
             raise
         except ToolBatchingJSONError as e:
-            logger.error(
-                "Tool batching JSON error [req=%s]: %s", ctx.request_id, e, exc_info=True
-            )
+            logger.error("Tool batching JSON error [req=%s]: %s", ctx.request_id, e, exc_info=True)
             ac.patch_tool_messages(
                 f"Tool batching failed: {str(e)[:100]}...", state_manager=self.state_manager
             )
@@ -530,6 +493,7 @@ class RequestOrchestrator:
 
 # Utility functions
 
+
 async def _maybe_stream_node_tokens(
     node: Any,
     agent_run_ctx: Any,
@@ -545,7 +509,7 @@ async def _maybe_stream_node_tokens(
     if not streaming_cb:
         return
 
-    # Delegate to component streaming helper 
+    # Delegate to component streaming helper
     if Agent.is_model_request_node(node):  # type: ignore[attr-defined]
         await ac.stream_model_request_node(
             node, agent_run_ctx, state_manager, streaming_cb, request_id, iteration_index
@@ -570,8 +534,7 @@ async def _finalize_buffered_tasks(
     tool_callback: Optional[ToolCallback],
     state_manager: StateManager,
 ) -> None:
-    """Finalize and execute any buffered read-only tasks.
-    """
+    """Finalize and execute any buffered read-only tasks."""
     if not tool_callback or not tool_buffer.has_tasks():
         return
 
@@ -617,12 +580,12 @@ async def check_query_satisfaction(
     response: str,
     state_manager: StateManager,
 ) -> bool:
-    """Legacy hook for compatibility; completion still signaled via DONE marker.
-    """
+    """Legacy hook for compatibility; completion still signaled via DONE marker."""
     return True
 
 
 # Main entry point
+
 
 async def process_request(
     message: str,
@@ -647,4 +610,3 @@ async def process_request(
         usage_tracker,
     )
     return await orchestrator.run()
-

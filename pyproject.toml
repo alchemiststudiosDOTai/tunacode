@@ -27,12 +27,13 @@ classifiers = [
 ]
 dependencies = [
     "typer>=0.9.0,<0.10.0",
-    "click>=8.0.0,<8.2.0",
-    "prompt_toolkit==3.0.51",
-    "pydantic-ai",
-    "pygments==2.19.1",
-    "rich==14.0.0",
-    "tiktoken>=0.5.2",
+    "click>=8.3.1,<9.0.0",
+    "prompt_toolkit>=3.0.52,<4.0.0",
+    "pydantic>=2.12.4,<3.0.0",
+    "pydantic-ai>=1.18.0,<2.0.0",
+    "pygments>=2.19.2,<3.0.0",
+    "rich>=14.2.0,<15.0.0",
+    "tiktoken>=0.12.0,<1.0.0",
     "defusedxml",
     "textual",
 ]

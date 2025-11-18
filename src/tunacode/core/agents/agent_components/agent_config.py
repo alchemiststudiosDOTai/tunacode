@@ -36,7 +36,6 @@ _AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
 
 
-
 def clear_all_caches():
     """Clear all module-level caches. Useful for testing."""
     _PROMPT_CACHE.clear()
@@ -77,7 +76,7 @@ def _read_prompt_from_path(prompt_path: Path) -> str:
 
 def load_system_prompt(base_path: Path) -> str:
     """Load the system prompt from system.xml file with caching.
-    
+
     Raises:
         FileNotFoundError: If system.xml does not exist in the prompts directory.
     """

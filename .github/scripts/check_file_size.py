@@ -16,9 +16,15 @@ SKIP_DIRS = {
 SKIP_GLOBS = {
     "**/migrations/**",
 }
+SKIP_FILES = {
+    "src/tunacode/core/agents/main.py",  # Recently refactored
+}
 
 
 def should_skip(path: Path) -> bool:
+    # Check if file is in skip list
+    if str(path) in SKIP_FILES:
+        return True
     parts = set(p.name for p in path.parents)
     if parts & SKIP_DIRS:
         return True

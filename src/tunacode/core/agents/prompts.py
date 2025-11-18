@@ -64,4 +64,3 @@ def format_iteration_limit(max_iterations: int, iteration: int, tools_used: str)
 # Note: Empty response handling is delegated to agent_components.handle_empty_response()
 # which uses create_empty_response_message() from agent_helpers.py
 # No template needed here as it's already modularized.
-
