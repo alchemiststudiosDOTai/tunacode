@@ -3,7 +3,14 @@
 from pathlib import Path
 from typing import Dict, Tuple
 
+from httpx import AsyncClient, HTTPStatusError
 from pydantic_ai import Agent
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.anthropic import AnthropicProvider
+from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
+from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
@@ -120,6 +127,68 @@ def load_tunacode_context() -> str:
         return ""
 
 
+def _create_model_with_retry(
+    model_string: str, http_client: AsyncClient, state_manager: StateManager
+):
+    """Create a model instance with retry-enabled HTTP client.
+
+    Parses model string in format 'provider:model_name' and creates
+    appropriate provider and model instances with the retry-enabled HTTP client.
+    """
+    # Extract environment config
+    env = state_manager.session.user_config.get("env", {})
+
+    # Provider configuration: API key names and base URLs
+    PROVIDER_CONFIG = {
+        "anthropic": {"api_key_name": "ANTHROPIC_API_KEY", "base_url": None},
+        "openai": {"api_key_name": "OPENAI_API_KEY", "base_url": None},
+        "openrouter": {
+            "api_key_name": "OPENROUTER_API_KEY",
+            "base_url": "https://openrouter.ai/api/v1",
+        },
+        "azure": {
+            "api_key_name": "AZURE_OPENAI_API_KEY",
+            "base_url": env.get("AZURE_OPENAI_ENDPOINT"),
+        },
+        "deepseek": {"api_key_name": "DEEPSEEK_API_KEY", "base_url": None},
+    }
+
+    # Parse model string
+    if ":" in model_string:
+        provider_name, model_name = model_string.split(":", 1)
+    else:
+        # Auto-detect provider from model name
+        model_name = model_string
+        if model_name.startswith("claude"):
+            provider_name = "anthropic"
+        elif model_name.startswith(("gpt", "o1", "o3")):
+            provider_name = "openai"
+        else:
+            # Default to treating as model string (pydantic-ai will auto-detect)
+            return model_string
+
+    # Create provider with api_key + base_url + http_client
+    if provider_name == "anthropic":
+        api_key = env.get("ANTHROPIC_API_KEY")
+        provider = AnthropicProvider(api_key=api_key, http_client=http_client)
+        return AnthropicModel(model_name, provider=provider)
+    elif provider_name in ("openai", "openrouter", "azure", "deepseek"):
+        # OpenAI-compatible providers all use OpenAIChatModel
+        config = PROVIDER_CONFIG.get(provider_name, {})
+        api_key = env.get(config.get("api_key_name"))
+        base_url = config.get("base_url")
+        provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
+        return OpenAIChatModel(model_name, provider=provider)
+    else:
+        # Unsupported provider, return string and let pydantic-ai handle it
+        # (won't have retry support but won't break)
+        logger.warning(
+            f"Provider '{provider_name}' not configured for HTTP retries. "
+            f"Falling back to default behavior."
+        )
+        return model_string
+
+
 def get_or_create_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
     """Get existing agent or create new one for the specified model."""
     import logging
@@ -190,8 +259,27 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         logger.debug(f"Creating agent with {len(tools_list)} tools")
 
         mcp_servers = get_mcp_servers(state_manager)
+
+        # Configure HTTP client with retry logic at transport layer
+        # This handles retries BEFORE node creation, avoiding pydantic-ai's
+        # single-stream-per-node constraint violations
+        # https://ai.pydantic.dev/api/retries/#pydantic_ai.retries.wait_retry_after
+        transport = AsyncTenacityTransport(
+            config=RetryConfig(
+                retry=retry_if_exception_type(HTTPStatusError),
+                wait=wait_retry_after(max_wait=60),
+                stop=stop_after_attempt(max_retries),
+                reraise=True,
+            ),
+            validate_response=lambda r: r.raise_for_status(),
+        )
+        http_client = AsyncClient(transport=transport)
+
+        # Create model instance with retry-enabled HTTP client
+        model_instance = _create_model_with_retry(model, http_client, state_manager)
+
         agent = Agent(
-            model=model,
+            model=model_instance,
             system_prompt=system_prompt,
             tools=tools_list,
             mcp_servers=mcp_servers,
