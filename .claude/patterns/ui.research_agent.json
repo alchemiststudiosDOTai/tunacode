@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "ui.research_agent",
+  "patterns": [
+    {
+      "name": "research-agent-ui-purple-panel",
+      "description": "Pattern for displaying research agent delegation with distinctive purple UI panel to differentiate from regular read-only tools"
+    }
+  ],
+  "last_updated": "2025-11-19T00:31:52.885539645Z"
+}

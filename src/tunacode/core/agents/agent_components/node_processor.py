@@ -328,6 +328,7 @@ async def _process_tool_calls(
 
     # Phase 1: Collect and categorize all tools
     read_only_tasks = []
+    research_agent_tasks = []
     write_execute_tasks = []
 
     for part in node.model_response.parts:
@@ -340,21 +341,62 @@ async def _process_tool_calls(
                     await ui.muted("STATE → TOOL_EXECUTION (executing tools)")
 
             if tool_callback:
-                # Categorize: read-only vs write/execute
-                if part.tool_name in READ_ONLY_TOOLS:
+                # Categorize: research agent vs read-only vs write/execute
+                if part.tool_name == "research_codebase":
+                    research_agent_tasks.append((part, node))
+                    if state_manager.session.show_thoughts:
+                        await ui.muted(
+                            f"COLLECTED: {part.tool_name} (research agent - special display)"
+                        )
+                elif part.tool_name in READ_ONLY_TOOLS:
                     read_only_tasks.append((part, node))
                     if state_manager.session.show_thoughts:
                         await ui.muted(
-                            f"⏸️ COLLECTED: {part.tool_name} (will execute in parallel batch)"
+                            f"COLLECTED: {part.tool_name} (will execute in parallel batch)"
                         )
                 else:
                     write_execute_tasks.append((part, node))
                     if state_manager.session.show_thoughts:
-                        await ui.muted(
-                            f"📝 COLLECTED: {part.tool_name} (will execute sequentially)"
-                        )
+                        await ui.muted(f"COLLECTED: {part.tool_name} (will execute sequentially)")
 
-    # Phase 2: Execute read-only tools in ONE parallel batch
+    # Phase 2: Execute research agent with special UI display
+    if research_agent_tasks and tool_callback:
+        from .tool_executor import execute_tools_parallel
+
+        # Display research agent panel with query details
+        for part, _ in research_agent_tasks:
+            tool_args = getattr(part, "args", {}) if hasattr(part, "args") else {}
+            # Parse args if they're a JSON string
+            if isinstance(tool_args, str):
+                import json
+
+                try:
+                    tool_args = json.loads(tool_args)
+                except (json.JSONDecodeError, TypeError):
+                    tool_args = {}
+
+            # Build research agent panel content
+            query = tool_args.get("query", "No query provided")
+            directories = tool_args.get("directories", ["."])
+            max_files = tool_args.get("max_files", 3)
+
+            dirs_str = ", ".join(directories) if isinstance(directories, list) else str(directories)
+
+            research_content = f"**Query:** {query}\n\n"
+            research_content += f"**Directories:** {dirs_str}\n\n"
+            research_content += f"**Max files:** {max_files}"
+
+            await ui.research_agent(research_content)
+
+        # Execute the research agent tool
+        await execute_tools_parallel(research_agent_tasks, tool_callback)
+
+        # Reset spinner message back to thinking
+        from tunacode.constants import UI_THINKING_MESSAGE
+
+        await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
+
+    # Phase 3: Execute read-only tools in ONE parallel batch
     if read_only_tasks and tool_callback:
         from .tool_executor import execute_tools_parallel
 
@@ -406,7 +448,7 @@ async def _process_tool_calls(
 
         await ui.update_spinner_message(UI_THINKING_MESSAGE, state_manager)
 
-    # Phase 3: Execute write/execute tools sequentially
+    # Phase 4: Execute write/execute tools sequentially
     for part, node in write_execute_tasks:
         if state_manager.session.show_thoughts:
             await ui.warning(f"⚠️ SEQUENTIAL: {part.tool_name} (write/execute tool)")

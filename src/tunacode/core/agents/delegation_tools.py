@@ -24,7 +24,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         ctx: RunContext[None],
         query: str,
         directories: list[str] | None = None,
-        max_files: int = 10,
+        max_files: int = 3,
     ) -> dict:
         """Delegate codebase research to specialized read-only agent.
 
@@ -51,14 +51,22 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Get current model from session (same model as parent agent)
         model = state_manager.session.current_model
 
+        # Show delegation status if streaming panel available
+        streaming_panel = getattr(state_manager.session, "streaming_panel", None)
+        if streaming_panel:
+            dirs_str = ", ".join(directories)
+            await streaming_panel.update(
+                f"Delegating to research agent...\nQuery: {query}\nDirectories: {dirs_str}"
+            )
+
         # Create research agent with same model as parent
         research_agent = create_research_agent(model, state_manager)
 
         # Construct research prompt
         prompt = f"""Research the codebase for: {query}
 
-Search in directories: {', '.join(directories)}
-Analyze up to {max_files} most relevant files.
+Search in directories: {", ".join(directories)}
+Analyze up to {max_files} most relevant files (default: 3).
 
 Return a structured summary with:
 - relevant_files: list of file paths found
@@ -72,6 +80,9 @@ Return a structured summary with:
             prompt,
             usage=ctx.usage,  # Share usage tracking with parent agent
         )
+
+        if streaming_panel:
+            await streaming_panel.update("✓ Research agent completed")
 
         return result.output
 
