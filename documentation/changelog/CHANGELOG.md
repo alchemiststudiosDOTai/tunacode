@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-11-19
+
+### Added
+- **Enhanced UI Styling** - Added subtle blue accent for session costs display
+- **Green Rich Panels** - Implemented for parallel batch tool execution visualization
+- **MCP Server Cache Cleanup** - Phase 2 implementation for resource management
+- **Actual Resource Cleanup** - Phase 1 implementation in tools to prevent memory leaks
+- **Comprehensive Documentation**
+  - Research document on retry strategies and rate-limiting
+  - Architecture analysis for `tool_handler.py`
+  - Documentation for `src-layout` pattern
+  - Updated Knowledge Base tool instructions
+- **Testing Improvements**
+  - Autouse fixture to mock `time.sleep` in retry logic for faster tests
+  - Enhanced thread safety in agent components
+
+### Changed
+- **System Prompt Updates** - Enhanced with ReAct patterns and few-shot examples
+- **Architecture Simplification**
+  - Separated tool authorization concerns
+  - Eliminated "God Object" anti-pattern
+  - Simplified "plan mode" architecture and tool flow
+- **Agent Cache** - Aligned version hash to include `tool_strict_validation`
+- **Parallel Batch Output** - Removed emojis for cleaner logs
+- **Documentation Structure** - Updated organization and formatting
+
+### Fixed
+- **Error Handling Hardening** - Implemented error boundaries to prevent CLI crashes
+  - Added background task error callbacks for `asyncio.create_task()` calls (main.py:64, repl.py:279)
+  - Modified `RequestOrchestrator` to return graceful error states instead of re-raising exceptions
+  - Exceptions now return `AgentRunWrapper(None, fallback_result, response_state)` for graceful degradation
+  - User aborts (`UserAbortError`) still propagate as they represent user intent
+- **CI/CD**: Pinned Python version to `3.12` in publish workflow for stability
+- **Testing**
+  - Resolved `async` mock and test errors
+  - Fixed dashboard blocking issues when showing config
+  - Corrected terminal width in integration tests to prevent truncation
+  - Fixed `@src/` expansion issues (preventing self-reference)
+- **Linting** - Removed unused variables in `node_processor.py` (research agent panel content)
+
+### Removed
+- Complex development setup scripts that were no longer needed
+- Unused `setup-agent` helper
+- Test pollution and added `*.bak` to `.gitignore`
+
 ## [0.0.77.3] - 2025-10-10
 
 ### Changed

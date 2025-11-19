@@ -23,6 +23,34 @@ app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
 state_manager = StateManager()
 
+logger = logging.getLogger(__name__)
+
+
+def _handle_background_task_error(task: asyncio.Task) -> None:
+    """Error callback for background tasks to prevent unhandled exceptions.
+
+    This callback ensures that background task failures are logged but don't
+    crash the CLI. Tasks are marked as 'done' after this callback executes,
+    preventing 'Task was destroyed but pending' warnings.
+    """
+    try:
+        # Retrieve exception if task failed
+        exception = task.exception()
+        if exception is not None:
+            task_name = task.get_name()
+            logger.warning(
+                "Background task '%s' failed: %s",
+                task_name,
+                exception,
+                exc_info=exception,
+            )
+    except asyncio.CancelledError:
+        # Task was cancelled, which is expected behavior
+        pass
+    except Exception as e:
+        # Failsafe: log any error in the callback itself
+        logger.error("Error in background task error callback: %s", e, exc_info=True)
+
 
 @app.command()
 def main(
@@ -61,7 +89,10 @@ def main(
         await ui.banner()
 
         # Start update check in background
-        update_task = asyncio.create_task(asyncio.to_thread(check_for_updates))
+        update_task = asyncio.create_task(
+            asyncio.to_thread(check_for_updates), name="update_check"
+        )
+        update_task.add_done_callback(_handle_background_task_error)
 
         cli_config = {
             "baseurl": baseurl,
@@ -94,17 +125,22 @@ def main(
 
             await ui.error(f"{str(e)}\n\nTraceback:\n{traceback.format_exc()}")
 
-        has_update, latest_version = await update_task
-        if has_update:
-            await ui.update_available(latest_version)
-        else:
-            # Normal exit - cleanup MCP servers
-            try:
-                from tunacode.core.agents import cleanup_mcp_servers
+        # Gracefully handle update check result (may have failed in background)
+        try:
+            has_update, latest_version = await update_task
+            if has_update:
+                await ui.update_available(latest_version)
+        except Exception:
+            # Update check failed; error already logged by callback
+            pass
 
-                await cleanup_mcp_servers()
-            except Exception:
-                pass  # Best effort cleanup
+        # Normal exit - cleanup MCP servers
+        try:
+            from tunacode.core.agents import cleanup_mcp_servers
+
+            await cleanup_mcp_servers()
+        except Exception:
+            pass  # Best effort cleanup
 
     asyncio.run(async_main())
 

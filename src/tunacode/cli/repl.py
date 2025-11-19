@@ -45,6 +45,32 @@ colors = DotDict(UI_COLORS)
 logger = logging.getLogger(__name__)
 
 
+def _handle_background_task_error(task: asyncio.Task) -> None:
+    """Error callback for background tasks to prevent unhandled exceptions.
+
+    This callback ensures that background task failures are logged but don't
+    crash the REPL. Tasks are marked as 'done' after this callback executes,
+    preventing 'Task was destroyed but pending' warnings.
+    """
+    try:
+        # Retrieve exception if task failed
+        exception = task.exception()
+        if exception is not None:
+            task_name = task.get_name()
+            logger.warning(
+                "Background task '%s' failed: %s",
+                task_name,
+                exception,
+                exc_info=exception,
+            )
+    except asyncio.CancelledError:
+        # Task was cancelled, which is expected behavior
+        pass
+    except Exception as e:
+        # Failsafe: log any error in the callback itself
+        logger.error("Error in background task error callback: %s", e, exc_info=True)
+
+
 _command_registry = CommandRegistry()
 _command_registry.register_all_default_commands()
 
@@ -276,7 +302,8 @@ async def repl(state_manager: StateManager):
     import time
 
     # Start pre-warming code index in background (non-blocking)
-    asyncio.create_task(warm_code_index())
+    warm_index_task = asyncio.create_task(warm_code_index(), name="warm_code_index")
+    warm_index_task.add_done_callback(_handle_background_task_error)
 
     action = None
     abort_pressed = False
