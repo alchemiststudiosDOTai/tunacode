@@ -381,13 +381,15 @@ async def _process_tool_calls(
             # Build research agent panel content
             query = tool_args.get("query", "No query provided")
             directories = tool_args.get("directories", ["."])
-            max_files = tool_args.get("max_files", 3)
+            max_files_raw = tool_args.get("max_files", 3)
+            # Apply same hard cap as delegation_tools.py
+            max_files = min(max_files_raw, 3)
 
             dirs_str = ", ".join(directories) if isinstance(directories, list) else str(directories)
 
             research_content = f"**Query:** {query}\n\n"
             research_content += f"**Directories:** {dirs_str}\n\n"
-            research_content += f"**Max files:** {max_files}"
+            research_content += f"**Max files:** {max_files} (hard limit)"
 
             await ui.research_agent(research_content)
 

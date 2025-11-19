@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from pydantic_ai import Agent, Tool
-from pydantic_ai.exceptions import UserError
 
 from tunacode.core.state import StateManager
 from tunacode.tools.glob import glob
@@ -54,16 +53,20 @@ def _create_limited_read_file(max_files: int):
             file_path: Path to file to read
 
         Returns:
-            File content dict from read_file tool
+            File content dict from read_file tool, or limit message if exceeded
 
-        Raises:
-            UserError: If max_files limit has been reached
+        Note:
+            Returns a warning message instead of raising error when limit reached,
+            allowing the agent to complete with partial results.
         """
         if call_count["count"] >= max_files:
-            raise UserError(
-                f"Maximum file read limit reached ({max_files} files). "
-                "Cannot read more files in this research task."
-            )
+            return {
+                "content": f"⚠️ FILE READ LIMIT REACHED ({max_files} files maximum)\n\n"
+                f"Cannot read '{file_path}' - you have already read {max_files} files.\n"
+                "Please complete your research with the files you have analyzed.",
+                "lines": 0,
+                "size": 0,
+            }
 
         call_count["count"] += 1
         return await read_file(file_path)
