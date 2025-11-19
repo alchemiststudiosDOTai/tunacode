@@ -357,9 +357,7 @@ async def _process_tool_calls(
                 else:
                     write_execute_tasks.append((part, node))
                     if state_manager.session.show_thoughts:
-                        await ui.muted(
-                            f"COLLECTED: {part.tool_name} (will execute sequentially)"
-                        )
+                        await ui.muted(f"COLLECTED: {part.tool_name} (will execute sequentially)")
 
     # Phase 2: Execute research agent with special UI display
     if research_agent_tasks and tool_callback:

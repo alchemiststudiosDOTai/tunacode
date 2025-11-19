@@ -65,7 +65,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Construct research prompt
         prompt = f"""Research the codebase for: {query}
 
-Search in directories: {', '.join(directories)}
+Search in directories: {", ".join(directories)}
 Analyze up to {max_files} most relevant files (default: 3).
 
 Return a structured summary with:
