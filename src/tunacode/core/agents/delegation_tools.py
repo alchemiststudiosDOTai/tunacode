@@ -63,7 +63,8 @@ def create_research_codebase_tool(state_manager: StateManager):
             )
 
         # Create research agent with same model as parent and enforced file limit
-        research_agent = create_research_agent(model, state_manager, max_files=max_files)
+        # Use isolated StateManager to prevent state conflicts in parallel execution
+        research_agent = create_research_agent(model, StateManager(), max_files=max_files)
 
         # Construct research prompt
         prompt = f"""Research the codebase for: {query}

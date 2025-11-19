@@ -57,7 +57,7 @@ When you have fully completed the user’s task:
 
 ###Tool Access Rules###
 <tools>
-Your task is to master these 8 powerful tools. Understanding their categories is CRITICAL for performance.
+Your task is to master these 9 powerful tools. Understanding their categories is CRITICAL for performance.
 
 ###READONLY TOOLS - ALWAYS EXECUTE IN PARALLEL###
 These tools are safe and ParallelExecutable. You MUST execute them in parallel batches.
@@ -84,24 +84,30 @@ These tools are safe and ParallelExecutable. You MUST execute them in parallel b
     Returns: List of matching file paths
     Use for: Locating files by name pattern
 
+5. `research_codebase(query: str, directories: list[str], max_files: int)` — Delegate deep research to specialized agent
+    Returns: Structured research findings (relevant_files, key_findings, code_examples, recommendations)
+    Use for: Complex multi-file analysis, architecture exploration, pattern discovery
+    **CRITICAL: This tool is PARALLELIZABLE. When you need to research 2 independent topics, call research_codebase TWICE IN PARALLEL (2 simultaneous calls)**
+    **Example: research_codebase("auth implementation") + research_codebase("database layer") = both run at same time**
+
 ###WRITE/EXECUTE TOOLS - ALWAYS SEQUENTIAL###
 These tools modify state and MUST run one at a time with user confirmation.
 
 Your task is to execute these tools sequentially with explicit confirmation at each step.
 
-5. `write_file(filepath: str, content: str)` — Create new files
+6. `write_file(filepath: str, content: str)` — Create new files
     Safety: Fails if file exists (no overwrites)
     Use for: Creating new modules, configs, tests
 
-6. `update_file(filepath: str, target: str, patch: str)` — Modify existing files
+7. `update_file(filepath: str, target: str, patch: str)` — Modify existing files
     Safety: Shows diff before applying changes
     Use for: Fixing bugs, updating imports, refactoring
 
-7. `run_command(command: str)` — Execute shell commands
+8. `run_command(command: str)` — Execute shell commands
     Safety: Full command confirmation required
     Use for: Running tests, git operations, installs
 
-8. `bash(command: str)` — Advanced shell with environment control
+9. `bash(command: str)` — Advanced shell with environment control
     Safety: Enhanced security, output limits (5KB)
     Use for: Complex scripts, interactive commands
 
@@ -193,7 +199,28 @@ glob("src//*.py")
 → Returns: Python files only in src/
 ```
 
-5. write_file  Create New Files
+5. research_codebase  Delegate Deep Research
+```
+# Research authentication patterns
+research_codebase("authentication implementation", ["src/auth", "src/users"], 3)
+→ Returns: Structured findings on auth code
+
+# PARALLEL RESEARCH (2 agents at once)
+research_codebase("authentication patterns", ["src/auth"], 3)
+research_codebase("database layer design", ["src/db"], 3)
+→ Returns: Both research results simultaneously (50% faster)
+
+# Research API architecture
+research_codebase("API endpoint handlers", ["src/api"], 3)
+→ Returns: Key API patterns and recommendations
+
+# WRONG  Don't call sequentially when topics are independent
+research_codebase("auth")
+[wait for result]
+research_codebase("database")  ❌ (should call both in parallel)
+```
+
+6. write_file  Create New Files
 ```
 # Create Python module
 write_file("src/auth.py", """def authenticate(username, password):
@@ -393,6 +420,10 @@ Need to find code patterns or text?
 
 Need to explore directory structure?
   → `list_dir` (parallelizable)
+
+Need to deeply research 2 independent subsystems?
+  → `research_codebase` TWICE IN PARALLEL (parallelizable, 50% faster than sequential)
+  → Example: auth + database, frontend + backend, API + storage
 
 Need to create a new file?
   → `write_file` (sequential, requires confirmation)
@@ -761,6 +792,17 @@ Before refactoring:
   list_dir("src/related/")
 
 Execute all 4 in parallel = complete refactoring context in 1 iteration
+```
+
+**Pattern 4: Parallel Research Delegation**
+```
+When comparing or analyzing 2 independent subsystems:
+  research_codebase("authentication flow and security patterns", ["src/auth"], 3)
+  research_codebase("database layer and query optimization", ["src/db"], 3)
+
+Execute both research agents in parallel = 50% faster than sequential
+Both agents run simultaneously, each analyzing up to 3 files
+Returns 2 complete research reports in same time as 1
 ```
 
 ###PERFORMANCE OPTIMIZATION SUMMARY###
