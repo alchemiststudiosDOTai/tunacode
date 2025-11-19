@@ -365,6 +365,7 @@ async def _process_tool_calls(
     # Phase 2: Execute research agent with special UI display
     if research_agent_tasks and tool_callback:
         from tunacode.ui import console as ui
+
         from .tool_executor import execute_tools_parallel
 
         # Display research agent panel with query details
@@ -384,19 +385,43 @@ async def _process_tool_calls(
             directories = tool_args.get("directories", ["."])
             max_files = tool_args.get("max_files", 3)
 
-            # Format panel text
+            # Format panel text (batch-style format)
             dirs_str = ", ".join(directories) if isinstance(directories, list) else str(directories)
-            panel_text = f"""**Query:** {query}
+            panel_text = f"""**RESEARCH AGENT**: {query}
 
-**Directories:** {dirs_str}
+**Directories:** {dirs_str} | **Max files:** {max_files}
 
-**Max files:** {max_files}"""
+**Tools available:** grep, read_file, list_dir, glob (read-only)"""
 
             # Display purple research agent panel
             await ui.research_agent(panel_text)
 
+            # Update spinner to show research in progress
+            query_preview = query[:60] + "..." if len(query) > 60 else query
+            await ui.update_spinner_message(
+                f"[bold {colors.accent}]Researching: {query_preview}[/bold {colors.accent}]",
+                state_manager,
+            )
+
         # Execute the research agent tool
-        await execute_tools_parallel(research_agent_tasks, tool_callback)
+        results = await execute_tools_parallel(research_agent_tasks, tool_callback)
+
+        # Show completion summary if results available
+        if results and len(results) > 0:
+            result = results[0]  # Research agent typically returns single result
+            if isinstance(result, dict) and not result.get("error"):
+                files = result.get("relevant_files", [])
+                findings_count = len(result.get("key_findings", []))
+                if files:
+                    summary = (
+                        f"[bold {colors.accent}]Research complete: analyzed {len(files)} file(s), "
+                        f"{findings_count} finding(s)[/bold {colors.accent}]"
+                    )
+                    await ui.update_spinner_message(summary, state_manager)
+                    # Brief pause to show summary before resetting
+                    import asyncio
+
+                    await asyncio.sleep(0.5)
 
         # Reset spinner message back to thinking
         from tunacode.constants import UI_THINKING_MESSAGE

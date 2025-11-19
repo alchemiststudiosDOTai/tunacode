@@ -1,6 +1,5 @@
 """Tests for agent_helpers module."""
 
-
 from tunacode.core.agents.agent_components.agent_helpers import (
     get_readable_tool_description,
 )
@@ -11,9 +10,7 @@ class TestGetReadableToolDescription:
 
     def test_read_file_with_path(self):
         """Test read_file tool description."""
-        result = get_readable_tool_description(
-            "read_file", {"file_path": "src/main.py"}
-        )
+        result = get_readable_tool_description("read_file", {"file_path": "src/main.py"})
         assert result == "Reading `src/main.py`"
 
     def test_list_dir_with_directory(self):
@@ -51,9 +48,7 @@ class TestGetReadableToolDescription:
             "How does the authentication system work with JWT tokens "
             "and refresh tokens in the backend?"
         )
-        result = get_readable_tool_description(
-            "research_codebase", {"query": long_query}
-        )
+        result = get_readable_tool_description("research_codebase", {"query": long_query})
         # Should be truncated to 60 chars + "..."
         assert len(result) <= len("Researching: ") + 63
         assert result.endswith("...")

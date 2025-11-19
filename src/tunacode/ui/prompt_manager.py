@@ -114,8 +114,7 @@ class PromptManager:
                 if text.startswith("!"):
                     # Use warning color background with black text for high visibility
                     bash_prompt = (
-                        f'<style bg="{colors.warning}" fg="black">'
-                        f"<b> ◆ BASH MODE ◆ </b></style> "
+                        f'<style bg="{colors.warning}" fg="black"><b> ◆ BASH MODE ◆ </b></style> '
                     )
                     return HTML(bash_prompt)
 

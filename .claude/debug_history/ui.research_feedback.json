@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "ui.research_feedback",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Research agents showed no progress during execution, appearing blank until completion",
+      "solution": "Added 3 changes: (1) Enhanced purple panel with batch-style format showing tools available, (2) Spinner update during execution showing query preview, (3) Completion summary showing files analyzed and findings count. Total: ~20 lines of code in node_processor.py:365-426",
+      "date": "2025-11-19T18:39:32.979136185Z"
+    }
+  ],
+  "last_updated": "2025-11-19T18:39:32.979137206Z"
+}

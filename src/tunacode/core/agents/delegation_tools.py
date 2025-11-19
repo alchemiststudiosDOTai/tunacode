@@ -101,7 +101,8 @@ Return a structured summary with:
                 "key_findings": [f"Error during research: {str(e)}"],
                 "code_examples": [],
                 "recommendations": [
-                    "The research agent encountered an error. Try simplifying the query or reducing the scope."
+                    "The research agent encountered an error. "
+                    "Try simplifying the query or reducing the scope."
                 ],
             }
 

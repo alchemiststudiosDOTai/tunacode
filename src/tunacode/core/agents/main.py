@@ -579,6 +579,7 @@ async def check_query_satisfaction(
     """Legacy hook for compatibility; completion still signaled via DONE marker."""
     return True
 
+
 async def process_request(
     message: str,
     model: ModelName,
@@ -587,7 +588,6 @@ async def process_request(
     streaming_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     usage_tracker: Optional[UsageTrackerProtocol] = None,
 ) -> AgentRun:
-
     orchestrator = RequestOrchestrator(
         message,
         model,

@@ -89,9 +89,7 @@ def main(
         await ui.banner()
 
         # Start update check in background
-        update_task = asyncio.create_task(
-            asyncio.to_thread(check_for_updates), name="update_check"
-        )
+        update_task = asyncio.create_task(asyncio.to_thread(check_for_updates), name="update_check")
         update_task.add_done_callback(_handle_background_task_error)
 
         cli_config = {
