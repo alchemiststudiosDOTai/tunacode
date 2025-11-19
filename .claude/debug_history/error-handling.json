@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "error-handling",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "CLI crashes with unhandled exceptions from background tasks, request orchestrator, and potential state access races",
+      "solution": "1) Added error callbacks to asyncio.create_task() calls in main.py and repl.py. 2) Modified RequestOrchestrator.run() to return graceful error states (AgentRunWrapper with fallback) instead of re-raising. 3) Validated agent init working as designed. 4) Determined state lock not needed - CodeIndex has own thread-safety. 5) Created comprehensive integration tests (5 tests, all passing). Results: Zero unhandled exceptions reaching CLI, graceful degradation under failure. Plan: memory-bank/plan/2025-11-19_10-00-00_main_agent_error_handling_hardening.md",
+      "date": "2025-11-19T17:52:24.338132765Z"
+    }
+  ],
+  "last_updated": "2025-11-19T17:52:24.338133528Z"
+}

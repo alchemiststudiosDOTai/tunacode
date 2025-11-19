@@ -1,0 +1,15 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "error-handling",
+  "patterns": [
+    {
+      "name": "background-task-error-callbacks",
+      "description": "Pattern for handling background task errors without crashing CLI"
+    },
+    {
+      "name": "request-orchestrator-graceful-error-states",
+      "description": "Pattern for returning error states instead of raising exceptions in request orchestration"
+    }
+  ],
+  "last_updated": "2025-11-19T17:52:13.853177939Z"
+}
