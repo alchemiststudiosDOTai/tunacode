@@ -121,6 +121,13 @@ async def batch(text: str, bottom: int = 1) -> None:
     await panel(title, rich["Markdown"](text), bottom=bottom, border_style="green")
 
 
+async def research_agent(text: str, bottom: int = 1) -> None:
+    """Display a research agent panel with purple accent styling."""
+    rich = get_rich_components()
+    title = f"[bold {colors.accent}]Research Agent[/bold {colors.accent}]"
+    await panel(title, rich["Markdown"](text), bottom=bottom, border_style=colors.accent)
+
+
 class StreamingAgentPanel:
     """Streaming agent panel using Rich.Live for progressive display."""
 
