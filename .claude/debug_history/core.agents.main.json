@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "core.agents.main",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Agent sees intervention messages (empty response, iteration limit, clarification) as if they were user feedback",
+      "solution": "Root cause: create_user_message() appends ModelRequest with part_kind='user-prompt' to session.messages. NOT introduced by refactoring - both main.py and main_legact.py have identical vulnerability. See memory-bank/research/2025-11-18_agent-feedback-visibility-issue.md for full analysis and 6 recommended solutions.",
+      "date": "2025-11-18T23:42:21.600062885Z"
+    }
+  ],
+  "last_updated": "2025-11-18T23:42:21.600063685Z"
+}

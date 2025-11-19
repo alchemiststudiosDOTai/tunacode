@@ -44,6 +44,7 @@ class ToolName(str, Enum):
     LIST_DIR = "list_dir"
     GLOB = "glob"
     REACT = "react"
+    RESEARCH_CODEBASE = "research_codebase"
 
 
 # Tool names (backward compatibility)
@@ -56,6 +57,7 @@ TOOL_GREP = ToolName.GREP
 TOOL_LIST_DIR = ToolName.LIST_DIR
 TOOL_GLOB = ToolName.GLOB
 TOOL_REACT = ToolName.REACT
+TOOL_RESEARCH_CODEBASE = ToolName.RESEARCH_CODEBASE
 
 # Tool categorization
 READ_ONLY_TOOLS = [
@@ -64,6 +66,7 @@ READ_ONLY_TOOLS = [
     ToolName.LIST_DIR,
     ToolName.GLOB,
     ToolName.REACT,
+    ToolName.RESEARCH_CODEBASE,
 ]
 WRITE_TOOLS = [ToolName.WRITE_FILE, ToolName.UPDATE_FILE]
 EXECUTE_TOOLS = [ToolName.BASH, ToolName.RUN_COMMAND]
