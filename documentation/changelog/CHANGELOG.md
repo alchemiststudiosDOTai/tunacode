@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complex development setup scripts that were no longer needed
 - Unused `setup-agent` helper
 
+## [0.0.78.10] - 2025-11-19
+
+### Changed
+- Add research agent constraint to system prompt.
+- Update research agent constraints and usage guidelines.
+- Enhance research agent system prompt with structured output requirements.
 ## [Unreleased] - 2025-11-19
 
 ## [0.0.77.3] - 2025-10-10
