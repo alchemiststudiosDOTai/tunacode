@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tunacode-cli"
 
-version = "0.0.78.6"
+version = "0.0.78.7"
 description = "Your agentic CLI developer."
 keywords = ["cli", "agent", "development", "automation"]
 readme = "README.md"
@@ -174,7 +174,7 @@ typecheck = "mypy src/"
 security = "bandit -r src/ -ll"
 
 # Version management
-version = "0.0.78.6"
+version = "0.0.78.7"
 
 # Release workflow
 release = [
