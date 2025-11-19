@@ -4,10 +4,14 @@ Module: tunacode.core.agents.delegation_tools
 Delegation tools for multi-agent workflows using pydantic-ai's delegation pattern.
 """
 
+import logging
+
 from pydantic_ai import RunContext
 
 from tunacode.core.agents.research_agent import create_research_agent
 from tunacode.core.state import StateManager
+
+logger = logging.getLogger(__name__)
 
 
 def create_research_codebase_tool(state_manager: StateManager):
@@ -54,13 +58,8 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Get current model from session (same model as parent agent)
         model = state_manager.session.current_model
 
-        # Show delegation status if streaming panel available
-        streaming_panel = getattr(state_manager.session, "streaming_panel", None)
-        if streaming_panel:
-            dirs_str = ", ".join(directories)
-            await streaming_panel.update(
-                f"Delegating to research agent...\nQuery: {query}\nDirectories: {dirs_str}"
-            )
+        # Note: Research agent panel display is handled by node_processor.py
+        # which shows a purple panel with query details before execution
 
         # Create research agent with same model as parent and enforced file limit
         # Use isolated StateManager to prevent state conflicts in parallel execution
@@ -80,14 +79,30 @@ Return a structured summary with:
 """
 
         # Delegate to research agent with usage propagation
-        result = await research_agent.run(
-            prompt,
-            usage=ctx.usage,  # Share usage tracking with parent agent
-        )
+        try:
+            result = await research_agent.run(
+                prompt,
+                usage=ctx.usage,  # Share usage tracking with parent agent
+            )
 
-        if streaming_panel:
-            await streaming_panel.update("✓ Research agent completed")
+            return result.output
 
-        return result.output
+        except Exception as e:
+            # Catch all delegation errors (validation failures, pydantic-ai errors, etc.)
+            error_msg = f"Research agent delegation failed: {type(e).__name__}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+
+            # Return structured error response instead of crashing
+            return {
+                "error": True,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "relevant_files": [],
+                "key_findings": [f"Error during research: {str(e)}"],
+                "code_examples": [],
+                "recommendations": [
+                    "The research agent encountered an error. Try simplifying the query or reducing the scope."
+                ],
+            }
 
     return research_codebase

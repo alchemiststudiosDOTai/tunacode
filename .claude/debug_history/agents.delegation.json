@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "agents.delegation",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Research agent delegation fails with 'Exceeded maximum retries for output validation' and crashes entire system instead of handling gracefully. Error originates in delegation_tools.py:83-86 where research_agent.run() has no error handling. When child research agent throws AgentRunError, it propagates uncaught through tool callback.",
+      "solution": "Added try-catch block around research_agent.run() in delegation_tools.py. Catches all exceptions including pydantic-ai AgentRunError. Logs errors with full traceback using logger.error(). Returns structured error dict with error=True, error_type, error_message, and empty results arrays instead of crashing. This provides graceful degradation when child agents fail during parallel execution.",
+      "date": "2025-11-19T18:11:53.677268515Z"
+    }
+  ],
+  "last_updated": "2025-11-19T18:11:53.677270887Z"
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "ui.panels",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "When two research agents execute in parallel via asyncio.gather(), both simultaneously call streaming_panel.update() causing race condition. The string concatenation 'self.content = (self.content or \"\") + incoming' at panels.py:298 is NOT atomic across concurrent async calls. Both agents read stale self.content values before either completes write, resulting in jumbled messages like 'Delegating to agent 1...Delegating to agent 2...' on single line without proper separation.",
+      "solution": "Added asyncio.Lock to StreamingAgentPanel class. Declared _lock: asyncio.Lock type annotation (panels.py:142). Initialized self._lock = asyncio.Lock() in __init__() (line 152). Wrapped entire critical section in update() method with 'async with self._lock:' (lines 293-320) to ensure atomic read-modify-write for self.content concatenation. This prevents concurrent agents from interleaving their writes and ensures each message displays on separate line.",
+      "date": "2025-11-19T18:11:55.871232473Z"
+    }
+  ],
+  "last_updated": "2025-11-19T18:11:55.871233129Z"
+}

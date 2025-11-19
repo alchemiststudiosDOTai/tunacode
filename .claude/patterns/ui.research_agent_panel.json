@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "ui.research_agent_panel",
+  "patterns": [
+    {
+      "name": "research-agent-purple-panel-display",
+      "description": "Display purple-bordered panels for research agent delegation. In node_processor.py Phase 2, parse tool_args from research_agent_tasks. Extract query, directories (default ['.']), max_files (default 3). Format markdown: **Query:** {query}, **Directories:** {dirs}, **Max files:** {max}. Call 'await ui.research_agent(panel_text)' for each agent BEFORE execute_tools_parallel(). Shows distinct purple panels with query details. Do NOT use streaming_panel.update() - causes jumbled output."
+    }
+  ],
+  "last_updated": "2025-11-19T18:13:04.373153429Z"
+}

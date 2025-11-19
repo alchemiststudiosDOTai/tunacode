@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "ui.concurrent_updates",
+  "patterns": [
+    {
+      "name": "asyncio-lock-for-ui-updates",
+      "description": "AsyncIO lock pattern for concurrent UI updates. Declare _lock: asyncio.Lock in class. Initialize self._lock = asyncio.Lock() in __init__(). Wrap critical sections with 'async with self._lock:' to ensure atomic read-modify-write. Applied to StreamingAgentPanel.update() to prevent race conditions when parallel agents write simultaneously. Protects self.content concatenation and self.live.update() calls."
+    }
+  ],
+  "last_updated": "2025-11-19T18:13:01.312342243Z"
+}

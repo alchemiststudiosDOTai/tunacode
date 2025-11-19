@@ -139,6 +139,7 @@ class StreamingAgentPanel:
     _dots_task: Optional[asyncio.Task]
     _dots_count: int
     _show_dots: bool
+    _lock: asyncio.Lock
 
     def __init__(self, bottom: int = 1, debug: bool = False):
         self.bottom = bottom
@@ -149,6 +150,7 @@ class StreamingAgentPanel:
         self._dots_task = None
         self._dots_count = 0
         self._show_dots = True  # Start with dots enabled for "Thinking..."
+        self._lock = asyncio.Lock()  # Prevent race conditions in concurrent updates
         # Debug/diagnostic instrumentation (printed after stop to avoid Live interference)
         self._debug_enabled = debug
         self._debug_events: list[str] = []
@@ -287,31 +289,36 @@ class StreamingAgentPanel:
 
         # Ensure type safety for concatenation
         incoming = str(content_chunk)
-        # First-chunk diagnostics
-        is_first_chunk = (not self.content) and bool(incoming)
-        if is_first_chunk:
-            self._log_debug(
-                "first_chunk_received",
-                chunk_repr=incoming[:5],
-                chunk_len=len(incoming),
-            )
-        self.content = (self.content or "") + incoming
 
-        # Reset the update timer when we get new content
-        self._last_update_time = time.time()
-        # Hide dots immediately when new content arrives
-        if self._show_dots:
-            self._log_debug("disable_dots_called")
-        self._show_dots = False
+        # Atomic update with lock to prevent race conditions from concurrent agents
+        async with self._lock:
+            # First-chunk diagnostics
+            is_first_chunk = (not self.content) and bool(incoming)
+            if is_first_chunk:
+                self._log_debug(
+                    "first_chunk_received",
+                    chunk_repr=incoming[:5],
+                    chunk_len=len(incoming),
+                )
 
-        if self.live:
-            # Log timing around the first two live.update() calls
-            self._update_count += 1
-            if self._update_count <= 2:
-                self._log_debug("live_update.start", update_index=self._update_count)
-            self.live.update(self._create_panel())
-            if self._update_count <= 2:
-                self._log_debug("live_update.end", update_index=self._update_count)
+            # Critical section: read-modify-write must be atomic
+            self.content = (self.content or "") + incoming
+
+            # Reset the update timer when we get new content
+            self._last_update_time = time.time()
+            # Hide dots immediately when new content arrives
+            if self._show_dots:
+                self._log_debug("disable_dots_called")
+            self._show_dots = False
+
+            if self.live:
+                # Log timing around the first two live.update() calls
+                self._update_count += 1
+                if self._update_count <= 2:
+                    self._log_debug("live_update.start", update_index=self._update_count)
+                self.live.update(self._create_panel())
+                if self._update_count <= 2:
+                    self._log_debug("live_update.end", update_index=self._update_count)
 
     async def set_content(self, content: str):
         """Set the complete content (overwrites previous)."""

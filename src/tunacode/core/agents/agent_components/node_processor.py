@@ -364,6 +364,7 @@ async def _process_tool_calls(
 
     # Phase 2: Execute research agent with special UI display
     if research_agent_tasks and tool_callback:
+        from tunacode.ui import console as ui
         from .tool_executor import execute_tools_parallel
 
         # Display research agent panel with query details
@@ -379,7 +380,20 @@ async def _process_tool_calls(
                     tool_args = {}
 
             # Build research agent panel content
-            # Note: query, directories, max_files extracted for potential future UI display
+            query = tool_args.get("query", "Unknown query")
+            directories = tool_args.get("directories", ["."])
+            max_files = tool_args.get("max_files", 3)
+
+            # Format panel text
+            dirs_str = ", ".join(directories) if isinstance(directories, list) else str(directories)
+            panel_text = f"""**Query:** {query}
+
+**Directories:** {dirs_str}
+
+**Max files:** {max_files}"""
+
+            # Display purple research agent panel
+            await ui.research_agent(panel_text)
 
         # Execute the research agent tool
         await execute_tools_parallel(research_agent_tasks, tool_callback)

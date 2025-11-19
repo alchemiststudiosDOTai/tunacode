@@ -1,0 +1,13 @@
+{
+  "$schema": "https://claude-kb.io/schema/debug/v1",
+  "component": "ui.research_agent",
+  "entries": [
+    {
+      "id": "dbg_001",
+      "error": "Purple-bordered research_agent() panel function exists in panels.py:124-128 and is exported from console.py:35, but is NEVER called. In node_processor.py:369-383, code parses research agent args with comment 'Build research agent panel content' but does nothing with extracted data. Instead, delegation_tools.py calls streaming_panel.update() which dumps text into main panel. Result: no distinct panels for parallel research agents, just jumbled text in streaming panel.",
+      "solution": "Wired up ui.research_agent() call in node_processor.py:365-396. Added 'from tunacode.ui import console as ui' import. Extract query, directories, max_files from tool_args. Format panel_text with markdown: **Query:**, **Directories:**, **Max files:**. Call 'await ui.research_agent(panel_text)' for each research agent BEFORE execution. Removed redundant streaming_panel.update() calls from delegation_tools.py since proper purple panels now display. Each parallel research agent now shows distinct purple-bordered panel with query details.",
+      "date": "2025-11-19T18:11:57.558793550Z"
+    }
+  ],
+  "last_updated": "2025-11-19T18:11:57.558794293Z"
+}

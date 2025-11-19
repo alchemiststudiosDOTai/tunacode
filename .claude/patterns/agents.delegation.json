@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "agents.delegation",
+  "patterns": [
+    {
+      "name": "delegation-error-boundary",
+      "description": "Error boundary pattern for delegation tools. Wrap child_agent.run() in try-catch. Catch Exception for all error types. Log with logger.error(msg, exc_info=True). Return dict with error=True, error_type, error_message, and empty result fields. Prevents child agent failures from crashing parent. Critical for parallel execution. Provides graceful degradation with structured error responses."
+    }
+  ],
+  "last_updated": "2025-11-19T18:12:57.147319823Z"
+}

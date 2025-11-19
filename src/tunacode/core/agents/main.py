@@ -2,13 +2,6 @@
 
 Refactored main agent functionality with focused responsibility classes.
 Handles agent creation, configuration, and request processing.
-
-CLAUDE_ANCHOR[main-agent-module]: Primary agent orchestration and lifecycle management
-
-This is a refactored version of old main.py that:
-- Eliminates StateFacade in favor of direct SessionState access
-- Extracts intervention logic into focused classes
-- Centralizes prompts in prompts.py module
 """
 
 from __future__ import annotations
@@ -570,10 +563,7 @@ async def _finalize_buffered_tasks(
 
 
 def get_agent_tool() -> tuple[type[Agent], type["Tool"]]:
-    """Return Agent and Tool classes without importing at module load time.
-
-    Reference: main.py lines 354-359
-    """
+    """Return Agent and Tool classes without importing at module load time."""
     from pydantic_ai import Agent as AgentCls
     from pydantic_ai import Tool as ToolCls
 
@@ -589,10 +579,6 @@ async def check_query_satisfaction(
     """Legacy hook for compatibility; completion still signaled via DONE marker."""
     return True
 
-
-# Main entry point
-
-
 async def process_request(
     message: str,
     model: ModelName,
@@ -601,12 +587,7 @@ async def process_request(
     streaming_callback: Optional[Callable[[str], Awaitable[None]]] = None,
     usage_tracker: Optional[UsageTrackerProtocol] = None,
 ) -> AgentRun:
-    """
-    Process a single request to the agent.
 
-    CLAUDE_ANCHOR[process-request-entry]: Main entry point for all agent requests
-
-    """
     orchestrator = RequestOrchestrator(
         message,
         model,
