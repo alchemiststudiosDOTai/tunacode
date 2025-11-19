@@ -36,7 +36,7 @@ def create_research_codebase_tool(state_manager: StateManager):
             ctx: RunContext with usage tracking (automatically passed by pydantic-ai)
             query: Research query describing what to find in the codebase
             directories: List of directories to search (defaults to ["."])
-            max_files: Maximum number of files to analyze in depth
+            max_files: Maximum number of files to analyze (hard limit: 3, enforced)
 
         Returns:
             Structured research findings dict with:
@@ -45,6 +45,9 @@ def create_research_codebase_tool(state_manager: StateManager):
                 - code_examples: relevant code snippets with explanations
                 - recommendations: next steps or areas needing attention
         """
+        # Enforce hard limit on max_files
+        max_files = min(max_files, 3)
+
         if directories is None:
             directories = ["."]
 
@@ -66,7 +69,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         prompt = f"""Research the codebase for: {query}
 
 Search in directories: {", ".join(directories)}
-Analyze up to {max_files} most relevant files (default: 3).
+Analyze up to {max_files} most relevant files (hard limit: 3 files maximum).
 
 Return a structured summary with:
 - relevant_files: list of file paths found

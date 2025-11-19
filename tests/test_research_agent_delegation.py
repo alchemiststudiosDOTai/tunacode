@@ -207,3 +207,47 @@ async def test_delegation_tool_default_directories(state_manager: StateManager) 
         # Verify result structure
         assert isinstance(result, dict)
         assert "relevant_files" in result
+
+
+@pytest.mark.asyncio
+async def test_max_files_hard_limit_enforcement(state_manager: StateManager) -> None:
+    """Test that max_files is capped at 3 even when higher value is passed.
+
+    Validates that the hard limit of 3 files is enforced regardless of what
+    the agent requests.
+    """
+    research_codebase = create_research_codebase_tool(state_manager)
+
+    mock_result = MagicMock()
+    mock_result.output = {
+        "relevant_files": [],
+        "key_findings": [],
+        "code_examples": [],
+        "recommendations": [],
+    }
+
+    mock_ctx = MagicMock()
+    mock_ctx.usage = MagicMock()
+
+    with patch("tunacode.core.agents.delegation_tools.create_research_agent") as mock_factory:
+        mock_research_agent = AsyncMock()
+        mock_research_agent.run = AsyncMock(return_value=mock_result)
+        mock_factory.return_value = mock_research_agent
+
+        # Call with max_files=10 (should be capped to 3)
+        result = await research_codebase(
+            ctx=mock_ctx,
+            query="Test query with excessive max_files",
+            directories=["."],
+            max_files=10,
+        )
+
+        # Verify the prompt shows max_files was capped to 3
+        call_args = mock_research_agent.run.call_args
+        prompt = call_args.args[0]
+        assert "Analyze up to 3 most relevant files" in prompt
+        assert "10" not in prompt  # Should NOT contain the original value
+
+        # Verify result structure
+        assert isinstance(result, dict)
+        assert "relevant_files" in result
