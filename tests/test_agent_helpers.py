@@ -47,7 +47,10 @@ class TestGetReadableToolDescription:
 
     def test_research_codebase_long_query(self):
         """Test research_codebase with long query truncation."""
-        long_query = "How does the authentication system work with JWT tokens and refresh tokens in the backend?"
+        long_query = (
+            "How does the authentication system work with JWT tokens "
+            "and refresh tokens in the backend?"
+        )
         result = get_readable_tool_description(
             "research_codebase", {"query": long_query}
         )
