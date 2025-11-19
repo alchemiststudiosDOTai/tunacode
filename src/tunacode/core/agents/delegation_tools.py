@@ -62,8 +62,8 @@ def create_research_codebase_tool(state_manager: StateManager):
                 f"Delegating to research agent...\nQuery: {query}\nDirectories: {dirs_str}"
             )
 
-        # Create research agent with same model as parent
-        research_agent = create_research_agent(model, state_manager)
+        # Create research agent with same model as parent and enforced file limit
+        research_agent = create_research_agent(model, state_manager, max_files=max_files)
 
         # Construct research prompt
         prompt = f"""Research the codebase for: {query}

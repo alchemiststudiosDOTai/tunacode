@@ -18,12 +18,16 @@ from rich.text import Text
 from rich.tree import Tree
 from textual.containers import Vertical
 
+from tunacode.constants import UI_COLORS
 from tunacode.utils.config_comparator import (
     ConfigAnalysis,
     ConfigComparator,
     ConfigDifference,
     create_config_report,
 )
+from tunacode.utils.file_utils import DotDict
+
+colors = DotDict(UI_COLORS)
 
 
 @dataclass
@@ -75,7 +79,7 @@ class ConfigDashboard:
 
         # Create overview table
         table = Table.grid(padding=(0, 2))
-        table.add_column("Metric", style="cyan", no_wrap=True)
+        table.add_column("Metric", style=colors.primary, no_wrap=True)
         table.add_column("Value", style="white")
 
         table.add_row("Total Keys", str(stats["total_keys_analyzed"]))
@@ -88,10 +92,10 @@ class ConfigDashboard:
         table.add_row("Sections", str(stats["sections_analyzed"]))
 
         health_status = "✅ Healthy" if not stats["has_issues"] else "⚠️ Issues Found"
-        health_style = "green" if not stats["has_issues"] else "yellow"
+        health_style = colors.success if not stats["has_issues"] else colors.warning
         table.add_row("Status", Text(health_status, style=health_style))
 
-        return Panel(table, title="Configuration Overview", box=ROUNDED, border_style="blue")
+        return Panel(table, title="Configuration Overview", box=ROUNDED, border_style=colors.border)
 
     def render_section_tree(self) -> Panel:
         """Render the configuration section tree."""
@@ -115,17 +119,17 @@ class ConfigDashboard:
             else:
                 tree.add(f"[dim]{section}[/dim]")
 
-        return Panel(tree, title="Configuration Sections", box=ROUNDED, border_style="green")
+        return Panel(tree, title="Configuration Sections", box=ROUNDED, border_style=colors.border)
 
     def _add_diff_to_tree(self, parent: Tree, diff: ConfigDifference) -> None:
         """Add a configuration difference to the tree."""
         icon_map = {"custom": "✏️", "missing": "❌", "extra": "➕", "type_mismatch": "⚠️"}
 
         style_map = {
-            "custom": "yellow",
-            "missing": "red",
-            "extra": "blue",
-            "type_mismatch": "bold red",
+            "custom": colors.warning,
+            "missing": colors.error,
+            "extra": colors.primary_dark,
+            "type_mismatch": f"bold {colors.error}",
         }
 
         icon = icon_map.get(diff.difference_type, "❓")
@@ -152,13 +156,13 @@ class ConfigDashboard:
             return Panel("No differences to display", title="Differences", box=ROUNDED)
 
         # Create differences table
-        table = Table(box=ROUNDED, show_header=True, header_style="bold magenta")
+        table = Table(box=ROUNDED, show_header=True, header_style=f"bold {colors.accent}")
 
-        table.add_column("Key", style="cyan", no_wrap=True)
-        table.add_column("Type", style="yellow")
+        table.add_column("Key", style=colors.primary, no_wrap=True)
+        table.add_column("Type", style=colors.warning)
         table.add_column("User Value", style="white")
-        table.add_column("Default Value", style="dim")
-        table.add_column("Section", style="green")
+        table.add_column("Default Value", style=colors.muted)
+        table.add_column("Section", style=colors.secondary)
 
         for diff in filtered_diffs[: self.config.max_section_items]:
             user_value = self._mask_sensitive_value(diff.user_value, diff.key_path)
@@ -195,7 +199,7 @@ class ConfigDashboard:
             table,
             title=f"Configuration Differences ({len(filtered_diffs)} items)",
             box=ROUNDED,
-            border_style="magenta",
+            border_style=colors.accent,
         )
 
     def _filter_differences(self) -> List[ConfigDifference]:
@@ -306,11 +310,11 @@ class ConfigDashboard:
 
         if len(api_key) <= 8:
             # Short keys - just show service and mask
-            return f"[cyan]{service_name}:[/cyan] •••••••"
+            return f"[{colors.primary}]{service_name}:[/{colors.primary}] •••••••"
         else:
             # Show first 4 and last 4 characters with service label
             masked = f"{api_key[:4]}...{api_key[-4:]}"
-            return f"[cyan]{service_name}:[/cyan] {masked}"
+            return f"[{colors.primary}]{service_name}:[/{colors.primary}] {masked}"
 
     def render_recommendations(self) -> Panel:
         """Render configuration recommendations."""
@@ -324,12 +328,12 @@ class ConfigDashboard:
                 "✅ No recommendations - configuration looks good!",
                 title="Recommendations",
                 box=ROUNDED,
-                border_style="green",
+                border_style=colors.success,
             )
 
         rec_text = "\n".join(f"• {rec}" for rec in recommendations)
 
-        return Panel(rec_text, title="Recommendations", box=ROUNDED, border_style="yellow")
+        return Panel(rec_text, title="Recommendations", box=ROUNDED, border_style=colors.warning)
 
     def render_custom_settings(self) -> Panel:
         """Render panel showing only custom (user-modified) settings."""
@@ -351,15 +355,15 @@ class ConfigDashboard:
                 message,
                 title="🔧 Your Customizations (0)",
                 box=ROUNDED,
-                border_style="green",
+                border_style=colors.success,
             )
 
         # Create table for custom settings
-        table = Table(box=ROUNDED, show_header=True, header_style="bold cyan")
-        table.add_column("Setting", style="cyan", no_wrap=True)
+        table = Table(box=ROUNDED, show_header=True, header_style=f"bold {colors.primary}")
+        table.add_column("Setting", style=colors.primary, no_wrap=True)
         table.add_column("Your Value", style="white")
-        table.add_column("Default Value", style="dim")
-        table.add_column("Category", style="green")
+        table.add_column("Default Value", style=colors.muted)
+        table.add_column("Category", style=colors.secondary)
 
         for diff in custom_diffs[:15]:  # Limit to prevent overflow
             user_value = self._mask_sensitive_value(diff.user_value, diff.key_path)
@@ -392,7 +396,7 @@ class ConfigDashboard:
             content,
             title=f"🔧 Your Customizations ({len(custom_diffs)})",
             box=ROUNDED,
-            border_style="cyan",
+            border_style=colors.primary,
         )
 
     def render_default_settings_summary(self) -> Panel:
@@ -435,9 +439,9 @@ class ConfigDashboard:
 
         # Create summary table
         table = Table.grid(padding=(0, 2))
-        table.add_column("Category", style="yellow", no_wrap=True)
+        table.add_column("Category", style=colors.warning, no_wrap=True)
         table.add_column("Count", style="white")
-        table.add_column("Examples", style="dim")
+        table.add_column("Examples", style=colors.muted)
 
         for category, count in sorted(category_counts.items()):
             examples_text = "\n".join(category_examples[category])
@@ -452,7 +456,7 @@ class ConfigDashboard:
             content,
             title=f"📋 Default Settings ({total_defaults})",
             box=ROUNDED,
-            border_style="blue",
+            border_style=colors.border,
         )
 
     def render_help(self) -> Panel:
@@ -488,7 +492,7 @@ class ConfigDashboard:
 
         content = Vertical(Text(help_text.strip()), Text(""), Text(glossary))
 
-        return Panel(content, title="Help & Glossary", box=ROUNDED, border_style="blue")
+        return Panel(content, title="Help & Glossary", box=ROUNDED, border_style=colors.border)
 
     def render_dashboard(self) -> Layout:
         """Render the complete dashboard layout with improved organization."""
@@ -522,9 +526,12 @@ class ConfigDashboard:
         )
 
         # Add content to each area
-        layout["header"].update(
-            Panel("🐟 TunaCode Configuration Dashboard", style="bold blue", box=ROUNDED)
+        header_panel = Panel(
+            "🐟 TunaCode Configuration Dashboard",
+            style=f"bold {colors.primary}",
+            box=ROUNDED,
         )
+        layout["header"].update(header_panel)
 
         layout["overview"].update(self.render_overview())
         layout["custom_settings"].update(self.render_custom_settings())

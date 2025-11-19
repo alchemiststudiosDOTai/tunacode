@@ -12,7 +12,7 @@ from prompt_toolkit.application.current import get_app
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from tunacode.configuration.models import ModelRegistry
-from tunacode.constants import DEFAULT_CONTEXT_WINDOW
+from tunacode.constants import DEFAULT_CONTEXT_WINDOW, UI_COLORS
 from tunacode.core import agents as agent
 from tunacode.core.agents import patch_tool_messages
 from tunacode.core.token_usage.api_response_parser import ApiResponseParser
@@ -21,6 +21,7 @@ from tunacode.core.token_usage.usage_tracker import UsageTracker
 from tunacode.exceptions import UserAbortError, ValidationError
 from tunacode.ui import console as ui
 from tunacode.ui.output import get_context_window_display
+from tunacode.utils.file_utils import DotDict
 from tunacode.utils.security import CommandSecurityError, safe_subprocess_run
 
 from ..types import CommandContext, CommandResult, StateManager
@@ -36,6 +37,9 @@ MSG_AGENT_BUSY = "Agent is busy, press Ctrl+C to interrupt."
 MSG_HIT_ABORT_KEY = "Hit ESC or Ctrl+C again to exit"
 SHELL_ENV_VAR = "SHELL"
 DEFAULT_SHELL = "bash"
+
+# UI colors
+colors = DotDict(UI_COLORS)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -295,9 +299,11 @@ async def repl(state_manager: StateManager):
         # Subtle, unified styling - mostly muted with minimal accent on cost
         await ui.muted(f"• Model: {state_manager.session.current_model} • {context}")
         if session_cost > 0:
-            await ui.print(
-                f"[dim]• Session Cost:[/dim] [dim #00d7ff]${session_cost:.4f}[/dim #00d7ff]"
+            cost_display = (
+                f"[dim]• Session Cost:[/dim] "
+                f"[dim {colors.primary}]${session_cost:.4f}[/dim {colors.primary}]"
             )
+            await ui.print(cost_display)
 
     # Always show context
     await show_context()

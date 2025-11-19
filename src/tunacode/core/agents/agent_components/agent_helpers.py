@@ -72,6 +72,50 @@ def get_tool_description(tool_name: str, tool_args: dict[str, Any]) -> str:
     return tool_desc
 
 
+def get_readable_tool_description(tool_name: str, tool_args: dict[str, Any]) -> str:
+    """Get a human-readable description of a tool operation for batch panel display."""
+    if not isinstance(tool_args, dict):
+        return f"Executing `{tool_name}`"
+
+    if tool_name == "read_file":
+        file_path = tool_args.get("file_path", tool_args.get("filepath", ""))
+        if file_path:
+            return f"Reading `{file_path}`"
+        return "Reading file"
+
+    if tool_name == "list_dir":
+        directory = tool_args.get("directory", "")
+        if directory:
+            return f"Listing directory `{directory}`"
+        return "Listing directory"
+
+    if tool_name == "grep":
+        pattern = tool_args.get("pattern", "")
+        include_files = tool_args.get("include_files", "")
+        if pattern and include_files:
+            return f"Searching for `{pattern}` in `{include_files}`"
+        if pattern:
+            return f"Searching for `{pattern}`"
+        return "Searching files"
+
+    if tool_name == "glob":
+        pattern = tool_args.get("pattern", "")
+        if pattern:
+            return f"Finding files matching `{pattern}`"
+        return "Finding files"
+
+    if tool_name == "research_codebase":
+        query = tool_args.get("query", "")
+        if query:
+            # Truncate long queries for display
+            query_display = query[:60] + "..." if len(query) > 60 else query
+            return f"Researching: {query_display}"
+        return "Researching codebase"
+
+    # Fallback for unknown tools
+    return f"Executing `{tool_name}`"
+
+
 def get_recent_tools_context(tool_calls: list[dict[str, Any]], limit: int = 3) -> str:
     """Get a context string describing recent tool usage."""
     if not tool_calls:

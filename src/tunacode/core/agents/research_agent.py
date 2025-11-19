@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from pydantic_ai import Agent, Tool
+from pydantic_ai.exceptions import UserError
 
 from tunacode.core.state import StateManager
 from tunacode.tools.glob import glob
@@ -35,17 +36,55 @@ def _load_research_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8").strip()
 
 
-def create_research_agent(model: ModelName, state_manager: StateManager) -> Agent:
-    """Create research agent with read-only tools.
+def _create_limited_read_file(max_files: int):
+    """Create a read_file wrapper that enforces a maximum number of calls.
+
+    Args:
+        max_files: Maximum number of files that can be read
+
+    Returns:
+        Wrapped read_file function with call limit enforcement
+    """
+    call_count = {"count": 0}
+
+    async def limited_read_file(file_path: str) -> dict:
+        """Read file with enforced limit on number of calls.
+
+        Args:
+            file_path: Path to file to read
+
+        Returns:
+            File content dict from read_file tool
+
+        Raises:
+            UserError: If max_files limit has been reached
+        """
+        if call_count["count"] >= max_files:
+            raise UserError(
+                f"Maximum file read limit reached ({max_files} files). "
+                "Cannot read more files in this research task."
+            )
+
+        call_count["count"] += 1
+        return await read_file(file_path)
+
+    return limited_read_file
+
+
+def create_research_agent(
+    model: ModelName, state_manager: StateManager, max_files: int = 3
+) -> Agent:
+    """Create research agent with read-only tools and file read limit.
 
     IMPORTANT: Uses same model as main agent - do NOT hardcode model selection.
 
     Args:
         model: The model name to use (same as main agent)
         state_manager: State manager for session context
+        max_files: Maximum number of files the agent can read (hard limit, default: 3)
 
     Returns:
-        Agent configured with read-only tools and research system prompt
+        Agent configured with read-only tools, research system prompt, and file limit
     """
     # Load research-specific system prompt
     system_prompt = _load_research_prompt()
@@ -56,9 +95,12 @@ def create_research_agent(model: ModelName, state_manager: StateManager) -> Agen
         "tool_strict_validation", False
     )
 
+    # Create limited read_file tool that enforces max_files cap
+    limited_read_file = _create_limited_read_file(max_files)
+
     # Create read-only tools list (no write/execute capabilities)
     tools_list = [
-        Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
+        Tool(limited_read_file, max_retries=max_retries, strict=tool_strict_validation),
         Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
         Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
         Tool(glob, max_retries=max_retries, strict=tool_strict_validation),

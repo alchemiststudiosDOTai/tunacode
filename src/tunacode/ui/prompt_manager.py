@@ -14,6 +14,9 @@ from prompt_toolkit.validation import Validator
 from tunacode.constants import UI_COLORS
 from tunacode.core.state import StateManager
 from tunacode.exceptions import UserAbortError
+from tunacode.utils.file_utils import DotDict
+
+colors = DotDict(UI_COLORS)
 
 
 @dataclass
@@ -109,8 +112,12 @@ class PromptManager:
             if hasattr(session.app, "current_buffer") and session.app.current_buffer:
                 text = session.app.current_buffer.text
                 if text.startswith("!"):
-                    # Use bright yellow background with black text for high visibility
-                    return HTML('<style bg="#ffcc00" fg="black"><b> ◆ BASH MODE ◆ </b></style> ')
+                    # Use warning color background with black text for high visibility
+                    bash_prompt = (
+                        f'<style bg="{colors.warning}" fg="black">'
+                        f"<b> ◆ BASH MODE ◆ </b></style> "
+                    )
+                    return HTML(bash_prompt)
 
             return HTML(base_prompt) if isinstance(base_prompt, str) else base_prompt
 

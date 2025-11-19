@@ -3,11 +3,13 @@
 import json
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
+from tunacode.constants import UI_COLORS
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import UserAbortError
 from tunacode.types import AgentState, UsageTrackerProtocol
 from tunacode.ui.tool_descriptions import get_batch_description, get_tool_description
+from tunacode.utils.file_utils import DotDict
 
 from .response_state import ResponseState
 from .task_completion import check_task_completion
@@ -15,6 +17,7 @@ from .tool_buffer import ToolBuffer
 from .truncation_checker import check_for_truncation
 
 logger = get_logger(__name__)
+colors = DotDict(UI_COLORS)
 
 
 async def _process_node(
@@ -404,16 +407,17 @@ async def _process_tool_calls(
         state_manager.session.batch_counter = batch_id
 
         # Update spinner to show batch collection
-        await ui.update_spinner_message(
-            f"[bold #00d7ff]Collected {len(read_only_tasks)} read-only tools...[/bold #00d7ff]",
-            state_manager,
+        collection_msg = (
+            f"[bold {colors.primary}]Collected {len(read_only_tasks)} "
+            f"read-only tools...[/bold {colors.primary}]"
         )
+        await ui.update_spinner_message(collection_msg, state_manager)
 
         # Update spinner message for batch execution
         tool_names = [part.tool_name for part, _ in read_only_tasks]
         batch_msg = get_batch_description(len(read_only_tasks), tool_names)
         await ui.update_spinner_message(
-            f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
+            f"[bold {colors.primary}]{batch_msg}...[/bold {colors.primary}]", state_manager
         )
 
         # Build batch content as markdown for Rich panel
@@ -423,19 +427,20 @@ async def _process_tool_calls(
         )
 
         # Display details of what's being executed
+        from .agent_helpers import get_readable_tool_description
+
         for idx, (part, _) in enumerate(read_only_tasks, 1):
-            tool_desc = f"  **[{idx}]** `{part.tool_name}`"
-            if hasattr(part, "args") and isinstance(part.args, dict):
-                if part.tool_name == "read_file" and "file_path" in part.args:
-                    tool_desc += f" → `{part.args['file_path']}`"
-                elif part.tool_name == "grep" and "pattern" in part.args:
-                    tool_desc += f" → pattern: `{part.args['pattern']}`"
-                    if "include_files" in part.args:
-                        tool_desc += f", files: `{part.args['include_files']}`"
-                elif part.tool_name == "list_dir" and "directory" in part.args:
-                    tool_desc += f" → `{part.args['directory']}`"
-                elif part.tool_name == "glob" and "pattern" in part.args:
-                    tool_desc += f" → pattern: `{part.args['pattern']}`"
+            tool_args = getattr(part, "args", {}) if hasattr(part, "args") else {}
+            # Parse args if they're a JSON string
+            if isinstance(tool_args, str):
+                import json
+
+                try:
+                    tool_args = json.loads(tool_args)
+                except (json.JSONDecodeError, TypeError):
+                    tool_args = {}
+            readable_desc = get_readable_tool_description(part.tool_name, tool_args)
+            tool_desc = f"  **[{idx}]** {readable_desc}"
             batch_content += f"{tool_desc}\n"
 
         await execute_tools_parallel(read_only_tasks, tool_callback)
@@ -465,7 +470,7 @@ async def _process_tool_calls(
                 tool_args = {}
         tool_desc = get_tool_description(part.tool_name, tool_args)
         await ui.update_spinner_message(
-            f"[bold #00d7ff]{tool_desc}...[/bold #00d7ff]", state_manager
+            f"[bold {colors.primary}]{tool_desc}...[/bold {colors.primary}]", state_manager
         )
 
         # Execute the tool with robust error handling

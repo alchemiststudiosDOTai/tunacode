@@ -23,6 +23,7 @@ from pydantic_ai import Agent
 if TYPE_CHECKING:
     from pydantic_ai import Tool  # noqa: F401
 
+from tunacode.constants import UI_COLORS
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
@@ -40,11 +41,13 @@ from tunacode.types import (
 )
 from tunacode.ui import console as ui
 from tunacode.ui.tool_descriptions import get_batch_description
+from tunacode.utils.file_utils import DotDict
 
 from . import agent_components as ac
 from .prompts import format_clarification, format_iteration_limit, format_no_progress
 
 logger = get_logger(__name__)
+colors = DotDict(UI_COLORS)
 
 __all__ = [
     "process_request",
@@ -545,7 +548,7 @@ async def _finalize_buffered_tasks(
         tool_names = [part.tool_name for part, _ in buffered_tasks]
         batch_msg = get_batch_description(len(buffered_tasks), tool_names)
         await ui.update_spinner_message(
-            f"[bold #00d7ff]{batch_msg}...[/bold #00d7ff]", state_manager
+            f"[bold {colors.primary}]{batch_msg}...[/bold {colors.primary}]", state_manager
         )
     except Exception:
         # UI is best-effort; never fail request because of display

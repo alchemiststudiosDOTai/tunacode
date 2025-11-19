@@ -106,18 +106,27 @@ TUNACODE_HOME_DIR = ".tunacode"
 SESSIONS_SUBDIR = "sessions"
 DEVICE_ID_FILE = "device_id"
 
-# UI colors - Modern sleek color scheme
+# UI colors - Professional monochromatic cyan scheme
 UI_COLORS = {
-    "primary": "#00d7ff",  # Bright cyan
-    "secondary": "#64748b",  # Slate gray
-    "accent": "#7c3aed",  # Purple accent
-    "success": "#22c55e",  # Modern green
-    "warning": "#f59e0b",  # Amber
-    "error": "#ef4444",  # Red
-    "muted": "#94a3b8",  # Light slate
-    "file_ref": "#00d7ff",  # Bright cyan
-    "background": "#0f172a",  # Dark slate
-    "border": "#475569",  # Stronger slate border
+    # Core brand colors
+    "primary": "#00d7ff",  # Bright cyan (primary accent)
+    "primary_light": "#4de4ff",  # Light cyan for hover states
+    "primary_dark": "#0095b3",  # Dark cyan for interactive elements
+    "accent": "#0ea5e9",  # Rich cyan (replaces purple)
+    # Background & structure (cyan-tinted grays)
+    "background": "#0d1720",  # Ultra dark with cyan undertone
+    "surface": "#162332",  # Panels, cards
+    "border": "#2d4461",  # Stronger cyan-gray borders
+    "border_light": "#1e2d3f",  # Subtle borders
+    # Text & content (cyan-tinted neutrals)
+    "muted": "#6b8aa3",  # Secondary text, descriptions
+    "secondary": "#4a6582",  # Tertiary text, less important
+    # Semantic colors (professional, muted)
+    "success": "#059669",  # Corporate emerald green
+    "warning": "#d97706",  # Muted amber
+    "error": "#dc2626",  # Clean red
+    # Legacy compatibility
+    "file_ref": "#00d7ff",  # Same as primary
 }
 
 # UI text and formatting

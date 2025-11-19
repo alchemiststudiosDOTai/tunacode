@@ -91,10 +91,12 @@ async def test_research_agent_delegation_with_usage_tracking(
             max_files=5,
         )
 
-        # Verify research agent was created with correct model
+        # Verify research agent was created with correct model and max_files limit
+        # Note: max_files=5 passed to tool, but capped to 3 (hard limit)
         mock_factory.assert_called_once_with(
             "gemini-2.0-flash-exp",  # Should use model from state_manager.session.current_model
             state_manager,
+            max_files=3,  # Should enforce hard limit of 3 (not 5)
         )
 
         # Verify research agent was called with usage context
