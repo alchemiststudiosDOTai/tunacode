@@ -238,7 +238,8 @@ class GlobalRequestTimeoutError(TunaCodeError):
         super().__init__(
             f"Request exceeded global timeout of {timeout_seconds}s. "
             f"The model API may be slow or unresponsive. "
-            f"Try increasing settings.global_request_timeout in tunacode.json or check model API status."
+            f"Try increasing settings.global_request_timeout in tunacode.json "
+            f"or check model API status."
         )
 
 
