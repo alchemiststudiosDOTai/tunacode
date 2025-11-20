@@ -166,6 +166,10 @@ def _create_model_with_retry(
             "base_url": env.get("AZURE_OPENAI_ENDPOINT"),
         },
         "deepseek": {"api_key_name": "DEEPSEEK_API_KEY", "base_url": None},
+        "cerebras": {
+            "api_key_name": "CEREBRAS_API_KEY",
+            "base_url": "https://api.cerebras.ai/v1",
+        },
     }
 
     # Parse model string
@@ -187,7 +191,7 @@ def _create_model_with_retry(
         api_key = env.get("ANTHROPIC_API_KEY")
         provider = AnthropicProvider(api_key=api_key, http_client=http_client)
         return AnthropicModel(model_name, provider=provider)
-    elif provider_name in ("openai", "openrouter", "azure", "deepseek"):
+    elif provider_name in ("openai", "openrouter", "azure", "deepseek", "cerebras"):
         # OpenAI-compatible providers all use OpenAIChatModel
         config = PROVIDER_CONFIG.get(provider_name, {})
         api_key = env.get(config.get("api_key_name"))

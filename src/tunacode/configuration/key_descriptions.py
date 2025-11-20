@@ -63,6 +63,16 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         is_sensitive=True,
         service_type="openrouter",
     ),
+    "env.CEREBRAS_API_KEY": KeyDescription(
+        name="CEREBRAS_API_KEY",
+        description="Your Cerebras API key for fast inference",
+        example="cs_abc123...",
+        help_text="Get this from https://cloud.cerebras.ai/. "
+        "Provides access to high-speed Llama models.",
+        category="API Keys",
+        is_sensitive=True,
+        service_type="cerebras",
+    ),
     "env.GEMINI_API_KEY": KeyDescription(
         name="GEMINI_API_KEY",
         description="Your Google Gemini API key",
@@ -242,6 +252,7 @@ def get_service_type_for_api_key(key_name: str) -> Optional[str]:
         "ANTHROPIC_API_KEY": "anthropic",
         "OPENROUTER_API_KEY": "openrouter",
         "GEMINI_API_KEY": "google",
+        "CEREBRAS_API_KEY": "cerebras",
     }
     return service_mapping.get(key_name)
 

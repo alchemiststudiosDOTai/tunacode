@@ -66,6 +66,7 @@ async def test_request_delay_hook_applies_sleep(
 
     assert sleep_calls == [0.25]
 
+
 def test_http_client_uses_retry_transport_by_default(
     monkeypatch: pytest.MonkeyPatch, state_manager: StateManager
 ) -> None:
