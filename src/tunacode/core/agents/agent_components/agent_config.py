@@ -1,9 +1,10 @@
 """Agent configuration and creation utilities."""
 
+import asyncio
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Awaitable, Callable, Dict, Tuple
 
-from httpx import AsyncClient, HTTPStatusError
+from httpx import AsyncClient, HTTPStatusError, Request
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.openai import OpenAIChatModel
@@ -35,6 +36,20 @@ _TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
 # Module-level cache for agents to persist across requests
 _AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
+
+
+def _build_request_hooks(
+    request_delay: float,
+) -> Dict[str, list[Callable[[Request], Awaitable[None]]]]:
+    """Return httpx event hooks enforcing a fixed pre-request delay."""
+    if request_delay <= 0:
+        # Reason: avoid overhead when no throttling requested
+        return {}
+
+    async def _delay_before_request(_: Request) -> None:
+        await asyncio.sleep(request_delay)
+
+    return {"request": [_delay_before_request]}
 
 
 def clear_all_caches():
@@ -208,6 +223,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             (
                 str(settings.get("max_retries", 3)),
                 str(settings.get("tool_strict_validation", False)),
+                str(settings.get("request_delay", 0.0)),
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )
@@ -275,7 +291,11 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             ),
             validate_response=lambda r: r.raise_for_status(),
         )
-        http_client = AsyncClient(transport=transport)
+        request_delay = float(
+            state_manager.session.user_config.get("settings", {}).get("request_delay", 0.0)
+        )
+        event_hooks = _build_request_hooks(request_delay)
+        http_client = AsyncClient(transport=transport, event_hooks=event_hooks or None)
 
         # Create model instance with retry-enabled HTTP client
         model_instance = _create_model_with_retry(model, http_client, state_manager)
@@ -302,6 +322,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                         "tool_strict_validation", False
                     )
                 ),
+                str(request_delay),
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )

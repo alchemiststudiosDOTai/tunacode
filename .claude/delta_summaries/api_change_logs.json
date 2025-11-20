@@ -116,6 +116,18 @@
         "SYNCHRONIZED src/tunacode/constants.APP_VERSION with the new patch number",
         "UPDATED release documentation and changelog to guide GitHub release creation"
       ]
+    },
+    {
+      "id": "request-delay-config-20251120-000001",
+      "time": "2025-11-20T00:00:01",
+      "branch": "feature/request-delay-config",
+      "base": "current",
+      "head": "current",
+      "bullets": [
+        "ADDED settings.request_delay (default 0s) to user config defaults and key descriptions",
+        "INJECTED httpx request hook in agent_config to await the configured delay before each LLM request",
+        "DOCUMENTED the setting inside tunacode.json.example and updated agent cache versioning to respect it"
+      ]
     }
   ]
 }

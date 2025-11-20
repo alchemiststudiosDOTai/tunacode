@@ -89,6 +89,13 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         "but slower when APIs are down.",
         category="Behavior Settings",
     ),
+    "settings.request_delay": KeyDescription(
+        name="request_delay",
+        description="Delay in seconds before each API request",
+        example=0.0,
+        help_text="Adds a fixed pause before every LLM API call to avoid rate-limit bursts.",
+        category="Behavior Settings",
+    ),
     "settings.max_iterations": KeyDescription(
         name="max_iterations",
         description="Maximum conversation turns before stopping",

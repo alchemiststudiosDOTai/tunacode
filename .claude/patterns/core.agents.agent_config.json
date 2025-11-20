@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude-kb.io/schema/pattern/v1",
+  "component": "core.agents.agent_config",
+  "patterns": [
+    {
+      "name": "request-delay-config",
+      "description": "How to throttle outgoing LLM requests from TunaCode agents"
+    }
+  ],
+  "last_updated": "2025-11-20T19:27:40.570626267Z"
+}

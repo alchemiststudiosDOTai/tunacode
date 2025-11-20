@@ -13,6 +13,7 @@
     "settings": {
         "max_retries": 10,
         "max_iterations": 40,
+        "request_delay": 0.0,
         "tool_ignore": [
             "read_file"
         ],
