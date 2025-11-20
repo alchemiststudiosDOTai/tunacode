@@ -6,6 +6,7 @@ Handles agent creation, configuration, and request processing.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from dataclasses import dataclass
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 from tunacode.constants import UI_COLORS
 from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
-from tunacode.exceptions import ToolBatchingJSONError, UserAbortError
+from tunacode.exceptions import GlobalRequestTimeoutError, ToolBatchingJSONError, UserAbortError
 from tunacode.services.mcp import (  # re-exported by design
     cleanup_mcp_servers,
     get_mcp_servers,
@@ -362,7 +363,22 @@ class RequestOrchestrator:
             setattr(self.state_manager.session, "original_query", query)
 
     async def run(self) -> AgentRun:
-        """Run the main request processing loop."""
+        """Run the main request processing loop with optional global timeout."""
+        from tunacode.core.agents.agent_components.agent_config import (
+            _coerce_global_request_timeout,
+        )
+
+        timeout = _coerce_global_request_timeout(self.state_manager)
+        if timeout is None:
+            return await self._run_impl()
+
+        try:
+            return await asyncio.wait_for(self._run_impl(), timeout=timeout)
+        except asyncio.TimeoutError as e:
+            raise GlobalRequestTimeoutError(timeout) from e
+
+    async def _run_impl(self) -> AgentRun:
+        """Internal implementation of request processing loop."""
         ctx = self._init_request_context()
         self._reset_session_state()
         self._set_original_query_once(self.message)
