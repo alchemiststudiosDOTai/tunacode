@@ -227,7 +227,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             (
                 str(settings.get("max_retries", 3)),
                 str(settings.get("tool_strict_validation", False)),
-                str(settings.get("request_delay", 0.0)),
+                # Note: request_delay excluded from cache key (runtime behavior, not agent-defining)
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )
@@ -295,11 +295,17 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             ),
             validate_response=lambda r: r.raise_for_status(),
         )
-        request_delay = float(
-            state_manager.session.user_config.get("settings", {}).get("request_delay", 0.0)
+        request_delay_raw = state_manager.session.user_config.get("settings", {}).get(
+            "request_delay", 0.0
         )
+        request_delay = float(request_delay_raw)
+
+        if not (0.0 <= request_delay <= 60.0):
+            raise ValueError(
+                f"request_delay must be between 0.0 and 60.0 seconds, got {request_delay}"
+            )
         event_hooks = _build_request_hooks(request_delay)
-        http_client = AsyncClient(transport=transport, event_hooks=event_hooks or None)
+        http_client = AsyncClient(transport=transport, event_hooks=event_hooks)
 
         # Create model instance with retry-enabled HTTP client
         model_instance = _create_model_with_retry(model, http_client, state_manager)
@@ -326,7 +332,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                         "tool_strict_validation", False
                     )
                 ),
-                str(request_delay),
+                # Note: request_delay excluded from cache key (runtime behavior, not agent-defining)
                 str(state_manager.session.user_config.get("mcpServers", {})),
             )
         )
