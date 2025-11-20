@@ -85,3 +85,28 @@ def test_http_client_uses_retry_transport_by_default(
     transport = captured_kwargs.get("transport")
     assert isinstance(transport, AsyncTenacityTransport)
     assert captured_kwargs.get("event_hooks") in (None, {})
+
+
+@pytest.mark.parametrize(
+    "delay_value,should_raise",
+    [
+        (0.0, False),      # Valid: minimum
+        (30.0, False),     # Valid: middle
+        (60.0, False),     # Valid: maximum
+        (-1.0, True),      # Invalid: negative
+        (61.0, True),      # Invalid: exceeds max
+        (100.0, True),     # Invalid: way over
+    ],
+)
+def test_request_delay_validation(
+    state_manager: StateManager, delay_value: float, should_raise: bool
+) -> None:
+    """Validation should reject delays outside 0-60 second range."""
+    state_manager.session.user_config["settings"]["request_delay"] = delay_value
+
+    if should_raise:
+        with pytest.raises(ValueError, match="request_delay must be between"):
+            ac.get_or_create_agent("openai:gpt-4", state_manager)
+    else:
+        # Should not raise
+        ac.get_or_create_agent("openai:gpt-4", state_manager)
