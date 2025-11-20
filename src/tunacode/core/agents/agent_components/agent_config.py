@@ -118,6 +118,7 @@ def _compute_agent_version(
             str(settings.get("max_retries", 3)),
             str(settings.get("tool_strict_validation", False)),
             str(request_delay),
+            str(settings.get("global_request_timeout", 90.0)),
             str(mcp_servers),
         )
     )
