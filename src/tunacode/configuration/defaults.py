@@ -20,6 +20,7 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "max_retries": 10,
         "max_iterations": 40,
         "request_delay": 0.0,
+        "global_request_timeout": 90.0,
         "tool_ignore": [],
         "guide_file": GUIDE_FILE_NAME,
         "fallback_response": True,

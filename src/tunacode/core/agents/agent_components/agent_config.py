@@ -94,6 +94,21 @@ def _coerce_request_delay(state_manager: StateManager) -> float:
     return request_delay
 
 
+def _coerce_global_request_timeout(state_manager: StateManager) -> float | None:
+    """Return validated global_request_timeout from config, or None if disabled."""
+    settings = state_manager.session.user_config.get("settings", {})
+    timeout_raw = settings.get("global_request_timeout", 90.0)
+    timeout = float(timeout_raw)
+
+    if timeout < 0.0:
+        raise ValueError(f"global_request_timeout must be >= 0.0 seconds, got {timeout}")
+
+    if timeout == 0.0:
+        return None
+
+    return timeout
+
+
 def _compute_agent_version(
     settings: Dict[str, Any], request_delay: float, mcp_servers: dict
 ) -> int:
@@ -103,6 +118,7 @@ def _compute_agent_version(
             str(settings.get("max_retries", 3)),
             str(settings.get("tool_strict_validation", False)),
             str(request_delay),
+            str(settings.get("global_request_timeout", 90.0)),
             str(mcp_servers),
         )
     )

@@ -106,6 +106,14 @@ CONFIG_KEY_DESCRIPTIONS: Dict[str, KeyDescription] = {
         help_text="Adds a fixed pause before every LLM API call to avoid rate-limit bursts.",
         category="Behavior Settings",
     ),
+    "settings.global_request_timeout": KeyDescription(
+        name="global_request_timeout",
+        description="Maximum time in seconds for a request to complete",
+        example=90.0,
+        help_text="Prevents indefinite hangs when model API is slow or unresponsive. "
+        "Set to 0.0 to disable timeout. Typical values: 30-300 seconds.",
+        category="Behavior Settings",
+    ),
     "settings.max_iterations": KeyDescription(
         name="max_iterations",
         description="Maximum conversation turns before stopping",

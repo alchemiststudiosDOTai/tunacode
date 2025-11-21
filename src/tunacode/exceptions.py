@@ -230,6 +230,19 @@ class TooBroadPatternError(ToolExecutionError):
         )
 
 
+class GlobalRequestTimeoutError(TunaCodeError):
+    """Raised when a request exceeds the global timeout limit."""
+
+    def __init__(self, timeout_seconds: float):
+        self.timeout_seconds = timeout_seconds
+        super().__init__(
+            f"Request exceeded global timeout of {timeout_seconds}s. "
+            f"The model API may be slow or unresponsive. "
+            f"Try increasing settings.global_request_timeout in tunacode.json "
+            f"or check model API status."
+        )
+
+
 class ToolBatchingJSONError(TunaCodeError):
     """Raised when JSON parsing fails during tool batching after all retries are exhausted."""
 
