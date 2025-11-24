@@ -88,7 +88,7 @@ Implement rich user notifications for rate limit errors to show wait times, toke
 **Estimate**: 2 hours
 **Dependencies**: T001, T002
 **Target Milestone**: M2
-o
+
 **Acceptance Tests**:
 - Rich error panel displayed for rate limit errors
 - Wait time prominently shown with countdown integration
