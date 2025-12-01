@@ -7,11 +7,27 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**AI-powered CLI coding assistant**
+**MAJOR REWRITE IN PROGRESS**
+**TunaCode is undergoing a complete rewrite to a modern TUI (Terminal User Interface)**
+**Coming Soon: TunaCode v2.0 with enhanced UI/UX and improved performance**
 
 ![TunaCode Example](assets/tunacode_example.png)
 
 </div>
+
+---
+
+## Important Notice: TUI Rewrite Underway
+
+**TunaCode is currently undergoing a major rewrite to a modern TUI (Terminal User Interface).** The next version will feature:
+
+- **Modern Terminal UI** - Rich, intuitive interface with panels and real-time updates
+- **Enhanced Performance** - Faster response times and better resource management
+- **Improved Tool Integration** - Seamless tool execution with visual feedback
+- **Real-time Monitoring** - Live status updates and progress indicators
+- **Better User Experience** - Keyboard shortcuts, search, and navigation
+
+The current version remains fully functional, but we recommend watching for the upcoming v2.0 release which will provide a significantly improved user experience.
 
 ---
 
