@@ -181,6 +181,18 @@ class ThemeCommand(Command):
             )
 
 
+class FilesCommand(Command):
+    name = "files"
+    description = "Show all edited files"
+    usage = "/files"
+
+    async def execute(self, app: "TextualReplApp", args: str) -> None:
+        from tunacode.ui.screens.edited_files_screen import EditedFilesScreen
+
+        files = app.status_bar.get_edited_files()
+        app.push_screen(EditedFilesScreen(files))
+
+
 COMMANDS: dict[str, Command] = {
     "help": HelpCommand(),
     "clear": ClearCommand(),
@@ -189,6 +201,7 @@ COMMANDS: dict[str, Command] = {
     "branch": BranchCommand(),
     "plan": PlanCommand(),
     "theme": ThemeCommand(),
+    "files": FilesCommand(),
 }
 
 

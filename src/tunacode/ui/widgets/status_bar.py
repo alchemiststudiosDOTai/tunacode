@@ -63,6 +63,10 @@ class StatusBar(Horizontal):
             text = f"edited: {shown} +{len(files) - 2}"
         self.query_one("#status-mid", Static).update(text)
 
+    def get_edited_files(self) -> list[str]:
+        """Return sorted list of edited files."""
+        return sorted(self._edited_files)
+
     def set_mode(self, mode: str | None) -> None:
         """Show mode indicator in status bar."""
         left = self.query_one("#status-left", Static)
