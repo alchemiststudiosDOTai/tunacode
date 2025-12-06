@@ -12,6 +12,15 @@ from tunacode.core.logging.logger import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = [
+    "DANGEROUS_CHARS",
+    "INJECTION_PATTERNS",
+    "CommandSecurityError",
+    "safe_subprocess_popen",
+    "sanitize_command_args",
+    "validate_command_safety",
+]
+
 # Dangerous shell metacharacters that indicate potential injection
 DANGEROUS_CHARS = [
     ";",
