@@ -1,10 +1,11 @@
 """
-Module: tunacode.utils.user_configuration
+Configuration utilities: user config persistence.
 
 Provides user configuration file management.
 Handles loading, saving, and updating user preferences including model selection.
 """
 
+import hashlib
 import json
 from json import JSONDecodeError
 from typing import TYPE_CHECKING, Optional
@@ -16,11 +17,16 @@ from tunacode.types import ModelName, UserConfig
 if TYPE_CHECKING:
     from tunacode.core.state import StateManager
 
-
-import hashlib
-
 _config_fingerprint = None
 _config_cache = None
+
+__all__ = [
+    "compute_config_fingerprint",
+    "initialize_first_time_user",
+    "load_config",
+    "save_config",
+    "set_default_model",
+]
 
 
 def compute_config_fingerprint(config_obj) -> str:

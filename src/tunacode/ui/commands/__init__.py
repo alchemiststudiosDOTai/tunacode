@@ -72,7 +72,7 @@ class ModelCommand(Command):
     usage = "/model [provider:model-name]"
 
     async def execute(self, app: "TextualReplApp", args: str) -> None:
-        from tunacode.utils.config.user_configuration import save_config
+        from tunacode.utils.config import save_config
 
         if args:
             model_name = args.strip()
@@ -153,7 +153,7 @@ class ThemeCommand(Command):
     usage = "/theme [name]"
 
     async def execute(self, app: "TextualReplApp", args: str) -> None:
-        from tunacode.utils.config.user_configuration import save_config
+        from tunacode.utils.config import save_config
 
         if args:
             theme_name = args.strip()
