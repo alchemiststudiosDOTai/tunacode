@@ -29,8 +29,8 @@ from tunacode.tools.grep_components import (
     SearchResult,
 )
 from tunacode.tools.grep_components.result_formatter import ResultFormatter
-from tunacode.tools.utils.ripgrep import RipgrepExecutor
-from tunacode.tools.utils.ripgrep import metrics as ripgrep_metrics
+from tunacode.tools.ripgrep import RipgrepExecutor
+from tunacode.tools.ripgrep import metrics as ripgrep_metrics
 
 logger = logging.getLogger(__name__)
 
