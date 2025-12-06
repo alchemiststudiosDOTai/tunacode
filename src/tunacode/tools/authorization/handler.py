@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Optional
 
 from tunacode.core.state import StateManager
-from tunacode.templates.loader import Template
 from tunacode.types import (
+    Template,
     ToolArgs,
     ToolConfirmationRequest,
     ToolConfirmationResponse,

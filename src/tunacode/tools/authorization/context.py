@@ -7,7 +7,7 @@ from tunacode.constants import ToolName
 
 if TYPE_CHECKING:
     from tunacode.core.state import StateManager
-    from tunacode.templates.loader import Template
+    from tunacode.types import Template
 
 
 @dataclass(frozen=True)
