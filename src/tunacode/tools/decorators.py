@@ -7,8 +7,9 @@ This module provides decorators that wrap tool functions with:
 """
 
 import logging
+from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from pydantic_ai.exceptions import ModelRetry
 
@@ -48,7 +49,9 @@ def base_tool(
             raise
         except Exception as e:
             logger.exception(f"{func.__name__} failed")
-            raise ToolExecutionError(tool_name=func.__name__, message=str(e), original_error=e)
+            raise ToolExecutionError(
+                tool_name=func.__name__, message=str(e), original_error=e
+            ) from e
 
     xml_prompt = load_prompt_from_xml(func.__name__)
     if xml_prompt:
@@ -79,19 +82,19 @@ def file_tool(
     async def wrapper(filepath: str, *args: Any, **kwargs: Any) -> R:
         try:
             return await func(filepath, *args, **kwargs)
-        except FileNotFoundError:
-            raise ModelRetry(f"File not found: {filepath}. Check the path.")
+        except FileNotFoundError as err:
+            raise ModelRetry(f"File not found: {filepath}. Check the path.") from err
         except PermissionError as e:
             raise FileOperationError(
                 operation="access", path=filepath, message=str(e), original_error=e
-            )
+            ) from e
         except UnicodeDecodeError as e:
             raise FileOperationError(
                 operation="decode", path=filepath, message=str(e), original_error=e
-            )
-        except (IOError, OSError) as e:
+            ) from e
+        except OSError as e:
             raise FileOperationError(
                 operation="read/write", path=filepath, message=str(e), original_error=e
-            )
+            ) from e
 
     return base_tool(wrapper)  # type: ignore[arg-type]

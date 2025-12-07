@@ -11,7 +11,7 @@ Each replacer is a generator that yields potential matches found in content.
 Replacers are tried in order from strict to fuzzy until one succeeds.
 """
 
-from typing import Callable, Generator
+from collections.abc import Callable, Generator
 
 # Type alias for replacer functions
 Replacer = Callable[[str, str], Generator[str, None, None]]

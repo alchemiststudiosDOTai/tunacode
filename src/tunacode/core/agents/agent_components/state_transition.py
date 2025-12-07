@@ -3,7 +3,7 @@
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, Set
+from typing import TYPE_CHECKING
 
 from tunacode.types import AgentState
 
@@ -26,13 +26,13 @@ class StateTransitionRules:
     """Defines valid state transitions for the agent state machine."""
 
     # Valid transitions for each state
-    valid_transitions: Dict[Enum, Set[Enum]]
+    valid_transitions: dict[Enum, set[Enum]]
 
     def is_valid_transition(self, from_state: Enum, to_state: Enum) -> bool:
         """Check if a transition between states is valid."""
         return to_state in self.valid_transitions.get(from_state, set())
 
-    def get_valid_next_states(self, current_state: Enum) -> Set[Enum]:
+    def get_valid_next_states(self, current_state: Enum) -> set[Enum]:
         """Get all valid next states from the current state."""
         return self.valid_transitions.get(current_state, set())
 

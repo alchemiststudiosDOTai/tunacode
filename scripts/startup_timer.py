@@ -30,18 +30,18 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class StartupTimer:
     """Measures and tracks TunaCode startup performance."""
 
-    def __init__(self, iterations: int = 5, command: Optional[str] = None):
+    def __init__(self, iterations: int = 5, command: str | None = None):
         self.iterations = iterations
         self.command = command or "--version"
-        self.results: list[Dict[str, Any]] = []
+        self.results: list[dict[str, Any]] = []
 
-    def measure_startup_time(self) -> Dict:
+    def measure_startup_time(self) -> dict:
         """Measure startup time over multiple iterations."""
         print("Measuring TunaCode startup time...")
         print(f"Command: tunacode {self.command}")
@@ -105,7 +105,7 @@ class StartupTimer:
         self.results.append(stats)
         return stats
 
-    def print_results(self, stats: Dict):
+    def print_results(self, stats: dict):
         """Print formatted results to console."""
         print("\n" + "=" * 60)
         print("STARTUP PERFORMANCE RESULTS")
@@ -148,7 +148,7 @@ class StartupTimer:
         existing_results = []
         if filepath.exists():
             try:
-                with open(filepath, "r") as f:
+                with open(filepath) as f:
                     existing_results = json.load(f)
             except json.JSONDecodeError:
                 print(f"Warning: Could not read existing results from {filename}")
@@ -165,7 +165,7 @@ class StartupTimer:
     def compare_with_baseline(self, baseline_file: str):
         """Compare current results with baseline measurements."""
         try:
-            with open(baseline_file, "r") as f:
+            with open(baseline_file) as f:
                 baseline_data = json.load(f)
 
             if not baseline_data:

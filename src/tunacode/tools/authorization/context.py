@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from tunacode.constants import ToolName
 
@@ -16,10 +16,10 @@ class AuthContext:
 
     yolo_mode: bool
     tool_ignore_list: tuple[ToolName, ...]
-    active_template: Optional["Template"]
+    active_template: Template | None
 
     @classmethod
-    def from_state(cls, state: "StateManager") -> "AuthContext":
+    def from_state(cls, state: StateManager) -> AuthContext:
         """Build context directly from session state."""
         active_template = None
         if hasattr(state, "tool_handler") and state.tool_handler is not None:

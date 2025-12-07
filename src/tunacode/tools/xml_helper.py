@@ -3,7 +3,7 @@
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import defusedxml.ElementTree as ET
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=32)
-def load_prompt_from_xml(tool_name: str) -> Optional[str]:
+def load_prompt_from_xml(tool_name: str) -> str | None:
     """Load and return the base prompt from XML file.
 
     Args:
@@ -34,7 +34,7 @@ def load_prompt_from_xml(tool_name: str) -> Optional[str]:
 
 
 @lru_cache(maxsize=32)
-def load_parameters_schema_from_xml(tool_name: str) -> Optional[Dict[str, Any]]:
+def load_parameters_schema_from_xml(tool_name: str) -> dict[str, Any] | None:
     """Load and return the parameters schema from XML file.
 
     Args:
@@ -50,8 +50,8 @@ def load_parameters_schema_from_xml(tool_name: str) -> Optional[Dict[str, Any]]:
             root = tree.getroot()
             parameters = root.find("parameters")
             if parameters is not None:
-                schema: Dict[str, Any] = {"type": "object", "properties": {}, "required": []}
-                required_fields: List[str] = []
+                schema: dict[str, Any] = {"type": "object", "properties": {}, "required": []}
+                required_fields: list[str] = []
 
                 for param in parameters.findall("parameter"):
                     name = param.get("name")

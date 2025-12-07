@@ -155,7 +155,7 @@ class TestFileTool:
 
         @file_tool
         async def read_broken(filepath: str) -> str:
-            raise IOError("disk error")
+            raise OSError("disk error")
 
         with pytest.raises(FileOperationError) as exc_info:
             await read_broken("/broken/disk.txt")

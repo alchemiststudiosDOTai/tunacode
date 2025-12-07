@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-from typing import Optional
 
 from tunacode.constants import (
     DEFAULT_READ_LIMIT,
@@ -19,7 +18,7 @@ from tunacode.tools.decorators import file_tool
 async def read_file(
     filepath: str,
     offset: int = 0,
-    limit: Optional[int] = None,
+    limit: int | None = None,
 ) -> str:
     """Read the contents of a file with line limiting and truncation.
 
@@ -40,7 +39,7 @@ async def read_file(
     effective_limit = limit if limit is not None else DEFAULT_READ_LIMIT
 
     def _read_sync(path: str) -> str:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             lines = f.readlines()
 
         total_lines = len(lines)

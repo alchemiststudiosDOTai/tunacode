@@ -1,13 +1,12 @@
 """Message handling utilities for agent communication."""
 
-from datetime import datetime, timezone
-from typing import Dict, Set, Union
+from datetime import UTC, datetime
 
 from tunacode.core.state import StateManager
 
 ToolCallId = str
 ToolName = str
-ErrorMessage = Union[str, None]
+ErrorMessage = str | None
 
 
 def get_model_messages():
@@ -23,8 +22,8 @@ def get_model_messages():
     messages = importlib.import_module("pydantic_ai.messages")
 
     # Get the required classes
-    ModelRequest = getattr(messages, "ModelRequest")
-    ToolReturnPart = getattr(messages, "ToolReturnPart")
+    ModelRequest = messages.ModelRequest
+    ToolReturnPart = messages.ToolReturnPart
 
     # Create minimal fallback for SystemPromptPart if it doesn't exist
     if not hasattr(messages, "SystemPromptPart"):
@@ -60,9 +59,9 @@ def patch_tool_messages(
         return
 
     # Map tool calls to their tool returns
-    tool_calls: Dict[ToolCallId, ToolName] = {}  # tool_call_id -> tool_name
-    tool_returns: Set[ToolCallId] = set()  # set of tool_call_ids with returns
-    retry_prompts: Set[ToolCallId] = set()  # set of tool_call_ids with retry prompts
+    tool_calls: dict[ToolCallId, ToolName] = {}  # tool_call_id -> tool_name
+    tool_returns: set[ToolCallId] = set()  # set of tool_call_ids with returns
+    retry_prompts: set[ToolCallId] = set()  # set of tool_call_ids with retry prompts
 
     for message in messages:
         if hasattr(message, "parts"):
@@ -91,7 +90,7 @@ def patch_tool_messages(
                             tool_name=tool_name,
                             content=error_message,
                             tool_call_id=tool_call_id,
-                            timestamp=datetime.now(timezone.utc),
+                            timestamp=datetime.now(UTC),
                             part_kind="tool-return",
                         )
                     ],

@@ -75,7 +75,4 @@ def check_for_truncation(combined_content: str) -> bool:
     close_brackets = (
         combined_content.count("]") + combined_content.count(")") + combined_content.count("}")
     )
-    if open_brackets > close_brackets:
-        return True
-
-    return False
+    return open_brackets > close_brackets

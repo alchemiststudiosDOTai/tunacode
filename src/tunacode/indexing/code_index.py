@@ -6,7 +6,7 @@ import threading
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class CodeIndex:
         ".env.example",
     }
 
-    def __init__(self, root_dir: Optional[str] = None):
+    def __init__(self, root_dir: str | None = None):
         """Initialize the code index.
 
         Args:
@@ -115,25 +115,25 @@ class CodeIndex:
         self._lock = threading.RLock()
 
         # Primary indices
-        self._basename_to_paths: Dict[str, List[Path]] = defaultdict(list)
-        self._path_to_imports: Dict[Path, Set[str]] = {}
-        self._all_files: Set[Path] = set()
+        self._basename_to_paths: dict[str, list[Path]] = defaultdict(list)
+        self._path_to_imports: dict[Path, set[str]] = {}
+        self._all_files: set[Path] = set()
 
         # Symbol indices for common patterns
-        self._class_definitions: Dict[str, List[Path]] = defaultdict(list)
-        self._function_definitions: Dict[str, List[Path]] = defaultdict(list)
+        self._class_definitions: dict[str, list[Path]] = defaultdict(list)
+        self._function_definitions: dict[str, list[Path]] = defaultdict(list)
 
         # Cache for directory contents
-        self._dir_cache: Dict[Path, List[Path]] = {}
+        self._dir_cache: dict[Path, list[Path]] = {}
 
         # Cache freshness tracking
-        self._cache_timestamps: Dict[Path, float] = {}
+        self._cache_timestamps: dict[Path, float] = {}
         self._cache_ttl = 5.0  # 5 seconds TTL for directory cache
 
         self._indexed = False
 
     @classmethod
-    def get_instance(cls, root_dir: Optional[str] = None) -> "CodeIndex":
+    def get_instance(cls, root_dir: str | None = None) -> "CodeIndex":
         """Get the singleton CodeIndex instance.
 
         Args:
@@ -154,7 +154,7 @@ class CodeIndex:
         with cls._instance_lock:
             cls._instance = None
 
-    def get_directory_contents(self, path: Path) -> List[str]:
+    def get_directory_contents(self, path: Path) -> list[str]:
         """Get cached directory contents if available and fresh.
 
         Args:
@@ -191,7 +191,7 @@ class CodeIndex:
         age = time.time() - self._cache_timestamps[path]
         return age < self._cache_ttl
 
-    def update_directory_cache(self, path: Path, entries: List[str]) -> None:
+    def update_directory_cache(self, path: Path, entries: list[str]) -> None:
         """Update the directory cache with fresh data.
 
         Args:
@@ -259,10 +259,9 @@ class CodeIndex:
             for entry in entries:
                 if entry.is_dir():
                     self._scan_directory(entry)
-                elif entry.is_file():
-                    if self._should_index_file(entry):
-                        self._index_file(entry)
-                        file_list.append(entry)
+                elif entry.is_file() and self._should_index_file(entry):
+                    self._index_file(entry)
+                    file_list.append(entry)
 
             # Cache directory contents with timestamp
             self._dir_cache[directory] = file_list
@@ -320,7 +319,7 @@ class CodeIndex:
     def _index_python_file(self, file_path: Path, relative_path: Path) -> None:
         """Extract Python-specific information from a file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
             imports = set()
@@ -332,10 +331,8 @@ class CodeIndex:
                 # Import statements
                 if line.startswith("import ") or line.startswith("from "):
                     parts = line.split()
-                    if len(parts) >= 2:
-                        if parts[0] == "import":
-                            imports.add(parts[1].split(".")[0])
-                        elif parts[0] == "from" and len(parts) >= 3:
+                    if len(parts) >= 2:  # noqa: SIM102
+                        if parts[0] == "import" or parts[0] == "from" and len(parts) >= 3:
                             imports.add(parts[1].split(".")[0])
 
                 # Class definitions
@@ -356,7 +353,7 @@ class CodeIndex:
         except Exception as e:
             logger.debug(f"Error indexing Python file {file_path}: {e}")
 
-    def lookup(self, query: str, file_type: Optional[str] = None) -> List[Path]:
+    def lookup(self, query: str, file_type: str | None = None) -> list[Path]:
         """Look up files matching a query.
 
         Args:
@@ -414,7 +411,7 @@ class CodeIndex:
 
             return sorted_results
 
-    def get_all_files(self, file_type: Optional[str] = None) -> List[Path]:
+    def get_all_files(self, file_type: str | None = None) -> list[Path]:
         """Get all indexed files.
 
         Args:
@@ -434,7 +431,7 @@ class CodeIndex:
 
             return sorted(self._all_files)
 
-    def find_imports(self, module_name: str) -> List[Path]:
+    def find_imports(self, module_name: str) -> list[Path]:
         """Find files that import a specific module.
 
         Args:
@@ -454,7 +451,7 @@ class CodeIndex:
 
             return sorted(results)
 
-    def refresh(self, path: Optional[str] = None) -> None:
+    def refresh(self, path: str | None = None) -> None:
         """Refresh the index for a specific path or the entire repository.
 
         Args:
@@ -516,7 +513,7 @@ class CodeIndex:
                 if not symbol_dict[symbol]:
                     del symbol_dict[symbol]
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get indexing statistics.
 
         Returns:

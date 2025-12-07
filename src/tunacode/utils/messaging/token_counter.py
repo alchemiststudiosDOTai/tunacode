@@ -2,7 +2,7 @@
 
 import logging
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def get_encoding(model_name: str):
         return None
 
 
-def estimate_tokens(text: str, model_name: Optional[str] = None) -> int:
+def estimate_tokens(text: str, model_name: str | None = None) -> int:
     """
     Estimate token count using tiktoken for accurate results.
 

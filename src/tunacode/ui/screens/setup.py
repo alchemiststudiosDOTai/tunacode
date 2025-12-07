@@ -94,7 +94,7 @@ class SetupScreen(Screen[bool]):
         ("escape", "skip", "Skip Setup"),
     ]
 
-    def __init__(self, state_manager: "StateManager") -> None:
+    def __init__(self, state_manager: StateManager) -> None:
         super().__init__()
         self.state_manager = state_manager
         self._selected_provider: str = ""

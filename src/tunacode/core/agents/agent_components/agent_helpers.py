@@ -204,12 +204,20 @@ def create_fallback_response(
                     tool_calls_summary.append(tool_name)
 
                     # Track specific operations
-                    if tool_name in ["write_file", "update_file"] and hasattr(part, "args"):
-                        if isinstance(part.args, dict) and "file_path" in part.args:
-                            files_modified.add(part.args["file_path"])
-                    elif tool_name == "bash" and hasattr(part, "args"):
-                        if isinstance(part.args, dict) and "command" in part.args:
-                            commands_run.append(part.args["command"])
+                    if (
+                        tool_name in ["write_file", "update_file"]
+                        and hasattr(part, "args")
+                        and isinstance(part.args, dict)
+                        and "file_path" in part.args
+                    ):
+                        files_modified.add(part.args["file_path"])
+                    elif (
+                        tool_name == "bash"
+                        and hasattr(part, "args")
+                        and isinstance(part.args, dict)
+                        and "command" in part.args
+                    ):
+                        commands_run.append(part.args["command"])
 
     if verbosity in ["normal", "detailed"]:
         # Add what was attempted

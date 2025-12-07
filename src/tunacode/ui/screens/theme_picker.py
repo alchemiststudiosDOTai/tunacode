@@ -50,7 +50,7 @@ class ThemePickerScreen(Screen[str | None]):
 
     def __init__(
         self,
-        themes: dict[str, "Theme"],
+        themes: dict[str, Theme],
         current_theme: str,
     ) -> None:
         super().__init__()

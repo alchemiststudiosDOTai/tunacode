@@ -38,15 +38,15 @@ class SessionState:
     messages: MessageHistory = field(default_factory=list)
     # Keep session default in sync with configuration default
     current_model: ModelName = DEFAULT_USER_CONFIG["default_model"]
-    spinner: Optional[Any] = None
+    spinner: Any | None = None
     tool_ignore: list[ToolName] = field(default_factory=list)
     yolo: bool = False
     undo_initialized: bool = False
     show_thoughts: bool = False
     session_id: SessionId = field(default_factory=lambda: str(uuid.uuid4()))
-    device_id: Optional[DeviceId] = None
+    device_id: DeviceId | None = None
     input_sessions: InputSessions = field(default_factory=dict)
-    current_task: Optional[Any] = None
+    current_task: Any | None = None
     # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
     react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
     react_forced_calls: int = 0
@@ -61,7 +61,7 @@ class SessionState:
     # Track streaming state to prevent spinner conflicts
     is_streaming_active: bool = False
     # Track streaming panel reference for tool handler access
-    streaming_panel: Optional[Any] = None
+    streaming_panel: Any | None = None
     # Context window tracking (estimation based)
     total_tokens: int = 0
     max_tokens: int = 0
@@ -83,7 +83,7 @@ class SessionState:
     # Recursive execution tracking
     current_recursion_depth: int = 0
     max_recursion_depth: int = 5
-    parent_task_id: Optional[str] = None
+    parent_task_id: str | None = None
     task_hierarchy: dict[str, Any] = field(default_factory=dict)
     iteration_budgets: dict[str, int] = field(default_factory=dict)
     recursive_context_stack: list[dict[str, Any]] = field(default_factory=list)
@@ -107,7 +107,7 @@ class StateManager:
 
     def __init__(self):
         self._session = SessionState()
-        self._tool_handler: Optional["ToolHandler"] = None
+        self._tool_handler: ToolHandler | None = None
         self._load_user_configuration()
 
     def _load_user_configuration(self) -> None:
@@ -157,7 +157,7 @@ class StateManager:
         self._session.recursive_context_stack.append(context)
         self._session.current_recursion_depth = (self._session.current_recursion_depth or 0) + 1
 
-    def pop_recursive_context(self) -> Optional[dict[str, Any]]:
+    def pop_recursive_context(self) -> dict[str, Any] | None:
         """Pop the current context from the recursive execution stack."""
         if self._session.recursive_context_stack:
             self._session.current_recursion_depth = max(

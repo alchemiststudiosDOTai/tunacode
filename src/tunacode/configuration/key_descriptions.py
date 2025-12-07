@@ -6,7 +6,7 @@ understand what each setting does and how to configure it properly.
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -19,7 +19,7 @@ class KeyDescription:
     help_text: str
     category: str
     is_sensitive: bool = False
-    service_type: Optional[str] = None  # For API keys: "openai", "anthropic", etc.
+    service_type: str | None = None  # For API keys: "openai", "anthropic", etc.
 
 
 # Configuration key descriptions organized by category
@@ -209,12 +209,12 @@ CONFIG_KEY_DESCRIPTIONS: dict[str, KeyDescription] = {
 }
 
 
-def get_key_description(key_path: str) -> Optional[KeyDescription]:
+def get_key_description(key_path: str) -> KeyDescription | None:
     """Get description for a configuration key by its path."""
     return CONFIG_KEY_DESCRIPTIONS.get(key_path)
 
 
-def get_service_type_for_api_key(key_name: str) -> Optional[str]:
+def get_service_type_for_api_key(key_name: str) -> str | None:
     """Determine the service type for an API key."""
     service_mapping = {
         "OPENAI_API_KEY": "openai",

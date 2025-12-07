@@ -14,10 +14,9 @@ import argparse
 import shutil
 import sys
 from pathlib import Path
-from typing import Optional
 
 
-def get_playwright_cache_paths() -> tuple[Optional[Path], Optional[Path]]:
+def get_playwright_cache_paths() -> tuple[Path | None, Path | None]:
     """
     Get platform-specific Playwright cache paths.
 

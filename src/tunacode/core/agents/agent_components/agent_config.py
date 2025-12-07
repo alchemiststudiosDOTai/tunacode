@@ -2,8 +2,9 @@
 
 import asyncio
 import math
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, Tuple
+from typing import Any
 
 from httpx import AsyncClient, HTTPStatusError, Request
 from pydantic_ai import Agent
@@ -30,12 +31,12 @@ from tunacode.types import ModelName, PydanticAgent
 logger = get_logger(__name__)
 
 # Module-level caches for system prompts
-_PROMPT_CACHE: Dict[str, Tuple[str, float]] = {}
-_TUNACODE_CACHE: Dict[str, Tuple[str, float]] = {}
+_PROMPT_CACHE: dict[str, tuple[str, float]] = {}
+_TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
 
 # Module-level cache for agents to persist across requests
-_AGENT_CACHE: Dict[ModelName, PydanticAgent] = {}
-_AGENT_CACHE_VERSION: Dict[ModelName, int] = {}
+_AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
+_AGENT_CACHE_VERSION: dict[ModelName, int] = {}
 
 REQUEST_DELAY_MESSAGE_PREFIX = "Respecting request delay"
 
@@ -101,7 +102,7 @@ def _coerce_global_request_timeout(state_manager: StateManager) -> float | None:
     return timeout
 
 
-def _compute_agent_version(settings: Dict[str, Any], request_delay: float) -> int:
+def _compute_agent_version(settings: dict[str, Any], request_delay: float) -> int:
     """Compute a hash representing agent-defining configuration."""
     return hash(
         (
@@ -115,7 +116,7 @@ def _compute_agent_version(settings: Dict[str, Any], request_delay: float) -> in
 
 def _build_request_hooks(
     request_delay: float, state_manager: StateManager
-) -> Dict[str, list[Callable[[Request], Awaitable[None]]]]:
+) -> dict[str, list[Callable[[Request], Awaitable[None]]]]:
     """Return httpx event hooks enforcing a fixed pre-request delay."""
     if request_delay <= 0:
         # Reason: avoid overhead when no throttling requested

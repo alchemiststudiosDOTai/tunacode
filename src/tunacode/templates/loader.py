@@ -1,7 +1,6 @@
 """Template metadata for TunaCode templates."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -11,6 +10,6 @@ class Template:
     name: str
     description: str
     prompt: str
-    allowed_tools: List[str]
-    parameters: Dict[str, str] = field(default_factory=dict)
-    shortcut: Optional[str] = None
+    allowed_tools: list[str]
+    parameters: dict[str, str] = field(default_factory=dict)
+    shortcut: str | None = None

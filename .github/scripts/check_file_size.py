@@ -28,10 +28,7 @@ def should_skip(path: Path) -> bool:
     parts = set(p.name for p in path.parents)
     if parts & SKIP_DIRS:
         return True
-    for pat in SKIP_GLOBS:
-        if path.match(pat):
-            return True
-    return False
+    return any(path.match(pat) for pat in SKIP_GLOBS)
 
 
 errors = []

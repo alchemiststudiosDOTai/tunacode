@@ -13,8 +13,8 @@ import statistics
 import subprocess
 import sys
 import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 DEFAULT_ITERATIONS = 5
 DEFAULT_WARMUP = 1
@@ -153,12 +153,7 @@ def validate_args(args: argparse.Namespace) -> Sequence[str]:
     if args.warmup < 0:
         raise ValueError("--warmup cannot be negative")
 
-    modules: Sequence[str]
-    if args.modules:
-        modules = tuple(args.modules)
-    else:
-        modules = DEFAULT_MODULES
-
+    modules: Sequence[str] = tuple(args.modules) if args.modules else DEFAULT_MODULES
     return modules
 
 

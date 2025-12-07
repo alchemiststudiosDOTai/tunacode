@@ -53,7 +53,7 @@ def parse_args(args) -> ToolArgs:
                 except Exception:
                     pass
 
-            raise ValidationError(f"Invalid JSON: {args}")
+            raise ValidationError(f"Invalid JSON: {args}") from e
     elif isinstance(args, dict):
         return args
     else:

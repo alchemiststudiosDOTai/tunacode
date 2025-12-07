@@ -2,7 +2,6 @@
 
 import threading
 from dataclasses import dataclass, field
-from typing import Optional
 
 from tunacode.types import AgentState
 
@@ -119,7 +118,7 @@ class ResponseState:
         """Check if the task is completed according to the state machine."""
         return self._state_machine.is_completed()
 
-    def reset_state(self, initial_state: Optional[AgentState] = None) -> None:
+    def reset_state(self, initial_state: AgentState | None = None) -> None:
         """Reset the state machine to initial state."""
         with self._lock:
             self._state_machine.reset(initial_state)

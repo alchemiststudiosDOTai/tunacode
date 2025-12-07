@@ -7,7 +7,7 @@ and streams deltas to the provided callback while being resilient to errors.
 
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Optional
+from collections.abc import Awaitable, Callable
 
 from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
@@ -40,7 +40,7 @@ async def stream_model_request_node(
     node,
     agent_run_ctx,
     state_manager: StateManager,
-    streaming_callback: Optional[Callable[[str], Awaitable[None]]],
+    streaming_callback: Callable[[str], Awaitable[None]] | None,
     request_id: str,
     iteration_index: int,
 ) -> None:
@@ -63,10 +63,10 @@ async def stream_model_request_node(
             debug_event_count = 0
             first_delta_seen = False
             seeded_prefix_sent = False
-            pre_first_delta_text: Optional[str] = None
+            pre_first_delta_text: str | None = None
 
             # Helper to extract text from a possible final-result object
-            def _extract_text(obj) -> Optional[str]:
+            def _extract_text(obj) -> str | None:
                 try:
                     if obj is None:
                         return None

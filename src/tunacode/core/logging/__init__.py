@@ -11,7 +11,7 @@ def thought(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> No
         self._log(THOUGHT, message, args, **kwargs)
 
 
-setattr(logging.Logger, "thought", thought)
+logging.Logger.thought = thought
 
 
 def setup_logging(config_path=None):

@@ -6,7 +6,6 @@ Provides defensive measures against command injection attacks.
 import re
 import shlex
 import subprocess
-from typing import List
 
 from tunacode.core.logging.logger import get_logger
 
@@ -105,7 +104,7 @@ def validate_command_safety(command: str, allow_shell_features: bool = False) ->
                 raise CommandSecurityError("Potentially unsafe pattern detected in command")
 
 
-def sanitize_command_args(args: List[str]) -> List[str]:
+def sanitize_command_args(args: list[str]) -> list[str]:
     """
     Sanitize command arguments by shell-quoting them.
 
@@ -147,9 +146,5 @@ def safe_subprocess_popen(
         return subprocess.Popen(command, shell=True, **kwargs)
     else:
         # When shell=False, command should be a list
-        if isinstance(command, str):
-            command_list = shlex.split(command)
-        else:
-            command_list = command
-
+        command_list = shlex.split(command) if isinstance(command, str) else command
         return subprocess.Popen(command_list, shell=False, **kwargs)

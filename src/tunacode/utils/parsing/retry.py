@@ -5,7 +5,8 @@ import functools
 import json
 import logging
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ def retry_on_json_error(
     max_retries: int = 10,
     base_delay: float = 0.1,
     max_delay: float = 5.0,
-    logger_name: Optional[str] = None,
+    logger_name: str | None = None,
 ) -> Callable:
     """Decorator to retry function calls that fail with JSON parsing errors.
 

@@ -43,9 +43,8 @@ def _load_gitignore_patterns(filepath=".gitignore"):
     """Loads patterns from a .gitignore file."""
     patterns = set()
     try:
-        import io
 
-        with io.open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#"):

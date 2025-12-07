@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from tunacode.core.state import StateManager
 from tunacode.templates.loader import Template
 from tunacode.types import (
@@ -24,12 +22,12 @@ class ToolHandler:
     def __init__(
         self,
         state_manager: StateManager,
-        policy: Optional[AuthorizationPolicy] = None,
-        notifier: Optional[ToolRejectionNotifier] = None,
-        factory: Optional[ConfirmationRequestFactory] = None,
+        policy: AuthorizationPolicy | None = None,
+        notifier: ToolRejectionNotifier | None = None,
+        factory: ConfirmationRequestFactory | None = None,
     ):
         self.state = state_manager
-        self.active_template: Optional[Template] = None
+        self.active_template: Template | None = None
 
         self._policy = policy or create_default_authorization_policy()
         self._notifier = notifier or ToolRejectionNotifier()
@@ -38,7 +36,7 @@ class ToolHandler:
         if state_manager.tool_handler is None:
             state_manager.set_tool_handler(self)
 
-    def set_active_template(self, template: Optional[Template]) -> None:
+    def set_active_template(self, template: Template | None) -> None:
         self.active_template = template
 
     def should_confirm(self, tool_name: ToolName) -> bool:

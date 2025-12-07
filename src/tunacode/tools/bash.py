@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import subprocess
-from typing import Dict, Optional
 
 from pydantic_ai.exceptions import ModelRetry
 
@@ -38,9 +37,9 @@ DANGEROUS_PATTERNS = [
 @base_tool
 async def bash(
     command: str,
-    cwd: Optional[str] = None,
-    env: Optional[Dict[str, str]] = None,
-    timeout: Optional[int] = 30,
+    cwd: str | None = None,
+    env: dict[str, str] | None = None,
+    timeout: int | None = 30,
     capture_output: bool = True,
 ) -> str:
     """Execute a bash command with enhanced features.
@@ -78,13 +77,13 @@ async def bash(
 
         try:
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError as err:
             process.kill()
             await process.wait()
             raise ModelRetry(
                 f"Command timed out after {timeout} seconds: {command}\n"
                 "Consider using a longer timeout or breaking the command into smaller parts."
-            )
+            ) from err
 
         stdout_text = stdout.decode("utf-8", errors="replace").strip() if stdout else ""
         stderr_text = stderr.decode("utf-8", errors="replace").strip() if stderr else ""
@@ -93,11 +92,11 @@ async def bash(
 
         return _format_output(command, process.returncode, stdout_text, stderr_text, exec_cwd)
 
-    except FileNotFoundError:
+    except FileNotFoundError as err:
         raise ModelRetry(
             f"Shell not found. Cannot execute command: {command}\n"
             "This typically indicates a system configuration issue."
-        )
+        ) from err
     finally:
         await _cleanup_process(process)
 
@@ -145,7 +144,7 @@ def _validate_command_security(command: str) -> None:
         raise ModelRetry("Potentially unsafe character '$' in command")
 
     # Check other restricted characters but allow { } when part of valid variable expansion
-    if "{" in command or "}" in command:
+    if "{" in command or "}" in command:  # noqa: SIM102
         # Only block braces if they're not part of valid variable expansion
         if not re.search(r"\$\{?\w+\}?", command):
             for char in ["{", "}"]:
@@ -160,7 +159,7 @@ def _validate_command_security(command: str) -> None:
             raise ModelRetry(f"Potentially unsafe character '{char}' in command")
 
 
-def _validate_inputs(command: str, cwd: Optional[str], timeout: Optional[int]) -> None:
+def _validate_inputs(command: str, cwd: str | None, timeout: int | None) -> None:
     """Validate command inputs."""
     if timeout and (timeout < 1 or timeout > 300):
         raise ModelRetry(
@@ -197,7 +196,7 @@ async def _cleanup_process(process) -> None:
         try:
             process.terminate()
             await asyncio.wait_for(process.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await asyncio.wait_for(process.wait(), timeout=1.0)
     except Exception as e:

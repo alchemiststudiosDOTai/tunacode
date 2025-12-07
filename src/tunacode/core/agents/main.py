@@ -9,8 +9,9 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent
 
@@ -73,9 +74,9 @@ class EmptyResponseHandler:
         """Track empty response and increment counter if empty."""
         if is_empty:
             current = getattr(self.state_manager.session, "consecutive_empty_responses", 0)
-            setattr(self.state_manager.session, "consecutive_empty_responses", current + 1)
+            self.state_manager.session.consecutive_empty_responses = current + 1
         else:
-            setattr(self.state_manager.session, "consecutive_empty_responses", 0)
+            self.state_manager.session.consecutive_empty_responses = 0
 
     def should_intervene(self) -> bool:
         """Check if intervention is needed (>= 1 consecutive empty)."""
@@ -93,7 +94,7 @@ class EmptyResponseHandler:
         state_proxy = StateProxy(self.state_manager)
         await ac.handle_empty_response(message, reason, iteration, state_proxy)
         # Clear after intervention
-        setattr(self.state_manager.session, "consecutive_empty_responses", 0)
+        self.state_manager.session.consecutive_empty_responses = 0
 
 
 class IterationManager:
@@ -276,10 +277,10 @@ class RequestOrchestrator:
         message: str,
         model: ModelName,
         state_manager: StateManager,
-        tool_callback: Optional[ToolCallback],
-        streaming_callback: Optional[Callable[[str], Awaitable[None]]],
-        tool_result_callback: Optional[Callable[..., None]] = None,
-        tool_start_callback: Optional[Callable[[str], None]] = None,
+        tool_callback: ToolCallback | None,
+        streaming_callback: Callable[[str], Awaitable[None]] | None,
+        tool_result_callback: Callable[..., None] | None = None,
+        tool_start_callback: Callable[[str], None] | None = None,
     ) -> None:
         self.message = message
         self.model = model
@@ -310,7 +311,7 @@ class RequestOrchestrator:
     def _init_request_context(self) -> RequestContext:
         """Initialize request context with ID and config."""
         req_id = str(uuid.uuid4())[:8]
-        setattr(self.state_manager.session, "request_id", req_id)
+        self.state_manager.session.request_id = req_id
 
         return RequestContext(
             request_id=req_id,
@@ -331,14 +332,14 @@ class RequestOrchestrator:
             self.state_manager.session.batch_counter = 0
 
         # Track empty response streaks
-        setattr(self.state_manager.session, "consecutive_empty_responses", 0)
+        self.state_manager.session.consecutive_empty_responses = 0
 
-        setattr(self.state_manager.session, "original_query", "")
+        self.state_manager.session.original_query = ""
 
     def _set_original_query_once(self, query: str) -> None:
         """Set original query if not already set."""
         if not getattr(self.state_manager.session, "original_query", None):
-            setattr(self.state_manager.session, "original_query", query)
+            self.state_manager.session.original_query = query
 
     async def run(self) -> AgentRun:
         """Run the main request processing loop with optional global timeout."""
@@ -352,7 +353,7 @@ class RequestOrchestrator:
 
         try:
             return await asyncio.wait_for(self._run_impl(), timeout=timeout)
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             raise GlobalRequestTimeoutError(timeout) from e
 
     async def _run_impl(self) -> AgentRun:
@@ -478,7 +479,7 @@ async def _maybe_stream_node_tokens(
     node: Any,
     agent_run_ctx: Any,
     state_manager: StateManager,
-    streaming_cb: Optional[Callable[[str], Awaitable[None]]],
+    streaming_cb: Callable[[str], Awaitable[None]] | None,
     request_id: str,
     iteration_index: int,
 ) -> None:
@@ -511,7 +512,7 @@ def _iteration_had_tool_use(node: Any) -> bool:
 
 async def _finalize_buffered_tasks(
     tool_buffer: ac.ToolBuffer,
-    tool_callback: Optional[ToolCallback],
+    tool_callback: ToolCallback | None,
     state_manager: StateManager,
 ) -> None:
     """Finalize and execute any buffered read-only tasks."""
@@ -524,7 +525,7 @@ async def _finalize_buffered_tasks(
     await ac.execute_tools_parallel(buffered_tasks, tool_callback)
 
 
-def get_agent_tool() -> tuple[type[Agent], type["Tool"]]:
+def get_agent_tool() -> tuple[type[Agent], type[Tool]]:
     """Return Agent and Tool classes without importing at module load time."""
     from pydantic_ai import Agent as AgentCls
     from pydantic_ai import Tool as ToolCls
@@ -546,10 +547,10 @@ async def process_request(
     message: str,
     model: ModelName,
     state_manager: StateManager,
-    tool_callback: Optional[ToolCallback] = None,
-    streaming_callback: Optional[Callable[[str], Awaitable[None]]] = None,
-    tool_result_callback: Optional[Callable[..., None]] = None,
-    tool_start_callback: Optional[Callable[[str], None]] = None,
+    tool_callback: ToolCallback | None = None,
+    streaming_callback: Callable[[str], Awaitable[None]] | None = None,
+    tool_result_callback: Callable[..., None] | None = None,
+    tool_start_callback: Callable[[str], None] | None = None,
 ) -> AgentRun:
     orchestrator = RequestOrchestrator(
         message,

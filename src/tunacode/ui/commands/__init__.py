@@ -19,7 +19,7 @@ class Command(ABC):
     usage: str = ""
 
     @abstractmethod
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         """Execute the command."""
         pass
 
@@ -28,7 +28,7 @@ class HelpCommand(Command):
     name = "help"
     description = "Show available commands"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         from rich.table import Table
 
         table = Table(title="Commands", show_header=True)
@@ -48,7 +48,7 @@ class ClearCommand(Command):
     name = "clear"
     description = "Clear conversation history"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         app.rich_log.clear()
         app.state_manager.session.messages = []
         app.state_manager.session.total_tokens = 0
@@ -60,7 +60,7 @@ class YoloCommand(Command):
     name = "yolo"
     description = "Toggle auto-confirm for tool executions"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         app.state_manager.session.yolo = not app.state_manager.session.yolo
         status = "ON" if app.state_manager.session.yolo else "OFF"
         app.notify(f"YOLO mode: {status}")
@@ -71,7 +71,7 @@ class ModelCommand(Command):
     description = "Open model picker or switch directly"
     usage = "/model [provider:model-name]"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         from tunacode.utils.config.user_configuration import save_config
 
         if args:
@@ -115,7 +115,7 @@ class BranchCommand(Command):
     description = "Create and switch to a new git branch"
     usage = "/branch <name>"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         import subprocess
 
         if not args:
@@ -143,7 +143,7 @@ class PlanCommand(Command):
     name = "plan"
     description = "Toggle read-only planning mode"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         app.notify("Plan mode not yet implemented", severity="warning")
 
 
@@ -152,7 +152,7 @@ class ThemeCommand(Command):
     description = "Open theme picker or switch directly"
     usage = "/theme [name]"
 
-    async def execute(self, app: "TextualReplApp", args: str) -> None:
+    async def execute(self, app: TextualReplApp, args: str) -> None:
         from tunacode.utils.config.user_configuration import save_config
 
         if args:
@@ -192,7 +192,7 @@ COMMANDS: dict[str, Command] = {
 }
 
 
-async def handle_command(app: "TextualReplApp", text: str) -> bool:
+async def handle_command(app: TextualReplApp, text: str) -> bool:
     """Handle a command if text starts with / or !.
 
     Returns True if command was handled, False otherwise.
@@ -220,7 +220,7 @@ async def handle_command(app: "TextualReplApp", text: str) -> bool:
     return False
 
 
-async def run_shell_command(app: "TextualReplApp", cmd: str) -> None:
+async def run_shell_command(app: TextualReplApp, cmd: str) -> None:
     """Run a shell command and display output."""
     import asyncio
     import subprocess

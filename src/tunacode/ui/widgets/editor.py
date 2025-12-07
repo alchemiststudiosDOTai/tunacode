@@ -27,11 +27,13 @@ class Editor(Input):
         """Handle key events for confirmation and bash-mode auto-spacing."""
         if event.key in ("1", "2", "3"):
             app = self.app
-            if hasattr(app, "pending_confirmation"):
-                if app.pending_confirmation is not None:
-                    if not app.pending_confirmation.future.done():
-                        event.prevent_default()
-                        return
+            if (
+                hasattr(app, "pending_confirmation")
+                and app.pending_confirmation is not None
+                and not app.pending_confirmation.future.done()
+            ):
+                event.prevent_default()
+                return
 
         # Auto-insert space after ! prefix
         # When value is "!" and user types a non-space character,

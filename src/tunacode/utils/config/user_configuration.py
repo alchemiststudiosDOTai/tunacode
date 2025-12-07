@@ -7,7 +7,7 @@ Handles loading, saving, and updating user preferences including model selection
 
 import json
 from json import JSONDecodeError
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from tunacode.configuration.settings import ApplicationSettings
 from tunacode.exceptions import ConfigurationError
@@ -28,12 +28,12 @@ def compute_config_fingerprint(config_obj) -> str:
     return hashlib.sha1(b).hexdigest()[:12]
 
 
-def load_config() -> Optional[UserConfig]:
+def load_config() -> UserConfig | None:
     """Load user config from file, using fingerprint fast path if available."""
     global _config_fingerprint, _config_cache
     app_settings = ApplicationSettings()
     try:
-        with open(app_settings.paths.config_file, "r") as f:
+        with open(app_settings.paths.config_file) as f:
             raw = f.read()
             loaded = json.loads(raw)
             new_fp = hashlib.sha1(raw.encode()).hexdigest()[:12]
@@ -50,10 +50,11 @@ def load_config() -> Optional[UserConfig]:
             return loaded
     except FileNotFoundError:
         return None
-    except JSONDecodeError:
-        raise ConfigurationError(f"Invalid JSON in config file at {app_settings.paths.config_file}")
+    except JSONDecodeError as err:
+        msg = f"Invalid JSON in config file at {app_settings.paths.config_file}"
+        raise ConfigurationError(msg) from err
     except Exception as e:
-        raise ConfigurationError(e)
+        raise ConfigurationError(e) from e
 
 
 def save_config(state_manager: "StateManager") -> bool:
@@ -70,13 +71,13 @@ def save_config(state_manager: "StateManager") -> bool:
     except PermissionError as e:
         raise ConfigurationError(
             f"Permission denied writing to {app_settings.paths.config_file}: {e}"
-        )
+        ) from e
     except OSError as e:
         raise ConfigurationError(
             f"Failed to save configuration to {app_settings.paths.config_file}: {e}"
-        )
+        ) from e
     except Exception as e:
-        raise ConfigurationError(f"Unexpected error saving configuration: {e}")
+        raise ConfigurationError(f"Unexpected error saving configuration: {e}") from e
 
 
 def set_default_model(model_name: ModelName, state_manager: "StateManager") -> bool:

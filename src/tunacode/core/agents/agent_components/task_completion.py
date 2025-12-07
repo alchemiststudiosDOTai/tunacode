@@ -1,7 +1,6 @@
 """Task completion detection utilities."""
 
 import re
-from typing import Tuple
 
 _COMPLETION_MARKERS = (
     re.compile(r"^\s*TUNACODE\s+DONE:\s*", re.IGNORECASE),
@@ -9,7 +8,7 @@ _COMPLETION_MARKERS = (
 )
 
 
-def check_task_completion(content: str) -> Tuple[bool, str]:
+def check_task_completion(content: str) -> tuple[bool, str]:
     """
     Check if the content indicates task completion.
 

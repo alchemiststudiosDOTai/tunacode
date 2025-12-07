@@ -16,7 +16,7 @@ class ToolRejectionNotifier:
         self,
         tool_name: ToolName,
         response: ToolConfirmationResponse,
-        state: "StateManager",
+        state: StateManager,
     ) -> None:
         from tunacode.core.agents.agent_components.agent_helpers import create_user_message
 

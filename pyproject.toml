@@ -71,7 +71,14 @@ Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I", "E501"]
+select = [
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "I",   # isort
+]
 ignore = ["E203"]
 exclude = [
     ".bzr",

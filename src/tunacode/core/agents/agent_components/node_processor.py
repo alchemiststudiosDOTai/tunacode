@@ -1,7 +1,8 @@
 """Node processing functionality for agent responses."""
 
 import json
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from tunacode.constants import UI_COLORS
 from tunacode.core.logging.logger import get_logger
@@ -49,14 +50,14 @@ def _update_token_usage(model_response: Any, state_manager: StateManager) -> Non
 
 async def _process_node(
     node,
-    tool_callback: Optional[Callable],
+    tool_callback: Callable | None,
     state_manager: StateManager,
-    tool_buffer: Optional[ToolBuffer] = None,
-    streaming_callback: Optional[Callable[[str], Awaitable[None]]] = None,
-    response_state: Optional[ResponseState] = None,
-    tool_result_callback: Optional[Callable[..., None]] = None,
-    tool_start_callback: Optional[Callable[[str], None]] = None,
-) -> Tuple[bool, Optional[str]]:
+    tool_buffer: ToolBuffer | None = None,
+    streaming_callback: Callable[[str], Awaitable[None]] | None = None,
+    response_state: ResponseState | None = None,
+    tool_result_callback: Callable[..., None] | None = None,
+    tool_start_callback: Callable[[str], None] | None = None,
+) -> tuple[bool, str | None]:
     """Process a single node from the agent response.
 
     Returns:
@@ -216,10 +217,13 @@ async def _process_node(
         )
 
     # If there were no tools and we processed a model response, transition to RESPONSE
-    if response_state and response_state.can_transition_to(AgentState.RESPONSE):
-        # Only transition if not already completed (set by completion marker path)
-        if not response_state.is_completed():
-            response_state.transition_to(AgentState.RESPONSE)
+    # Only transition if not already completed (set by completion marker path)
+    if (
+        response_state
+        and response_state.can_transition_to(AgentState.RESPONSE)
+        and not response_state.is_completed()
+    ):
+        response_state.transition_to(AgentState.RESPONSE)
 
     # Determine empty response reason
     if empty_response_detected:
@@ -237,12 +241,12 @@ async def _process_node(
 
 async def _process_tool_calls(
     node: Any,
-    tool_callback: Optional[Callable],
+    tool_callback: Callable | None,
     state_manager: StateManager,
-    tool_buffer: Optional[ToolBuffer],
-    response_state: Optional[ResponseState],
-    tool_result_callback: Optional[Callable[..., None]] = None,
-    tool_start_callback: Optional[Callable[[str], None]] = None,
+    tool_buffer: ToolBuffer | None,
+    response_state: ResponseState | None,
+    tool_result_callback: Callable[..., None] | None = None,
+    tool_start_callback: Callable[[str], None] | None = None,
 ) -> None:
     """
     Process tool calls from the node using smart batching strategy.
@@ -396,6 +400,6 @@ async def _process_tool_calls(
         and hasattr(node, "result")
         and node.result
         and hasattr(node.result, "output")
+        and node.result.output
     ):
-        if node.result.output:
-            response_state.has_user_response = True
+        response_state.has_user_response = True

@@ -5,39 +5,33 @@ This module contains all type aliases, protocols, and type definitions
 used throughout the TunaCode codebase.
 """
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Optional,
     Protocol,
-    Tuple,
-    Union,
 )
 
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, ToolReturnPart
 
 PydanticAgent = Agent
-MessagePart = Union[ToolReturnPart, Any]
+MessagePart = ToolReturnPart | Any
 ModelRequest = ModelRequest  # type: ignore[misc]
 ModelResponse = Any
 
 
-UserConfig = Dict[str, Any]
-EnvConfig = Dict[str, str]
+UserConfig = dict[str, Any]
+EnvConfig = dict[str, str]
 ModelName = str
 ToolName = str
 SessionId = str
 DeviceId = str
-InputSessions = Dict[str, Any]
+InputSessions = dict[str, Any]
 
-LoggingConfig = Dict[str, Any]
+LoggingConfig = dict[str, Any]
 LoggingEnabled = bool
 
 
@@ -57,13 +51,13 @@ class ModelConfig:
     pricing: ModelPricing
 
 
-ModelRegistry = Dict[str, ModelConfig]
+ModelRegistry = dict[str, ModelConfig]
 
 ConfigPath = Path
 ConfigFile = Path
 
 
-ToolArgs = Dict[str, Any]
+ToolArgs = dict[str, Any]
 ToolResult = str
 ToolCallback = Callable[[Any, Any], Awaitable[None]]
 ToolStartCallback = Callable[[str], None]  # Called when tool execution starts
@@ -81,8 +75,8 @@ class ToolConfirmationRequest:
     """Request for tool execution confirmation."""
 
     tool_name: str
-    args: Dict[str, Any]
-    filepath: Optional[str] = None
+    args: dict[str, Any]
+    filepath: str | None = None
 
 
 @dataclass
@@ -113,10 +107,10 @@ UICallback = Callable[[str], Awaitable[None]]
 UIInputCallback = Callable[[str, str], Awaitable[str]]
 
 AgentResponse = Any
-MessageHistory = List[Any]
+MessageHistory = list[Any]
 AgentRun = Any
 
-AgentConfig = Dict[str, Any]
+AgentConfig = dict[str, Any]
 AgentName = str
 
 
@@ -136,8 +130,8 @@ class FallbackResponse:
 
     summary: str
     progress: str = ""
-    issues: List[str] = field(default_factory=list)
-    next_steps: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
+    next_steps: list[str] = field(default_factory=list)
 
 
 class AgentState(Enum):
@@ -151,8 +145,8 @@ class AgentState(Enum):
 
 StateManager = Any
 
-CommandArgs = List[str]
-CommandResult = Optional[Any]
+CommandArgs = list[str]
+CommandResult = Any | None
 ProcessRequestCallback = Callable[[str, StateManager, bool], Awaitable[Any]]
 
 
@@ -161,29 +155,29 @@ class CommandContext:
     """Context passed to command handlers."""
 
     state_manager: StateManager
-    process_request: Optional[ProcessRequestCallback] = None
+    process_request: ProcessRequestCallback | None = None
 
 
-FilePath = Union[str, Path]
+FilePath = str | Path
 FileContent = str
 FileEncoding = str
-FileDiff = Tuple[str, str]
+FileDiff = tuple[str, str]
 FileSize = int
 LineNumber = int
 
-ErrorContext = Dict[str, Any]
-OriginalError = Optional[Exception]
+ErrorContext = dict[str, Any]
+OriginalError = Exception | None
 ErrorMessage = str
 
 AsyncFunc = Callable[..., Awaitable[Any]]
 AsyncToolFunc = Callable[..., Awaitable[str]]
 AsyncVoidFunc = Callable[..., Awaitable[None]]
 
-UpdateOperation = Dict[str, Any]
+UpdateOperation = dict[str, Any]
 DiffLine = str
-DiffHunk = List[DiffLine]
+DiffHunk = list[DiffLine]
 
-ValidationResult = Union[bool, str]
+ValidationResult = bool | str
 Validator = Callable[[Any], ValidationResult]
 
 TokenCount = int

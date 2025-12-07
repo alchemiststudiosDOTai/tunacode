@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Literal
+from collections.abc import Callable
+from typing import Any, Literal
 
 from pydantic_ai.exceptions import ModelRetry
 
@@ -76,7 +77,7 @@ def create_react_tool(state_manager: StateManager) -> Callable:
     return react
 
 
-def _format_entry(item: Dict[str, Any]) -> str:
+def _format_entry(item: dict[str, Any]) -> str:
     """Format a scratchpad entry for display."""
     if item["type"] == "think":
         return f"thoughts='{item['thoughts']}', next_action='{item['next_action']}'"

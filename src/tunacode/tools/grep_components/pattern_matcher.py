@@ -4,7 +4,7 @@ Pattern matching functionality for the grep tool.
 
 import re
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 from .search_result import SearchConfig, SearchResult
 
@@ -30,9 +30,9 @@ class PatternMatcher:
     def search_file(
         file_path: Path,
         pattern: str,
-        regex_pattern: Optional[re.Pattern],
+        regex_pattern: re.Pattern | None,
         config: SearchConfig,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Search a single file for the pattern."""
         try:
             with file_path.open("r", encoding="utf-8", errors="ignore") as f:
@@ -120,7 +120,7 @@ class PatternMatcher:
         return score
 
     @staticmethod
-    def parse_ripgrep_output(output: str) -> List[SearchResult]:
+    def parse_ripgrep_output(output: str) -> list[SearchResult]:
         """Parse ripgrep JSON output into SearchResult objects."""
         import json
 

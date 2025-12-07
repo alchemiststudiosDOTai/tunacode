@@ -10,7 +10,6 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Dict, Tuple
 
 RIPGREP_VERSION = "14.1.1"
 VENDOR_DIR = Path(__file__).parent.parent / "vendor" / "ripgrep"
@@ -52,9 +51,8 @@ BINARY_CONFIGS = {
 def download_file(url: str, dest_path: Path) -> None:
     """Download a file from URL to destination path."""
     print(f"Downloading {url}...")
-    with urllib.request.urlopen(url) as response:  # nosec B310 - URLs are hardcoded GitHub releases
-        with dest_path.open("wb") as f:
-            shutil.copyfileobj(response, f)
+    with urllib.request.urlopen(url) as response, dest_path.open("wb") as f:  # nosec B310 - URLs are hardcoded GitHub releases
+        shutil.copyfileobj(response, f)
 
 
 def verify_checksum(file_path: Path, expected_sha256: str) -> bool:
@@ -69,11 +67,13 @@ def verify_checksum(file_path: Path, expected_sha256: str) -> bool:
 def extract_binary(archive_path: Path, extract_path: str, dest_dir: Path, binary_name: str) -> None:
     """Extract binary from archive."""
     if archive_path.suffix == ".zip":
-        with zipfile.ZipFile(archive_path, "r") as zip_ref:
-            with zip_ref.open(extract_path) as src:
-                dest_file = dest_dir / binary_name
-                with dest_file.open("wb") as dst:
-                    shutil.copyfileobj(src, dst)
+        dest_file = dest_dir / binary_name
+        with (
+            zipfile.ZipFile(archive_path, "r") as zip_ref,
+            zip_ref.open(extract_path) as src,
+            dest_file.open("wb") as dst,
+        ):
+            shutil.copyfileobj(src, dst)
     else:  # tar.gz
         with tarfile.open(archive_path, "r:gz") as tar_ref:
             member = tar_ref.getmember(extract_path)
@@ -86,7 +86,7 @@ def extract_binary(archive_path: Path, extract_path: str, dest_dir: Path, binary
         os.chmod(binary_path, 0o755)
 
 
-def download_ripgrep_binary(platform_name: str, config: Dict) -> None:
+def download_ripgrep_binary(platform_name: str, config: dict) -> None:
     """Download and extract ripgrep binary for a specific platform."""
     platform_dir = VENDOR_DIR / platform_name
     platform_dir.mkdir(parents=True, exist_ok=True)
@@ -115,7 +115,7 @@ def download_ripgrep_binary(platform_name: str, config: Dict) -> None:
         print(f"Extracted binary to {binary_path}")
 
 
-def get_current_platform() -> Tuple[str, str]:
+def get_current_platform() -> tuple[str, str]:
     """Get the current platform identifier."""
     system = platform.system().lower()
     machine = platform.machine().lower()
@@ -125,12 +125,12 @@ def get_current_platform() -> Tuple[str, str]:
             return "x64-linux", system
         elif machine in ["aarch64", "arm64"]:
             return "arm64-linux", system
-    elif system == "darwin":
+    elif system == "darwin":  # noqa: SIM102
         if machine in ["x86_64", "amd64"]:
             return "x64-darwin", system
         elif machine in ["arm64", "aarch64"]:
             return "arm64-darwin", system
-    elif system == "windows":
+    elif system == "windows":  # noqa: SIM102
         if machine in ["x86_64", "amd64"]:
             return "x64-win32", system
 

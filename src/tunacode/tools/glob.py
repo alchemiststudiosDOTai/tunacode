@@ -6,7 +6,6 @@ import os
 import re
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Set
 
 from tunacode.indexing import CodeIndex
 from tunacode.tools.decorators import base_tool
@@ -41,7 +40,7 @@ class SortOrder(Enum):
 
 
 # Module-level cache for gitignore patterns
-_gitignore_patterns: Optional[Set[str]] = None
+_gitignore_patterns: set[str] | None = None
 
 
 @base_tool
@@ -50,7 +49,7 @@ async def glob(
     directory: str = ".",
     recursive: bool = True,
     include_hidden: bool = False,
-    exclude_dirs: Optional[List[str]] = None,
+    exclude_dirs: list[str] | None = None,
     max_results: int = MAX_RESULTS,
     sort_by: str = "modified",
     case_sensitive: bool = False,
@@ -114,7 +113,7 @@ def _parse_sort_order(sort_by: str) -> SortOrder:
         return SortOrder.MODIFIED
 
 
-def _get_code_index(directory: str) -> Optional[CodeIndex]:
+def _get_code_index(directory: str) -> CodeIndex | None:
     """Get CodeIndex instance if searching from project root."""
     if directory != "." and directory != os.getcwd():
         return None
@@ -126,7 +125,7 @@ def _get_code_index(directory: str) -> Optional[CodeIndex]:
         return None
 
 
-def _expand_brace_pattern(pattern: str) -> List[str]:
+def _expand_brace_pattern(pattern: str) -> list[str]:
     """Expand brace patterns like "*.{py,js,ts}" into multiple patterns."""
     if "{" not in pattern or "}" not in pattern:
         return [pattern]
@@ -177,7 +176,7 @@ async def _load_gitignore_patterns(root: Path) -> None:
         ignore_path = root / ignore_file
         if ignore_path.exists():
             try:
-                with open(ignore_path, "r", encoding="utf-8") as f:
+                with open(ignore_path, encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#"):
@@ -188,12 +187,12 @@ async def _load_gitignore_patterns(root: Path) -> None:
 
 async def _glob_with_index(
     code_index: CodeIndex,
-    patterns: List[str],
+    patterns: list[str],
     root: Path,
     exclude_dirs: set,
     max_results: int,
     case_sensitive: bool,
-) -> List[str]:
+) -> list[str]:
     """Use CodeIndex for faster file matching."""
     all_files = code_index.get_all_files()
     matches = []
@@ -237,13 +236,13 @@ def _match_pattern(path: str, pattern: str, case_sensitive: bool) -> bool:
 
 async def _glob_filesystem(
     root: Path,
-    patterns: List[str],
+    patterns: list[str],
     recursive: bool,
     include_hidden: bool,
     exclude_dirs: set,
     max_results: int,
     case_sensitive: bool,
-) -> List[str]:
+) -> list[str]:
     """Perform glob search using os.scandir."""
 
     def search_sync():
@@ -307,7 +306,7 @@ async def _glob_filesystem(
     return await asyncio.get_event_loop().run_in_executor(None, search_sync)
 
 
-async def _sort_matches(matches: List[str], sort_by: SortOrder) -> List[str]:
+async def _sort_matches(matches: list[str], sort_by: SortOrder) -> list[str]:
     """Sort matches based on the specified order."""
     if not matches:
         return matches
@@ -324,7 +323,7 @@ async def _sort_matches(matches: List[str], sort_by: SortOrder) -> List[str]:
     return await asyncio.get_event_loop().run_in_executor(None, sort_sync)
 
 
-def _format_output(pattern: str, matches: List[str], max_results: int) -> str:
+def _format_output(pattern: str, matches: list[str], max_results: int) -> str:
     """Format glob results as simple file list."""
     if len(matches) == max_results:
         return "\n".join(matches) + f"\n(truncated at {max_results})"

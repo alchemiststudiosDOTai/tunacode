@@ -26,7 +26,7 @@ async def update_file(filepath: str, target: str, patch: str) -> str:
             "Verify the filepath or use `write_file` if it's a new file."
         )
 
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         original = f.read()
 
     try:
@@ -37,7 +37,7 @@ async def update_file(filepath: str, target: str, patch: str) -> str:
         snippet = "\n".join(lines[:preview_lines])
         raise ModelRetry(
             f"{e}\n\nFile '{filepath}' preview ({preview_lines} lines):\n---\n{snippet}\n---"
-        )
+        ) from e
 
     if original == new_content:
         raise ModelRetry(

@@ -3,7 +3,6 @@ Extended result formatter with multiple output modes for flexible presentation.
 Result formatting functionality for the grep tool.
 """
 
-from typing import Dict, List
 
 from .search_result import SearchConfig, SearchResult
 
@@ -13,7 +12,7 @@ class ResultFormatter:
 
     @staticmethod
     def format_results(
-        results: List[SearchResult],
+        results: list[SearchResult],
         pattern: str,
         config: SearchConfig,
         output_mode: str = "content",
@@ -46,7 +45,7 @@ class ResultFormatter:
             return ResultFormatter._format_content(results, pattern, config)
 
     @staticmethod
-    def _format_content(results: List[SearchResult], pattern: str, config: SearchConfig) -> str:
+    def _format_content(results: list[SearchResult], pattern: str, config: SearchConfig) -> str:
         """Format results with content grouped by file."""
         output = [f"Found {len(results)} matches"]
 
@@ -63,15 +62,15 @@ class ResultFormatter:
         return "\n".join(output)
 
     @staticmethod
-    def _format_files_only(results: List[SearchResult], pattern: str) -> str:
+    def _format_files_only(results: list[SearchResult], pattern: str) -> str:
         """Format results showing only file paths."""
         files = sorted(set(r.file_path for r in results))
         return "\n".join(files)
 
     @staticmethod
-    def _format_count(results: List[SearchResult], pattern: str) -> str:
+    def _format_count(results: list[SearchResult], pattern: str) -> str:
         """Format results showing match counts per file."""
-        file_counts: Dict[str, int] = {}
+        file_counts: dict[str, int] = {}
         for result in results:
             file_counts[result.file_path] = file_counts.get(result.file_path, 0) + 1
 
@@ -79,7 +78,7 @@ class ResultFormatter:
         return "\n".join(f"{count} {path}" for path, count in sorted_counts)
 
     @staticmethod
-    def _format_json(results: List[SearchResult], pattern: str) -> str:
+    def _format_json(results: list[SearchResult], pattern: str) -> str:
         """Format results as JSON."""
         import json
 

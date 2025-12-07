@@ -6,7 +6,6 @@ import fnmatch
 import os
 import re
 from pathlib import Path
-from typing import List, Optional
 
 # Fast-Glob Prefilter Configuration
 MAX_GLOB = 5_000  # Hard cap - protects memory & tokens
@@ -30,7 +29,7 @@ class FileFilter:
     """Handles file filtering and globbing for the grep tool."""
 
     @staticmethod
-    def fast_glob(root: Path, include: str, exclude: Optional[str] = None) -> List[Path]:
+    def fast_glob(root: Path, include: str, exclude: str | None = None) -> list[Path]:
         """
         Lightning-fast filename filtering using os.scandir.
 
@@ -42,7 +41,7 @@ class FileFilter:
         Returns:
             List of matching file paths (bounded by MAX_GLOB)
         """
-        matches: List[Path] = []
+        matches: list[Path] = []
         stack = [root]
 
         # Handle multiple extensions in include pattern like "*.{py,js,ts}"
@@ -78,9 +77,10 @@ class FileFilter:
                                 regex.match(entry.name) for regex in include_regexes
                             )
 
-                            if matches_include:
-                                if not exclude_rx or not exclude_rx.match(entry.name):
-                                    matches.append(Path(entry.path))
+                            if matches_include and (
+                                not exclude_rx or not exclude_rx.match(entry.name)
+                            ):
+                                matches.append(Path(entry.path))
 
             except (PermissionError, OSError):
                 continue  # Skip inaccessible directories
@@ -88,6 +88,6 @@ class FileFilter:
         return matches[:MAX_GLOB]
 
     @staticmethod
-    def parse_patterns(patterns: str) -> List[str]:
+    def parse_patterns(patterns: str) -> list[str]:
         """Parse comma-separated file patterns."""
         return [p.strip() for p in patterns.split(",") if p.strip()]

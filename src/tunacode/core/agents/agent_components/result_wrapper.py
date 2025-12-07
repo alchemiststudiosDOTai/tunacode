@@ -31,7 +31,8 @@ class AgentRunWrapper:
         try:
             return getattr(object.__getattribute__(self, "_wrapped"), name)
         except AttributeError:
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+            msg = f"'{type(self).__name__}' object has no attribute '{name}'"
+            raise AttributeError(msg) from None
 
 
 class AgentRunWithState:

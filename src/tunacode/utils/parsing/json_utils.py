@@ -6,7 +6,7 @@ JSON parsing utilities with enhanced error handling and concatenated object supp
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from tunacode.constants import READ_ONLY_TOOLS
 
@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 class ConcatenatedJSONError(Exception):
     """Raised when concatenated JSON objects are detected but cannot be safely handled."""
 
-    def __init__(self, message: str, objects_found: int, tool_name: Optional[str] = None):
+    def __init__(self, message: str, objects_found: int, tool_name: str | None = None):
         self.message = message
         self.objects_found = objects_found
         self.tool_name = tool_name
         super().__init__(message)
 
 
-def split_concatenated_json(json_string: str, strict_mode: bool = True) -> List[Dict[str, Any]]:
+def split_concatenated_json(json_string: str, strict_mode: bool = True) -> list[dict[str, Any]]:
     """
     Split concatenated JSON objects like {"a": 1}{"b": 2} into separate objects.
 
@@ -89,7 +89,7 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> List[
 
 
 def validate_tool_args_safety(
-    objects: List[Dict[str, Any]], tool_name: Optional[str] = None
+    objects: list[dict[str, Any]], tool_name: str | None = None
 ) -> bool:
     """
     Validate whether it's safe to execute multiple JSON objects for a given tool.
@@ -129,8 +129,8 @@ def validate_tool_args_safety(
 
 
 def safe_json_parse(
-    json_string: str, tool_name: Optional[str] = None, allow_concatenated: bool = False
-) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    json_string: str, tool_name: str | None = None, allow_concatenated: bool = False
+) -> dict[str, Any] | list[dict[str, Any]]:
     """
     Safely parse JSON with optional concatenated object support.
 
@@ -175,7 +175,7 @@ def safe_json_parse(
             return objects[0]
 
 
-def merge_json_objects(objects: List[Dict[str, Any]], strategy: str = "first") -> Dict[str, Any]:
+def merge_json_objects(objects: list[dict[str, Any]], strategy: str = "first") -> dict[str, Any]:
     """
     Merge multiple JSON objects using different strategies.
 

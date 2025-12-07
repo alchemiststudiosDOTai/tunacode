@@ -17,7 +17,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import TooBroadPatternError, ToolExecutionError
@@ -46,7 +46,7 @@ class ParallelGrep:
         self._ripgrep_executor = RipgrepExecutor()
         self._config = self._load_ripgrep_config()
 
-    def _load_ripgrep_config(self) -> Dict[str, Any]:
+    def _load_ripgrep_config(self) -> dict[str, Any]:
         """Load ripgrep configuration from defaults."""
         try:
             settings = DEFAULT_USER_CONFIG.get_section("tools", {})
@@ -75,14 +75,14 @@ class ParallelGrep:
         directory: str = ".",
         case_sensitive: bool = False,
         use_regex: bool = False,
-        include_files: Optional[str] = None,
-        exclude_files: Optional[str] = None,
+        include_files: str | None = None,
+        exclude_files: str | None = None,
         max_results: int = 50,
         context_lines: int = 2,
         search_type: str = "smart",  # smart, ripgrep, python, hybrid
         return_format: str = "string",  # "string" (default) or "list" (legacy)
         output_mode: str = "content",  # content, files_with_matches, count, json
-    ) -> Union[str, List[str]]:
+    ) -> str | list[str]:
         """
         Execute parallel grep search with fast-glob prefiltering and multiple strategies.
 
@@ -196,13 +196,13 @@ class ParallelGrep:
             # Re-raise TooBroadPatternError without wrapping it
             raise
         except Exception as e:
-            raise ToolExecutionError(f"Grep search failed: {str(e)}")
+            raise ToolExecutionError(f"Grep search failed: {str(e)}") from e
 
     # ====== SEARCH METHODS ======
 
     async def _ripgrep_search_filtered(
-        self, pattern: str, candidates: List[Path], config: SearchConfig
-    ) -> List[SearchResult]:
+        self, pattern: str, candidates: list[Path], config: SearchConfig
+    ) -> list[SearchResult]:
         """
         Run ripgrep on pre-filtered file list using the enhanced RipgrepExecutor.
         """
@@ -295,8 +295,8 @@ class ParallelGrep:
             raise
 
     async def _python_search_filtered(
-        self, pattern: str, candidates: List[Path], config: SearchConfig
-    ) -> List[SearchResult]:
+        self, pattern: str, candidates: list[Path], config: SearchConfig
+    ) -> list[SearchResult]:
         """
         Run Python parallel search on pre-filtered candidates with first match deadline.
         """
@@ -366,8 +366,8 @@ class ParallelGrep:
             return []
 
     async def _hybrid_search_filtered(
-        self, pattern: str, candidates: List[Path], config: SearchConfig
-    ) -> List[SearchResult]:
+        self, pattern: str, candidates: list[Path], config: SearchConfig
+    ) -> list[SearchResult]:
         """
         Hybrid approach using multiple search methods concurrently on pre-filtered candidates.
         """
@@ -411,9 +411,9 @@ class ParallelGrep:
         self,
         file_path: Path,
         pattern: str,
-        regex_pattern: Optional[re.Pattern],
+        regex_pattern: re.Pattern | None,
         config: SearchConfig,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Search a single file for the pattern."""
 
         def search_file_sync():
@@ -426,17 +426,17 @@ class ParallelGrep:
 async def grep(
     pattern: str,
     directory: str = ".",
-    path: Optional[str] = None,
+    path: str | None = None,
     case_sensitive: bool = False,
     use_regex: bool = False,
-    include_files: Optional[str] = None,
-    exclude_files: Optional[str] = None,
+    include_files: str | None = None,
+    exclude_files: str | None = None,
     max_results: int = 50,
     context_lines: int = 2,
     search_type: str = "smart",
     return_format: str = "string",
     output_mode: str = "content",
-) -> Union[str, List[str]]:
+) -> str | list[str]:
     """Advanced parallel grep search with multiple strategies.
 
     Args:

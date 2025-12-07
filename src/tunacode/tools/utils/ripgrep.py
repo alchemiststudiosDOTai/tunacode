@@ -7,13 +7,12 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 @functools.lru_cache(maxsize=1)
-def get_platform_identifier() -> Tuple[str, str]:
+def get_platform_identifier() -> tuple[str, str]:
     """Get the current platform identifier.
 
     Returns:
@@ -27,12 +26,12 @@ def get_platform_identifier() -> Tuple[str, str]:
             return "x64-linux", system
         elif machine in ["aarch64", "arm64"]:
             return "arm64-linux", system
-    elif system == "darwin":
+    elif system == "darwin":  # noqa: SIM102
         if machine in ["x86_64", "amd64"]:
             return "x64-darwin", system
         elif machine in ["arm64", "aarch64"]:
             return "arm64-darwin", system
-    elif system == "windows":
+    elif system == "windows":  # noqa: SIM102
         if machine in ["x86_64", "amd64"]:
             return "x64-win32", system
 
@@ -40,7 +39,7 @@ def get_platform_identifier() -> Tuple[str, str]:
 
 
 @functools.lru_cache(maxsize=1)
-def get_ripgrep_binary_path() -> Optional[Path]:
+def get_ripgrep_binary_path() -> Path | None:
     """Resolve the path to the ripgrep binary.
 
     Resolution order:
@@ -127,7 +126,7 @@ def _check_ripgrep_version(rg_path: Path, min_version: str = "13.0.0") -> bool:
 class RipgrepExecutor:
     """Wrapper for executing ripgrep commands with error handling."""
 
-    def __init__(self, binary_path: Optional[Path] = None):
+    def __init__(self, binary_path: Path | None = None):
         """Initialize the executor.
 
         Args:
@@ -145,14 +144,14 @@ class RipgrepExecutor:
         path: str = ".",
         *,
         timeout: int = 10,
-        max_matches: Optional[int] = None,
-        file_pattern: Optional[str] = None,
+        max_matches: int | None = None,
+        file_pattern: str | None = None,
         case_insensitive: bool = False,
         multiline: bool = False,
         context_before: int = 0,
         context_after: int = 0,
         **kwargs,
-    ) -> List[str]:
+    ) -> list[str]:
         """Execute a ripgrep search.
 
         Args:
@@ -217,7 +216,7 @@ class RipgrepExecutor:
             logger.error(f"Ripgrep execution failed: {e}")
             return self._python_fallback_search(pattern, path, file_pattern=file_pattern)
 
-    def list_files(self, pattern: str, directory: str = ".") -> List[str]:
+    def list_files(self, pattern: str, directory: str = ".") -> list[str]:
         """List files matching a glob pattern using ripgrep.
 
         Args:
@@ -245,9 +244,9 @@ class RipgrepExecutor:
         self,
         pattern: str,
         path: str,
-        file_pattern: Optional[str] = None,
+        file_pattern: str | None = None,
         case_insensitive: bool = False,
-    ) -> List[str]:
+    ) -> list[str]:
         """Python-based fallback search implementation."""
         import re
         from pathlib import Path
@@ -284,7 +283,7 @@ class RipgrepExecutor:
 
         return results
 
-    def _python_fallback_list_files(self, pattern: str, directory: str) -> List[str]:
+    def _python_fallback_list_files(self, pattern: str, directory: str) -> list[str]:
         """Python-based fallback for listing files."""
         from pathlib import Path
 
@@ -296,7 +295,7 @@ class RipgrepExecutor:
 
 
 # Maintain backward compatibility
-def ripgrep(pattern: str, directory: str = ".") -> List[str]:
+def ripgrep(pattern: str, directory: str = ".") -> list[str]:
     """Return a list of file paths matching a pattern using ripgrep.
 
     This function maintains backward compatibility with the original implementation.
