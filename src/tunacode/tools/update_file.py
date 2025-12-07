@@ -5,7 +5,7 @@ import os
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.tools.decorators import file_tool
-from tunacode.tools.utils.text_match import replace
+from tunacode.tools.text_match import replace
 
 
 @file_tool

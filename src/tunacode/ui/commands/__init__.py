@@ -72,7 +72,7 @@ class ModelCommand(Command):
     usage = "/model [provider:model-name]"
 
     async def execute(self, app: "TextualReplApp", args: str) -> None:
-        from tunacode.utils.config.user_configuration import save_config
+        from tunacode.utils.config import save_config
 
         if args:
             model_name = args.strip()
@@ -153,7 +153,7 @@ class ThemeCommand(Command):
     usage = "/theme [name]"
 
     async def execute(self, app: "TextualReplApp", args: str) -> None:
-        from tunacode.utils.config.user_configuration import save_config
+        from tunacode.utils.config import save_config
 
         if args:
             theme_name = args.strip()
@@ -181,6 +181,18 @@ class ThemeCommand(Command):
             )
 
 
+class FilesCommand(Command):
+    name = "files"
+    description = "Show all edited files"
+    usage = "/files"
+
+    async def execute(self, app: "TextualReplApp", args: str) -> None:
+        from tunacode.ui.screens.edited_files_screen import EditedFilesScreen
+
+        files = app.status_bar.get_edited_files()
+        app.push_screen(EditedFilesScreen(files))
+
+
 COMMANDS: dict[str, Command] = {
     "help": HelpCommand(),
     "clear": ClearCommand(),
@@ -189,6 +201,7 @@ COMMANDS: dict[str, Command] = {
     "branch": BranchCommand(),
     "plan": PlanCommand(),
     "theme": ThemeCommand(),
+    "files": FilesCommand(),
 }
 
 
