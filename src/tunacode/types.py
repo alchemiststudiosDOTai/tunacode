@@ -31,9 +31,6 @@ SessionId = str
 DeviceId = str
 InputSessions = dict[str, Any]
 
-LoggingConfig = dict[str, Any]
-LoggingEnabled = bool
-
 
 @dataclass
 class ModelPricing:
@@ -88,20 +85,6 @@ class ToolConfirmationResponse:
     skip_future: bool = False
     abort: bool = False
     instructions: str = ""
-
-
-class UILogger(Protocol):
-    """Protocol for UI logging operations."""
-
-    async def info(self, message: str) -> None: ...
-
-    async def error(self, message: str) -> None: ...
-
-    async def warning(self, message: str) -> None: ...
-
-    async def debug(self, message: str) -> None: ...
-
-    async def success(self, message: str) -> None: ...
 
 
 UICallback = Callable[[str], Awaitable[None]]

@@ -7,7 +7,7 @@ CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 """
 
 import json
-import logging
+
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -26,7 +26,6 @@ from tunacode.types import (
 )
 from tunacode.utils.messaging import estimate_tokens, get_message_content
 
-logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from tunacode.tools.authorization.handler import ToolHandler
@@ -229,7 +228,6 @@ class StateManager:
 
             msg_adapter = TypeAdapter(ModelMessage)
         except ImportError:
-            logger.warning("pydantic_ai not available for serialization")
             msg_adapter = None
 
         result = []
@@ -240,9 +238,7 @@ class StateManager:
                 try:
                     result.append(msg_adapter.dump_python(msg, mode="json"))
                 except Exception as e:
-                    logger.warning("Failed to serialize message: %s", e)
-            else:
-                logger.warning("Cannot serialize message of type %s", type(msg))
+                    pass
         return result
 
     def _deserialize_messages(self, data: list[dict]) -> list:
@@ -253,7 +249,6 @@ class StateManager:
 
             msg_adapter = TypeAdapter(ModelMessage)
         except ImportError:
-            logger.warning("pydantic_ai not available, keeping messages as dicts")
             return data
 
         result = []
@@ -268,7 +263,6 @@ class StateManager:
                 try:
                     result.append(msg_adapter.validate_python(item))
                 except Exception as e:
-                    logger.warning("Failed to deserialize message: %s", e)
                     result.append(item)
             else:
                 result.append(item)
@@ -277,7 +271,7 @@ class StateManager:
     def save_session(self) -> bool:
         """Save current session to disk."""
         if not self._session.project_id:
-            logger.debug("No project_id set, skipping session save")
+            pass
             return False
 
         self._session.last_modified = datetime.now(UTC).isoformat()
@@ -303,16 +297,12 @@ class StateManager:
             session_file.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             with open(session_file, "w") as f:
                 json.dump(session_data, f, indent=2)
-            logger.debug("Session saved to %s", session_file)
             return True
         except PermissionError as e:
-            logger.error("Permission denied saving session: %s", e)
             return False
         except OSError as e:
-            logger.error("OS error saving session: %s", e)
             return False
         except Exception as e:
-            logger.error("Failed to save session: %s", e)
             return False
 
     def load_session(self, session_id: str) -> bool:
@@ -327,7 +317,6 @@ class StateManager:
             break
 
         if not session_file or not session_file.exists():
-            logger.warning("Session file not found for %s", session_id)
             return False
 
         try:
@@ -352,13 +341,10 @@ class StateManager:
             self._session.react_scratchpad = data.get("react_scratchpad", {"timeline": []})
             self._session.messages = self._deserialize_messages(data.get("messages", []))
 
-            logger.info("Session loaded from %s", session_file)
             return True
         except json.JSONDecodeError as e:
-            logger.error("Invalid JSON in session file: %s", e)
             return False
         except Exception as e:
-            logger.error("Failed to load session: %s", e)
             return False
 
     def list_sessions(self) -> list[dict]:
@@ -386,7 +372,7 @@ class StateManager:
                     }
                 )
             except Exception as e:
-                logger.warning("Failed to read session file %s: %s", file, e)
+                pass
 
         sessions.sort(key=lambda x: x.get("last_modified", ""), reverse=True)
         return sessions

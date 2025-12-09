@@ -1,4 +1,4 @@
-"""Tool decorators providing error handling and logging.
+"""Tool decorators providing error handling.
 
 This module provides decorators that wrap tool functions with:
 - Consistent error handling (converts exceptions to ToolExecutionError)
@@ -6,7 +6,6 @@ This module provides decorators that wrap tool functions with:
 - File-specific error handling for file operations
 """
 
-import logging
 from collections.abc import Callable, Coroutine
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar
@@ -18,7 +17,6 @@ from tunacode.tools.xml_helper import load_prompt_from_xml
 
 P = ParamSpec("P")
 R = TypeVar("R")
-logger = logging.getLogger(__name__)
 
 
 def base_tool(
@@ -39,7 +37,6 @@ def base_tool(
     @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
-            logger.info(f"{func.__name__}({args}, {kwargs})")
             return await func(*args, **kwargs)
         except ModelRetry:
             raise
@@ -48,7 +45,6 @@ def base_tool(
         except FileOperationError:
             raise
         except Exception as e:
-            logger.exception(f"{func.__name__} failed")
             raise ToolExecutionError(
                 tool_name=func.__name__, message=str(e), original_error=e
             ) from e

@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 from tunacode.constants import UI_COLORS
 from tunacode.core.compaction import prune_old_tool_outputs
-from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import GlobalRequestTimeoutError, ToolBatchingJSONError, UserAbortError
 from tunacode.tools.react import ReactTool
@@ -34,7 +33,6 @@ from tunacode.utils.ui import DotDict
 from . import agent_components as ac
 from .prompts import format_clarification, format_iteration_limit, format_no_progress
 
-logger = get_logger(__name__)
 colors = DotDict(UI_COLORS)
 
 __all__ = [
@@ -266,7 +264,7 @@ class ReactSnapshotManager:
                     ctx_messages.append(ModelRequest(parts=[system_part], kind="request"))
 
         except Exception:
-            logger.debug("Forced react snapshot failed", exc_info=True)
+            pass
 
 
 class RequestOrchestrator:
@@ -368,8 +366,6 @@ class RequestOrchestrator:
         # Prune old tool outputs directly in session (persisted)
         session_messages = self.state_manager.session.messages
         _, tokens_reclaimed = prune_old_tool_outputs(session_messages, self.model)
-        if tokens_reclaimed > 0:
-            logger.info("Pruned %d tokens from old tool outputs", tokens_reclaimed)
 
         # Prepare history snapshot (now pruned)
         message_history = list(session_messages)
@@ -456,19 +452,10 @@ class RequestOrchestrator:
             # User aborts must propagate - they represent user intent
             raise
         except ToolBatchingJSONError as e:
-            # Log error and re-raise - fail fast, fail loud
-            logger.error("Tool batching JSON error [req=%s]: %s", ctx.request_id, e, exc_info=True)
+            # Re-raise error
             raise
         except Exception as e:
-            # Log with context and re-raise - fail fast, fail loud
-            safe_iter = getattr(self.state_manager.session, "current_iteration", "?")
-            logger.error(
-                "Error in process_request [req=%s iter=%s]: %s",
-                ctx.request_id,
-                safe_iter,
-                e,
-                exc_info=True,
-            )
+            # Re-raise error
             raise
 
 

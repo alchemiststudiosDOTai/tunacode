@@ -17,7 +17,6 @@ from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.constants import UI_THINKING_MESSAGE
 from tunacode.core.agents.delegation_tools import create_research_codebase_tool
-from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
@@ -27,8 +26,6 @@ from tunacode.tools.read_file import read_file
 from tunacode.tools.update_file import update_file
 from tunacode.tools.write_file import write_file
 from tunacode.types import ModelName, PydanticAgent
-
-logger = get_logger(__name__)
 
 # Module-level caches for system prompts
 _PROMPT_CACHE: dict[str, tuple[str, float]] = {}
@@ -56,7 +53,7 @@ async def _publish_delay_message(message: str, state_manager: StateManager) -> N
             else:
                 await streaming_panel.set_status_message(message)
     except Exception:
-        logger.debug("Request delay UI update failed (non-fatal)", exc_info=True)
+        pass
 
 
 async def _sleep_with_countdown(
@@ -193,7 +190,6 @@ def load_tunacode_context() -> str:
         cache_key = str(tunacode_path)
 
         if not tunacode_path.exists():
-            logger.info("📄 AGENTS.md not found: Using default context")
             return ""
 
         # Check cache with file modification time
@@ -206,17 +202,14 @@ def load_tunacode_context() -> str:
         # Load from file and cache
         tunacode_content = tunacode_path.read_text(encoding="utf-8")
         if tunacode_content.strip():
-            logger.info("📄 AGENTS.md located: Loading context...")
             result = "\n\n# Project Context from AGENTS.md\n" + tunacode_content
             _TUNACODE_CACHE[cache_key] = (result, tunacode_path.stat().st_mtime)
             return result
         else:
-            logger.info("📄 AGENTS.md not found: Using default context")
             _TUNACODE_CACHE[cache_key] = ("", tunacode_path.stat().st_mtime)
             return ""
 
     except Exception as e:
-        logger.debug(f"Error loading AGENTS.md: {e}")
         return ""
 
 
@@ -279,10 +272,6 @@ def _create_model_with_retry(
     else:
         # Unsupported provider, return string and let pydantic-ai handle it
         # (won't have retry support but won't break)
-        logger.warning(
-            f"Provider '{provider_name}' not configured for HTTP retries. "
-            f"Falling back to default behavior."
-        )
         return model_string
 
 
@@ -296,10 +285,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
     session_agent = state_manager.session.agents.get(model)
     session_version = state_manager.session.agent_versions.get(model)
     if session_agent and session_version == agent_version:
-        logger.debug(f"Using session-cached agent for model {model}")
         return session_agent
     if session_agent and session_version != agent_version:
-        logger.debug(f"Session cache invalidated for model {model} due to config change")
         del state_manager.session.agents[model]
         state_manager.session.agent_versions.pop(model, None)
 
@@ -308,17 +295,14 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # Verify cache is still valid (check for config changes)
         cached_version = _AGENT_CACHE_VERSION.get(model)
         if cached_version == agent_version:
-            logger.debug(f"Using module-cached agent for model {model}")
             state_manager.session.agents[model] = _AGENT_CACHE[model]
             state_manager.session.agent_versions[model] = agent_version
             return _AGENT_CACHE[model]
         else:
-            logger.debug(f"Cache invalidated for model {model} due to config change")
             del _AGENT_CACHE[model]
             del _AGENT_CACHE_VERSION[model]
 
     if model not in _AGENT_CACHE:
-        logger.debug(f"Creating new agent for model {model}")
         max_retries = settings.get("max_retries", 3)
 
         # Lazy import Agent and Tool
@@ -351,8 +335,6 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         tools_list.append(
             Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
         )
-
-        logger.debug(f"Creating agent with {len(tools_list)} tools")
 
         # Configure HTTP client with retry logic at transport layer
         # This handles retries BEFORE node creation, avoiding pydantic-ai's

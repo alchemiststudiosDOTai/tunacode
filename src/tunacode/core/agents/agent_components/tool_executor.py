@@ -12,7 +12,7 @@ from tunacode.constants import (
     TOOL_RETRY_BASE_DELAY,
     TOOL_RETRY_MAX_DELAY,
 )
-from tunacode.core.logging.logger import get_logger
+
 from tunacode.exceptions import (
     ConfigurationError,
     FileOperationError,
@@ -22,7 +22,6 @@ from tunacode.exceptions import (
 )
 from tunacode.types import ToolCallback
 
-logger = get_logger(__name__)
 
 # Errors that should NOT be retried - they represent user intent or unrecoverable states
 NON_RETRYABLE_ERRORS = (
@@ -71,35 +70,14 @@ async def execute_tools_parallel(
         for attempt in range(1, TOOL_MAX_RETRIES + 1):
             try:
                 result = await callback(part, node)
-                if attempt > 1:
-                    logger.info(
-                        "Tool '%s' succeeded on attempt %d/%d",
-                        tool_name,
-                        attempt,
-                        TOOL_MAX_RETRIES,
-                    )
+
                 return result
             except NON_RETRYABLE_ERRORS:
                 raise
             except Exception as e:
                 if attempt == TOOL_MAX_RETRIES:
-                    logger.error(
-                        "Tool '%s' failed after %d attempts: %s",
-                        tool_name,
-                        attempt,
-                        e,
-                        exc_info=True,
-                    )
                     raise
                 backoff = _calculate_backoff(attempt)
-                logger.warning(
-                    "Tool '%s' failed (attempt %d/%d), retrying in %.1fs: %s",
-                    tool_name,
-                    attempt,
-                    TOOL_MAX_RETRIES,
-                    backoff,
-                    e,
-                )
                 await asyncio.sleep(backoff)
 
         raise AssertionError("unreachable")

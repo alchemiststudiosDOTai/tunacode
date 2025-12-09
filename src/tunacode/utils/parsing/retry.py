@@ -3,19 +3,16 @@
 import asyncio
 import functools
 import json
-import logging
+
 import time
 from collections.abc import Callable
 from typing import Any
-
-logger = logging.getLogger(__name__)
 
 
 def retry_on_json_error(
     max_retries: int = 10,
     base_delay: float = 0.1,
     max_delay: float = 5.0,
-    logger_name: str | None = None,
 ) -> Callable:
     """Decorator to retry function calls that fail with JSON parsing errors.
 
@@ -25,12 +22,10 @@ def retry_on_json_error(
         max_retries: Maximum number of retry attempts (default: 10)
         base_delay: Initial delay between retries in seconds (default: 0.1)
         max_delay: Maximum delay between retries in seconds (default: 5.0)
-        logger_name: Logger name for retry logging (default: uses module logger)
 
     Returns:
         Decorated function that retries on JSONDecodeError
     """
-    retry_logger = logging.getLogger(logger_name) if logger_name else logger
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
@@ -45,16 +40,10 @@ def retry_on_json_error(
 
                     if attempt == max_retries:
                         # Final attempt failed
-                        retry_logger.error(f"JSON parsing failed after {max_retries} retries: {e}")
                         raise
 
                     # Calculate delay with exponential backoff
                     delay = min(base_delay * (2**attempt), max_delay)
-
-                    retry_logger.warning(
-                        f"JSON parsing error (attempt {attempt + 1}/{max_retries + 1}): {e}. "
-                        f"Retrying in {delay:.2f}s..."
-                    )
 
                     await asyncio.sleep(delay)
 
@@ -74,16 +63,10 @@ def retry_on_json_error(
 
                     if attempt == max_retries:
                         # Final attempt failed
-                        retry_logger.error(f"JSON parsing failed after {max_retries} retries: {e}")
                         raise
 
                     # Calculate delay with exponential backoff
                     delay = min(base_delay * (2**attempt), max_delay)
-
-                    retry_logger.warning(
-                        f"JSON parsing error (attempt {attempt + 1}/{max_retries + 1}): {e}. "
-                        f"Retrying in {delay:.2f}s..."
-                    )
 
                     time.sleep(delay)
 

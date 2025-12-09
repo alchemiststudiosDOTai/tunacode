@@ -6,12 +6,10 @@ preserving conversation structure while freeing token budget.
 Inspired by OpenCode's compaction strategy.
 """
 
-import logging
 from typing import Any
 
 from tunacode.utils.messaging import estimate_tokens
 
-logger = logging.getLogger(__name__)
 
 # Symbolic constants for pruning thresholds
 PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens of tool outputs
@@ -139,7 +137,6 @@ def prune_part_content(part: Any, model_name: str) -> int:
         part.content = PRUNE_PLACEHOLDER
     except (AttributeError, TypeError):
         # Part is immutable, cannot prune
-        logger.debug("Cannot prune immutable part: %s", type(part).__name__)
         return 0
 
     return max(0, original_tokens - placeholder_tokens)
@@ -170,11 +167,6 @@ def prune_old_tool_outputs(
     # Early exit: insufficient history
     user_turns = count_user_turns(messages)
     if user_turns < PRUNE_MIN_USER_TURNS:
-        logger.debug(
-            "Skipping pruning: insufficient user turns (%d < %d)",
-            user_turns,
-            PRUNE_MIN_USER_TURNS,
-        )
         return (messages, 0)
 
     # Phase 1: Scan backwards, collect tool return parts with token counts
@@ -194,7 +186,6 @@ def prune_old_tool_outputs(
                 tool_parts.append((msg_idx, part_idx, part, tokens))
 
     if not tool_parts:
-        logger.debug("No tool return parts found to prune")
         return (messages, 0)
 
     # Phase 2: Determine pruning boundary
@@ -209,11 +200,6 @@ def prune_old_tool_outputs(
 
     # Early exit: nothing old enough to prune
     if prune_start_index < 0:
-        logger.debug(
-            "Skipping pruning: all tool outputs within protection window (%d tokens < %d)",
-            accumulated_tokens,
-            PRUNE_PROTECT_TOKENS,
-        )
         return (messages, 0)
 
     # Phase 3: Calculate potential savings
@@ -222,11 +208,6 @@ def prune_old_tool_outputs(
 
     # Early exit: savings below threshold
     if total_prunable_tokens < PRUNE_MINIMUM_THRESHOLD:
-        logger.debug(
-            "Skipping pruning: savings below threshold (%d < %d)",
-            total_prunable_tokens,
-            PRUNE_MINIMUM_THRESHOLD,
-        )
         return (messages, 0)
 
     # Phase 4: Apply pruning
@@ -234,11 +215,5 @@ def prune_old_tool_outputs(
     for _, _, part, _ in parts_to_prune:
         reclaimed = prune_part_content(part, model_name)
         total_reclaimed += reclaimed
-
-    logger.info(
-        "Pruned %d tool outputs, reclaimed %d tokens",
-        len(parts_to_prune),
-        total_reclaimed,
-    )
 
     return (messages, total_reclaimed)

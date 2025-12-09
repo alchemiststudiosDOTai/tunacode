@@ -1,13 +1,11 @@
 """Directory listing tool with recursive tree view for agent operations."""
 
 import asyncio
-import logging
 import os
 from pathlib import Path
 
 from tunacode.tools.decorators import base_tool
 
-logger = logging.getLogger(__name__)
 
 IGNORE_PATTERNS = [
     "node_modules/",

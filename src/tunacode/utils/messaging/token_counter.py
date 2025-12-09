@@ -1,11 +1,8 @@
 """Token counting utility using tiktoken for accurate, offline token estimation."""
 
-import logging
 from functools import lru_cache
 from typing import Any
 
-# Get logger for this module
-logger = logging.getLogger(__name__)
 
 # Cache for tokenizer encodings
 _encoding_cache: dict[str, Any] = {}
@@ -24,7 +21,6 @@ def get_encoding(model_name: str):
     try:
         import tiktoken
     except ImportError:
-        logger.warning("tiktoken not available, falling back to character estimation")
         return None
 
     # Extract the model part from "provider:model" format
@@ -51,7 +47,6 @@ def get_encoding(model_name: str):
     try:
         return tiktoken.get_encoding(encoding_name)
     except Exception as e:
-        logger.error(f"Error loading tiktoken encoding '{encoding_name}': {e}")
         return None
 
 
@@ -76,7 +71,7 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
             try:
                 return len(encoding.encode(text))
             except Exception as e:
-                logger.error(f"Error counting tokens with tiktoken: {e}")
+                pass
 
     # Fallback to character-based estimation
     # This is roughly accurate for English text

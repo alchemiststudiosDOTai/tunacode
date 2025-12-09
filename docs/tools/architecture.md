@@ -187,7 +187,7 @@ async def my_tool(arg: str) -> str:
 
 Two test files validate the architecture:
 
-- `tests/test_tool_decorators.py` - Tests decorator behavior (error routing, logging, XML loading)
+- `tests/test_tool_decorators.py` - Tests decorator behavior (error routing, XML loading)
 - `tests/test_tool_conformance.py` - Tests all tools follow the pattern (async, decorated, docstring, signatures)
 
 Run with:

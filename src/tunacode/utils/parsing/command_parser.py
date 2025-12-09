@@ -3,7 +3,7 @@
 Command parsing utilities for the Textual REPL."""
 
 import json
-import logging
+
 
 from tunacode.constants import (
     JSON_PARSE_BASE_DELAY,
@@ -14,8 +14,6 @@ from tunacode.exceptions import ValidationError
 from tunacode.types import ToolArgs
 from tunacode.utils.parsing.json_utils import safe_json_parse
 from tunacode.utils.parsing.retry import retry_json_parse
-
-logger = logging.getLogger(__name__)
 
 
 def parse_args(args) -> ToolArgs:
@@ -42,13 +40,11 @@ def parse_args(args) -> ToolArgs:
             )
         except json.JSONDecodeError as e:
             if "Extra data" in str(e):
-                logger.warning(f"Detected concatenated JSON objects in args: {args[:200]}...")
                 try:
                     result = safe_json_parse(args, allow_concatenated=True)
                     if isinstance(result, dict):
                         return result
                     elif isinstance(result, list) and result:
-                        logger.warning("Multiple JSON objects detected, using first object only")
                         return result[0]
                 except Exception:
                     pass

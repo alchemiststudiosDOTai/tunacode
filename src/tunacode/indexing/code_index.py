@@ -1,14 +1,11 @@
 """Fast in-memory code index for efficient file lookups."""
 
-import logging
 import os
 import threading
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional
-
-logger = logging.getLogger(__name__)
 
 
 class CodeIndex:
@@ -220,15 +217,12 @@ class CodeIndex:
             if self._indexed and not force:
                 return
 
-            logger.info(f"Building code index for {self.root_dir}")
             self._clear_indices()
 
             try:
                 self._scan_directory(self.root_dir)
                 self._indexed = True
-                logger.info(f"Indexed {len(self._all_files)} files")
             except Exception as e:
-                logger.error(f"Error building index: {e}")
                 raise
 
     def _clear_indices(self) -> None:
@@ -281,7 +275,6 @@ class CodeIndex:
             Number of files indexed.
         """
         with self._lock:
-            logger.info(f"Building priority index for {self.root_dir}")
             self._clear_indices()
 
             try:
@@ -300,11 +293,8 @@ class CodeIndex:
 
                 self._partial_indexed = True
                 self._indexed = False
-                logger.info(f"Priority indexed {len(self._all_files)} files")
                 return len(self._all_files)
-
             except Exception as e:
-                logger.error(f"Error building priority index: {e}")
                 raise
 
     def expand_index(self) -> None:
@@ -316,8 +306,6 @@ class CodeIndex:
         with self._lock:
             if not self._partial_indexed:
                 return
-
-            logger.info("Expanding partial index to full index")
 
             try:
                 # Scan remaining directories (non-priority)
@@ -331,10 +319,7 @@ class CodeIndex:
 
                 self._partial_indexed = False
                 self._indexed = True
-                logger.info(f"Full index complete: {len(self._all_files)} files")
-
             except Exception as e:
-                logger.error(f"Error expanding index: {e}")
                 raise
 
     def _should_ignore_path(self, path: Path) -> bool:
@@ -371,9 +356,9 @@ class CodeIndex:
             self._cache_timestamps[directory] = time.time()
 
         except PermissionError:
-            logger.debug(f"Permission denied: {directory}")
+            pass
         except Exception as e:
-            logger.warning(f"Error scanning {directory}: {e}")
+            pass
 
     def _should_index_file(self, file_path: Path) -> bool:
         """Check if a file should be indexed."""
@@ -454,7 +439,7 @@ class CodeIndex:
                 self._path_to_imports[relative_path] = imports
 
         except Exception as e:
-            logger.debug(f"Error indexing Python file {file_path}: {e}")
+            pass
 
     def lookup(self, query: str, file_type: str | None = None) -> list[Path]:
         """Look up files matching a query.

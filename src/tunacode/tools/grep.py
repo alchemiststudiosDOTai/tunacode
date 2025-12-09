@@ -12,7 +12,7 @@ CLAUDE_ANCHOR[grep-module]: Fast parallel file search with 3-second deadline
 """
 
 import asyncio
-import logging
+
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -31,8 +31,6 @@ from tunacode.tools.grep_components import (
 from tunacode.tools.grep_components.result_formatter import ResultFormatter
 from tunacode.tools.utils.ripgrep import RipgrepExecutor
 from tunacode.tools.utils.ripgrep import metrics as ripgrep_metrics
-
-logger = logging.getLogger(__name__)
 
 
 class ParallelGrep:
@@ -269,8 +267,6 @@ class ParallelGrep:
             except TooBroadPatternError:
                 raise
             except Exception as e:
-                if self._config.get("debug", False):
-                    logger.debug(f"Search error: {e}")
                 # Return empty to trigger fallback
                 return []
 
@@ -280,9 +276,6 @@ class ParallelGrep:
                 ripgrep_metrics.record_search(
                     duration=total_time, used_fallback=self._ripgrep_executor._use_python_fallback
                 )
-
-                if self._config.get("debug", False):
-                    logger.debug(f"Ripgrep search completed in {total_time:.2f}s")
 
             return results
 

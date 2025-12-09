@@ -1,12 +1,9 @@
 """Helper module for loading prompts and schemas from XML files."""
 
-import logging
 from functools import lru_cache
 from pathlib import Path
 
 import defusedxml.ElementTree as ET
-
-logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=32)
@@ -28,5 +25,5 @@ def load_prompt_from_xml(tool_name: str) -> str | None:
             if description is not None:
                 return description.text.strip()
     except Exception as e:
-        logger.warning(f"Failed to load XML prompt for {tool_name}: {e}")
+        pass
     return None

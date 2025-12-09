@@ -4,14 +4,10 @@ Module: tunacode.core.agents.delegation_tools
 Delegation tools for multi-agent workflows using pydantic-ai's delegation pattern.
 """
 
-import logging
-
 from pydantic_ai import RunContext
 
 from tunacode.core.agents.research_agent import create_research_agent
 from tunacode.core.state import StateManager
-
-logger = logging.getLogger(__name__)
 
 
 def create_research_codebase_tool(state_manager: StateManager):
@@ -90,7 +86,6 @@ Return a structured summary with:
         except Exception as e:
             # Catch all delegation errors (validation failures, pydantic-ai errors, etc.)
             error_msg = f"Research agent delegation failed: {type(e).__name__}: {str(e)}"
-            logger.error(error_msg, exc_info=True)
 
             # Return structured error response instead of crashing
             return {

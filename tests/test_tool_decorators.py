@@ -1,9 +1,7 @@
-"""Tests for tool decorators - error handling, logging, and XML prompt loading.
+"""Tests for tool decorators - error handling, and XML prompt loading.
 
 Tests @base_tool and @file_tool decorator behavior in isolation.
 """
-
-import logging
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
@@ -24,19 +22,6 @@ class TestBaseTool:
 
         result = await simple_tool(42)
         assert result == "result: 42"
-
-    async def test_logs_invocation(self, mock_no_xml_prompt, caplog):
-        """Decorator logs tool invocation with args."""
-
-        @base_tool
-        async def logged_tool(a: str, b: int) -> str:
-            return "ok"
-
-        with caplog.at_level(logging.INFO):
-            await logged_tool("test", 123)
-
-        assert "logged_tool" in caplog.text
-        assert "test" in caplog.text
 
     async def test_passes_through_model_retry(self, mock_no_xml_prompt):
         """ModelRetry exceptions pass through unchanged."""

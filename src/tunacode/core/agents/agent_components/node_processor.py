@@ -4,7 +4,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from tunacode.constants import UI_COLORS
-from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import UserAbortError
 from tunacode.types import AgentState
@@ -15,7 +14,6 @@ from .task_completion import check_task_completion
 from .tool_buffer import ToolBuffer
 from .truncation_checker import check_for_truncation
 
-logger = get_logger(__name__)
 colors = DotDict(UI_COLORS)
 
 
@@ -136,10 +134,7 @@ async def _process_node(
                                 for p in node.model_response.parts
                                 if getattr(p, "part_kind", "") == "tool-call"
                             )
-                            logger.warning(
-                                f"Agent attempted premature completion with {pending_tools_count} "
-                                f"pending tools"
-                            )
+
                         else:
                             # Check if content suggests pending actions
                             combined_text = " ".join(all_content_parts).lower()
@@ -181,11 +176,6 @@ async def _process_node(
                             ) and state_manager.session.iteration_count <= 1:
                                 # Too early to complete with pending intentions
                                 found_phrases = [p for p in pending_phrases if p in combined_text]
-                                # Still allow it but log warning
-                                logger.warning(
-                                    f"Task completion with pending intentions detected: "
-                                    f"{found_phrases}"
-                                )
 
                             # Normal completion - transition to RESPONSE state and mark completion
                             response_state.transition_to(AgentState.RESPONSE)
@@ -332,17 +322,9 @@ async def _process_tool_calls(
         except UserAbortError:
             raise
         except Exception as tool_err:
-            logger.error(
-                "Tool callback failed: tool=%s iter=%s err=%s",
-                getattr(part, "tool_name", "<unknown>"),
-                getattr(state_manager.session, "current_iteration", "?"),
-                tool_err,
-                exc_info=True,
-            )
             raise  # Fail fast - surface error to user
         finally:
             tool_name = getattr(part, "tool_name", "<unknown>")
-            logger.debug("Tool execution completed: tool=%s", tool_name)
             # Note: tool_result_callback with full result is called when we see
             # tool-return parts in node.request
 

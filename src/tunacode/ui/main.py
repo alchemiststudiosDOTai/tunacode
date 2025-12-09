@@ -1,7 +1,6 @@
 """CLI entry point for TunaCode."""
 
 import asyncio
-import logging
 
 import typer
 
@@ -16,24 +15,18 @@ app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
 state_manager = StateManager()
 
-logger = logging.getLogger(__name__)
-
 
 def _handle_background_task_error(task: asyncio.Task) -> None:
     try:
         exception = task.exception()
         if exception is not None:
             task_name = task.get_name()
-            logger.warning(
-                "Background task '%s' failed: %s",
-                task_name,
-                exception,
-                exc_info=exception,
-            )
+            # Background task failed - just pass without logging
+            pass
     except asyncio.CancelledError:
         pass
-    except Exception as e:
-        logger.error("Error in background task error callback: %s", e, exc_info=True)
+    except Exception:
+        pass
 
 
 @app.command()
@@ -50,8 +43,6 @@ def main(
     setup: bool = typer.Option(False, "--setup", help="Run setup wizard"),
 ):
     """Start TunaCode - Your AI-powered development assistant"""
-
-    logging.basicConfig(level=logging.WARNING, force=True)
 
     async def async_main():
         if version:

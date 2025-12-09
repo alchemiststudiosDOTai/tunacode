@@ -1,7 +1,7 @@
 """Bash command execution tool for agent operations."""
 
 import asyncio
-import logging
+
 import os
 import re
 import subprocess
@@ -17,7 +17,6 @@ from tunacode.constants import (
 )
 from tunacode.tools.decorators import base_tool
 
-logger = logging.getLogger(__name__)
 
 # Enhanced dangerous patterns from run_command.py
 DESTRUCTIVE_PATTERNS = ["rm -rf", "rm -r", "rm /", "dd if=", "mkfs", "fdisk"]
@@ -114,12 +113,9 @@ def _validate_command_security(command: str) -> None:
     if not command or not command.strip():
         raise ModelRetry("Empty command not allowed")
 
-    logger.info(f"Validating command security: {command[:100]}...")
-
     # Always check for the most dangerous patterns regardless of shell features
     for pattern in DANGEROUS_PATTERNS:
         if re.search(pattern, command, re.IGNORECASE):
-            logger.error(f"Highly dangerous pattern '{pattern}' detected in command")
             raise ModelRetry(f"Command contains dangerous pattern and is blocked: {pattern}")
 
     # Check for dangerous injection patterns (more selective, before character checks)
@@ -133,14 +129,12 @@ def _validate_command_security(command: str) -> None:
 
     for pattern in strict_patterns:
         if re.search(pattern, command):
-            logger.warning(f"Dangerous injection pattern '{pattern}' detected in command")
             raise ModelRetry(f"Potentially unsafe pattern detected in command: {pattern}")
 
     # Check for restricted characters (but allow safe environment variable usage)
     # Allow $ when used for legitimate environment variables or shell variables
     if re.search(r"\$[^({a-zA-Z_]", command):
         # $ followed by something that's not a valid variable start
-        logger.warning("Potentially dangerous character '$' detected in command")
         raise ModelRetry("Potentially unsafe character '$' in command")
 
     # Check other restricted characters but allow { } when part of valid variable expansion
@@ -149,13 +143,11 @@ def _validate_command_security(command: str) -> None:
         if not re.search(r"\$\{?\w+\}?", command):
             for char in ["{", "}"]:
                 if char in command:
-                    logger.warning(f"Potentially dangerous character '{char}' detected in command")
                     raise ModelRetry(f"Potentially unsafe character '{char}' in command")
 
     # Check remaining restricted characters
     for char in [";", "&", "`"]:
         if char in command:
-            logger.warning(f"Potentially dangerous character '{char}' detected in command")
             raise ModelRetry(f"Potentially unsafe character '{char}' in command")
 
 
@@ -184,7 +176,6 @@ def _check_common_errors(command: str, returncode: int, stderr: str) -> None:
     """Check for common error patterns and provide guidance."""
     if returncode == 0 or not stderr:
         return
-    logger.debug("Command exited non-zero: %s (stderr: %.120s)", command, stderr)
 
 
 async def _cleanup_process(process) -> None:
@@ -200,7 +191,7 @@ async def _cleanup_process(process) -> None:
             process.kill()
             await asyncio.wait_for(process.wait(), timeout=1.0)
     except Exception as e:
-        logger.warning(f"Failed to cleanup process: {e}")
+        pass
 
 
 def _format_output(command: str, exit_code: int, stdout: str, stderr: str, cwd: str) -> str:

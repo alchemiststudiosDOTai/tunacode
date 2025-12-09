@@ -1,14 +1,12 @@
 """Ripgrep binary management and execution utilities."""
 
 import functools
-import logging
+
 import os
 import platform
 import shutil
 import subprocess
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
 
 
 @functools.lru_cache(maxsize=1)
@@ -56,17 +54,13 @@ def get_ripgrep_binary_path() -> Path | None:
     if env_path:
         path = Path(env_path)
         if path.exists() and path.is_file():
-            logger.debug(f"Using ripgrep from environment variable: {path}")
             return path
-        else:
-            logger.warning(f"Invalid TUNACODE_RIPGREP_PATH: {env_path}")
 
     # Check for system ripgrep
     system_rg = shutil.which("rg")
     if system_rg:
         system_rg_path = Path(system_rg)
         if _check_ripgrep_version(system_rg_path):
-            logger.debug(f"Using system ripgrep: {system_rg_path}")
             return system_rg_path
 
     # Check for bundled ripgrep
@@ -81,12 +75,10 @@ def get_ripgrep_binary_path() -> Path | None:
         bundled_path = vendor_dir / binary_name
 
         if bundled_path.exists():
-            logger.debug(f"Using bundled ripgrep: {bundled_path}")
             return bundled_path
     except Exception as e:
-        logger.debug(f"Could not find bundled ripgrep: {e}")
+        pass
 
-    logger.debug("No ripgrep binary found, will use Python fallback")
     return None
 
 
@@ -118,7 +110,7 @@ def _check_ripgrep_version(rg_path: Path, min_version: str = "13.0.0") -> bool:
 
             return current >= required
     except Exception as e:
-        logger.debug(f"Could not check ripgrep version: {e}")
+        pass
 
     return False
 
@@ -134,9 +126,6 @@ class RipgrepExecutor:
         """
         self.binary_path = binary_path or get_ripgrep_binary_path()
         self._use_python_fallback = self.binary_path is None
-
-        if self._use_python_fallback:
-            logger.info("Ripgrep binary not available, using Python fallback")
 
     def search(
         self,
@@ -194,8 +183,6 @@ class RipgrepExecutor:
             # Add pattern and path
             cmd.extend([pattern, path])
 
-            logger.debug(f"Executing ripgrep: {' '.join(cmd)}")
-
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -206,14 +193,11 @@ class RipgrepExecutor:
             if result.returncode in [0, 1]:  # 0 = matches found, 1 = no matches
                 return [line.strip() for line in result.stdout.splitlines() if line.strip()]
             else:
-                logger.warning(f"Ripgrep error: {result.stderr}")
                 return []
 
         except subprocess.TimeoutExpired:
-            logger.warning(f"Ripgrep search timed out after {timeout} seconds")
             return []
         except Exception as e:
-            logger.error(f"Ripgrep execution failed: {e}")
             return self._python_fallback_search(pattern, path, file_pattern=file_pattern)
 
     def list_files(self, pattern: str, directory: str = ".") -> list[str]:
@@ -259,7 +243,6 @@ class RipgrepExecutor:
         try:
             regex = re.compile(pattern, flags)
         except re.error:
-            logger.error(f"Invalid regex pattern: {pattern}")
             return []
 
         # Search files

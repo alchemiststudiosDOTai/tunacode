@@ -7,10 +7,6 @@ import re
 import shlex
 import subprocess
 
-from tunacode.core.logging.logger import get_logger
-
-logger = get_logger(__name__)
-
 
 class CommandSecurityError(Exception):
     """Raised when a command fails security validation."""
@@ -32,9 +28,6 @@ def validate_command_safety(command: str, allow_shell_features: bool = False) ->
     if not command or not command.strip():
         raise CommandSecurityError("Empty command not allowed")
 
-    # Log the command being validated
-    logger.info(f"Validating command: {command[:100]}...")
-
     # Always check for the most dangerous patterns regardless of shell features
     dangerous_patterns = [
         r"rm\s+-rf\s+/",  # Dangerous rm commands
@@ -48,7 +41,6 @@ def validate_command_safety(command: str, allow_shell_features: bool = False) ->
 
     for pattern in dangerous_patterns:
         if re.search(pattern, command, re.IGNORECASE):
-            logger.error(f"Highly dangerous pattern '{pattern}' detected in command")
             raise CommandSecurityError("Command contains dangerous pattern and is blocked")
 
     if not allow_shell_features:
@@ -56,7 +48,6 @@ def validate_command_safety(command: str, allow_shell_features: bool = False) ->
         restricted_chars = [";", "&", "`", "$", "{", "}"]  # More permissive for CLI
         for char in restricted_chars:
             if char in command:
-                logger.warning(f"Potentially dangerous character '{char}' detected in command")
                 raise CommandSecurityError(f"Potentially unsafe character '{char}' in command")
 
         # Check for injection patterns (more selective)
@@ -69,7 +60,6 @@ def validate_command_safety(command: str, allow_shell_features: bool = False) ->
 
         for pattern in strict_patterns:
             if re.search(pattern, command):
-                logger.warning(f"Dangerous injection pattern '{pattern}' detected in command")
                 raise CommandSecurityError("Potentially unsafe pattern detected in command")
 
 
@@ -106,9 +96,6 @@ def safe_subprocess_popen(
     """
     if validate and shell and isinstance(command, str):
         validate_command_safety(command, allow_shell_features=shell)
-
-    # Log the command execution
-    logger.info(f"Creating Popen for command: {str(command)[:100]}...")
 
     if shell:
         # When using shell=True, command should be a string

@@ -5,12 +5,10 @@ JSON parsing utilities with enhanced error handling and concatenated object supp
 """
 
 import json
-import logging
+
 from typing import Any
 
 from tunacode.constants import READ_ONLY_TOOLS
-
-logger = logging.getLogger(__name__)
 
 
 class ConcatenatedJSONError(Exception):
@@ -74,12 +72,12 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> list[
                     if isinstance(parsed, dict):
                         objects.append(parsed)
                     else:
-                        logger.warning(f"Non-dict JSON object ignored: {type(parsed)}")
+                        pass
                 except json.JSONDecodeError as e:
                     if strict_mode:
-                        logger.debug(f"Invalid JSON fragment skipped: {potential_json[:100]}...")
+                        pass
                     else:
-                        logger.warning(f"JSON parse error: {e}")
+                        pass
                     continue
 
     if not objects:
@@ -107,22 +105,17 @@ def validate_tool_args_safety(objects: list[dict[str, Any]], tool_name: str | No
 
     # Check if tool is read-only (safer to execute multiple times)
     if tool_name and tool_name in READ_ONLY_TOOLS:
-        logger.info(f"Multiple JSON objects for read-only tool {tool_name} - allowing execution")
         return True
 
     # For write/execute tools, multiple objects are potentially dangerous
     if tool_name:
-        logger.warning(
-            f"Multiple JSON objects detected for tool {tool_name} "
-            f"({len(objects)} objects). This may indicate a model error."
-        )
+        pass
         raise ConcatenatedJSONError(
             f"Multiple JSON objects not safe for tool {tool_name}",
             objects_found=len(objects),
             tool_name=tool_name,
         )
     else:
-        logger.warning(f"Multiple JSON objects detected ({len(objects)}) with unknown tool")
         return False
 
 
@@ -156,8 +149,6 @@ def safe_json_parse(
         if not allow_concatenated or "Extra data" not in str(e):
             raise
 
-        logger.info("Attempting to split concatenated JSON objects")
-
         # Try to split concatenated objects
         objects = split_concatenated_json(json_string)
 
@@ -168,8 +159,7 @@ def safe_json_parse(
             else:
                 return objects
         else:
-            # Not safe - return first object with warning
-            logger.warning(f"Using first of {len(objects)} JSON objects only")
+            # Not safe - return first object
             return objects[0]
 
 

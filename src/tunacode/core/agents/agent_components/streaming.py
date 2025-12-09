@@ -1,6 +1,6 @@
 """Streaming instrumentation and handling for agent model request nodes.
 
-This module encapsulates verbose streaming + logging logic used during
+This module encapsulates verbose streaming logic used during
 token-level streaming from the LLM provider. It updates session debug fields
 and streams deltas to the provided callback while being resilient to errors.
 """
@@ -11,10 +11,7 @@ from collections.abc import Awaitable, Callable
 
 from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
-from tunacode.core.logging.logger import get_logger
 from tunacode.core.state import StateManager
-
-logger = get_logger(__name__)
 
 
 def _find_overlap_length(pre_text: str, delta_text: str) -> int:
@@ -266,29 +263,9 @@ async def stream_model_request_node(
                     except Exception:
                         pass
     except Exception as stream_err:
-        # Log with context and optionally notify UI, then degrade gracefully
-        logger.warning(
-            "Streaming error req=%s iter=%s: %s",
-            request_id,
-            iteration_index,
-            stream_err,
-            exc_info=True,
-        )
-
         # Reset node state to allow graceful degradation to non-streaming mode
         try:
             if hasattr(node, "_did_stream"):
                 node._did_stream = False
-                logger.debug(
-                    "Reset node._did_stream after streaming error (req=%s iter=%s)",
-                    request_id,
-                    iteration_index,
-                )
-        except Exception as reset_err:
-            logger.debug(
-                "Failed to reset node._did_stream (req=%s iter=%s): %s",
-                request_id,
-                iteration_index,
-                reset_err,
-                exc_info=True,
-            )
+        except Exception:
+            pass
