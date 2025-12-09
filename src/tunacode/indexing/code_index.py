@@ -219,11 +219,8 @@ class CodeIndex:
 
             self._clear_indices()
 
-            try:
-                self._scan_directory(self.root_dir)
-                self._indexed = True
-            except Exception:
-                raise
+            self._scan_directory(self.root_dir)
+            self._indexed = True
 
     def _clear_indices(self) -> None:
         """Clear all indices."""
@@ -277,25 +274,22 @@ class CodeIndex:
         with self._lock:
             self._clear_indices()
 
-            try:
-                # Index top-level files only (not subdirectories)
-                for entry in os.scandir(self.root_dir):
-                    if entry.is_file(follow_symlinks=False):
-                        file_path = Path(entry.path)
-                        if self._should_index_file(file_path):
-                            self._index_file(file_path)
+            # Index top-level files only (not subdirectories)
+            for entry in os.scandir(self.root_dir):
+                if entry.is_file(follow_symlinks=False):
+                    file_path = Path(entry.path)
+                    if self._should_index_file(file_path):
+                        self._index_file(file_path)
 
-                # Index priority subdirectories fully
-                for name in self.PRIORITY_DIRS:
-                    priority_path = self.root_dir / name
-                    if priority_path.is_dir():
-                        self._scan_directory(priority_path)
+            # Index priority subdirectories fully
+            for name in self.PRIORITY_DIRS:
+                priority_path = self.root_dir / name
+                if priority_path.is_dir():
+                    self._scan_directory(priority_path)
 
-                self._partial_indexed = True
-                self._indexed = False
-                return len(self._all_files)
-            except Exception:
-                raise
+            self._partial_indexed = True
+            self._indexed = False
+            return len(self._all_files)
 
     def expand_index(self) -> None:
         """Expand partial index to full index.
@@ -307,20 +301,17 @@ class CodeIndex:
             if not self._partial_indexed:
                 return
 
-            try:
-                # Scan remaining directories (non-priority)
-                for entry in os.scandir(self.root_dir):
-                    if entry.is_dir(follow_symlinks=False):
-                        dir_name = entry.name
-                        if dir_name in self.IGNORE_DIRS or dir_name.startswith("."):
-                            continue
-                        if dir_name not in self.PRIORITY_DIRS:
-                            self._scan_directory(Path(entry.path))
+            # Scan remaining directories (non-priority)
+            for entry in os.scandir(self.root_dir):
+                if entry.is_dir(follow_symlinks=False):
+                    dir_name = entry.name
+                    if dir_name in self.IGNORE_DIRS or dir_name.startswith("."):
+                        continue
+                    if dir_name not in self.PRIORITY_DIRS:
+                        self._scan_directory(Path(entry.path))
 
-                self._partial_indexed = False
-                self._indexed = True
-            except Exception:
-                raise
+            self._partial_indexed = False
+            self._indexed = True
 
     def _should_ignore_path(self, path: Path) -> bool:
         """Check if a path should be ignored during indexing."""

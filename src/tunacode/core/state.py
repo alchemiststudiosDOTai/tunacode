@@ -234,7 +234,7 @@ class StateManager:
             if isinstance(msg, dict):
                 result.append(msg)
             elif msg_adapter is not None:
-                with suppress(Exception):
+                with suppress(TypeError, ValueError, AttributeError):
                     result.append(msg_adapter.dump_python(msg, mode="json"))
         return result
 

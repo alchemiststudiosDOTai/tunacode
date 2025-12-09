@@ -164,18 +164,16 @@ async def _process_node(
                                 combined_text.rstrip().endswith(ending) for ending in action_endings
                             )
 
-                            if (
+                            early_with_pending = (
                                 has_pending_intention or ends_with_action
-                            ) and state_manager.session.iteration_count <= 1:
-                                # Too early to complete with pending intentions
-                                pass
+                            ) and state_manager.session.iteration_count <= 1
 
-                            # Normal completion - transition to RESPONSE state and mark completion
-                            response_state.transition_to(AgentState.RESPONSE)
-                            response_state.set_completion_detected(True)
-                            response_state.has_user_response = True
-                            # Update the part content to remove the marker
-                            part.content = cleaned_content
+                            if not early_with_pending:
+                                response_state.transition_to(AgentState.RESPONSE)
+                                response_state.set_completion_detected(True)
+                                response_state.has_user_response = True
+                                # Update the part content to remove the marker
+                                part.content = cleaned_content
                         break
 
             # Check for truncation patterns
@@ -314,8 +312,6 @@ async def _process_tool_calls(
             await tool_callback(part, node)
         except UserAbortError:
             raise
-        except Exception:
-            raise  # Fail fast - surface error to user
 
     # Track tool calls in session
     if is_processing_tools:

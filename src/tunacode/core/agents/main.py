@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 from tunacode.constants import UI_COLORS
 from tunacode.core.compaction import prune_old_tool_outputs
 from tunacode.core.state import StateManager
-from tunacode.exceptions import GlobalRequestTimeoutError, ToolBatchingJSONError, UserAbortError
+from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
 from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
@@ -449,13 +449,6 @@ class RequestOrchestrator:
                 return ac.AgentRunWithState(agent_run, response_state)
 
         except UserAbortError:
-            # User aborts must propagate - they represent user intent
-            raise
-        except ToolBatchingJSONError:
-            # Re-raise error
-            raise
-        except Exception:
-            # Re-raise error
             raise
 
 
