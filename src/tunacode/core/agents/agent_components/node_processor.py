@@ -168,12 +168,13 @@ async def _process_node(
                                 has_pending_intention or ends_with_action
                             ) and state_manager.session.iteration_count <= 1
 
+                            # Always strip the marker from content
+                            part.content = cleaned_content
+
                             if not early_with_pending:
                                 response_state.transition_to(AgentState.RESPONSE)
                                 response_state.set_completion_detected(True)
                                 response_state.has_user_response = True
-                                # Update the part content to remove the marker
-                                part.content = cleaned_content
                         break
 
             # Check for truncation patterns
