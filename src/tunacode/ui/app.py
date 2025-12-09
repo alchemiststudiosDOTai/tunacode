@@ -47,6 +47,7 @@ from tunacode.ui.styles import (
     STYLE_WARNING,
 )
 from tunacode.ui.widgets import (
+    CommandAutoComplete,
     Editor,
     EditorSubmitRequested,
     FileAutoComplete,
@@ -98,6 +99,21 @@ class TextualReplApp(App[None]):
         self.streaming_output: Static
 
     def compose(self) -> ComposeResult:
+        """
+        Construct and yield the app's UI widgets and layout in the order they should be composed.
+        
+        This prepares and exposes the following components as instance attributes:
+        - resource_bar: ResourceBar
+        - rich_log: RichLog used for rendered session messages
+        - streaming_output: Static panel for streaming text
+        - loading_indicator: LoadingIndicator shown during background work
+        - editor: Editor for user input
+        - status_bar: StatusBar
+        It also yields FileAutoComplete and CommandAutoComplete bound to the editor.
+        
+        Returns:
+            ComposeResult: an iterable of widgets and containers to be composed into the app's UI.
+        """
         self.resource_bar = ResourceBar()
         self.rich_log = RichLog(wrap=True, markup=True, highlight=True, auto_scroll=True)
         self.streaming_output = Static("", id="streaming-output")
@@ -112,9 +128,15 @@ class TextualReplApp(App[None]):
             yield self.loading_indicator
         yield self.editor
         yield FileAutoComplete(self.editor)
+        yield CommandAutoComplete(self.editor)
         yield self.status_bar
 
     def on_mount(self) -> None:
+        """
+        Apply available UI themes, load the user's preferred theme, initialize session persistence metadata, and either show the setup screen or start the REPL.
+        
+        The method registers the Tunacode and NextStep themes, sets self.theme to the user's saved preference if available (defaults to "dracula"), and populates session.project_id, session.working_directory, and session.created_at (if not already set). If the app was configured to show setup, it pushes the SetupScreen and defers to _on_setup_complete; otherwise it starts the REPL via _start_repl.
+        """
         tunacode_theme = build_tunacode_theme()
         self.register_theme(tunacode_theme)
         nextstep_theme = build_nextstep_theme()
@@ -255,12 +277,6 @@ class TextualReplApp(App[None]):
             )
             await self._current_request_task
         except asyncio.CancelledError:
-            from tunacode.core.agents.agent_components import patch_tool_messages
-
-            patch_tool_messages(
-                "Operation cancelled by user",
-                state_manager=self.state_manager,
-            )
             self.notify("Cancelled")
         except Exception as e:
             from tunacode.core.agents.agent_components import patch_tool_messages
