@@ -24,6 +24,6 @@ def load_prompt_from_xml(tool_name: str) -> str | None:
             description = root.find("description")
             if description is not None:
                 return description.text.strip()
-    except Exception as e:
+    except Exception:
         pass
     return None

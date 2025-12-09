@@ -20,7 +20,6 @@ def _handle_background_task_error(task: asyncio.Task) -> None:
     try:
         exception = task.exception()
         if exception is not None:
-            task_name = task.get_name()
             # Background task failed - just pass without logging
             pass
     except asyncio.CancelledError:

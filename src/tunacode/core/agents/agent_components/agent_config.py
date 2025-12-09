@@ -209,7 +209,7 @@ def load_tunacode_context() -> str:
             _TUNACODE_CACHE[cache_key] = ("", tunacode_path.stat().st_mtime)
             return ""
 
-    except Exception as e:
+    except Exception:
         return ""
 
 

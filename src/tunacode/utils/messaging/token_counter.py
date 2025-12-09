@@ -3,7 +3,6 @@
 from functools import lru_cache
 from typing import Any
 
-
 # Cache for tokenizer encodings
 _encoding_cache: dict[str, Any] = {}
 
@@ -46,7 +45,7 @@ def get_encoding(model_name: str):
 
     try:
         return tiktoken.get_encoding(encoding_name)
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -70,7 +69,7 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
         if encoding:
             try:
                 return len(encoding.encode(text))
-            except Exception as e:
+            except Exception:
                 pass
 
     # Fallback to character-based estimation

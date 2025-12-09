@@ -10,7 +10,6 @@ from typing import Any
 
 from tunacode.utils.messaging import estimate_tokens
 
-
 # Symbolic constants for pruning thresholds
 PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens of tool outputs
 PRUNE_MINIMUM_THRESHOLD: int = 20_000  # Only prune if savings exceed 20k

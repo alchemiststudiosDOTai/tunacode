@@ -451,10 +451,10 @@ class RequestOrchestrator:
         except UserAbortError:
             # User aborts must propagate - they represent user intent
             raise
-        except ToolBatchingJSONError as e:
+        except ToolBatchingJSONError:
             # Re-raise error
             raise
-        except Exception as e:
+        except Exception:
             # Re-raise error
             raise
 

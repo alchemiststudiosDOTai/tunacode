@@ -5,7 +5,6 @@ JSON parsing utilities with enhanced error handling and concatenated object supp
 """
 
 import json
-
 from typing import Any
 
 from tunacode.constants import READ_ONLY_TOOLS
@@ -73,7 +72,7 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> list[
                         objects.append(parsed)
                     else:
                         pass
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     if strict_mode:
                         pass
                     else:

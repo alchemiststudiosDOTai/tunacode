@@ -12,7 +12,6 @@ from tunacode.constants import (
     TOOL_RETRY_BASE_DELAY,
     TOOL_RETRY_MAX_DELAY,
 )
-
 from tunacode.exceptions import (
     ConfigurationError,
     FileOperationError,
@@ -21,7 +20,6 @@ from tunacode.exceptions import (
     ValidationError,
 )
 from tunacode.types import ToolCallback
-
 
 # Errors that should NOT be retried - they represent user intent or unrecoverable states
 NON_RETRYABLE_ERRORS = (
@@ -65,8 +63,6 @@ async def execute_tools_parallel(
     max_parallel = int(os.environ.get("TUNACODE_MAX_PARALLEL", os.cpu_count() or 4))
 
     async def execute_with_retry(part, node):
-        tool_name = getattr(part, "tool_name", "<unknown>")
-
         for attempt in range(1, TOOL_MAX_RETRIES + 1):
             try:
                 result = await callback(part, node)
@@ -74,7 +70,7 @@ async def execute_tools_parallel(
                 return result
             except NON_RETRYABLE_ERRORS:
                 raise
-            except Exception as e:
+            except Exception:
                 if attempt == TOOL_MAX_RETRIES:
                     raise
                 backoff = _calculate_backoff(attempt)

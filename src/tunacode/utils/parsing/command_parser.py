@@ -4,7 +4,6 @@ Command parsing utilities for the Textual REPL."""
 
 import json
 
-
 from tunacode.constants import (
     JSON_PARSE_BASE_DELAY,
     JSON_PARSE_MAX_DELAY,

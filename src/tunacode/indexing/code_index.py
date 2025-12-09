@@ -222,7 +222,7 @@ class CodeIndex:
             try:
                 self._scan_directory(self.root_dir)
                 self._indexed = True
-            except Exception as e:
+            except Exception:
                 raise
 
     def _clear_indices(self) -> None:
@@ -294,7 +294,7 @@ class CodeIndex:
                 self._partial_indexed = True
                 self._indexed = False
                 return len(self._all_files)
-            except Exception as e:
+            except Exception:
                 raise
 
     def expand_index(self) -> None:
@@ -319,7 +319,7 @@ class CodeIndex:
 
                 self._partial_indexed = False
                 self._indexed = True
-            except Exception as e:
+            except Exception:
                 raise
 
     def _should_ignore_path(self, path: Path) -> bool:
@@ -357,7 +357,7 @@ class CodeIndex:
 
         except PermissionError:
             pass
-        except Exception as e:
+        except Exception:
             pass
 
     def _should_index_file(self, file_path: Path) -> bool:
@@ -438,7 +438,7 @@ class CodeIndex:
             if imports:
                 self._path_to_imports[relative_path] = imports
 
-        except Exception as e:
+        except Exception:
             pass
 
     def lookup(self, query: str, file_type: str | None = None) -> list[Path]:

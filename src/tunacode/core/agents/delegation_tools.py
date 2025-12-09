@@ -85,8 +85,6 @@ Return a structured summary with:
 
         except Exception as e:
             # Catch all delegation errors (validation failures, pydantic-ai errors, etc.)
-            error_msg = f"Research agent delegation failed: {type(e).__name__}: {str(e)}"
-
             # Return structured error response instead of crashing
             return {
                 "error": True,

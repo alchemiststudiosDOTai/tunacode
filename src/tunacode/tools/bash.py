@@ -1,7 +1,6 @@
 """Bash command execution tool for agent operations."""
 
 import asyncio
-
 import os
 import re
 import subprocess
@@ -16,7 +15,6 @@ from tunacode.constants import (
     MAX_COMMAND_OUTPUT,
 )
 from tunacode.tools.decorators import base_tool
-
 
 # Enhanced dangerous patterns from run_command.py
 DESTRUCTIVE_PATTERNS = ["rm -rf", "rm -r", "rm /", "dd if=", "mkfs", "fdisk"]
@@ -190,7 +188,7 @@ async def _cleanup_process(process) -> None:
         except TimeoutError:
             process.kill()
             await asyncio.wait_for(process.wait(), timeout=1.0)
-    except Exception as e:
+    except Exception:
         pass
 
 

@@ -1,7 +1,6 @@
 """Ripgrep binary management and execution utilities."""
 
 import functools
-
 import os
 import platform
 import shutil
@@ -76,7 +75,7 @@ def get_ripgrep_binary_path() -> Path | None:
 
         if bundled_path.exists():
             return bundled_path
-    except Exception as e:
+    except Exception:
         pass
 
     return None
@@ -109,7 +108,7 @@ def _check_ripgrep_version(rg_path: Path, min_version: str = "13.0.0") -> bool:
             required = tuple(map(int, min_version.split(".")))
 
             return current >= required
-    except Exception as e:
+    except Exception:
         pass
 
     return False
@@ -197,7 +196,7 @@ class RipgrepExecutor:
 
         except subprocess.TimeoutExpired:
             return []
-        except Exception as e:
+        except Exception:
             return self._python_fallback_search(pattern, path, file_pattern=file_pattern)
 
     def list_files(self, pattern: str, directory: str = ".") -> list[str]:

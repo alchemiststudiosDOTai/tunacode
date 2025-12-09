@@ -7,8 +7,8 @@ CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 """
 
 import json
-
 import uuid
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,7 +25,6 @@ from tunacode.types import (
     UserConfig,
 )
 from tunacode.utils.messaging import estimate_tokens, get_message_content
-
 
 if TYPE_CHECKING:
     from tunacode.tools.authorization.handler import ToolHandler
@@ -235,10 +234,8 @@ class StateManager:
             if isinstance(msg, dict):
                 result.append(msg)
             elif msg_adapter is not None:
-                try:
+                with suppress(Exception):
                     result.append(msg_adapter.dump_python(msg, mode="json"))
-                except Exception as e:
-                    pass
         return result
 
     def _deserialize_messages(self, data: list[dict]) -> list:
@@ -262,7 +259,7 @@ class StateManager:
             elif item.get("kind") in ("request", "response"):
                 try:
                     result.append(msg_adapter.validate_python(item))
-                except Exception as e:
+                except Exception:
                     result.append(item)
             else:
                 result.append(item)
@@ -298,11 +295,11 @@ class StateManager:
             with open(session_file, "w") as f:
                 json.dump(session_data, f, indent=2)
             return True
-        except PermissionError as e:
+        except PermissionError:
             return False
-        except OSError as e:
+        except OSError:
             return False
-        except Exception as e:
+        except Exception:
             return False
 
     def load_session(self, session_id: str) -> bool:
@@ -345,9 +342,9 @@ class StateManager:
             self._session.messages = self._deserialize_messages(data.get("messages", []))
 
             return True
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             return False
-        except Exception as e:
+        except Exception:
             return False
 
     def list_sessions(self) -> list[dict]:
@@ -374,7 +371,7 @@ class StateManager:
                         "file_path": str(file),
                     }
                 )
-            except Exception as e:
+            except Exception:
                 pass
 
         sessions.sort(key=lambda x: x.get("last_modified", ""), reverse=True)

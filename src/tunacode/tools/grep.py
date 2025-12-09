@@ -12,7 +12,6 @@ CLAUDE_ANCHOR[grep-module]: Fast parallel file search with 3-second deadline
 """
 
 import asyncio
-
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -266,7 +265,7 @@ class ParallelGrep:
 
             except TooBroadPatternError:
                 raise
-            except Exception as e:
+            except Exception:
                 # Return empty to trigger fallback
                 return []
 

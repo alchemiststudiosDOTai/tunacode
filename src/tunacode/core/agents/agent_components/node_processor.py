@@ -128,13 +128,6 @@ async def _process_node(
                             # Don't mark as complete - let the tools run first
                             # Update the content to remove the marker but don't set task_completed
                             part.content = cleaned_content
-                            # Log this as an issue
-                            pending_tools_count = sum(
-                                1
-                                for p in node.model_response.parts
-                                if getattr(p, "part_kind", "") == "tool-call"
-                            )
-
                         else:
                             # Check if content suggests pending actions
                             combined_text = " ".join(all_content_parts).lower()
@@ -175,7 +168,7 @@ async def _process_node(
                                 has_pending_intention or ends_with_action
                             ) and state_manager.session.iteration_count <= 1:
                                 # Too early to complete with pending intentions
-                                found_phrases = [p for p in pending_phrases if p in combined_text]
+                                pass
 
                             # Normal completion - transition to RESPONSE state and mark completion
                             response_state.transition_to(AgentState.RESPONSE)
@@ -321,12 +314,8 @@ async def _process_tool_calls(
             await tool_callback(part, node)
         except UserAbortError:
             raise
-        except Exception as tool_err:
+        except Exception:
             raise  # Fail fast - surface error to user
-        finally:
-            tool_name = getattr(part, "tool_name", "<unknown>")
-            # Note: tool_result_callback with full result is called when we see
-            # tool-return parts in node.request
 
     # Track tool calls in session
     if is_processing_tools:

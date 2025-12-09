@@ -262,7 +262,7 @@ async def stream_model_request_node(
                             state_manager.session._debug_events.append(final_msg)
                     except Exception:
                         pass
-    except Exception as stream_err:
+    except Exception:
         # Reset node state to allow graceful degradation to non-streaming mode
         try:
             if hasattr(node, "_did_stream"):

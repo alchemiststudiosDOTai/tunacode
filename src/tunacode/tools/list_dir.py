@@ -6,7 +6,6 @@ from pathlib import Path
 
 from tunacode.tools.decorators import base_tool
 
-
 IGNORE_PATTERNS = [
     "node_modules/",
     "__pycache__/",
