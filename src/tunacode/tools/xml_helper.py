@@ -16,14 +16,14 @@ def load_prompt_from_xml(tool_name: str) -> str | None:
     Returns:
         str: The loaded prompt from XML or None if not found
     """
-    try:
-        prompt_file = Path(__file__).parent / "prompts" / f"{tool_name}_prompt.xml"
-        if prompt_file.exists():
-            tree = ET.parse(prompt_file)
-            root = tree.getroot()
-            description = root.find("description")
-            if description is not None:
-                return description.text.strip()
-    except Exception:
-        pass
-    return None
+    prompt_file = Path(__file__).parent / "prompts" / f"{tool_name}_prompt.xml"
+    if not prompt_file.exists():
+        return None
+
+    tree = ET.parse(prompt_file)
+    root = tree.getroot()
+    description = root.find("description")
+    if description is None:
+        return None
+
+    return description.text.strip()
