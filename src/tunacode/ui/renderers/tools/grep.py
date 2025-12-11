@@ -84,13 +84,15 @@ def parse_result(args: dict[str, Any] | None, result: str) -> GrepData | None:
             match_text = match_line.group(3)
             after = match_line.group(4)
 
-            matches.append({
-                "file": current_file,
-                "line": line_num,
-                "before": before,
-                "match": match_text,
-                "after": after,
-            })
+            matches.append(
+                {
+                    "file": current_file,
+                    "line": line_num,
+                    "before": before,
+                    "match": match_text,
+                    "after": after,
+                }
+            )
 
     if not matches and total_matches == 0:
         return None

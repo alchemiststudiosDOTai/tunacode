@@ -41,14 +41,16 @@ PRIVATE_IP_PATTERNS = [
 ]
 
 # Blocked hostnames
-BLOCKED_HOSTNAMES = frozenset([
-    "localhost",
-    "localhost.localdomain",
-    "local",
-    "0.0.0.0",  # nosec B104 - this is a blocklist, not a bind address
-    "127.0.0.1",
-    "::1",
-])
+BLOCKED_HOSTNAMES = frozenset(
+    [
+        "localhost",
+        "localhost.localdomain",
+        "local",
+        "0.0.0.0",  # nosec B104 - this is a blocklist, not a bind address
+        "127.0.0.1",
+        "::1",
+    ]
+)
 
 
 def _is_private_ip(ip_str: str) -> bool:
