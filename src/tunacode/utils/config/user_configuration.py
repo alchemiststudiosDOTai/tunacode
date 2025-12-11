@@ -22,12 +22,6 @@ _config_fingerprint = None
 _config_cache = None
 
 
-def compute_config_fingerprint(config_obj) -> str:
-    """Returns a short hash/fingerprint for a config object/searchable for fastpath usage."""
-    b = json.dumps(config_obj, sort_keys=True).encode()
-    return hashlib.sha1(b).hexdigest()[:12]
-
-
 def load_config() -> UserConfig | None:
     """Load user config from file, using fingerprint fast path if available."""
     global _config_fingerprint, _config_cache
