@@ -480,42 +480,44 @@ def tool_panel_smart(
     result: str | None = None,
     duration_ms: float | None = None,
 ) -> RenderableType:
-    # Handle list_dir with NeXTSTEP zoned layout
-    if name == "list_dir" and status == "completed" and result:
-        from tunacode.ui.renderers.tools.list_dir import render_list_dir
+    """Route tool output to NeXTSTEP-style renderers.
 
-        panel = render_list_dir(args, result, duration_ms)
-        if panel:
-            return panel
-
-    # Handle search tools
-    if name.lower() in ("grep", "glob") and result and status == "completed":
-        parsed = _try_parse_search_result(name, args, result)
-        if parsed:
-            if duration_ms is not None:
-                parsed.search_time_ms = duration_ms
-            return RichPanelRenderer.render_search_results(parsed)
-
-    # Handle update_file diffs
-    if (
-        name == "update_file"
-        and status == "completed"
-        and result
-        and "\n--- a/" in result
-        and "\n+++ b/" in result
-    ):
-        parts = result.split("\n--- a/", 1)
-        message = parts[0].strip()
-        diff_content = "--- a/" + parts[1]
-        return RichPanelRenderer.render_diff_tool(
-            name,
-            message,
-            diff_content,
-            args=args,
-            duration_ms=duration_ms,
-            timestamp=datetime.now(),
+    Each tool has a dedicated renderer with 4-zone layout:
+    - Header: identifier + summary
+    - Parameters: selection context
+    - Viewport: primary content
+    - Status: metrics, truncation info
+    """
+    # Only apply custom renderers for completed tools with results
+    if status == "completed" and result:
+        from tunacode.ui.renderers.tools import (
+            render_bash,
+            render_glob,
+            render_grep,
+            render_list_dir,
+            render_read_file,
+            render_update_file,
+            render_web_fetch,
         )
 
+        # Map tool names to their renderers
+        renderer_map = {
+            "list_dir": render_list_dir,
+            "grep": render_grep,
+            "glob": render_glob,
+            "read_file": render_read_file,
+            "update_file": render_update_file,
+            "bash": render_bash,
+            "web_fetch": render_web_fetch,
+        }
+
+        renderer = renderer_map.get(name.lower())
+        if renderer:
+            panel = renderer(args, result, duration_ms)
+            if panel:
+                return panel
+
+    # Fallback to generic panel for unsupported tools or failed renders
     return tool_panel(name, status, args, result, duration_ms)
 
 
