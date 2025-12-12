@@ -96,9 +96,7 @@ def run_headless(
     auto_approve: bool = typer.Option(
         False, "--auto-approve", help="Skip tool authorization prompts"
     ),
-    output_json: bool = typer.Option(
-        False, "--output-json", help="Output trajectory as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--output-json", help="Output trajectory as JSON"),
     timeout: int = typer.Option(
         DEFAULT_TIMEOUT_SECONDS, "--timeout", help="Execution timeout in seconds"
     ),
@@ -145,9 +143,7 @@ def run_headless(
 
             if output_json:
                 trajectory = {
-                    "messages": [
-                        _serialize_message(msg) for msg in state_manager.session.messages
-                    ],
+                    "messages": [_serialize_message(msg) for msg in state_manager.session.messages],
                     "tool_calls": state_manager.session.tool_calls,
                     "usage": state_manager.session.session_total_usage,
                     "success": True,

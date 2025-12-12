@@ -95,4 +95,3 @@ kb-claude link source target – insert reciprocal relations between two slugs.
 If kb-claude CLI is not installed, write the md files to the .claude/ folder manually following the entry format.
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go.
-

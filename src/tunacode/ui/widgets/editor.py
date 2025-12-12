@@ -29,6 +29,7 @@ class Editor(Input):
     def _status_bar(self) -> StatusBar | None:
         """Get status bar or None if not available."""
         from textual.css.query import NoMatches
+
         try:
             return self.app.query_one(StatusBar)
         except NoMatches:
