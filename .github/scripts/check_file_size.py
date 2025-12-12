@@ -4,7 +4,7 @@
 import sys
 from pathlib import Path
 
-MAX_LINES = 650
+MAX_LINES = 600
 SRC_DIR = Path("src")
 
 
