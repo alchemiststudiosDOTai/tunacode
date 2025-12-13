@@ -2,7 +2,10 @@
 
 from pathlib import Path
 
+from httpx import AsyncClient, HTTPStatusError
 from pydantic_ai import Agent, Tool
+from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
+from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.core.prompting import (
     RESEARCH_TEMPLATE,
@@ -76,7 +79,7 @@ def _create_limited_read_file(max_files: int):
         """
         if call_count["count"] >= max_files:
             return {
-                "content": f"⚠️ FILE READ LIMIT REACHED ({max_files} files maximum)\n\n"
+                "content": f" FILE READ LIMIT REACHED ({max_files} files maximum)\n\n"
                 f"Cannot read '{file_path}' - you have already read {max_files} files.\n"
                 "Please complete your research with the files you have analyzed.",
                 "lines": 0,
@@ -113,6 +116,29 @@ def create_research_agent(
         "tool_strict_validation", False
     )
 
+    # Import here to avoid circular import with agent_config.py
+    # (agent_config imports delegation_tools which imports this module)
+    from tunacode.core.agents.agent_components.agent_config import (
+        _build_request_hooks,
+        _coerce_request_delay,
+        _create_model_with_retry,
+    )
+
+    transport = AsyncTenacityTransport(
+        config=RetryConfig(
+            retry=retry_if_exception_type(HTTPStatusError),
+            wait=wait_retry_after(max_wait=60),
+            stop=stop_after_attempt(max_retries),
+            reraise=True,
+        ),
+        validate_response=lambda r: r.raise_for_status(),
+    )
+    request_delay = _coerce_request_delay(state_manager)
+    event_hooks = _build_request_hooks(request_delay, state_manager)
+    http_client = AsyncClient(transport=transport, event_hooks=event_hooks)
+
+    model_instance = _create_model_with_retry(model, http_client, state_manager)
+
     # Create limited read_file tool that enforces max_files cap
     limited_read_file = _create_limited_read_file(max_files)
 
@@ -125,7 +151,7 @@ def create_research_agent(
     ]
 
     return Agent(
-        model=model,
+        model=model_instance,
         system_prompt=system_prompt,
         tools=tools_list,
         output_type=dict,  # Structured research output as JSON dict

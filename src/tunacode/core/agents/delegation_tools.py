@@ -57,9 +57,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Note: Research agent panel display is handled by node_processor.py
         # which shows a purple panel with query details before execution
 
-        # Create research agent with same model as parent and enforced file limit
-        # Use isolated StateManager to prevent state conflicts in parallel execution
-        research_agent = create_research_agent(model, StateManager(), max_files=max_files)
+        research_agent = create_research_agent(model, state_manager, max_files=max_files)
 
         # Construct research prompt
         prompt = f"""Research the codebase for: {query}
