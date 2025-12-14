@@ -3,12 +3,8 @@
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
 
 from tunacode.types import AgentState
-
-if TYPE_CHECKING:
-    pass
 
 
 class InvalidStateTransitionError(Exception):
