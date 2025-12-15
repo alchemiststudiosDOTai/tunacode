@@ -14,6 +14,8 @@ from tunacode.tools.authorization.handler import ToolHandler
 from tunacode.ui.app import run_textual_repl
 from tunacode.utils.system import check_for_updates
 
+DEFAULT_TIMEOUT_SECONDS = 600
+
 app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
 state_manager = StateManager()
@@ -97,7 +99,9 @@ def run_headless(
     output_json: bool = typer.Option(
         False, "--output-json", help="Output trajectory as JSON"
     ),
-    timeout: int = typer.Option(600, "--timeout", help="Execution timeout in seconds"),
+    timeout: int = typer.Option(
+        DEFAULT_TIMEOUT_SECONDS, "--timeout", help="Execution timeout in seconds"
+    ),
     cwd: str = typer.Option(None, "--cwd", help="Working directory for execution"),
     model: str = typer.Option(None, "--model", "-m", help="Model to use"),
 ) -> None:
@@ -107,6 +111,10 @@ def run_headless(
     async def async_run() -> int:
         # Change working directory if specified
         if cwd:
+            if not os.path.isdir(cwd):
+                raise SystemExit(f"Invalid working directory: {cwd} (not a directory)")
+            if not os.access(cwd, os.R_OK | os.X_OK):
+                raise SystemExit(f"Inaccessible working directory: {cwd}")
             os.chdir(cwd)
 
         # Set model if provided
