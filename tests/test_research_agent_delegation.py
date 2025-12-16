@@ -12,9 +12,14 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic_ai.agent import CallToolsNode
+from pydantic_ai.messages import ToolCallPart
 
 from tunacode.core.agents.agent_components.agent_config import get_or_create_agent
-from tunacode.core.agents.delegation_tools import create_research_codebase_tool
+from tunacode.core.agents.delegation_tools import (
+    _get_tool_spinner_message,
+    create_research_codebase_tool,
+)
 from tunacode.core.state import StateManager
 
 
@@ -78,9 +83,19 @@ async def test_research_agent_delegation_with_usage_tracking(
     mock_ctx.usage = mock_usage
 
     with patch("tunacode.core.agents.delegation_tools.create_research_agent") as mock_factory:
-        # Create a mock research agent
-        mock_research_agent = AsyncMock()
-        mock_research_agent.run = AsyncMock(return_value=mock_result)
+        # Create a mock research agent with iter() method
+        mock_research_agent = MagicMock()
+
+        # Mock the async context manager returned by iter()
+        mock_agent_run = AsyncMock()
+        mock_agent_run.result = mock_result
+        mock_agent_run.__aenter__ = AsyncMock(return_value=mock_agent_run)
+        mock_agent_run.__aexit__ = AsyncMock(return_value=None)
+        # Empty async iterator (no nodes)
+        mock_agent_run.__aiter__ = lambda self: self
+        mock_agent_run.__anext__ = AsyncMock(side_effect=StopAsyncIteration)
+
+        mock_research_agent.iter = MagicMock(return_value=mock_agent_run)
         mock_factory.return_value = mock_research_agent
 
         # Call the delegation tool
@@ -100,9 +115,9 @@ async def test_research_agent_delegation_with_usage_tracking(
         assert isinstance(call_args.args[1], StateManager)  # Any StateManager instance
         assert call_args.kwargs["max_files"] == 3  # Should enforce hard limit of 3 (not 5)
 
-        # Verify research agent was called with usage context
-        mock_research_agent.run.assert_called_once()
-        call_args = mock_research_agent.run.call_args
+        # Verify research agent iter() was called with usage context
+        mock_research_agent.iter.assert_called_once()
+        call_args = mock_research_agent.iter.call_args
         assert "usage" in call_args.kwargs
         assert call_args.kwargs["usage"] == mock_usage
 
@@ -191,8 +206,17 @@ async def test_delegation_tool_default_directories(state_manager: StateManager) 
     mock_ctx.usage = MagicMock()
 
     with patch("tunacode.core.agents.delegation_tools.create_research_agent") as mock_factory:
-        mock_research_agent = AsyncMock()
-        mock_research_agent.run = AsyncMock(return_value=mock_result)
+        mock_research_agent = MagicMock()
+
+        # Mock the async context manager returned by iter()
+        mock_agent_run = AsyncMock()
+        mock_agent_run.result = mock_result
+        mock_agent_run.__aenter__ = AsyncMock(return_value=mock_agent_run)
+        mock_agent_run.__aexit__ = AsyncMock(return_value=None)
+        mock_agent_run.__aiter__ = lambda self: self
+        mock_agent_run.__anext__ = AsyncMock(side_effect=StopAsyncIteration)
+
+        mock_research_agent.iter = MagicMock(return_value=mock_agent_run)
         mock_factory.return_value = mock_research_agent
 
         # Call without directories parameter
@@ -203,7 +227,7 @@ async def test_delegation_tool_default_directories(state_manager: StateManager) 
         )
 
         # Verify the prompt includes default directory
-        call_args = mock_research_agent.run.call_args
+        call_args = mock_research_agent.iter.call_args
         prompt = call_args.args[0]
         assert "Search in directories: ." in prompt
 
@@ -233,8 +257,17 @@ async def test_max_files_hard_limit_enforcement(state_manager: StateManager) -> 
     mock_ctx.usage = MagicMock()
 
     with patch("tunacode.core.agents.delegation_tools.create_research_agent") as mock_factory:
-        mock_research_agent = AsyncMock()
-        mock_research_agent.run = AsyncMock(return_value=mock_result)
+        mock_research_agent = MagicMock()
+
+        # Mock the async context manager returned by iter()
+        mock_agent_run = AsyncMock()
+        mock_agent_run.result = mock_result
+        mock_agent_run.__aenter__ = AsyncMock(return_value=mock_agent_run)
+        mock_agent_run.__aexit__ = AsyncMock(return_value=None)
+        mock_agent_run.__aiter__ = lambda self: self
+        mock_agent_run.__anext__ = AsyncMock(side_effect=StopAsyncIteration)
+
+        mock_research_agent.iter = MagicMock(return_value=mock_agent_run)
         mock_factory.return_value = mock_research_agent
 
         # Call with max_files=10 (should be capped to 3)
@@ -246,7 +279,7 @@ async def test_max_files_hard_limit_enforcement(state_manager: StateManager) -> 
         )
 
         # Verify the prompt shows max_files was capped to 3
-        call_args = mock_research_agent.run.call_args
+        call_args = mock_research_agent.iter.call_args
         prompt = call_args.args[0]
         assert "Analyze up to 3 most relevant files" in prompt
         assert "10" not in prompt  # Should NOT contain the original value
@@ -254,3 +287,167 @@ async def test_max_files_hard_limit_enforcement(state_manager: StateManager) -> 
         # Verify result structure
         assert isinstance(result, dict)
         assert "relevant_files" in result
+
+
+class TestToolSpinnerMessage:
+    """Tests for the _get_tool_spinner_message helper function."""
+
+    def test_grep_message(self) -> None:
+        """Test grep tool returns search pattern message."""
+        message = _get_tool_spinner_message("grep", {"pattern": "def foo"})
+        assert message == "Searching for 'def foo'..."
+
+    def test_glob_message(self) -> None:
+        """Test glob tool returns file pattern message."""
+        message = _get_tool_spinner_message("glob", {"pattern": "*.py"})
+        assert message == "Finding files matching '*.py'..."
+
+    def test_list_dir_message(self) -> None:
+        """Test list_dir tool returns directory path message."""
+        message = _get_tool_spinner_message("list_dir", {"path": "src/tunacode"})
+        assert message == "Listing directory 'src/tunacode'..."
+
+    def test_limited_read_file_message(self) -> None:
+        """Test limited_read_file tool returns file path message."""
+        message = _get_tool_spinner_message("limited_read_file", {"file_path": "main.py"})
+        assert message == "Reading main.py..."
+
+    def test_unknown_tool_message(self) -> None:
+        """Test unknown tool returns generic message."""
+        message = _get_tool_spinner_message("unknown_tool", {})
+        assert message == "Running unknown_tool..."
+
+    def test_missing_args_uses_defaults(self) -> None:
+        """Test that missing args use fallback defaults."""
+        message = _get_tool_spinner_message("grep", {})
+        assert message == "Searching for '...'..."
+
+        message = _get_tool_spinner_message("glob", {})
+        assert message == "Finding files matching '...'..."
+
+
+@pytest.mark.asyncio
+async def test_on_tool_call_callback_invocation(state_manager: StateManager) -> None:
+    """Test that on_tool_call callback is invoked when child agent calls tools.
+
+    This validates the UI feedback mechanism works correctly during delegation.
+    """
+    # Track callback invocations
+    callback_messages: list[str] = []
+
+    def track_callback(message: str) -> None:
+        callback_messages.append(message)
+
+    # Create delegation tool with callback
+    research_codebase = create_research_codebase_tool(
+        state_manager, on_tool_call=track_callback
+    )
+
+    mock_result = MagicMock()
+    mock_result.output = {
+        "relevant_files": ["test.py"],
+        "key_findings": ["Found test"],
+        "code_examples": [],
+        "recommendations": [],
+    }
+
+    mock_ctx = MagicMock()
+    mock_ctx.usage = MagicMock()
+
+    with patch("tunacode.core.agents.delegation_tools.create_research_agent") as mock_factory:
+        mock_research_agent = MagicMock()
+
+        # Create a mock CallToolsNode with tool calls
+        mock_tool_call_part = ToolCallPart(
+            tool_name="grep",
+            args={"pattern": "class Test"},
+            tool_call_id="call_123",
+        )
+
+        mock_model_response = MagicMock()
+        mock_model_response.parts = [mock_tool_call_part]
+
+        mock_call_tools_node = MagicMock(spec=CallToolsNode)
+        mock_call_tools_node.model_response = mock_model_response
+
+        # Create async iterator that yields the CallToolsNode
+        async def async_node_iterator():
+            yield mock_call_tools_node
+
+        mock_agent_run = AsyncMock()
+        mock_agent_run.result = mock_result
+        mock_agent_run.__aenter__ = AsyncMock(return_value=mock_agent_run)
+        mock_agent_run.__aexit__ = AsyncMock(return_value=None)
+        mock_agent_run.__aiter__ = lambda self: async_node_iterator()
+
+        mock_research_agent.iter = MagicMock(return_value=mock_agent_run)
+        mock_factory.return_value = mock_research_agent
+
+        # Call the delegation tool
+        result = await research_codebase(
+            ctx=mock_ctx,
+            query="Find test classes",
+            directories=["."],
+        )
+
+        # Verify callback was invoked with correct message
+        assert len(callback_messages) == 1
+        assert callback_messages[0] == "Searching for 'class Test'..."
+
+        # Verify result still returned correctly
+        assert result["relevant_files"] == ["test.py"]
+
+
+@pytest.mark.asyncio
+async def test_no_callback_when_none_provided(state_manager: StateManager) -> None:
+    """Test that no errors occur when on_tool_call is None."""
+    # Create delegation tool without callback (default behavior)
+    research_codebase = create_research_codebase_tool(state_manager)
+
+    mock_result = MagicMock()
+    mock_result.output = {
+        "relevant_files": [],
+        "key_findings": [],
+        "code_examples": [],
+        "recommendations": [],
+    }
+
+    mock_ctx = MagicMock()
+    mock_ctx.usage = MagicMock()
+
+    with patch("tunacode.core.agents.delegation_tools.create_research_agent") as mock_factory:
+        mock_research_agent = MagicMock()
+
+        # Create a mock CallToolsNode with tool calls
+        mock_tool_call_part = ToolCallPart(
+            tool_name="grep",
+            args={"pattern": "test"},
+            tool_call_id="call_456",
+        )
+
+        mock_model_response = MagicMock()
+        mock_model_response.parts = [mock_tool_call_part]
+
+        mock_call_tools_node = MagicMock(spec=CallToolsNode)
+        mock_call_tools_node.model_response = mock_model_response
+
+        async def async_node_iterator():
+            yield mock_call_tools_node
+
+        mock_agent_run = AsyncMock()
+        mock_agent_run.result = mock_result
+        mock_agent_run.__aenter__ = AsyncMock(return_value=mock_agent_run)
+        mock_agent_run.__aexit__ = AsyncMock(return_value=None)
+        mock_agent_run.__aiter__ = lambda self: async_node_iterator()
+
+        mock_research_agent.iter = MagicMock(return_value=mock_agent_run)
+        mock_factory.return_value = mock_research_agent
+
+        # Should not raise any errors even though CallToolsNode is yielded
+        result = await research_codebase(
+            ctx=mock_ctx,
+            query="Test without callback",
+        )
+
+        # Verify result returned correctly
+        assert isinstance(result, dict)

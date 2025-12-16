@@ -5,8 +5,11 @@ Delegation tools for multi-agent workflows using pydantic-ai's delegation patter
 """
 
 import logging
+from collections.abc import Callable
 
 from pydantic_ai import RunContext
+from pydantic_ai.agent import CallToolsNode
+from pydantic_ai.messages import ToolCallPart
 
 from tunacode.core.agents.research_agent import create_research_agent
 from tunacode.core.state import StateManager
@@ -14,11 +17,34 @@ from tunacode.core.state import StateManager
 logger = logging.getLogger(__name__)
 
 
-def create_research_codebase_tool(state_manager: StateManager):
+def _get_tool_spinner_message(tool_name: str, args: dict) -> str:
+    """Map tool name to user-friendly spinner message.
+
+    Args:
+        tool_name: Internal tool function name
+        args: Tool arguments dict
+
+    Returns:
+        User-friendly message for spinner display
+    """
+    messages = {
+        "grep": f"Searching for '{args.get('pattern', '...')}'...",
+        "glob": f"Finding files matching '{args.get('pattern', '...')}'...",
+        "list_dir": f"Listing directory '{args.get('path', '.')}'...",
+        "limited_read_file": f"Reading {args.get('file_path', 'file')}...",
+    }
+    return messages.get(tool_name, f"Running {tool_name}...")
+
+
+def create_research_codebase_tool(
+    state_manager: StateManager,
+    on_tool_call: Callable[[str], None] | None = None,
+):
     """Factory to create research_codebase delegation tool with state_manager closure.
 
     Args:
         state_manager: StateManager instance to access current model and session state
+        on_tool_call: Optional callback invoked with spinner message when child agent calls a tool
 
     Returns:
         Async function that delegates research queries to specialized research agent
@@ -78,12 +104,19 @@ Return a structured summary with:
 - recommendations: next steps or areas needing attention
 """
 
-        # Delegate to research agent with usage propagation
+        # Delegate to research agent with usage propagation and tool call events
         try:
-            result = await research_agent.run(
-                prompt,
-                usage=ctx.usage,  # Share usage tracking with parent agent
-            )
+            async with research_agent.iter(prompt, usage=ctx.usage) as agent_run:
+                async for node in agent_run:
+                    # Detect tool calls and update spinner via callback
+                    if isinstance(node, CallToolsNode) and on_tool_call:
+                        for part in node.model_response.parts:
+                            if isinstance(part, ToolCallPart):
+                                args = part.args if isinstance(part.args, dict) else {}
+                                message = _get_tool_spinner_message(part.tool_name, args)
+                                on_tool_call(message)
+
+                result = agent_run.result
 
             return result.output
 

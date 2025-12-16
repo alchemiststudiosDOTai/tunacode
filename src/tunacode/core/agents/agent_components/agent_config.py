@@ -253,7 +253,16 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         ]
 
         # Add delegation tool (multi-agent pattern)
-        research_codebase = create_research_codebase_tool(state_manager)
+        # Callback to update spinner when research agent calls tools
+        def on_research_tool_call(message: str) -> None:
+            """Update spinner message when research agent calls a tool."""
+            spinner = state_manager.session.spinner
+            if spinner and hasattr(spinner, "update"):
+                spinner.update(f"[dim]{message}[/dim]")
+
+        research_codebase = create_research_codebase_tool(
+            state_manager, on_tool_call=on_research_tool_call
+        )
         tools_list.append(
             Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
         )
