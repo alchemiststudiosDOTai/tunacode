@@ -20,21 +20,18 @@ class ConcatenatedJSONError(Exception):
         super().__init__(message)
 
 
-def split_concatenated_json(json_string: str, strict_mode: bool = True) -> list[dict[str, Any]]:
+def split_concatenated_json(json_string: str) -> list[dict[str, Any]]:
     """
     Split concatenated JSON objects like {"a": 1}{"b": 2} into separate objects.
 
     Args:
         json_string: String containing potentially concatenated JSON objects
-        strict_mode: If True, only returns valid JSON objects. If False, attempts
-                    to recover partial objects.
 
     Returns:
         List of parsed JSON objects
 
     Raises:
         json.JSONDecodeError: If no valid JSON objects can be extracted
-        ConcatenatedJSONError: If multiple objects found but not safe to process
     """
     objects = []
     brace_count = 0
@@ -68,16 +65,11 @@ def split_concatenated_json(json_string: str, strict_mode: bool = True) -> list[
                 potential_json = json_string[start_pos : i + 1].strip()
                 try:
                     parsed = json.loads(potential_json)
-                    if isinstance(parsed, dict):
-                        objects.append(parsed)
-                    else:
-                        pass
                 except json.JSONDecodeError:
-                    if strict_mode:
-                        pass
-                    else:
-                        pass
                     continue
+
+                if isinstance(parsed, dict):
+                    objects.append(parsed)
 
     if not objects:
         raise json.JSONDecodeError("No valid JSON objects found", json_string, 0)
@@ -107,15 +99,14 @@ def validate_tool_args_safety(objects: list[dict[str, Any]], tool_name: str | No
         return True
 
     # For write/execute tools, multiple objects are potentially dangerous
-    if tool_name:
-        pass
-        raise ConcatenatedJSONError(
-            f"Multiple JSON objects not safe for tool {tool_name}",
-            objects_found=len(objects),
-            tool_name=tool_name,
-        )
-    else:
+    if tool_name is None:
         return False
+
+    raise ConcatenatedJSONError(
+        f"Multiple JSON objects not safe for tool {tool_name}",
+        objects_found=len(objects),
+        tool_name=tool_name,
+    )
 
 
 def safe_json_parse(
@@ -139,11 +130,6 @@ def safe_json_parse(
     try:
         # First, try normal JSON parsing
         result = json.loads(json_string)
-        if isinstance(result, dict):
-            return result
-        else:
-            raise json.JSONDecodeError(f"Expected dict, got {type(result)}", json_string, 0)
-
     except json.JSONDecodeError as e:
         if not allow_concatenated or "Extra data" not in str(e):
             raise
@@ -152,14 +138,18 @@ def safe_json_parse(
         objects = split_concatenated_json(json_string)
 
         # Validate safety
-        if validate_tool_args_safety(objects, tool_name):
-            if len(objects) == 1:
-                return objects[0]
-            else:
-                return objects
-        else:
-            # Not safe - return first object
+        if not validate_tool_args_safety(objects, tool_name):
             return objects[0]
+
+        if len(objects) == 1:
+            return objects[0]
+
+        return objects
+
+    if not isinstance(result, dict):
+        raise json.JSONDecodeError(f"Expected dict, got {type(result)}", json_string, 0)
+
+    return result
 
 
 def merge_json_objects(objects: list[dict[str, Any]], strategy: str = "first") -> dict[str, Any]:
@@ -181,13 +171,12 @@ def merge_json_objects(objects: list[dict[str, Any]], strategy: str = "first") -
 
     if strategy == "first":
         return objects[0]
-    elif strategy == "last":
+    if strategy == "last":
         return objects[-1]
-    elif strategy == "combine":
-        # Combine all objects, later values override earlier ones
-        result = {}
+    if strategy == "combine":
+        result: dict[str, Any] = {}
         for obj in objects:
             result.update(obj)
         return result
-    else:
-        raise ValueError(f"Unknown merge strategy: {strategy}")
+
+    raise ValueError(f"Unknown merge strategy: {strategy}")
