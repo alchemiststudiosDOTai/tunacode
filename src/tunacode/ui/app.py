@@ -277,6 +277,11 @@ class TextualReplApp(App[None]):
         try:
             model_name = self.state_manager.session.current_model or "openai/gpt-4o"
 
+            # Set progress callback on session for subagent progress tracking
+            self.state_manager.session.tool_progress_callback = build_tool_progress_callback(
+                self
+            )
+
             self._current_request_task = asyncio.create_task(
                 process_request(
                     message=message,
@@ -615,5 +620,21 @@ def build_tool_start_callback(app: TextualReplApp) -> Callable[[str], None]:
 
     def _callback(tool_name: str) -> None:
         app.status_bar.update_running_action(tool_name)
+
+    return _callback
+
+
+def build_tool_progress_callback(app: TextualReplApp) -> Callable[[str, str, int, int], None]:
+    """Build callback for subagent tool progress notifications.
+
+    Args:
+        app: The TextualReplApp instance
+
+    Returns:
+        Callback function that updates status bar with subagent progress
+    """
+
+    def _callback(subagent: str, operation: str, current: int, total: int) -> None:
+        app.status_bar.update_subagent_progress(subagent, operation, current, total)
 
     return _callback

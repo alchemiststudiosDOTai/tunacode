@@ -22,6 +22,7 @@ from tunacode.types import (
     ModelName,
     SessionId,
     ToolName,
+    ToolProgressCallback,
     UserConfig,
 )
 from tunacode.utils.messaging import estimate_tokens, get_message_content
@@ -44,6 +45,7 @@ class SessionState:
     current_model: ModelName = DEFAULT_USER_CONFIG["default_model"]
     spinner: Any | None = None
     tool_ignore: list[ToolName] = field(default_factory=list)
+    tool_progress_callback: ToolProgressCallback | None = None
     yolo: bool = False
     undo_initialized: bool = False
     show_thoughts: bool = False

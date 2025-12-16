@@ -58,6 +58,7 @@ ToolArgs = dict[str, Any]
 ToolResult = str
 ToolCallback = Callable[[Any, Any], Awaitable[None]]
 ToolStartCallback = Callable[[str], None]  # Called when tool execution starts
+ToolProgressCallback = Callable[[str, str, int, int], None]  # (subagent, operation, current, total)
 ToolCallId = str
 
 

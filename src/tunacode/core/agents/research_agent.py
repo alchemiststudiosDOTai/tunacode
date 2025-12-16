@@ -1,6 +1,7 @@
 """Research agent factory for read-only codebase exploration."""
 
 from pathlib import Path
+from typing import Any
 
 from httpx import AsyncClient, HTTPStatusError
 from pydantic_ai import Agent, Tool
@@ -19,7 +20,7 @@ from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
 from tunacode.tools.read_file import read_file
-from tunacode.types import ModelName
+from tunacode.types import ModelName, ToolProgressCallback
 
 # Maximum wait time in seconds for retry backoff
 MAX_RETRY_WAIT_SECONDS = 60
@@ -95,8 +96,56 @@ def _create_limited_read_file(max_files: int):
     return limited_read_file
 
 
+class ProgressTracker:
+    """Tracks tool execution progress for subagent feedback."""
+
+    def __init__(self, callback: ToolProgressCallback | None, subagent_name: str = "research"):
+        self.callback = callback
+        self.subagent_name = subagent_name
+        self.operation_count = 0
+        self.total_operations = 0
+
+    def emit(self, operation: str) -> None:
+        """Emit progress event for current operation."""
+        self.operation_count += 1
+        if self.callback:
+            self.callback(
+                self.subagent_name,
+                operation,
+                self.operation_count,
+                self.total_operations,
+            )
+
+    def wrap_tool(self, tool_func, tool_name: str):
+        """Wrap a tool function to emit progress before execution."""
+
+        async def wrapped(*args, **kwargs) -> Any:
+            # Format operation description
+            if args:
+                first_arg = str(args[0])[:40]
+                operation = f"{tool_name} {first_arg}"
+            elif kwargs:
+                first_val = str(next(iter(kwargs.values())))[:40]
+                operation = f"{tool_name} {first_val}"
+            else:
+                operation = tool_name
+
+            self.emit(operation)
+            return await tool_func(*args, **kwargs)
+
+        # Preserve function metadata for pydantic-ai
+        wrapped.__name__ = tool_func.__name__
+        wrapped.__doc__ = tool_func.__doc__
+        wrapped.__annotations__ = getattr(tool_func, "__annotations__", {})
+
+        return wrapped
+
+
 def create_research_agent(
-    model: ModelName, state_manager: StateManager, max_files: int = 3
+    model: ModelName,
+    state_manager: StateManager,
+    max_files: int = 3,
+    progress_callback: ToolProgressCallback | None = None,
 ) -> Agent:
     """Create research agent with read-only tools and file read limit.
 
@@ -106,6 +155,7 @@ def create_research_agent(
         model: The model name to use (same as main agent)
         state_manager: State manager for session context
         max_files: Maximum number of files the agent can read (hard limit, default: 3)
+        progress_callback: Optional callback for tool execution progress updates
 
     Returns:
         Agent configured with read-only tools, research system prompt, and file limit
@@ -145,12 +195,27 @@ def create_research_agent(
     # Create limited read_file tool that enforces max_files cap
     limited_read_file = _create_limited_read_file(max_files)
 
+    # Set up progress tracking if callback provided
+    tracker = ProgressTracker(progress_callback, "research")
+
+    # Wrap tools with progress tracking
+    if progress_callback:
+        tracked_read_file = tracker.wrap_tool(limited_read_file, "read_file")
+        tracked_grep = tracker.wrap_tool(grep, "grep")
+        tracked_list_dir = tracker.wrap_tool(list_dir, "list_dir")
+        tracked_glob = tracker.wrap_tool(glob, "glob")
+    else:
+        tracked_read_file = limited_read_file
+        tracked_grep = grep
+        tracked_list_dir = list_dir
+        tracked_glob = glob
+
     # Create read-only tools list (no write/execute capabilities)
     tools_list = [
-        Tool(limited_read_file, max_retries=max_retries, strict=tool_strict_validation),
-        Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
-        Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
-        Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
+        Tool(tracked_read_file, max_retries=max_retries, strict=tool_strict_validation),
+        Tool(tracked_grep, max_retries=max_retries, strict=tool_strict_validation),
+        Tool(tracked_list_dir, max_retries=max_retries, strict=tool_strict_validation),
+        Tool(tracked_glob, max_retries=max_retries, strict=tool_strict_validation),
     ]
 
     return Agent(

@@ -48,6 +48,23 @@ class StatusBar(Horizontal):
     def update_running_action(self, tool_name: str) -> None:
         self.query_one("#status-right", Static).update(f"running: {tool_name}")
 
+    def update_subagent_progress(
+        self, subagent: str, operation: str, current: int, total: int
+    ) -> None:
+        """Update status with subagent progress.
+
+        Shows format: running: research [3/7] grep pattern...
+        """
+        # Truncate operation to fit status bar
+        max_op_len = 25
+        if len(operation) > max_op_len:
+            operation = operation[: max_op_len - 3] + "..."
+
+        # Format: running: subagent [current/?] operation
+        # Use ? for total since we don't know upfront how many operations
+        progress_text = f"running: {subagent} [{current}] {operation}"
+        self.query_one("#status-right", Static).update(progress_text)
+
     def add_edited_file(self, filepath: str) -> None:
         """Track an edited file and update display."""
         filename = os.path.basename(filepath)

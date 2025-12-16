@@ -18,6 +18,10 @@ def create_research_codebase_tool(state_manager: StateManager):
 
     Returns:
         Async function that delegates research queries to specialized research agent
+
+    Note:
+        Progress callback is retrieved from state_manager.session.tool_progress_callback
+        at runtime to support dynamic callback updates without agent recreation.
     """
 
     async def research_codebase(
@@ -57,7 +61,12 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Note: Research agent panel display is handled by node_processor.py
         # which shows a purple panel with query details before execution
 
-        research_agent = create_research_agent(model, state_manager, max_files=max_files)
+        # Get progress callback from session (set at request time by UI)
+        progress_callback = getattr(state_manager.session, "tool_progress_callback", None)
+
+        research_agent = create_research_agent(
+            model, state_manager, max_files=max_files, progress_callback=progress_callback
+        )
 
         # Construct research prompt
         prompt = f"""Research the codebase for: {query}

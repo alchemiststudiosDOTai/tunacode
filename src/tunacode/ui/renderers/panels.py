@@ -496,6 +496,7 @@ def tool_panel_smart(
             render_grep,
             render_list_dir,
             render_read_file,
+            render_research_codebase,
             render_update_file,
             render_web_fetch,
         )
@@ -509,6 +510,7 @@ def tool_panel_smart(
             "update_file": render_update_file,
             "bash": render_bash,
             "web_fetch": render_web_fetch,
+            "research_codebase": render_research_codebase,
         }
 
         renderer = renderer_map.get(name.lower())
