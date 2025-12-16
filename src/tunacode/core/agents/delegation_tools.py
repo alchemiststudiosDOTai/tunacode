@@ -62,7 +62,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         # which shows a purple panel with query details before execution
 
         # Get progress callback from session (set at request time by UI)
-        progress_callback = getattr(state_manager.session, "tool_progress_callback", None)
+        progress_callback = state_manager.session.tool_progress_callback
 
         research_agent = create_research_agent(
             model, state_manager, max_files=max_files, progress_callback=progress_callback

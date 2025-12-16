@@ -18,6 +18,16 @@ from tunacode.constants import MAX_PANEL_LINE_WIDTH, MAX_PANEL_LINES, UI_COLORS
 BOX_HORIZONTAL = "\u2500"
 SEPARATOR_WIDTH = 52
 
+# Symbolic constants for magic values
+DEFAULT_DIRECTORY = "."
+DEFAULT_MAX_FILES = 3
+ELLIPSIS_LENGTH = 3
+MAX_QUERY_DISPLAY_LENGTH = 60
+MAX_DIRECTORIES_DISPLAY = 3
+LINES_RESERVED_FOR_HEADER_FOOTER = 4
+MIN_LINES_FOR_RECOMMENDATIONS = 2
+MAX_FALLBACK_RESULT_LENGTH = 500
+
 
 @dataclass
 class ResearchData:
@@ -73,20 +83,22 @@ def parse_result(args: dict[str, Any] | None, result: str) -> ResearchData | Non
     """
     args = args or {}
     query = args.get("query", "")
-    directories = args.get("directories", ["."])
-    max_files = args.get("max_files", 3)
+    directories = args.get("directories", [DEFAULT_DIRECTORY])
+    max_files = args.get("max_files", DEFAULT_MAX_FILES)
 
     if isinstance(directories, str):
         directories = [directories]
 
     parsed = _parse_dict_result(result)
     if not parsed:
-        # Could not parse - return minimal data with raw result as finding
+        # Could not parse - return error state with raw result as finding
         return ResearchData(
             query=query,
             directories=directories,
             max_files=max_files,
-            key_findings=[result[:500] if result else "No results"],
+            key_findings=[result[:MAX_FALLBACK_RESULT_LENGTH] if result else "No results"],
+            is_error=True,
+            error_message="Could not parse structured result",
         )
 
     is_error = parsed.get("error", False)
@@ -108,7 +120,7 @@ def parse_result(args: dict[str, Any] | None, result: str) -> ResearchData | Non
 def _truncate_line(line: str) -> str:
     """Truncate a single line if too wide."""
     if len(line) > MAX_PANEL_LINE_WIDTH:
-        return line[: MAX_PANEL_LINE_WIDTH - 3] + "..."
+        return line[: MAX_PANEL_LINE_WIDTH - ELLIPSIS_LENGTH] + "..."
     return line
 
 
@@ -132,13 +144,14 @@ def render_research_codebase(
     # Zone 1: Query header
     header = Text()
     header.append("Query: ", style="dim")
-    query_display = data.query[:60] + "..." if len(data.query) > 60 else data.query
+    query_too_long = len(data.query) > MAX_QUERY_DISPLAY_LENGTH
+    query_display = data.query[:MAX_QUERY_DISPLAY_LENGTH] + "..." if query_too_long else data.query
     header.append(f'"{query_display}"', style="bold")
 
     # Zone 2: Parameters
-    dirs_display = ", ".join(data.directories[:3])
-    if len(data.directories) > 3:
-        dirs_display += f" (+{len(data.directories) - 3})"
+    dirs_display = ", ".join(data.directories[:MAX_DIRECTORIES_DISPLAY])
+    if len(data.directories) > MAX_DIRECTORIES_DISPLAY:
+        dirs_display += f" (+{len(data.directories) - MAX_DIRECTORIES_DISPLAY})"
 
     params = Text()
     params.append("dirs:", style="dim")
@@ -151,7 +164,7 @@ def render_research_codebase(
     # Zone 3: Primary viewport
     viewport_lines: list[Text] = []
     lines_used = 0
-    max_viewport_lines = MAX_PANEL_LINES - 4  # Reserve for header/footer
+    max_viewport_lines = MAX_PANEL_LINES - LINES_RESERVED_FOR_HEADER_FOOTER
 
     # Error state
     if data.is_error:
@@ -206,7 +219,7 @@ def render_research_codebase(
         lines_used += 1
 
     # Recommendations section (if space)
-    if data.recommendations and lines_used < max_viewport_lines - 2:
+    if data.recommendations and lines_used < max_viewport_lines - MIN_LINES_FOR_RECOMMENDATIONS:
         rec_header = Text()
         rec_header.append("Recommendations", style="bold")
         viewport_lines.append(rec_header)

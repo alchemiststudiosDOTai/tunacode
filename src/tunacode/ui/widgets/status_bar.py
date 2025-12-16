@@ -9,6 +9,9 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Static
 
+# Maximum length for operation text in status bar
+MAX_STATUS_OPERATION_LEN = 25
+
 
 class StatusBar(Horizontal):
     """Bottom status bar - 3 zones."""
@@ -49,16 +52,15 @@ class StatusBar(Horizontal):
         self.query_one("#status-right", Static).update(f"running: {tool_name}")
 
     def update_subagent_progress(
-        self, subagent: str, operation: str, current: int, total: int
+        self, subagent: str, operation: str, current: int, _total: int
     ) -> None:
         """Update status with subagent progress.
 
-        Shows format: running: research [3/7] grep pattern...
+        Shows format: running: research [3] grep pattern...
         """
         # Truncate operation to fit status bar
-        max_op_len = 25
-        if len(operation) > max_op_len:
-            operation = operation[: max_op_len - 3] + "..."
+        if len(operation) > MAX_STATUS_OPERATION_LEN:
+            operation = operation[: MAX_STATUS_OPERATION_LEN - 3] + "..."
 
         # Format: running: subagent [current/?] operation
         # Use ? for total since we don't know upfront how many operations

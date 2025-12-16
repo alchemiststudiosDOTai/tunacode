@@ -97,13 +97,17 @@ def _create_limited_read_file(max_files: int):
 
 
 class ProgressTracker:
-    """Tracks tool execution progress for subagent feedback."""
+    """Tracks tool execution progress for subagent feedback.
+
+    Note: total_operations is always 0 (unknown) since the number of
+    tool calls cannot be predicted upfront.
+    """
 
     def __init__(self, callback: ToolProgressCallback | None, subagent_name: str = "research"):
         self.callback = callback
         self.subagent_name = subagent_name
         self.operation_count = 0
-        self.total_operations = 0
+        self.total_operations = 0  # Always 0: total is unknown upfront
 
     def emit(self, operation: str) -> None:
         """Emit progress event for current operation."""
