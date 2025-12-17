@@ -137,8 +137,14 @@ def safe_json_parse(
         # Try to split concatenated objects
         objects = split_concatenated_json(json_string)
 
-        # Validate safety
+        # Validate safety - fail loud if multiple objects would be discarded
         if not validate_tool_args_safety(objects, tool_name):
+            if len(objects) > 1:
+                raise ConcatenatedJSONError(
+                    "Multiple JSON objects detected but tool safety unknown",
+                    objects_found=len(objects),
+                    tool_name=tool_name,
+                ) from None
             return objects[0]
 
         if len(objects) == 1:
