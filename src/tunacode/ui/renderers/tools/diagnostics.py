@@ -9,8 +9,8 @@ from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import UI_COLORS
+from tunacode.lsp.diagnostics import truncate_diagnostic_message
 
-MAX_DIAGNOSTIC_MESSAGE_LENGTH = 80
 MAX_DIAGNOSTICS_DISPLAY = 10
 
 BOX_HORIZONTAL = "\u2500"
@@ -34,24 +34,6 @@ class DiagnosticsData:
     error_count: int
     warning_count: int
     info_count: int
-
-
-def truncate_diagnostic_message(
-    message: str, max_length: int = MAX_DIAGNOSTIC_MESSAGE_LENGTH
-) -> str:
-    """Truncate verbose Pyright messages to essential info.
-
-    Pyright often produces multi-line explanations:
-        Type "Foo" is not compatible with type "Bar"
-          "Foo" is incompatible with "Bar"
-            Type "X" cannot be assigned to type "Y"
-
-    We keep only the first line (the actionable part).
-    """
-    first_line = message.split("\n")[0].strip()
-    if len(first_line) > max_length:
-        return first_line[: max_length - 3] + "..."
-    return first_line
 
 
 def parse_diagnostics_block(content: str) -> DiagnosticsData | None:

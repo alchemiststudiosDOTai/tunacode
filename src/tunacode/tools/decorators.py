@@ -19,17 +19,39 @@ from pydantic_ai.exceptions import ModelRetry
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import FileOperationError, ToolExecutionError
 from tunacode.tools.xml_helper import load_prompt_from_xml
+from tunacode.utils.config.user_configuration import load_config
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
 logger = logging.getLogger(__name__)
 
+LSP_ORCHESTRATION_OVERHEAD_SECONDS = 1.0
+
+DEFAULT_LSP_CONFIG: dict[str, Any] = {
+    "enabled": False,
+    "timeout": 5.0,
+    "max_diagnostics": 20,
+}
+
+
+def _merge_lsp_config(*configs: dict[str, Any]) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for config in configs:
+        merged.update(config)
+    return merged
+
 
 def _get_lsp_config() -> dict[str, Any]:
-    """Get LSP configuration from defaults."""
-    settings = DEFAULT_USER_CONFIG.get("settings", {})
-    return settings.get("lsp", {"enabled": False, "timeout": 5.0, "max_diagnostics": 20})
+    """Get LSP configuration from user config (merged with defaults)."""
+    default_settings = DEFAULT_USER_CONFIG.get("settings", {})
+    default_lsp_config = default_settings.get("lsp", {})
+
+    user_config = load_config() or {}
+    user_settings = user_config.get("settings", {})
+    user_lsp_config = user_settings.get("lsp", {})
+
+    return _merge_lsp_config(DEFAULT_LSP_CONFIG, default_lsp_config, user_lsp_config)
 
 
 async def _get_lsp_diagnostics(filepath: str) -> str:
@@ -51,7 +73,7 @@ async def _get_lsp_diagnostics(filepath: str) -> str:
         timeout = config.get("timeout", 5.0)
         diagnostics = await asyncio.wait_for(
             get_diagnostics(Path(filepath), timeout=timeout),
-            timeout=timeout + 1.0,  # Extra second for orchestration overhead
+            timeout=timeout + LSP_ORCHESTRATION_OVERHEAD_SECONDS,
         )
         return format_diagnostics(diagnostics)
     except TimeoutError:

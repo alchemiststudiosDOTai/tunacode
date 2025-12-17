@@ -192,3 +192,28 @@ class TestFileTool:
 
         result = await write_content("/test.txt", "hello", mode="a")
         assert result == "/test.txt:hello:a"
+
+    async def test_appends_lsp_diagnostics_for_write_tools(self, mock_no_xml_prompt):
+        """Write tools append formatted LSP diagnostics when enabled."""
+        from unittest.mock import AsyncMock, patch
+
+        expected_diagnostics = "<file_diagnostics>\nError (line 1): msg\n</file_diagnostics>"
+        user_config = {"settings": {"lsp": {"enabled": True, "timeout": 0.1}}}
+
+        @file_tool(writes=True)
+        async def write_tool(filepath: str) -> str:
+            return "ok"
+
+        with (
+            patch("tunacode.tools.decorators.load_config", return_value=user_config),
+            patch("tunacode.lsp.get_diagnostics", new=AsyncMock(return_value=[])) as mock_get,
+            patch(
+                "tunacode.lsp.format_diagnostics",
+                return_value=expected_diagnostics,
+            ) as mock_format,
+        ):
+            result = await write_tool("/tmp/file.py")
+
+        assert result == f"ok\n\n{expected_diagnostics}"
+        mock_get.assert_awaited_once()
+        mock_format.assert_called_once()

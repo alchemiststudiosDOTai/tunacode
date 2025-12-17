@@ -6,6 +6,7 @@ from rich.text import Text
 from textual.widgets import Static
 
 from tunacode.constants import RESOURCE_BAR_COST_FORMAT, RESOURCE_BAR_SEPARATOR
+from tunacode.types import UserConfig
 from tunacode.ui.styles import (
     STYLE_ERROR,
     STYLE_MUTED,
@@ -15,7 +16,7 @@ from tunacode.ui.styles import (
 )
 
 
-def _check_lsp_status() -> tuple[bool, str | None]:
+def _check_lsp_status(user_config: UserConfig) -> tuple[bool, str | None]:
     """Check LSP configuration and server availability.
 
     Returns:
@@ -23,10 +24,9 @@ def _check_lsp_status() -> tuple[bool, str | None]:
     """
     from pathlib import Path
 
-    from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
     from tunacode.lsp.servers import get_server_command
 
-    settings = DEFAULT_USER_CONFIG.get("settings", {})
+    settings = user_config.get("settings", {})
     lsp_config = settings.get("lsp", {})
     is_enabled = lsp_config.get("enabled", False)
 
@@ -67,8 +67,34 @@ class ResourceBar(Static):
         self._lsp_server: str | None = None
 
     def on_mount(self) -> None:
-        self._lsp_enabled, self._lsp_server = _check_lsp_status()
+        self._refresh_lsp_status()
         self._refresh_display()
+
+    def _refresh_lsp_status(self) -> None:
+        user_config = self._get_user_config()
+        if user_config is None:
+            return
+
+        self._lsp_enabled, self._lsp_server = _check_lsp_status(user_config)
+
+    def _get_user_config(self) -> UserConfig | None:
+        app = getattr(self, "app", None)
+        if app is None:
+            return None
+
+        state_manager = getattr(app, "state_manager", None)
+        if state_manager is None:
+            return None
+
+        session = getattr(state_manager, "session", None)
+        if session is None:
+            return None
+
+        user_config = getattr(session, "user_config", None)
+        if user_config is None:
+            return None
+
+        return user_config
 
     def update_stats(
         self,
@@ -89,6 +115,7 @@ class ResourceBar(Static):
             self._cost = cost
         if session_cost is not None:
             self._session_cost = session_cost
+        self._refresh_lsp_status()
         self._refresh_display()
 
     def _calculate_remaining_pct(self) -> float:

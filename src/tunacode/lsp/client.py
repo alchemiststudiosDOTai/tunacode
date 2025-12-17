@@ -169,9 +169,10 @@ class LSPClient:
         if self.process is None or self.process.stdin is None:
             return
 
-        body = json.dumps(message)
-        header = f"Content-Length: {len(body)}\r\n\r\n"
-        data = (header + body).encode("utf-8")
+        body = json.dumps(message, ensure_ascii=False)
+        body_bytes = body.encode("utf-8")
+        header = f"Content-Length: {len(body_bytes)}\r\n\r\n".encode("ascii")
+        data = header + body_bytes
 
         self.process.stdin.write(data)
         await self.process.stdin.drain()

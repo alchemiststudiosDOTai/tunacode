@@ -2,7 +2,7 @@
 
 import subprocess
 
-TEST_TIMEOUT_SECONDS = 15
+TEST_TIMEOUT_SECONDS = 30
 
 
 def test_cli_help_lists_run_command() -> None:

@@ -12,9 +12,9 @@ from tunacode.ui.renderers.tools.diagnostics import (
 class TestMessageTruncation:
     def test_truncate_multiline_pyright_error(self):
         """Verbose Pyright output should be truncated to first line."""
-        verbose = '''Type "int" is not compatible with type "str"
+        verbose = """Type "int" is not compatible with type "str"
   "int" is incompatible with "str"
-    Type cannot be assigned'''
+    Type cannot be assigned"""
         result = truncate_diagnostic_message(verbose)
         assert "\n" not in result
         assert result == 'Type "int" is not compatible with type "str"'
