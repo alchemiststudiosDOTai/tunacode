@@ -5,11 +5,29 @@
 
 MAX_LINES=600
 FOUND_LONG_FILES=0
+UV_CACHE_DIR_HYPHEN="./.uv-cache/*"
+UV_CACHE_DIR_UNDERSCORE="./.uv_cache/*"
+
+is_binary_file() {
+    local filepath="$1"
+
+    if ! command -v file >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local encoding=""
+    encoding="$(file -b --mime-encoding "$filepath" 2>/dev/null || true)"
+    [ "$encoding" = "binary" ]
+}
 
 # Find all files, excluding common directories and binary files
 while IFS= read -r -d '' file; do
     # Skip if it's not a regular file
     if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    if is_binary_file "$file"; then
         continue
     fi
 
@@ -46,7 +64,8 @@ done < <(find . -type f \
     -not -path "./.pytest_cache/*" \
     -not -path "./.mypy_cache/*" \
     -not -path "./.ruff_cache/*" \
-    -not -path "./.uv_cache/*" \
+    -not -path "$UV_CACHE_DIR_HYPHEN" \
+    -not -path "$UV_CACHE_DIR_UNDERSCORE" \
     -not -path "./htmlcov/*" \
     -not -path "./reports/*" \
     -not -path "./node_modules/*" \

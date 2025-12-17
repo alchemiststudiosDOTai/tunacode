@@ -10,6 +10,7 @@ readonly -a UNIMPORT_ARGS=(
     --diff
     --exclude 'venv/*'
     --exclude '.venv/*'
+    --exclude '.uv-cache/*'
     --exclude '.uv_cache/*'
     --gitignore
 )

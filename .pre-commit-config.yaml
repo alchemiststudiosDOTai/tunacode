@@ -4,7 +4,7 @@ default_language_version:
   python: python3
 
 # Global exclusions to prevent hooks from scanning unnecessary directories
-exclude: ^(venv/|build/|dist/|\.git/|__pycache__/|.*\.egg-info/|\.pytest_cache/|\.mypy_cache/|\.ruff_cache/|htmlcov/|\.coverage|reports/|llm-agent-tools/)
+exclude: ^(venv/|build/|dist/|\.git/|__pycache__/|.*\.egg-info/|\.pytest_cache/|\.mypy_cache/|\.ruff_cache/|\.uv-cache/|\.uv_cache/|htmlcov/|\.coverage|reports/|llm-agent-tools/)
 
 repos:
   # Pre-commit framework hooks
@@ -43,7 +43,7 @@ repos:
     hooks:
       - id: ruff
         args: ['--fix', '--show-fixes']
-      # - id: ruff-format  # Disabled - ruff check handles formatting
+      - id: ruff-format  # Re-enabled - ruff handles linting, ruff-format handles formatting
 
   # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
