@@ -51,6 +51,22 @@ async def get_diagnostics(filepath: Path | str, timeout: float = 5.0) -> list["D
     return await client.get_diagnostics(path, timeout=timeout)
 
 
+MAX_DIAGNOSTIC_MESSAGE_LENGTH = 80
+MAX_DIAGNOSTICS_COUNT = 10
+
+
+def _truncate_message(message: str) -> str:
+    """Truncate verbose diagnostic messages to first line, max length.
+
+    Pyright produces verbose multi-line type explanations.
+    We keep only the first line (the actionable part).
+    """
+    first_line = message.split("\n")[0].strip()
+    if len(first_line) > MAX_DIAGNOSTIC_MESSAGE_LENGTH:
+        return first_line[: MAX_DIAGNOSTIC_MESSAGE_LENGTH - 3] + "..."
+    return first_line
+
+
 def format_diagnostics(diagnostics: list["Diagnostic"]) -> str:
     """Format diagnostics as XML block for tool output.
 
@@ -63,12 +79,21 @@ def format_diagnostics(diagnostics: list["Diagnostic"]) -> str:
     if not diagnostics:
         return ""
 
+    # Count by severity for summary
+    errors = sum(1 for d in diagnostics if d.severity == "error")
+    warnings = sum(1 for d in diagnostics if d.severity == "warning")
+
     lines: list[str] = ["<file_diagnostics>"]
-    for diag in diagnostics[:20]:  # Limit to 20 diagnostics
+
+    # Add summary line (helps agent understand severity quickly)
+    lines.append(f"Summary: {errors} errors, {warnings} warnings")
+
+    for diag in diagnostics[:MAX_DIAGNOSTICS_COUNT]:
         severity = diag.severity.capitalize()
         line = diag.line
-        message = diag.message
+        message = _truncate_message(diag.message)
         lines.append(f"{severity} (line {line}): {message}")
+
     lines.append("</file_diagnostics>")
 
     return "\n".join(lines)

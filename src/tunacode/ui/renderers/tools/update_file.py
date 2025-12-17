@@ -31,6 +31,7 @@ class UpdateFileData:
     additions: int
     deletions: int
     hunks: int
+    diagnostics_block: str | None = None
 
 
 def parse_result(args: dict[str, Any] | None, result: str) -> UpdateFileData | None:
@@ -43,15 +44,24 @@ def parse_result(args: dict[str, Any] | None, result: str) -> UpdateFileData | N
         +++ b/path/to/file.py
         @@ -10,5 +10,7 @@
         ...diff content...
+
+        <file_diagnostics>
+        Error (line 10): type mismatch
+        </file_diagnostics>
     """
     if not result:
         return None
 
+    # Extract diagnostics block before parsing diff
+    from tunacode.ui.renderers.tools.diagnostics import extract_diagnostics_from_result
+
+    result_clean, diagnostics_block = extract_diagnostics_from_result(result)
+
     # Split message from diff
-    if "\n--- a/" not in result:
+    if "\n--- a/" not in result_clean:
         return None
 
-    parts = result.split("\n--- a/", 1)
+    parts = result_clean.split("\n--- a/", 1)
     message = parts[0].strip()
     diff_content = "--- a/" + parts[1]
 
@@ -85,6 +95,7 @@ def parse_result(args: dict[str, Any] | None, result: str) -> UpdateFileData | N
         additions=additions,
         deletions=deletions,
         hunks=hunks,
+        diagnostics_block=diagnostics_block,
     )
 
 
@@ -153,8 +164,20 @@ def render_update_file(
 
     status = Text("  ".join(status_items), style="dim") if status_items else Text("")
 
+    # Zone 5: Diagnostics (if present)
+    diagnostics_content = None
+    if data.diagnostics_block:
+        from tunacode.ui.renderers.tools.diagnostics import (
+            parse_diagnostics_block,
+            render_diagnostics_inline,
+        )
+
+        diag_data = parse_diagnostics_block(data.diagnostics_block)
+        if diag_data and diag_data.items:
+            diagnostics_content = render_diagnostics_inline(diag_data)
+
     # Compose
-    content = Group(
+    content_parts = [
         header,
         Text("\n"),
         params,
@@ -166,7 +189,20 @@ def render_update_file(
         separator,
         Text("\n"),
         status,
-    )
+    ]
+
+    # Add diagnostics zone if present
+    if diagnostics_content:
+        content_parts.extend(
+            [
+                Text("\n"),
+                separator,
+                Text("\n"),
+                diagnostics_content,
+            ]
+        )
+
+    content = Group(*content_parts)
 
     timestamp = datetime.now().strftime("%H:%M:%S")
 
