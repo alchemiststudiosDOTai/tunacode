@@ -41,6 +41,7 @@ from tunacode.ui.repl_support import (
     build_tool_result_callback,
     build_tool_start_callback,
     format_collapsed_message,
+    format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.styles import (
@@ -315,13 +316,13 @@ class TextualReplApp(App[None]):
         line_count = message.text.count("\n") + 1
 
         self.rich_log.write("")
+        render_width = max(1, self.rich_log.size.width - 2)
 
         # Collapse only if pasted AND exceeds threshold
         if message.was_pasted and line_count > COLLAPSE_THRESHOLD:
-            user_block = format_collapsed_message(message.text, STYLE_PRIMARY)
+            user_block = format_collapsed_message(message.text, STYLE_PRIMARY, width=render_width)
         else:
-            user_block = Text()
-            user_block.append(f"│ {message.text}\n", style=STYLE_PRIMARY)
+            user_block = format_user_message(message.text, STYLE_PRIMARY, width=render_width)
 
         user_block.append(f"│ you {timestamp}", style=f"dim {STYLE_PRIMARY}")
         self.rich_log.write(user_block)
@@ -430,11 +431,12 @@ class TextualReplApp(App[None]):
             self._current_request_task.cancel()
             return
 
-        if self.shell_runner.is_running():
-            self.shell_runner.cancel()
+        shell_runner = getattr(self, "shell_runner", None)
+        if shell_runner is not None and shell_runner.is_running():
+            shell_runner.cancel()
             return
 
-        if self.editor.value:
+        if self.editor.value or self.editor.has_paste_buffer:
             self.editor.clear_input()
             return
 

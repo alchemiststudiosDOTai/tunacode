@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from rich.console import Console
 from rich.text import Text
 
 from tunacode.constants import MAX_CALLBACK_CONTENT
@@ -26,29 +27,55 @@ COLLAPSE_THRESHOLD: int = 10
 
 FILE_EDIT_TOOLS: frozenset[str] = frozenset({"write_file", "update_file"})
 
+USER_MESSAGE_PREFIX: str = "│ "
+DEFAULT_USER_MESSAGE_WIDTH: int = 80
 
-def format_collapsed_message(text: str, style: str) -> Text:
+
+def _format_prefixed_wrapped_lines(
+    lines: list[tuple[str, str]],
+    *,
+    width: int,
+) -> Text:
+    effective_width = width if width > 0 else DEFAULT_USER_MESSAGE_WIDTH
+    content_width = max(1, effective_width - len(USER_MESSAGE_PREFIX))
+    console = Console(width=content_width, color_system=None, force_terminal=False)
+
+    block = Text()
+    for line_text, line_style in lines:
+        wrapped_lines = Text(line_text, style=line_style, overflow="fold").wrap(
+            console, content_width
+        )
+        for wrapped in wrapped_lines:
+            block.append(USER_MESSAGE_PREFIX, style=line_style)
+            block.append_text(wrapped)
+            block.append("\n")
+    return block
+
+
+def format_user_message(text: str, style: str, *, width: int) -> Text:
+    """Format user text with left gutter prefix and hard-wrap for terminal width."""
+    lines = text.splitlines() or [""]
+    styled_lines = [(line, style) for line in lines]
+    return _format_prefixed_wrapped_lines(styled_lines, width=width)
+
+
+def format_collapsed_message(text: str, style: str, *, width: int) -> Text:
     """Format long pasted text with a collapsed middle section.
 
     Shows first 3 lines, collapse indicator, and last 2 lines.
     """
-    lines = text.split("\n")
-    line_count = len(lines)
+    lines = text.splitlines()
+    line_count = max(1, len(lines))
 
     if line_count <= COLLAPSE_THRESHOLD:
-        block = Text()
-        block.append(f"│ {text}\n", style=style)
-        return block
+        return format_user_message(text, style, width=width)
 
-    preview = "\n│ ".join(lines[:3])
-    suffix = "\n│ ".join(lines[-2:])
     collapsed = line_count - 5
 
-    block = Text()
-    block.append(f"│ {preview}\n", style=style)
-    block.append(f"│ [[ {collapsed} more lines ]]\n", style=f"dim {style}")
-    block.append(f"│ {suffix}\n", style=style)
-    return block
+    render_lines: list[tuple[str, str]] = [(line, style) for line in lines[:3]]
+    render_lines.append((f"[[ {collapsed} more lines ]]", f"dim {style}"))
+    render_lines.extend((line, style) for line in lines[-2:])
+    return _format_prefixed_wrapped_lines(render_lines, width=width)
 
 
 @dataclass
