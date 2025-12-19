@@ -15,6 +15,7 @@ from rich.text import Text
 
 from tunacode.constants import (
     MAX_PANEL_LINE_WIDTH,
+    MIN_VIEWPORT_LINES,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
@@ -236,6 +237,11 @@ def render_research_codebase(
             rec_line.append(_truncate_line(rec), style="italic")
             viewport_lines.append(rec_line)
             lines_used += 1
+
+    # Pad viewport to minimum height for visual consistency
+    while lines_used < MIN_VIEWPORT_LINES:
+        viewport_lines.append(Text(""))
+        lines_used += 1
 
     # Combine viewport
     viewport = Text("\n").join(viewport_lines) if viewport_lines else Text("(no findings)")

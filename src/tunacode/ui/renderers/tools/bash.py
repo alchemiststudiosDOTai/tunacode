@@ -12,7 +12,12 @@ from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, TOOL_VIEWPORT_LINES, UI_COLORS
+from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
+    MIN_VIEWPORT_LINES,
+    TOOL_VIEWPORT_LINES,
+    UI_COLORS,
+)
 
 BOX_HORIZONTAL = "\u2500"
 SEPARATOR_WIDTH = 52
@@ -175,6 +180,14 @@ def render_bash(
 
     if not viewport_parts:
         viewport_parts.append(Text("(no output)", style="dim"))
+
+    # Pad viewport to minimum height for visual consistency
+    viewport_line_count = sum(
+        1 + str(part).count("\n") for part in viewport_parts if isinstance(part, Text)
+    )
+    while viewport_line_count < MIN_VIEWPORT_LINES:
+        viewport_parts.append(Text(""))
+        viewport_line_count += 1
 
     viewport = Group(*viewport_parts)
 

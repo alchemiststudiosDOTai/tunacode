@@ -14,7 +14,12 @@ from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, TOOL_VIEWPORT_LINES, UI_COLORS
+from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
+    MIN_VIEWPORT_LINES,
+    TOOL_VIEWPORT_LINES,
+    UI_COLORS,
+)
 
 BOX_HORIZONTAL = "\u2500"
 SEPARATOR_WIDTH = 52
@@ -155,6 +160,13 @@ def render_update_file(
 
     # Zone 3: Diff viewport with syntax highlighting
     truncated_diff, shown, total = _truncate_diff(data.diff_content)
+
+    # Pad viewport to minimum height for visual consistency
+    diff_lines = truncated_diff.split("\n")
+    while len(diff_lines) < MIN_VIEWPORT_LINES:
+        diff_lines.append("")
+    truncated_diff = "\n".join(diff_lines)
+
     diff_syntax = Syntax(truncated_diff, "diff", theme="monokai", word_wrap=True)
 
     # Zone 4: Status

@@ -12,7 +12,12 @@ from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, TOOL_VIEWPORT_LINES, UI_COLORS
+from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
+    MIN_VIEWPORT_LINES,
+    TOOL_VIEWPORT_LINES,
+    UI_COLORS,
+)
 
 DEFAULT_IGNORE_COUNT = 38
 BOX_HORIZONTAL = "─"
@@ -142,6 +147,13 @@ def render_list_dir(
     tree_lines = data.tree_content.splitlines()[1:]  # skip dirname, already in header
     tree_only = "\n".join(tree_lines) if tree_lines else "(empty)"
     truncated_tree, shown, total = _truncate_tree(tree_only)
+
+    # Pad viewport to minimum height for visual consistency
+    tree_line_list = truncated_tree.split("\n")
+    while len(tree_line_list) < MIN_VIEWPORT_LINES:
+        tree_line_list.append("")
+    truncated_tree = "\n".join(tree_line_list)
+
     viewport = Text(truncated_tree)
 
     # Zone 4: Status

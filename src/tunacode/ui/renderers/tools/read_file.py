@@ -13,7 +13,12 @@ from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, TOOL_VIEWPORT_LINES, UI_COLORS
+from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
+    MIN_VIEWPORT_LINES,
+    TOOL_VIEWPORT_LINES,
+    UI_COLORS,
+)
 
 BOX_HORIZONTAL = "\u2500"
 SEPARATOR_WIDTH = 52
@@ -167,6 +172,10 @@ def render_read_file(
             break
         formatted = f"{line_num:>5}| {line_content}"
         viewport_lines.append(_truncate_line(formatted))
+
+    # Pad viewport to minimum height for visual consistency
+    while len(viewport_lines) < MIN_VIEWPORT_LINES:
+        viewport_lines.append("")
 
     viewport = Text("\n".join(viewport_lines)) if viewport_lines else Text("(empty file)")
 
