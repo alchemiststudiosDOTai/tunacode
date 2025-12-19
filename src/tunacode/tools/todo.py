@@ -8,7 +8,7 @@ from typing import Any
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.core.state import StateManager
-from tunacode.tools.xml_helper import load_prompt_from_xml
+from tunacode.tools.decorators import base_tool
 
 # Heavily yoinked from https://github.com/sst/opencode/blob/dev/packages/opencode/src/tool/todo.ts
 # and adapted for python.
@@ -153,12 +153,8 @@ def create_todowrite_tool(state_manager: StateManager) -> Callable:
         state_manager.set_todos(validated)
         return _format_todos(validated)
 
-    # Load prompt from XML if available
-    prompt = load_prompt_from_xml("todowrite")
-    if prompt:
-        todowrite.__doc__ = prompt
-
-    return todowrite
+    wrapped_tool = base_tool(todowrite)
+    return wrapped_tool
 
 
 def create_todoread_tool(state_manager: StateManager) -> Callable:
@@ -185,12 +181,8 @@ def create_todoread_tool(state_manager: StateManager) -> Callable:
         validated = _validate_todos(todos)
         return _format_todos(validated)
 
-    # Load prompt from XML if available
-    prompt = load_prompt_from_xml("todoread")
-    if prompt:
-        todoread.__doc__ = prompt
-
-    return todoread
+    wrapped_tool = base_tool(todoread)
+    return wrapped_tool
 
 
 def create_todoclear_tool(state_manager: StateManager) -> Callable:
@@ -214,9 +206,5 @@ def create_todoclear_tool(state_manager: StateManager) -> Callable:
         state_manager.clear_todos()
         return TODO_LIST_CLEARED_MESSAGE
 
-    # Load prompt from XML if available
-    prompt = load_prompt_from_xml("todoclear")
-    if prompt:
-        todoclear.__doc__ = prompt
-
-    return todoclear
+    wrapped_tool = base_tool(todoclear)
+    return wrapped_tool

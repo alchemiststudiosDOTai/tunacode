@@ -40,6 +40,24 @@ The TUI design is heavily inspired by the classic **NeXTSTEP** user interface. T
 - Never use magic literals; symbolic constants are preferred.
 - ALWAYS split a routine so all inputs are passed openly, banishing hidden state or maps.
 
+## Modern Python Standards
+
+Follow idiomatic modern Python. Avoid legacy patterns:
+
+- **Paths**: `pathlib.Path` not `os.path`
+- **Strings**: f-strings not `%` or `.format()`
+- **Type hints** (Python 3.10+):
+  - `list[str]` not `typing.List[str]`
+  - `dict[str, int]` not `typing.Dict[str, int]`
+  - `X | None` not `Optional[X]`
+  - `X | Y` not `Union[X, Y]`
+- **File I/O**: Always use `with open(..., encoding="utf-8")`
+- **Data containers**: Use `dataclasses` or `pydantic`, not raw dicts
+- **Constants**: Use `enum.Enum` for related values
+- **Subprocess**: Avoid `shell=True`
+- **Exceptions**: Catch specific exceptions, never bare `except:`
+- **Comprehensions**: Prefer over manual loops when readable
+
 ## Error Handling
 
 - Fail fast, fail loud. No silent fallbacks. This is one of the most important rules to follow.
