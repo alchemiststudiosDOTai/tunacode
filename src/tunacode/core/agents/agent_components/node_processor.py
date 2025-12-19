@@ -1,12 +1,16 @@
 """Node processing functionality for agent responses."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, cast
 
-from tunacode.constants import UI_COLORS
+from tunacode.constants import (
+    ERROR_TOOL_ARGS_MISSING,
+    ERROR_TOOL_CALL_ID_MISSING,
+    UI_COLORS,
+)
 from tunacode.core.state import StateManager
-from tunacode.exceptions import UserAbortError
-from tunacode.types import AgentState
+from tunacode.exceptions import StateError, UserAbortError
+from tunacode.types import AgentState, ToolArgs, ToolCallId
 from tunacode.utils.ui import DotDict
 
 from .response_state import ResponseState
@@ -15,6 +19,40 @@ from .tool_buffer import ToolBuffer
 from .truncation_checker import check_for_truncation
 
 colors = DotDict(UI_COLORS)
+
+PART_KIND_TOOL_CALL = "tool-call"
+PART_KIND_TOOL_RETURN = "tool-return"
+UNKNOWN_TOOL_NAME = "unknown"
+
+
+def _normalize_tool_args(raw_args: Any) -> ToolArgs:
+    from tunacode.utils.parsing.command_parser import parse_args
+
+    parsed_args = parse_args(raw_args)
+    return cast(ToolArgs, parsed_args)
+
+
+def _record_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
+    raw_args = getattr(part, "args", {})
+    parsed_args = _normalize_tool_args(raw_args)
+    tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
+    if tool_call_id:
+        state_manager.session.tool_call_args_by_id[tool_call_id] = parsed_args
+    return parsed_args
+
+
+def _consume_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
+    tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
+    if not tool_call_id:
+        raise StateError(ERROR_TOOL_CALL_ID_MISSING)
+    tool_call_args = state_manager.session.tool_call_args_by_id.pop(tool_call_id, None)
+    if tool_call_args is None:
+        raise StateError(ERROR_TOOL_ARGS_MISSING.format(tool_call_id=tool_call_id))
+    return tool_call_args
+
+
+def _has_tool_calls(parts: list[Any]) -> bool:
+    return any(getattr(part, "part_kind", None) == PART_KIND_TOOL_CALL for part in parts)
 
 
 def _update_token_usage(model_response: Any, state_manager: StateManager) -> None:
@@ -80,16 +118,19 @@ async def _process_node(
         # Display tool returns from previous iteration (they're in node.request)
         if tool_result_callback and hasattr(node.request, "parts"):
             for part in node.request.parts:
-                if hasattr(part, "part_kind") and part.part_kind == "tool-return":
-                    tool_name = getattr(part, "tool_name", "unknown")
-                    content = getattr(part, "content", None)
-                    result_str = str(content) if content is not None else None
-                    tool_result_callback(
-                        tool_name=tool_name,
-                        status="completed",
-                        args={},  # Args not available in return part
-                        result=result_str,
-                    )
+                part_kind = getattr(part, "part_kind", None)
+                if part_kind != PART_KIND_TOOL_RETURN:
+                    continue
+                tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+                tool_args = _consume_tool_call_args(part, state_manager)
+                content = getattr(part, "content", None)
+                result_str = str(content) if content is not None else None
+                tool_result_callback(
+                    tool_name=tool_name,
+                    status="completed",
+                    args=tool_args,
+                    result=result_str,
+                )
 
     if hasattr(node, "thought") and node.thought:
         state_manager.session.messages.append({"thought": node.thought})
@@ -108,12 +149,10 @@ async def _process_node(
             all_content_parts = []
 
             # First, check if there are any tool calls in this response
-            has_queued_tools = any(
-                hasattr(part, "part_kind") and part.part_kind == "tool-call"
-                for part in node.model_response.parts
-            )
+            response_parts = node.model_response.parts
+            has_queued_tools = _has_tool_calls(response_parts)
 
-            for part in node.model_response.parts:
+            for part in response_parts:
                 if hasattr(part, "content") and isinstance(part.content, str):
                     # Check if we have any non-empty content
                     if part.content.strip():
@@ -185,18 +224,12 @@ async def _process_node(
             # If we only got empty content and no tool calls, we should NOT consider this
             # a valid response
             # This prevents the agent from stopping when it gets empty responses
-            if not has_non_empty_content and not any(
-                hasattr(part, "part_kind") and part.part_kind == "tool-call"
-                for part in node.model_response.parts
-            ):
+            if not has_non_empty_content and not has_queued_tools:
                 # Empty response with no tools - keep going
                 empty_response_detected = True
 
             # Check if response appears truncated
-            elif appears_truncated and not any(
-                hasattr(part, "part_kind") and part.part_kind == "tool-call"
-                for part in node.model_response.parts
-            ):
+            elif appears_truncated and not has_queued_tools:
                 # Truncated response detected
                 empty_response_detected = True
 
@@ -262,22 +295,28 @@ async def _process_tool_calls(
     read_only_tasks = []
     research_agent_tasks = []
     write_execute_tasks = []
+    tool_call_records: list[tuple[Any, ToolArgs]] = []
 
     for part in node.model_response.parts:
-        if hasattr(part, "part_kind") and part.part_kind == "tool-call":
-            is_processing_tools = True
-            # Transition to TOOL_EXECUTION on first tool call
-            if response_state and response_state.can_transition_to(AgentState.TOOL_EXECUTION):
-                response_state.transition_to(AgentState.TOOL_EXECUTION)
+        part_kind = getattr(part, "part_kind", None)
+        if part_kind != PART_KIND_TOOL_CALL:
+            continue
+        is_processing_tools = True
+        # Transition to TOOL_EXECUTION on first tool call
+        if response_state and response_state.can_transition_to(AgentState.TOOL_EXECUTION):
+            response_state.transition_to(AgentState.TOOL_EXECUTION)
 
-            if tool_callback:
-                # Categorize: research agent vs read-only vs write/execute
-                if part.tool_name == "research_codebase":
-                    research_agent_tasks.append((part, node))
-                elif part.tool_name in READ_ONLY_TOOLS:
-                    read_only_tasks.append((part, node))
-                else:
-                    write_execute_tasks.append((part, node))
+        tool_args = _record_tool_call_args(part, state_manager)
+        tool_call_records.append((part, tool_args))
+
+        if tool_callback:
+            # Categorize: research agent vs read-only vs write/execute
+            if part.tool_name == "research_codebase":
+                research_agent_tasks.append((part, node))
+            elif part.tool_name in READ_ONLY_TOOLS:
+                read_only_tasks.append((part, node))
+            else:
+                write_execute_tasks.append((part, node))
 
     # Phase 2: Execute research agent
     if research_agent_tasks and tool_callback:
@@ -315,16 +354,17 @@ async def _process_tool_calls(
             raise
 
     # Track tool calls in session
-    if is_processing_tools:
+    if tool_call_records:
         # Extract tool information for tracking
-        for part in node.model_response.parts:
-            if hasattr(part, "part_kind") and part.part_kind == "tool-call":
-                tool_info = {
-                    "tool": part.tool_name,
-                    "args": getattr(part, "args", {}),
-                    "timestamp": getattr(part, "timestamp", None),
-                }
-                state_manager.session.tool_calls.append(tool_info)
+        for part, tool_args in tool_call_records:
+            tool_call_id = getattr(part, "tool_call_id", None)
+            tool_info = {
+                "tool": part.tool_name,
+                "args": tool_args,
+                "timestamp": getattr(part, "timestamp", None),
+                "tool_call_id": tool_call_id,
+            }
+            state_manager.session.tool_calls.append(tool_info)
 
     # After tools are processed, transition back to RESPONSE
     if (

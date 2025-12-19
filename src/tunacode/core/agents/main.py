@@ -322,6 +322,7 @@ class RequestOrchestrator:
         self.state_manager.session.current_iteration = 0
         self.state_manager.session.iteration_count = 0
         self.state_manager.session.tool_calls = []
+        self.state_manager.session.tool_call_args_by_id = {}
         self.state_manager.session.react_forced_calls = 0
         self.state_manager.session.react_guidance = []
 

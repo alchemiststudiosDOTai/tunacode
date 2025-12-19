@@ -172,6 +172,8 @@ ERROR_COMMAND_NOT_FOUND = "Error: Command not found or failed to execute:"
 ERROR_COMMAND_EXECUTION = (
     "Error: Command not found or failed to execute: {command}. Details: {error}"
 )
+ERROR_TOOL_CALL_ID_MISSING = "Tool return missing tool_call_id."
+ERROR_TOOL_ARGS_MISSING = "Tool args missing for tool_call_id '{tool_call_id}'."
 # Directory expansion errors
 ERROR_DIR_TOO_LARGE = (
     "Error: Directory '{path}' expansion aborted. Total size exceeds {limit_mb:.1f} MB limit."

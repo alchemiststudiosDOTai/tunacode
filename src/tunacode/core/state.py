@@ -21,6 +21,8 @@ from tunacode.types import (
     MessageHistory,
     ModelName,
     SessionId,
+    ToolArgs,
+    ToolCallId,
     ToolName,
     ToolProgressCallback,
     UserConfig,
@@ -69,6 +71,7 @@ class SessionState:
     # Enhanced tracking for thoughts display
     files_in_context: set[str] = field(default_factory=set)
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = field(default_factory=dict)
     iteration_count: int = 0
     current_iteration: int = 0
     # Track streaming state to prevent spinner conflicts
