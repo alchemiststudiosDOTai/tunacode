@@ -15,6 +15,7 @@ from collections.abc import Callable, Generator
 
 try:
     from Levenshtein import distance as _levenshtein_c
+
     _USE_C_LEVENSHTEIN = True
 except ImportError:
     _USE_C_LEVENSHTEIN = False

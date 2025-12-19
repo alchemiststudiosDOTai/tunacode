@@ -1,7 +1,30 @@
 """Tests for tool output pruning (compaction.py).
 
-Tests the backward-scanning algorithm that prunes old tool outputs
-to manage context window usage.
+This module tests the compaction system that manages context window usage in Tunacode
+by strategically pruning old tool outputs while preserving recent and relevant content.
+
+The compaction system addresses a critical challenge in AI agent conversations:
+as interactions continue, tool outputs (file reads, command executions, etc.) accumulate
+and can exceed the model's context window limits. The system uses a backward-scanning
+algorithm that:
+
+1. Protects recent tool outputs within a configurable token window (default: 40k tokens)
+2. Only prunes when token savings exceed a minimum threshold (default: 20k tokens)
+3. Requires minimum user interaction before pruning begins (default: 2 user turns)
+4. Replaces pruned content with a placeholder to maintain conversation flow
+
+Key Test Areas:
+- Part type detection (tool-return vs user-prompt vs other)
+- Token estimation and counting accuracy
+- Protection window enforcement
+- Minimum threshold validation
+- Edge cases and error handling
+
+Testing Strategy:
+- Use mock objects to simulate different message parts without full dependencies
+- Override token estimation to test boundary conditions reliably
+- Verify backward scanning order (newest to oldest)
+- Test mixed message formats (dicts, ModelRequest objects, etc.)
 """
 
 from unittest.mock import MagicMock, patch
@@ -26,7 +49,24 @@ from tunacode.core.compaction import (
 
 @pytest.fixture
 def mock_tool_return_part():
-    """Create a mock ToolReturnPart with specified content."""
+    """Create a mock ToolReturnPart with specified content.
+
+    Returns a factory function that creates mock ToolReturnPart objects
+    with realistic attributes for testing compaction behavior. The mock
+    includes all required attributes for part identification and token
+    estimation purposes.
+
+    Args:
+        content: The tool output content string (default varies by test)
+        tool_name: Name of the tool that generated the output (default: "test_tool")
+
+    Returns:
+        MagicMock: A mock object configured as a ToolReturnPart with:
+            - part_kind: "tool-return" (identifies as tool output)
+            - tool_name: Tool identifier for debugging
+            - content: The actual tool output content
+            - tool_call_id: Unique identifier for the tool call
+    """
 
     def _create(content: str, tool_name: str = "test_tool"):
         part = MagicMock()
@@ -41,7 +81,21 @@ def mock_tool_return_part():
 
 @pytest.fixture
 def mock_user_prompt_part():
-    """Create a mock UserPromptPart."""
+    """Create a mock UserPromptPart.
+
+    Returns a factory function that creates mock UserPromptPart objects
+    to simulate user input messages in compaction tests. These parts are
+    used to count user turns and ensure the compaction system respects
+    user interaction requirements before pruning tool outputs.
+
+    Args:
+        content: The user message content (default: "user message")
+
+    Returns:
+        MagicMock: A mock object configured as a UserPromptPart with:
+            - part_kind: "user-prompt" (identifies as user input)
+            - content: The user's message text
+    """
 
     def _create(content: str = "user message"):
         part = MagicMock()
@@ -54,7 +108,21 @@ def mock_user_prompt_part():
 
 @pytest.fixture
 def mock_model_request():
-    """Create a mock ModelRequest with parts."""
+    """Create a mock ModelRequest with parts.
+
+    Returns a factory function that creates mock ModelRequest objects
+    to simulate the container structure that holds message parts in the
+    Tunacode conversation system. This enables testing of how the
+    compaction system navigates message hierarchies.
+
+    Args:
+        parts: List of message parts (UserPromptPart, ToolReturnPart, etc.)
+
+    Returns:
+        MagicMock: A mock object configured as a ModelRequest with:
+            - parts: The message parts list for processing
+            - kind: "request" (identifies as a request message)
+    """
 
     def _create(parts: list):
         msg = MagicMock()

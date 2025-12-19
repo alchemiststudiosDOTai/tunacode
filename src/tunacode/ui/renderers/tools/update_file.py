@@ -114,9 +114,7 @@ def _truncate_diff(diff: str) -> tuple[str, int, int]:
     max_content = TOOL_VIEWPORT_LINES
     max_line_width = MAX_PANEL_LINE_WIDTH
 
-    capped_lines = [
-        _truncate_line_width(line, max_line_width) for line in lines[:max_content]
-    ]
+    capped_lines = [_truncate_line_width(line, max_line_width) for line in lines[:max_content]]
 
     if total <= max_content:
         return "\n".join(capped_lines), total, total

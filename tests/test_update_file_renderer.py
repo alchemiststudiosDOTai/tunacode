@@ -16,9 +16,7 @@ def test_truncate_diff_caps_line_width() -> None:
     truncated, shown, total = update_file_renderer._truncate_diff(diff_content)
 
     expected_line_prefix: str = FILLER_CHAR * MAX_PANEL_LINE_WIDTH
-    expected_line: str = (
-        f"{expected_line_prefix}{update_file_renderer.LINE_TRUNCATION_SUFFIX}"
-    )
+    expected_line: str = f"{expected_line_prefix}{update_file_renderer.LINE_TRUNCATION_SUFFIX}"
 
     assert truncated == expected_line
     assert shown == SINGLE_LINE_COUNT

@@ -27,9 +27,7 @@ R = TypeVar("R")
 logger = logging.getLogger(__name__)
 
 LSP_ORCHESTRATION_OVERHEAD_SECONDS = 1.0
-LSP_DIAGNOSTICS_TIMEOUT_WARNING: str = (
-    "LSP diagnostics timed out for %s (no type errors shown)"
-)
+LSP_DIAGNOSTICS_TIMEOUT_WARNING: str = "LSP diagnostics timed out for %s (no type errors shown)"
 
 DEFAULT_LSP_CONFIG: dict[str, Any] = {
     "enabled": False,
