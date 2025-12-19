@@ -185,7 +185,8 @@ def file_tool(
                 if writes:
                     diagnostics_output = await _get_lsp_diagnostics(filepath)
                     if diagnostics_output:
-                        result = f"{result}\n\n{diagnostics_output}"
+                        diagnostics_first_result = f"{diagnostics_output}\n\n{result}"
+                        result = diagnostics_first_result
 
                 return result
             except FileNotFoundError as err:
