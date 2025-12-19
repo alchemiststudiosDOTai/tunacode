@@ -1,0 +1,2 @@
+[model]
+enforce_eager = true
