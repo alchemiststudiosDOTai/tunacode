@@ -99,3 +99,83 @@ env: {target: "local", notes: ""}
   - `uv run pytest` → `140 passed`
   - `uv run pytest --cov=src` → `140 passed`, total coverage `29%`
 
+### Documentation – Plan/Research/Execution Log
+- Commit: `dd4a722`
+- Commands:
+  - `git commit -m "docs: add lsp fix plan and logs"` → `dd4a722`
+- Tests/coverage:
+  - N/A
+- Notes/decisions:
+  - Added plan, research, execution log, and metadata to repo history.
+
+### Packaging – Push & PR
+- Commands:
+  - `git push -u origin write-tools-lsp-fix` → `https://github.com/alchemiststudiosDOTai/tunacode/pull/new/write-tools-lsp-fix`
+  - `gh pr create` → `https://github.com/alchemiststudiosDOTai/tunacode/pull/191`
+  - `gh repo view --json owner,name` → `{name: tunacode, owner: alchemiststudiosDOTai}`
+- Notes/decisions:
+  - Branch: `write-tools-lsp-fix`
+  - PR: `https://github.com/alchemiststudiosDOTai/tunacode/pull/191`
+  - Commit permalinks:
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/1fd9d1b400ff8f10b611600122ce2f336434ce6d
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/d2b3fad0d33c989a8cd076966a25d787601d2116
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/1a8af6862847fb03656616e3c0730c19424bdc08
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/0889b415a20e2840b934c520c9680172d25bf25c
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/c6040be4f9be1ccd59c28a9627893d4c884a0dc6
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/8a70fb57eee084f3a2ddeab63f73f2fce2a4a1b7
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/fb22d1eb97bf367adfd69ff4f7394c8819699c68
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/41a9ce5403d043a7a392d5c8dd2bd161f61f1723
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/14a81b1eb491828f6480cff1cf06300b6dff4c42
+    - https://github.com/alchemiststudiosDOTai/tunacode/commit/dd4a722316ad9490611aa91e6a14f7daa86d25ab
+
+# Execution Report – Write Tools & LSP Diagnostics Fix
+
+**Date:** 2025-12-18
+**Plan Source:** memory-bank/plan/2025-12-18_write-tools-lsp-fix.md
+**Execution Log:** memory-bank/execute/2025-12-18_19-29-45_write-tools-lsp-fix.md
+
+## Overview
+- Environment: local
+- Start commit: 291c385
+- End commit: (PR head)
+- Duration: 0h 18m
+- Branch: write-tools-lsp-fix
+- Release: N/A
+
+## Outcomes
+- Tasks attempted: 6
+- Tasks completed: 6
+- Rollbacks: No
+- Final status: ✅ Success (with pre-existing type-check/coverage gaps)
+
+## Gate Results
+- Tests: pass (`uv run pytest`)
+- Coverage: 29% (`uv run pytest --cov=src`, target not specified)
+- Type checks: fail (`uv run mypy .`, pre-existing errors)
+- Security scans: not run
+- Perf/PWA scores: N/A
+
+## Issues & Resolutions
+- T1.1 – Diagnostics ordering test expected append → updated test to diagnostics-first ordering
+
+## Deployment Notes
+- Staging deploy: N/A
+- Prod deploy: N/A
+- Smoke/E2E results: N/A
+- Observability checks: warning log validated via manual timeout test
+
+## Success Criteria
+- Diagnostics block preserved under truncation: met
+- Line width capped for update_file renderer: met
+- Timeout warning surfaced: met
+- Execution log saved and linked: met
+
+## Next Steps
+- Address existing mypy failures if gate enforcement is required
+- Add coverage targets if needed for future gates
+- Define or add missing neXTSTEP-ui skill guidance (repo reference currently absent)
+
+## References
+- Plan: memory-bank/plan/2025-12-18_write-tools-lsp-fix.md
+- Execution Log: memory-bank/execute/2025-12-18_19-29-45_write-tools-lsp-fix.md
+- PR: https://github.com/alchemiststudiosDOTai/tunacode/pull/191
