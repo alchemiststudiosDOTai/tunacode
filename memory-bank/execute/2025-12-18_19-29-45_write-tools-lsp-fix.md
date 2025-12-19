@@ -116,17 +116,7 @@ env: {target: "local", notes: ""}
 - Notes/decisions:
   - Branch: `write-tools-lsp-fix`
   - PR: `https://github.com/alchemiststudiosDOTai/tunacode/pull/191`
-  - Commit permalinks:
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/1fd9d1b400ff8f10b611600122ce2f336434ce6d
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/d2b3fad0d33c989a8cd076966a25d787601d2116
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/1a8af6862847fb03656616e3c0730c19424bdc08
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/0889b415a20e2840b934c520c9680172d25bf25c
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/c6040be4f9be1ccd59c28a9627893d4c884a0dc6
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/8a70fb57eee084f3a2ddeab63f73f2fce2a4a1b7
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/fb22d1eb97bf367adfd69ff4f7394c8819699c68
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/41a9ce5403d043a7a392d5c8dd2bd161f61f1723
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/14a81b1eb491828f6480cff1cf06300b6dff4c42
-    - https://github.com/alchemiststudiosDOTai/tunacode/commit/dd4a722316ad9490611aa91e6a14f7daa86d25ab
+  - Commit permalinks: see PR commits tab
 
 # Execution Report – Write Tools & LSP Diagnostics Fix
 
