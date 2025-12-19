@@ -27,6 +27,9 @@ R = TypeVar("R")
 logger = logging.getLogger(__name__)
 
 LSP_ORCHESTRATION_OVERHEAD_SECONDS = 1.0
+LSP_DIAGNOSTICS_TIMEOUT_WARNING: str = (
+    "LSP diagnostics timed out for %s (no type errors shown)"
+)
 
 DEFAULT_LSP_CONFIG: dict[str, Any] = {
     "enabled": False,
@@ -77,7 +80,7 @@ async def _get_lsp_diagnostics(filepath: str) -> str:
         )
         return format_diagnostics(diagnostics)
     except TimeoutError:
-        logger.debug("LSP diagnostics timed out for %s", filepath)
+        logger.warning(LSP_DIAGNOSTICS_TIMEOUT_WARNING, filepath)
         return ""
     except Exception as e:
         logger.debug("LSP diagnostics failed for %s: %s", filepath, e)
