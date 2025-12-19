@@ -1,15 +1,4 @@
-"""Tests for tool output pruning (compaction.py).
-
-Tests the compaction system that manages context window usage by pruning old tool outputs
-while preserving recent content. The system uses a backward-scanning algorithm with:
-
-1. Protection window for recent outputs (40k tokens)
-2. Minimum threshold before pruning (20k tokens)
-3. Minimum user turns required (2 turns)
-4. Placeholder replacement for pruned content
-
-Tests cover part type detection, token estimation, protection logic, and edge cases.
-"""
+"""Tests for tool output pruning (compaction.py)."""
 
 from unittest.mock import MagicMock, patch
 
@@ -33,22 +22,7 @@ from tunacode.core.compaction import (
 
 @pytest.fixture
 def mock_tool_return_part():
-    """Create a mock ToolReturnPart with specified content.
-
-    Returns a factory function that creates mock ToolReturnPart objects
-    for testing compaction behavior.
-
-    Args:
-        content: The tool output content string
-        tool_name: Name of the tool that generated the output
-
-    Returns:
-        MagicMock: A mock ToolReturnPart with:
-            - part_kind: "tool-return"
-            - tool_name: Tool identifier
-            - content: The tool output content
-            - tool_call_id: Unique identifier for the tool call
-    """
+    """Create a mock ToolReturnPart with specified content."""
 
     def _create(content: str, tool_name: str = "test_tool"):
         part = MagicMock()
@@ -63,19 +37,7 @@ def mock_tool_return_part():
 
 @pytest.fixture
 def mock_user_prompt_part():
-    """Create a mock UserPromptPart.
-
-    Returns a factory function that creates mock UserPromptPart objects
-    to simulate user input messages in compaction tests.
-
-    Args:
-        content: The user message content
-
-    Returns:
-        MagicMock: A mock UserPromptPart with:
-            - part_kind: "user-prompt"
-            - content: The user's message text
-    """
+    """Create a mock UserPromptPart."""
 
     def _create(content: str = "user message"):
         part = MagicMock()
@@ -88,19 +50,7 @@ def mock_user_prompt_part():
 
 @pytest.fixture
 def mock_model_request():
-    """Create a mock ModelRequest with parts.
-
-    Returns a factory function that creates mock ModelRequest objects
-    to simulate the container structure that holds message parts.
-
-    Args:
-        parts: List of message parts (UserPromptPart, ToolReturnPart, etc.)
-
-    Returns:
-        MagicMock: A mock ModelRequest with:
-            - parts: The message parts list for processing
-            - kind: "request"
-    """
+    """Create a mock ModelRequest with parts."""
 
     def _create(parts: list):
         msg = MagicMock()
