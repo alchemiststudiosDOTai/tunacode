@@ -13,6 +13,12 @@ Replacers are tried in order from strict to fuzzy until one succeeds.
 
 from collections.abc import Callable, Generator
 
+try:
+    from Levenshtein import distance as _levenshtein_c
+    _USE_C_LEVENSHTEIN = True
+except ImportError:
+    _USE_C_LEVENSHTEIN = False
+
 # Type alias for replacer functions
 Replacer = Callable[[str, str], Generator[str, None, None]]
 
@@ -22,15 +28,10 @@ MULTIPLE_CANDIDATES_SIMILARITY_THRESHOLD = 0.3
 
 
 def levenshtein(a: str, b: str) -> int:
-    """Levenshtein distance algorithm for fuzzy matching.
+    """Levenshtein edit distance between two strings."""
+    if _USE_C_LEVENSHTEIN:
+        return _levenshtein_c(a, b)
 
-    Args:
-        a: First string
-        b: Second string
-
-    Returns:
-        Edit distance between the two strings
-    """
     if not a or not b:
         return max(len(a), len(b))
 
