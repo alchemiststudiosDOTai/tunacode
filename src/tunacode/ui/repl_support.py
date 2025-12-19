@@ -7,6 +7,8 @@ while hosting small, testable helpers and callback builders.
 from __future__ import annotations
 
 import asyncio
+import logging
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -29,6 +31,15 @@ FILE_EDIT_TOOLS: frozenset[str] = frozenset({"write_file", "update_file"})
 
 USER_MESSAGE_PREFIX: str = "│ "
 DEFAULT_USER_MESSAGE_WIDTH: int = 80
+DIAGNOSTICS_BLOCK_START: str = "<file_diagnostics>"
+DIAGNOSTICS_BLOCK_END: str = "</file_diagnostics>"
+DIAGNOSTICS_BLOCK_PATTERN: str = (
+    f"{DIAGNOSTICS_BLOCK_START}.*?{DIAGNOSTICS_BLOCK_END}"
+)
+DIAGNOSTICS_BLOCK_RE = re.compile(DIAGNOSTICS_BLOCK_PATTERN, re.DOTALL)
+CALLBACK_TRUNCATION_NOTICE: str = "\n... [truncated for safety]"
+
+logger = logging.getLogger(__name__)
 
 
 def _format_prefixed_wrapped_lines(
@@ -139,7 +150,24 @@ def _truncate_for_safety(content: str | None) -> str | None:
         return None
     if len(content) <= MAX_CALLBACK_CONTENT:
         return content
-    return content[:MAX_CALLBACK_CONTENT] + "\n... [truncated for safety]"
+
+    diagnostics_match = DIAGNOSTICS_BLOCK_RE.match(content)
+    if diagnostics_match is None:
+        if content.startswith(DIAGNOSTICS_BLOCK_START):
+            logger.warning("Diagnostics block missing closing tag; truncating content.")
+        return content[:MAX_CALLBACK_CONTENT] + CALLBACK_TRUNCATION_NOTICE
+
+    diagnostics_block = diagnostics_match.group(0)
+    remaining_content = content[len(diagnostics_block) :]
+    remaining_budget = MAX_CALLBACK_CONTENT - len(diagnostics_block)
+
+    if remaining_budget <= 0:
+        logger.warning("Diagnostics block exceeds safety limit; truncating remainder.")
+        return diagnostics_block + CALLBACK_TRUNCATION_NOTICE
+
+    truncated_remainder = remaining_content[:remaining_budget]
+    truncated_result = f"{diagnostics_block}{truncated_remainder}{CALLBACK_TRUNCATION_NOTICE}"
+    return truncated_result
 
 
 def build_tool_result_callback(app: AppForCallbacks) -> Callable[..., None]:
