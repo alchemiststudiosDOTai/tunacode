@@ -91,13 +91,11 @@ def format_diagnostics(diagnostics: list[Diagnostic]) -> str:
     if not diagnostics:
         return ""
 
-    
     errors = sum(1 for d in diagnostics if d.severity == "error")
     warnings = sum(1 for d in diagnostics if d.severity == "warning")
 
     lines: list[str] = ["<file_diagnostics>"]
 
-    
     if errors > 0:
         lines.append(f"ACTION REQUIRED: {errors} error(s) found - fix before continuing")
         if warnings > 0:

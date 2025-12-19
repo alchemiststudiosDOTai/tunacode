@@ -190,9 +190,7 @@ def block_anchor_replacer(content: str, find: str) -> Generator[str, None, None]
     first_indices = [
         i for i, line in enumerate(original_lines) if line.strip() == first_line_search
     ]
-    last_indices = [
-        j for j, line in enumerate(original_lines) if line.strip() == last_line_search
-    ]
+    last_indices = [j for j, line in enumerate(original_lines) if line.strip() == last_line_search]
 
     if not first_indices or not last_indices:
         return
