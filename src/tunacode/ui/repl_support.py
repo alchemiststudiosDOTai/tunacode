@@ -36,6 +36,7 @@ DIAGNOSTICS_BLOCK_END: str = "</file_diagnostics>"
 DIAGNOSTICS_BLOCK_PATTERN: str = f"{DIAGNOSTICS_BLOCK_START}.*?{DIAGNOSTICS_BLOCK_END}"
 DIAGNOSTICS_BLOCK_RE = re.compile(DIAGNOSTICS_BLOCK_PATTERN, re.DOTALL)
 CALLBACK_TRUNCATION_NOTICE: str = "\n... [truncated for safety]"
+CALLBACK_TRUNCATION_NOTICE_LEN: int = len(CALLBACK_TRUNCATION_NOTICE)
 
 logger = logging.getLogger(__name__)
 
@@ -153,11 +154,13 @@ def _truncate_for_safety(content: str | None) -> str | None:
     if diagnostics_match is None:
         if content.startswith(DIAGNOSTICS_BLOCK_START):
             logger.warning("Diagnostics block missing closing tag; truncating content.")
-        return content[:MAX_CALLBACK_CONTENT] + CALLBACK_TRUNCATION_NOTICE
+        truncation_limit = MAX_CALLBACK_CONTENT - CALLBACK_TRUNCATION_NOTICE_LEN
+        return content[:truncation_limit] + CALLBACK_TRUNCATION_NOTICE
 
     diagnostics_block = diagnostics_match.group(0)
     remaining_content = content[len(diagnostics_block) :]
-    remaining_budget = MAX_CALLBACK_CONTENT - len(diagnostics_block)
+    diagnostics_len = len(diagnostics_block)
+    remaining_budget = MAX_CALLBACK_CONTENT - diagnostics_len - CALLBACK_TRUNCATION_NOTICE_LEN
 
     if remaining_budget <= 0:
         logger.warning("Diagnostics block exceeds safety limit; truncating remainder.")

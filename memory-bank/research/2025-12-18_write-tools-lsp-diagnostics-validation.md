@@ -152,7 +152,7 @@ async def _get_lsp_diagnostics(filepath: str) -> str:
 #### 2.4 Diagnostics Truncation Vulnerability (CRITICAL)
 
 **Data Flow:**
-```
+```text
 update_file() returns diff (potentially 55KB)
     ↓
 @file_tool decorator appends diagnostics XML (57KB total)
