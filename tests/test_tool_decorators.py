@@ -193,8 +193,8 @@ class TestFileTool:
         result = await write_content("/test.txt", "hello", mode="a")
         assert result == "/test.txt:hello:a"
 
-    async def test_appends_lsp_diagnostics_for_write_tools(self, mock_no_xml_prompt):
-        """Write tools append formatted LSP diagnostics when enabled."""
+    async def test_prepends_lsp_diagnostics_for_write_tools(self, mock_no_xml_prompt):
+        """Write tools prepend formatted LSP diagnostics when enabled."""
         from unittest.mock import AsyncMock, patch
 
         expected_diagnostics = "<file_diagnostics>\nError (line 1): msg\n</file_diagnostics>"
@@ -214,6 +214,6 @@ class TestFileTool:
         ):
             result = await write_tool("/tmp/file.py")
 
-        assert result == f"ok\n\n{expected_diagnostics}"
+        assert result == f"{expected_diagnostics}\n\nok"
         mock_get.assert_awaited_once()
         mock_format.assert_called_once()
