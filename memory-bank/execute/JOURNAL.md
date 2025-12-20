@@ -143,19 +143,38 @@ Even minimal training (100 examples, 1 epoch, 38 seconds) was enough to teach th
 ## Commands Reference
 
 ```bash
-# Generate training data
-uv run python scripts/generate_training_data.py --count 100 --output data/training.jsonl
+# Validate dataset (no GPU needed)
+uv run python scripts/validate_training.py
 
-# Train
+# Generate more training data
+uv run python scripts/generate_training_data.py --count 1000 --output data/training.jsonl
+
+# Quick test run (10 steps, proves pipeline works)
 cd /home/tuna/tunacode
 source training_env/.venv/bin/activate
 PYTHONPATH=src python -m tunacode.training.train \
     --dataset data/training.jsonl \
     --output ./output \
     --model unsloth/Qwen3-0.6B \
+    --fast
+
+# Full training run (1000 examples)
+PYTHONPATH=src python -m tunacode.training.train \
+    --dataset data/training.jsonl \
+    --output ./output \
+    --model unsloth/qwen3-4b \
     --epochs 1 \
     --batch-size 2 \
-    --max-seq-length 1024
+    --max-seq-length 2048
+
+# Small GPU config (8-12GB VRAM)
+PYTHONPATH=src python -m tunacode.training.train \
+    --dataset data/training.jsonl \
+    --output ./output \
+    --model unsloth/Qwen3-0.6B \
+    --batch-size 1 \
+    --max-seq-length 1024 \
+    --lora-r 8
 
 # Test inference
 source training_env/.venv/bin/activate && PYTHONPATH=src python -c "

@@ -73,7 +73,7 @@ class TrainingConfig:
     """
 
     model_name: str = "unsloth/qwen3-4b"
-    dataset_path: Path = field(default_factory=lambda: Path("data/training_data.jsonl"))
+    dataset_path: Path = field(default_factory=lambda: Path("data/training.jsonl"))
     output_dir: Path = field(default_factory=lambda: Path("./output"))
     max_seq_length: int = 2048
     load_in_4bit: bool = True
@@ -189,4 +189,37 @@ def fast_iteration_config() -> TrainingConfig:
         gradient_accumulation_steps=1,
         max_seq_length=512,
         lora=LoraConfig(r=4),
+    )
+
+
+def full_gpu_config() -> TrainingConfig:
+    """Create optimal configuration for good GPUs (16GB+ VRAM).
+
+    Uses recommended hyperparameters from Unsloth docs and community:
+    - Higher LoRA rank (32) for better capacity
+    - lora_alpha = 2x rank for stable training
+    - Larger batch size with gradient accumulation
+    - Cosine LR scheduler with warmup
+
+    Returns:
+        TrainingConfig optimized for full GPU training.
+    """
+    return TrainingConfig(
+        model_name="unsloth/qwen3-4b",
+        per_device_train_batch_size=4,
+        gradient_accumulation_steps=4,
+        num_train_epochs=3,
+        learning_rate=2e-4,
+        warmup_steps=10,
+        max_seq_length=2048,
+        lr_scheduler_type="cosine",
+        logging_steps=5,
+        save_steps=100,
+        lora=LoraConfig(
+            r=32,
+            lora_alpha=64,
+            lora_dropout=0.0,
+            use_gradient_checkpointing=True,
+            use_rslora=False,
+        ),
     )

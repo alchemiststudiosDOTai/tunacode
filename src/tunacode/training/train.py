@@ -387,6 +387,11 @@ def main():
         action="store_true",
         help="Use fast iteration settings (10 steps, small batches)",
     )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Use optimal full GPU settings (r=32, alpha=64, 3 epochs)",
+    )
 
     args = parser.parse_args()
 
@@ -397,6 +402,14 @@ def main():
         config.dataset_path = args.dataset
         config.output_dir = args.output
         config.model_name = args.model
+    elif args.full:
+        from tunacode.training.config import full_gpu_config
+
+        config = full_gpu_config()
+        config.dataset_path = args.dataset
+        config.output_dir = args.output
+        if args.model != "unsloth/qwen3-4b":
+            config.model_name = args.model
     else:
         from tunacode.training.config import LoraConfig
 
