@@ -9,6 +9,13 @@ This module provides:
 - train: Unsloth fine-tuning script
 """
 
+from tunacode.training.config import (
+    LoraConfig,
+    TrainingConfig,
+    default_config,
+    fast_iteration_config,
+    small_gpu_config,
+)
 from tunacode.training.schema import (
     FunctionCall,
     Message,
@@ -25,12 +32,20 @@ from tunacode.training.tool_extractor import (
 )
 
 __all__ = [
+    # Config
+    "LoraConfig",
+    "TrainingConfig",
+    "default_config",
+    "fast_iteration_config",
+    "small_gpu_config",
+    # Schema
     "FunctionCall",
     "Message",
     "ShareGPTConversation",
     "ToolDefinition",
     "ToolParameter",
     "TrainingDataset",
+    # Tool extraction
     "extract_tool_definition",
     "get_tools_for_training",
     "get_tools_json_schema",
