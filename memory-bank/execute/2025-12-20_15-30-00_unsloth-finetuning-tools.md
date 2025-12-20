@@ -54,29 +54,34 @@ env: {target: "local", notes: "unsloth branch"}
 ### Milestone 3: Synthetic Data Generation
 
 #### Task T3.1 - Build conversation template engine
-- Status: PENDING
+- Status: COMPLETE
 - Files: `src/tunacode/training/dataset_generator.py`
 - Acceptance: Generates single valid ShareGPT conversation
+- Notes: scenario_to_conversation() converts scenarios to ShareGPT format
 
 #### Task T3.2 - Create tool usage scenario library
-- Status: PENDING
+- Status: COMPLETE
 - Files: `src/tunacode/training/scenarios.py`
-- Acceptance: 10+ scenarios covering all tools
+- Acceptance: 19 scenarios covering all 8 tools
+- Notes: Includes read_file, grep, glob, list_dir, bash, write_file, update_file, web_fetch scenarios
 
 #### Task T3.3 - Implement multi-turn generator
-- Status: PENDING
+- Status: COMPLETE
 - Files: `src/tunacode/training/dataset_generator.py`
 - Acceptance: Generates conversations with 2-4 tool calls
+- Notes: generate_multi_turn_conversation() supports tool sequences
 
 #### Task T3.4 - Add error/retry scenarios
-- Status: PENDING
-- Files: `src/tunacode/training/dataset_generator.py`
+- Status: COMPLETE
+- Files: `src/tunacode/training/scenarios.py`
 - Acceptance: Includes FileNotFoundError recovery
+- Notes: ERROR_FILE_NOT_FOUND and ERROR_TYPO_RECOVERY scenarios added
 
 #### Task T3.5 - Build CLI for data generation
-- Status: PENDING
+- Status: COMPLETE
 - Files: `scripts/generate_training_data.py`
 - Acceptance: `uv run python scripts/generate_training_data.py --count 100` works
+- Notes: Supports --count, --output, --augment, --preview, --seed flags
 
 ---
 
