@@ -15,6 +15,13 @@ from tunacode.training.schema import (
     ShareGPTConversation,
     ToolDefinition,
     ToolParameter,
+    TrainingDataset,
+)
+from tunacode.training.tool_extractor import (
+    extract_tool_definition,
+    get_tools_for_training,
+    get_tools_json_schema,
+    get_tunacode_tool_registry,
 )
 
 __all__ = [
@@ -23,4 +30,9 @@ __all__ = [
     "ShareGPTConversation",
     "ToolDefinition",
     "ToolParameter",
+    "TrainingDataset",
+    "extract_tool_definition",
+    "get_tools_for_training",
+    "get_tools_json_schema",
+    "get_tunacode_tool_registry",
 ]

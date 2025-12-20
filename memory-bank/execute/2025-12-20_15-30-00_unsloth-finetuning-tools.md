@@ -38,14 +38,16 @@ env: {target: "local", notes: "unsloth branch"}
 ### Milestone 2: Tool Extraction & Dataset Schema
 
 #### Task T2.1 - Build tool signature extractor
-- Status: PENDING
+- Status: COMPLETE
 - Files: `src/tunacode/training/tool_extractor.py`
-- Acceptance: Extracts all 7 core tools to JSON Schema
+- Acceptance: Extracts all 8 core tools (bash, glob, grep, list_dir, read_file, update_file, web_fetch, write_file) to JSON Schema
+- Notes: Uses inspect module to extract signatures, handles Python 3.10+ UnionType
 
 #### Task T2.2 - Create tool definition registry
-- Status: PENDING
+- Status: COMPLETE
 - Files: `src/tunacode/training/tool_extractor.py`
 - Acceptance: Returns list of `ToolDefinition` objects
+- Notes: get_tunacode_tool_registry() returns 8 tools with parameters
 
 ---
 
