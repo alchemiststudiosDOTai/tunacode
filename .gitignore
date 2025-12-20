@@ -65,6 +65,12 @@ llm-agent-tools/kb_synch/target/
 .researcher/
 tunacode-rs/target/
 
+# Training artifacts (weights, datasets, cache)
+output/
+data/
+unsloth_compiled_cache/
+training_env/
+
 # Logs
 logs/
 *.log

@@ -134,14 +134,12 @@ def setup_model_and_tokenizer(config: TrainingConfig):
     return model, tokenizer
 
 
-def formatting_func(example: dict, tokenizer) -> str:
-    """Format a ShareGPT conversation for training.
-
-    This function converts ShareGPT-format conversations to the format
-    expected by the tokenizer's chat template.
+def format_single_conversation(conv_messages: list[dict], system: str | None, tokenizer) -> str:
+    """Format a single ShareGPT conversation for training.
 
     Args:
-        example: ShareGPT conversation dictionary.
+        conv_messages: List of message dicts with 'from' and 'value' keys.
+        system: Optional system prompt.
         tokenizer: HuggingFace tokenizer with chat template.
 
     Returns:
@@ -149,9 +147,8 @@ def formatting_func(example: dict, tokenizer) -> str:
     """
     messages = []
 
-    system_content = example.get("system")
-    if system_content:
-        messages.append({"role": "system", "content": system_content})
+    if system:
+        messages.append({"role": "system", "content": system})
 
     role_map = {
         "human": "user",
@@ -160,7 +157,7 @@ def formatting_func(example: dict, tokenizer) -> str:
         "observation": "tool",
     }
 
-    for msg in example["conversations"]:
+    for msg in conv_messages:
         role = role_map.get(msg["from"], msg["from"])
         content = msg["value"]
 
@@ -176,6 +173,35 @@ def formatting_func(example: dict, tokenizer) -> str:
         tokenize=False,
         add_generation_prompt=False,
     )
+
+
+def formatting_func_auto(examples: dict, tokenizer) -> list[str]:
+    """Format ShareGPT conversations for training (handles batched and single).
+
+    Args:
+        examples: Dict with 'conversations', 'system' keys.
+                  Can be single example or batched (lists of examples).
+        tokenizer: HuggingFace tokenizer with chat template.
+
+    Returns:
+        List of formatted strings ready for tokenization.
+    """
+    conversations = examples["conversations"]
+    system = examples.get("system")
+
+    # Detect if batched: if conversations is a list of lists
+    if conversations and isinstance(conversations[0], list):
+        # Batched mode
+        systems_list = system if system else [None] * len(conversations)
+        results = []
+        for conv, sys in zip(conversations, systems_list):
+            formatted = format_single_conversation(conv, sys, tokenizer)
+            results.append(formatted)
+        return results
+    else:
+        # Single example mode
+        formatted = format_single_conversation(conversations, system, tokenizer)
+        return [formatted]
 
 
 def create_trainer(model, tokenizer, dataset: Dataset, config: TrainingConfig):
@@ -197,8 +223,8 @@ def create_trainer(model, tokenizer, dataset: Dataset, config: TrainingConfig):
 
     training_args = TrainingArguments(**config.to_sft_trainer_args())
 
-    def format_fn(example: dict) -> str:
-        return formatting_func(example, tokenizer)
+    def format_fn(examples: dict) -> list[str]:
+        return formatting_func_auto(examples, tokenizer)
 
     trainer = SFTTrainer(
         model=model,
