@@ -4,7 +4,7 @@
 [![Downloads](https://pepy.tech/badge/tunacode-cli)](https://pepy.tech/project/tunacode-cli)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Discord Shield](https://discord.com/api/guilds/1447688577126367346/widget.png?style=shield)
+[![Discord Shield](https://discord.com/api/guilds/1447688577126367346/widget.png?style=shield)](https://discord.gg/TN7Fpynv6H)
 
 A TUI code agent.
 
@@ -110,7 +110,7 @@ Diagnostics appear in the UI when editing files. This feature is beta - expect r
 
 Join our official discord server to receive help, show us how you're using tunacode, and chat about anything LLM.
 
-<img src="https://discord.com/api/guilds/1447688577126367346/widget.png?style=banner3" alt="Discord Banner 3"/>
+[<img src="https://discord.com/api/guilds/1447688577126367346/widget.png?style=banner3" alt="Discord Banner 3"/>](https://discord.gg/TN7Fpynv6H)
 
 ## License
 
