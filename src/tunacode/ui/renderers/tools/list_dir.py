@@ -13,13 +13,13 @@ from rich.style import Style
 from rich.text import Text
 
 from tunacode.constants import (
-    DEFAULT_IGNORE_PATTERNS_COUNT,
     MAX_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
     TOOL_PANEL_WIDTH,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
+from tunacode.tools.list_dir import IGNORE_PATTERNS_COUNT
 
 BOX_HORIZONTAL = "─"
 SEPARATOR_WIDTH = 52
@@ -78,9 +78,9 @@ def parse_result(args: dict[str, Any] | None, result: str) -> ListDirData | None
     show_hidden = args.get("show_hidden", False)
     ignore_list = args.get("ignore", [])
     ignore_count = (
-        DEFAULT_IGNORE_PATTERNS_COUNT + len(ignore_list)
+        IGNORE_PATTERNS_COUNT + len(ignore_list)
         if ignore_list
-        else DEFAULT_IGNORE_PATTERNS_COUNT
+        else IGNORE_PATTERNS_COUNT
     )
 
     return ListDirData(

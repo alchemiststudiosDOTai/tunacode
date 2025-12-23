@@ -37,6 +37,8 @@ IGNORE_PATTERNS = [
     ".eggs/",
 ]
 
+IGNORE_PATTERNS_COUNT = len(IGNORE_PATTERNS)
+
 LIMIT = 100
 
 
