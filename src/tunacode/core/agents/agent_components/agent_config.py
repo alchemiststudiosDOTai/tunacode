@@ -327,7 +327,7 @@ def _create_model_with_retry(
         api_key_name = config.get("api_key_name")
         api_key = env.get(api_key_name) if api_key_name else None
         base_url = config.get("base_url")
-        if base_url is None:
+        if base_url is None and provider_name != "azure":
             base_url = base_url_override
         provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
         return OpenAIChatModel(model_name, provider=provider)
