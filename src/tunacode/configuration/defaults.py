@@ -5,7 +5,7 @@ Default configuration values for the TunaCode CLI.
 Provides sensible defaults for user configuration and environment variables.
 """
 
-from tunacode.constants import GUIDE_FILE_NAME
+from tunacode.constants import ENV_OPENAI_BASE_URL, GUIDE_FILE_NAME
 from tunacode.types import UserConfig
 
 DEFAULT_USER_CONFIG: UserConfig = {
@@ -14,6 +14,7 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "ANTHROPIC_API_KEY": "",
         "GEMINI_API_KEY": "",
         "OPENAI_API_KEY": "",
+        ENV_OPENAI_BASE_URL: "",
         "OPENROUTER_API_KEY": "",
     },
     "settings": {

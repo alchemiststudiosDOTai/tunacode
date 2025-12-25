@@ -15,7 +15,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from tenacity import retry_if_exception_type, stop_after_attempt
 
-from tunacode.constants import UI_THINKING_MESSAGE
+from tunacode.constants import ENV_OPENAI_BASE_URL, SETTINGS_BASE_URL, UI_THINKING_MESSAGE
 from tunacode.core.agents.delegation_tools import create_research_codebase_tool
 from tunacode.core.prompting import (
     MAIN_TEMPLATE,
@@ -107,6 +107,33 @@ def _coerce_global_request_timeout(state_manager: StateManager) -> float | None:
         return None
 
     return timeout
+
+
+def _coerce_optional_str(value: Any, label: str) -> str | None:
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be a string, got {type(value).__name__}")
+
+    normalized = value.strip()
+    if not normalized:
+        return None
+
+    return normalized
+
+
+def _resolve_base_url_override(
+    env_base_url: str | None,
+    settings_base_url: str | None,
+) -> str | None:
+    if env_base_url:
+        return env_base_url
+
+    if settings_base_url:
+        return settings_base_url
+
+    return None
 
 
 def _compute_agent_version(settings: dict[str, Any], request_delay: float) -> int:
@@ -249,6 +276,13 @@ def _create_model_with_retry(
     # Extract environment config
     env = state_manager.session.user_config.get("env", {})
 
+    settings = state_manager.session.user_config.get("settings", {})
+    env_base_url_raw = env.get(ENV_OPENAI_BASE_URL)
+    settings_base_url_raw = settings.get(SETTINGS_BASE_URL)
+    env_base_url = _coerce_optional_str(env_base_url_raw, ENV_OPENAI_BASE_URL)
+    settings_base_url = _coerce_optional_str(settings_base_url_raw, SETTINGS_BASE_URL)
+    base_url_override = _resolve_base_url_override(env_base_url, settings_base_url)
+
     # Provider configuration: API key names and base URLs
     PROVIDER_CONFIG = {
         "anthropic": {"api_key_name": "ANTHROPIC_API_KEY", "base_url": None},
@@ -290,8 +324,11 @@ def _create_model_with_retry(
     elif provider_name in ("openai", "openrouter", "azure", "deepseek", "cerebras"):
         # OpenAI-compatible providers all use OpenAIChatModel
         config = PROVIDER_CONFIG.get(provider_name, {})
-        api_key = env.get(config.get("api_key_name"))
+        api_key_name = config.get("api_key_name")
+        api_key = env.get(api_key_name) if api_key_name else None
         base_url = config.get("base_url")
+        if base_url is None:
+            base_url = base_url_override
         provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
         return OpenAIChatModel(model_name, provider=provider)
     else:

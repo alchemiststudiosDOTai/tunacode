@@ -8,6 +8,7 @@ import sys
 import typer
 
 from tunacode.configuration.settings import ApplicationSettings
+from tunacode.constants import SETTINGS_BASE_URL
 from tunacode.core.state import StateManager
 from tunacode.exceptions import UserAbortError
 from tunacode.tools.authorization.handler import ToolHandler
@@ -15,6 +16,7 @@ from tunacode.ui.repl_support import run_textual_repl
 from tunacode.utils.system import check_for_updates
 
 DEFAULT_TIMEOUT_SECONDS = 600
+BASE_URL_HELP_TEXT = "API base URL (e.g., https://openrouter.ai/api/v1)"
 
 app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
@@ -37,6 +39,19 @@ def _print_version() -> None:
     from tunacode.constants import APP_VERSION
 
     print(f"tunacode {APP_VERSION}")
+
+
+def _apply_base_url_override(state_manager: StateManager, base_url: str | None) -> None:
+    if not base_url:
+        return
+
+    user_config = state_manager.session.user_config
+    settings = user_config.get("settings")
+    if settings is None:
+        settings = {}
+        user_config["settings"] = settings
+
+    settings[SETTINGS_BASE_URL] = base_url
 
 
 async def _run_textual_app(*, model: str | None, show_setup: bool) -> None:
@@ -85,9 +100,7 @@ def _default_command(
     ctx: typer.Context,
     version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
     setup: bool = typer.Option(False, "--setup", help="Run setup wizard"),
-    _baseurl: str = typer.Option(  # noqa: ARG001 - reserved for future use
-        None, "--baseurl", help="API base URL (e.g., https://openrouter.ai/api/v1)"
-    ),
+    baseurl: str | None = typer.Option(None, "--baseurl", help=BASE_URL_HELP_TEXT),
     model: str | None = typer.Option(
         None, "--model", help="Default model to use (e.g., openai/gpt-4)"
     ),
@@ -103,19 +116,19 @@ def _default_command(
     if ctx.invoked_subcommand is not None:
         if setup:
             raise typer.BadParameter("Use `tunacode --setup` without a subcommand.")
+        _apply_base_url_override(state_manager, baseurl)
         if model:
             state_manager.session.current_model = model
         return
 
+    _apply_base_url_override(state_manager, baseurl)
     _run_textual_cli(model=model, show_setup=setup)
 
 
 @app.command(hidden=True)
 def main(
     version: bool = typer.Option(False, "--version", "-v", help="Show version and exit."),
-    _baseurl: str = typer.Option(  # noqa: ARG001 - reserved for future use
-        None, "--baseurl", help="API base URL (e.g., https://openrouter.ai/api/v1)"
-    ),
+    baseurl: str | None = typer.Option(None, "--baseurl", help=BASE_URL_HELP_TEXT),
     model: str | None = typer.Option(
         None, "--model", help="Default model to use (e.g., openai/gpt-4)"
     ),
@@ -130,6 +143,7 @@ def main(
         _print_version()
         raise typer.Exit(code=0)
 
+    _apply_base_url_override(state_manager, baseurl)
     _run_textual_cli(model=model, show_setup=setup)
 
 
@@ -144,6 +158,7 @@ def run_headless(
         DEFAULT_TIMEOUT_SECONDS, "--timeout", help="Execution timeout in seconds"
     ),
     cwd: str | None = typer.Option(None, "--cwd", help="Working directory for execution"),
+    baseurl: str | None = typer.Option(None, "--baseurl", help=BASE_URL_HELP_TEXT),
     model: str | None = typer.Option(None, "--model", "-m", help="Model to use"),
 ) -> None:
     """Run TunaCode in non-interactive headless mode."""
@@ -161,6 +176,8 @@ def run_headless(
         # Set model if provided
         if model:
             state_manager.session.current_model = model
+
+        _apply_base_url_override(state_manager, baseurl)
 
         # Auto-approve mode (reuses existing yolo infrastructure)
         if auto_approve:

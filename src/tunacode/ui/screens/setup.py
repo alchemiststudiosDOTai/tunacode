@@ -15,6 +15,7 @@ from tunacode.configuration.models import (
     get_provider_env_var,
     get_providers,
 )
+from tunacode.constants import SETTINGS_BASE_URL
 from tunacode.utils.config import save_config
 
 if TYPE_CHECKING:
@@ -205,7 +206,7 @@ class SetupScreen(Screen[bool]):
         if base_url:
             if "settings" not in user_config:
                 user_config["settings"] = {}
-            user_config["settings"]["base_url"] = base_url
+            user_config["settings"][SETTINGS_BASE_URL] = base_url
 
         self.state_manager.session.current_model = full_model
 
