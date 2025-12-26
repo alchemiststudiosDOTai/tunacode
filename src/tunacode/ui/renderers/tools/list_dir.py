@@ -78,9 +78,7 @@ def parse_result(args: dict[str, Any] | None, result: str) -> ListDirData | None
     show_hidden = args.get("show_hidden", False)
     ignore_list = args.get("ignore", [])
     ignore_count = (
-        IGNORE_PATTERNS_COUNT + len(ignore_list)
-        if ignore_list
-        else IGNORE_PATTERNS_COUNT
+        IGNORE_PATTERNS_COUNT + len(ignore_list) if ignore_list else IGNORE_PATTERNS_COUNT
     )
 
     return ListDirData(

@@ -34,7 +34,7 @@ Every interaction falls into one of three paradigms:
 ### 1. Direct Manipulation
 Objects respond directly to mouse/pointer actions. A window comes forward when clicked. A slider knob moves when dragged. Most intuitive paradigm—use for position, size, arrangement.
 
-### 2. Targeted Action  
+### 2. Targeted Action
 Controls (buttons, commands) act on a target. User selects target first, then chooses action. Example: select text → click Bold. Powerful because one control can act on many target types.
 
 ### 3. Modal Tool
@@ -44,7 +44,7 @@ User selects tool from palette; subsequent actions interpreted through that tool
 - Exit is obvious and immediate
 - Mimics real-world tool selection
 
-**Use modal tools when:** An operation type will be repeated many times (drawing lines, placing objects).  
+**Use modal tools when:** An operation type will be repeated many times (drawing lines, placing objects).
 **Don't use when:** User would constantly switch tools between actions.
 
 ## Information Hierarchy & Zoning
@@ -92,7 +92,7 @@ Divide interface into zones with distinct purposes. Users learn where to look.
 
 ### Use Radio Buttons When:
 - One-of-many selection
-- All options should be visible simultaneously  
+- All options should be visible simultaneously
 - Small number of options (2-5)
 
 ### Use Switches/Checkboxes When:
@@ -150,7 +150,7 @@ Divide interface into zones with distinct purposes. Users learn where to look.
 ## Anti-Patterns to Avoid
 
 1. **Hidden modes** — User doesn't know different rules apply
-2. **Inconsistent controls** — Same-looking things behave differently  
+2. **Inconsistent controls** — Same-looking things behave differently
 3. **Surprising automation** — System acts without user initiation
 4. **Disabled without indication** — Controls that silently fail
 5. **Fighting muscle memory** — Putting input where users don't expect
