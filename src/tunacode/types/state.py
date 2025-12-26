@@ -24,6 +24,10 @@ class SessionStateProtocol(Protocol):
     operation_cancelled: bool
     total_tokens: int
     max_tokens: int
+    # Persistence fields
+    project_id: str
+    created_at: str
+    working_directory: str
 
     def update_token_count(self) -> None:
         """Calculate total token count from conversation messages."""
@@ -92,6 +96,19 @@ class StateManagerProtocol(Protocol):
 
     def reset_recursive_state(self) -> None:
         """Reset all recursive execution state."""
+        ...
+
+    # Session persistence methods
+    def save_session(self) -> bool:
+        """Save current session to disk."""
+        ...
+
+    def load_session(self, session_id: str) -> bool:
+        """Load a session from disk by ID."""
+        ...
+
+    def list_sessions(self) -> list[dict[str, Any]]:
+        """List available saved sessions."""
         ...
 
 
