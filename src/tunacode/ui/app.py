@@ -33,16 +33,14 @@ from tunacode.types import (
     ToolConfirmationRequest,
     ToolConfirmationResponse,
 )
-from tunacode.ui.callbacks import (
-    build_textual_tool_callback,
-    build_tool_progress_callback,
-    build_tool_result_callback,
-    build_tool_start_callback,
-)
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
     PendingConfirmationState,
+    build_textual_tool_callback,
+    build_tool_progress_callback,
+    build_tool_result_callback,
+    build_tool_start_callback,
     format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
