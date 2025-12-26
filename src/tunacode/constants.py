@@ -63,14 +63,6 @@ class ToolName(str, Enum):
     WEB_FETCH = "web_fetch"
 
 
-TOOL_READ_FILE = ToolName.READ_FILE
-TOOL_WRITE_FILE = ToolName.WRITE_FILE
-TOOL_UPDATE_FILE = ToolName.UPDATE_FILE
-TOOL_BASH = ToolName.BASH
-TOOL_GREP = ToolName.GREP
-TOOL_LIST_DIR = ToolName.LIST_DIR
-TOOL_GLOB = ToolName.GLOB
-
 READ_ONLY_TOOLS = [
     ToolName.READ_FILE,
     ToolName.GREP,
@@ -80,21 +72,6 @@ READ_ONLY_TOOLS = [
     ToolName.RESEARCH_CODEBASE,
     ToolName.WEB_FETCH,
 ]
-WRITE_TOOLS = [ToolName.WRITE_FILE, ToolName.UPDATE_FILE]
-EXECUTE_TOOLS = [ToolName.BASH]
-
-CMD_HELP = "/help"
-CMD_CLEAR = "/clear"
-CMD_YOLO = "/yolo"
-CMD_MODEL = "/model"
-CMD_EXIT = "exit"
-CMD_QUIT = "quit"
-
-DESC_HELP = "Show this help message"
-DESC_CLEAR = "Clear the conversation history"
-DESC_YOLO = "Toggle confirmation prompts on/off"
-DESC_MODEL = "List available models"
-DESC_EXIT = "Exit the application"
 
 COMMAND_PREFIX = "/"
 
@@ -133,19 +110,7 @@ NEXTSTEP_COLORS = {
     "error": "#1a1a1a",
 }
 
-UI_PROMPT_PREFIX = '<style fg="#00d7ff"><b>> </b></style>'
 UI_THINKING_MESSAGE = "[bold #00d7ff]Thinking...[/bold #00d7ff]"
-UI_DARKGREY_OPEN = "<darkgrey>"
-UI_DARKGREY_CLOSE = "</darkgrey>"
-UI_BOLD_OPEN = "<bold>"
-UI_BOLD_CLOSE = "</bold>"
-UI_KEY_ENTER = "Enter"
-UI_KEY_ESC_ENTER = "Esc + Enter"
-
-PANEL_ERROR = "Error"
-PANEL_MESSAGE_HISTORY = "Message History"
-PANEL_MODELS = "Models"
-PANEL_AVAILABLE_COMMANDS = "Available Commands"
 
 ERROR_PROVIDER_EMPTY = "Provider number cannot be empty"
 ERROR_INVALID_PROVIDER = "Invalid provider number"
