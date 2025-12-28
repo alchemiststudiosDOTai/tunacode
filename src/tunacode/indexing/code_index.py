@@ -349,64 +349,6 @@ class CodeIndex:
         except Exception:
             pass
 
-    def lookup(self, query: str, file_type: str | None = None) -> list[Path]:
-        """Look up files matching a query.
-
-        Args:
-            query: Search query (basename, partial path, or symbol)
-            file_type: Optional file extension filter (e.g., '.py')
-
-        Returns:
-            List of matching file paths relative to root directory.
-        """
-        with self._lock:
-            if not self._indexed:
-                self.build_index()
-
-            results = set()
-
-            # Exact basename match
-            if query in self._basename_to_paths:
-                results.update(self._basename_to_paths[query])
-
-            # Partial basename match
-            query_lower = query.lower()
-            for basename, paths in self._basename_to_paths.items():
-                if query_lower in basename.lower():
-                    results.update(paths)
-
-            # Path component match
-            for file_path in self._all_files:
-                if query_lower in str(file_path).lower():
-                    results.add(file_path)
-
-            # Symbol matches (classes and functions)
-            if query in self._class_definitions:
-                results.update(self._class_definitions[query])
-            if query in self._function_definitions:
-                results.update(self._function_definitions[query])
-
-            # Filter by file type if specified
-            if file_type:
-                if not file_type.startswith("."):
-                    file_type = "." + file_type
-                results = {p for p in results if p.suffix == file_type}
-
-            # Sort results by relevance
-            sorted_results = sorted(
-                results,
-                key=lambda p: (
-                    # Exact basename matches first
-                    0 if p.name == query else 1,
-                    # Then shorter paths
-                    len(str(p)),
-                    # Then alphabetically
-                    str(p),
-                ),
-            )
-
-            return sorted_results
-
     def get_all_files(self, file_type: str | None = None) -> list[Path]:
         """Get all indexed files.
 
@@ -426,26 +368,6 @@ class CodeIndex:
                 return sorted([p for p in self._all_files if p.suffix == file_type])
 
             return sorted(self._all_files)
-
-    def find_imports(self, module_name: str) -> list[Path]:
-        """Find files that import a specific module.
-
-        Args:
-            module_name: Name of the module to search for
-
-        Returns:
-            List of file paths that import the module.
-        """
-        with self._lock:
-            if not self._indexed:
-                self.build_index()
-
-            results = []
-            for file_path, imports in self._path_to_imports.items():
-                if module_name in imports:
-                    results.append(file_path)
-
-            return sorted(results)
 
     def refresh(self, path: str | None = None) -> None:
         """Refresh the index for a specific path or the entire repository.
@@ -508,19 +430,3 @@ class CodeIndex:
                 symbol_dict[symbol] = [p for p in paths if p != relative_path]
                 if not symbol_dict[symbol]:
                     del symbol_dict[symbol]
-
-    def get_stats(self) -> dict[str, int]:
-        """Get indexing statistics.
-
-        Returns:
-            Dictionary with index statistics.
-        """
-        with self._lock:
-            return {
-                "total_files": len(self._all_files),
-                "unique_basenames": len(self._basename_to_paths),
-                "python_files": len(self._path_to_imports),
-                "classes_indexed": len(self._class_definitions),
-                "functions_indexed": len(self._function_definitions),
-                "directories_cached": len(self._dir_cache),
-            }

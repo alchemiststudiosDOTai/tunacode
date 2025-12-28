@@ -276,16 +276,6 @@ class RipgrepExecutor:
             return []
 
 
-# Maintain backward compatibility
-def ripgrep(pattern: str, directory: str = ".") -> list[str]:
-    """Return a list of file paths matching a pattern using ripgrep.
-
-    This function maintains backward compatibility with the original implementation.
-    """
-    executor = RipgrepExecutor()
-    return executor.list_files(pattern, directory)
-
-
 # Performance metrics collection
 class RipgrepMetrics:
     """Collect performance metrics for ripgrep operations."""

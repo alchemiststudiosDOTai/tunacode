@@ -4,8 +4,6 @@ This module provides the public API for getting diagnostics from language server
 It manages server lifecycle and provides formatted diagnostic output.
 """
 
-import asyncio
-import logging
 from pathlib import Path
 
 from tunacode.lsp.client import Diagnostic, LSPClient
@@ -13,8 +11,6 @@ from tunacode.lsp.diagnostics import truncate_diagnostic_message
 from tunacode.lsp.servers import get_server_command
 
 __all__ = ["get_diagnostics", "format_diagnostics"]
-
-logger = logging.getLogger(__name__)
 
 
 _clients: dict[str, LSPClient] = {}
@@ -114,19 +110,3 @@ def format_diagnostics(diagnostics: list[Diagnostic]) -> str:
     return "\n".join(lines)
 
 
-async def shutdown_all() -> None:
-    """Shutdown all active LSP clients."""
-    clients = list(_clients.values())
-    _clients.clear()
-
-    if not clients:
-        return
-
-    results = await asyncio.gather(
-        *(client.shutdown() for client in clients),
-        return_exceptions=True,
-    )
-
-    exceptions = [result for result in results if isinstance(result, Exception)]
-    for exc in exceptions:
-        logger.exception("Failed to shutdown LSP client", exc_info=exc)
