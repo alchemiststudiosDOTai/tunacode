@@ -34,6 +34,13 @@ from tunacode.types import (
     ToolConfirmationResponse,
 )
 from tunacode.ui.renderers.errors import render_exception
+from tunacode.ui.renderers.messages import (
+    AIResponseData,
+    MessageRenderer,
+    ThinkingBlockData,
+    UserMessageData,
+    extract_thinking,
+)
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
     PendingConfirmationState,
@@ -41,7 +48,6 @@ from tunacode.ui.repl_support import (
     build_tool_progress_callback,
     build_tool_result_callback,
     build_tool_start_callback,
-    format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.styles import (
@@ -247,6 +253,7 @@ class TextualReplApp(App[None]):
         self.current_stream_text = ""
         self._last_display_update = 0.0
         self._streaming_cancelled = False
+        self._request_start_time = time.monotonic()
         self.query_one("#viewport").add_class(RICHLOG_CLASS_STREAMING)
 
         self._loading_indicator_shown = True
@@ -288,6 +295,7 @@ class TextualReplApp(App[None]):
             error_renderable = render_exception(e)
             self.rich_log.write(error_renderable)
         finally:
+            elapsed_ms = (time.monotonic() - self._request_start_time) * 1000
             self._current_request_task = None
             self._loading_indicator_shown = False
             self.loading_indicator.remove_class("active")
@@ -298,8 +306,27 @@ class TextualReplApp(App[None]):
 
             if self.current_stream_text and not self._streaming_cancelled:
                 self.rich_log.write("")
-                self.rich_log.write(Text("agent:", style="accent"))
-                self.rich_log.write(Markdown(self.current_stream_text))
+
+                # Extract thinking content if present
+                content, thinking = extract_thinking(self.current_stream_text)
+
+                # Render thinking block if present
+                if thinking:
+                    thinking_block = MessageRenderer.render_thinking(
+                        ThinkingBlockData(content=thinking, collapsed=True)
+                    )
+                    self.rich_log.write(thinking_block)
+                    self.rich_log.write("")
+
+                # Render AI response with metadata
+                response_block = MessageRenderer.render_ai_response(
+                    AIResponseData(
+                        content=content,
+                        model=model_name,
+                        duration_ms=elapsed_ms,
+                    )
+                )
+                self.rich_log.write(response_block)
 
             self.current_stream_text = ""
             self._streaming_cancelled = False
@@ -316,16 +343,16 @@ class TextualReplApp(App[None]):
 
         await self.request_queue.put(message.text)
 
-        from datetime import datetime
-
-        timestamp = datetime.now().strftime("%I:%M %p").lstrip("0")
-
         self.rich_log.write("")
         render_width = max(1, self.rich_log.size.width - 2)
 
-        user_block = format_user_message(message.text, STYLE_PRIMARY, width=render_width)
-
-        user_block.append(f"│ you {timestamp}", style=f"dim {STYLE_PRIMARY}")
+        user_block = MessageRenderer.render_user_message(
+            UserMessageData(
+                content=message.text,
+                timestamp=datetime.now(),
+                width=render_width,
+            )
+        )
         self.rich_log.write(user_block)
 
     async def request_tool_confirmation(

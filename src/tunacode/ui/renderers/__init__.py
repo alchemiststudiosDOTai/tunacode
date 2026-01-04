@@ -1,6 +1,13 @@
 """Rich content renderers for Textual TUI."""
 
 from .errors import render_exception, render_tool_error, render_user_abort
+from .messages import (
+    AIResponseData,
+    MessageRenderer,
+    ThinkingBlockData,
+    UserMessageData,
+    extract_thinking,
+)
 from .panels import (
     ErrorDisplayData,
     RichPanelRenderer,
@@ -21,15 +28,20 @@ from .search import (
 )
 
 __all__ = [
+    "AIResponseData",
     "CodeSearchResult",
     "ErrorDisplayData",
     "FileSearchResult",
+    "MessageRenderer",
     "RichPanelRenderer",
     "SearchDisplayRenderer",
     "SearchResultData",
+    "ThinkingBlockData",
     "ToolDisplayData",
+    "UserMessageData",
     "code_search_panel",
     "error_panel",
+    "extract_thinking",
     "file_search_panel",
     "quick_results",
     "render_exception",
