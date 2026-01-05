@@ -18,37 +18,49 @@ if TYPE_CHECKING:
 
 import hashlib
 
-_config_fingerprint = None
-_config_cache = None
+
+class ConfigLoader:
+    """Handles loading and caching user configuration."""
+    
+    def __init__(self):
+        self._fingerprint: str | None = None
+        self._cache: UserConfig | None = None
+    
+    def load_config(self) -> UserConfig | None:
+        """Load user config from file, using fingerprint fast path if available."""
+        app_settings = ApplicationSettings()
+        try:
+            with open(app_settings.paths.config_file) as f:
+                raw = f.read()
+                loaded = json.loads(raw)
+                new_fp = hashlib.sha1(raw.encode()).hexdigest()[:12]
+                # If hash matches, return in-memory cached config object
+                if new_fp == self._fingerprint and self._cache is not None:
+                    return self._cache
+                # else, update fast path
+                self._fingerprint = new_fp
+                self._cache = loaded
+
+                # Initialize onboarding defaults for new configurations
+                _ensure_onboarding_defaults(loaded)
+
+                return loaded
+        except FileNotFoundError:
+            return None
+        except JSONDecodeError as err:
+            msg = f"Invalid JSON in config file at {app_settings.paths.config_file}"
+            raise ConfigurationError(msg) from err
+        except Exception as err:
+            raise ConfigurationError(f"Failed to load configuration: {err}") from err
+
+
+# Global instance for backward compatibility
+_config_loader = ConfigLoader()
 
 
 def load_config() -> UserConfig | None:
     """Load user config from file, using fingerprint fast path if available."""
-    global _config_fingerprint, _config_cache
-    app_settings = ApplicationSettings()
-    try:
-        with open(app_settings.paths.config_file) as f:
-            raw = f.read()
-            loaded = json.loads(raw)
-            new_fp = hashlib.sha1(raw.encode()).hexdigest()[:12]
-            # If hash matches, return in-memory cached config object
-            if new_fp == _config_fingerprint and _config_cache is not None:
-                return _config_cache
-            # else, update fast path
-            _config_fingerprint = new_fp
-            _config_cache = loaded
-
-            # Initialize onboarding defaults for new configurations
-            _ensure_onboarding_defaults(loaded)
-
-            return loaded
-    except FileNotFoundError:
-        return None
-    except JSONDecodeError as err:
-        msg = f"Invalid JSON in config file at {app_settings.paths.config_file}"
-        raise ConfigurationError(msg) from err
-    except Exception as err:
-        raise ConfigurationError(f"Failed to load configuration: {err}") from err
+    return _config_loader.load_config()
 
 
 def save_config(state_manager: "StateManager") -> bool:
