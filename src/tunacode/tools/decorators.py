@@ -19,7 +19,7 @@ from pydantic_ai.exceptions import ModelRetry
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import FileOperationError, ToolExecutionError
 from tunacode.tools.xml_helper import load_prompt_from_xml
-from tunacode.utils.config.user_configuration import load_config
+from tunacode.utils.config.user_configuration import ConfigLoader
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -48,7 +48,8 @@ def _get_lsp_config() -> dict[str, Any]:
     default_settings = DEFAULT_USER_CONFIG.get("settings", {})
     default_lsp_config = default_settings.get("lsp", {})
 
-    user_config = load_config() or {}
+    config_loader = ConfigLoader()
+    user_config = config_loader.load_config() or {}
     user_settings = user_config.get("settings", {})
     user_lsp_config = user_settings.get("lsp", {})
 

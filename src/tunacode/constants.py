@@ -4,7 +4,8 @@ Module: tunacode.constants
 Global constants and configuration values for the TunaCode CLI application.
 Centralizes all magic strings, UI text, error messages, and application constants.
 
-TODO: This file needs refactoring - currently accumulates miscellaneous constants.
+NOTE: Author is extremely busy with work - this is a side project.
+This file accumulates misc constants. Known to need refactoring, time-poor right now.
 """
 
 from enum import Enum

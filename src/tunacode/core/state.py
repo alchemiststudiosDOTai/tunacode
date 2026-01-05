@@ -139,10 +139,11 @@ class StateManager:
         """Load user configuration from file and merge with defaults."""
         from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
         from tunacode.configuration.models import get_model_context_window
-        from tunacode.utils.config import load_config
+        from tunacode.utils.config.user_configuration import ConfigLoader
 
         # Load user config from file
-        user_config = load_config()
+        config_loader = ConfigLoader()
+        user_config = config_loader.load_config()
         if user_config:
             # Merge with defaults: user config takes precedence
             merged_config = DEFAULT_USER_CONFIG.copy()

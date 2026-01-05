@@ -54,15 +54,6 @@ class ConfigLoader:
             raise ConfigurationError(f"Failed to load configuration: {err}") from err
 
 
-# Global instance for backward compatibility
-_config_loader = ConfigLoader()
-
-
-def load_config() -> UserConfig | None:
-    """Load user config from file, using fingerprint fast path if available."""
-    return _config_loader.load_config()
-
-
 def save_config(state_manager: "StateManager") -> bool:
     """Save user config to file"""
     app_settings = ApplicationSettings()
