@@ -3,6 +3,8 @@ Module: tunacode.constants
 
 Global constants and configuration values for the TunaCode CLI application.
 Centralizes all magic strings, UI text, error messages, and application constants.
+
+TODO: This file needs refactoring - currently accumulates miscellaneous constants.
 """
 
 from enum import Enum
@@ -34,7 +36,6 @@ MAX_PANEL_LINE_WIDTH = 200
 MAX_SEARCH_RESULTS_DISPLAY = 20
 MODEL_PICKER_UNFILTERED_LIMIT = 50
 
-# Tool panel viewport sizing (standardized across all renderers)
 LINES_RESERVED_FOR_HEADER_FOOTER = 4
 TOOL_VIEWPORT_LINES = MAX_PANEL_LINES - LINES_RESERVED_FOR_HEADER_FOOTER
 MIN_VIEWPORT_LINES = 5

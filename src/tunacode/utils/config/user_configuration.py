@@ -21,11 +21,11 @@ import hashlib
 
 class ConfigLoader:
     """Handles loading and caching user configuration."""
-    
+
     def __init__(self):
         self._fingerprint: str | None = None
         self._cache: UserConfig | None = None
-    
+
     def load_config(self) -> UserConfig | None:
         """Load user config from file, using fingerprint fast path if available."""
         app_settings = ApplicationSettings()
