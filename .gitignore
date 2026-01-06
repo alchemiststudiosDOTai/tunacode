@@ -83,3 +83,6 @@ vendor/
 .osgrep
 .osgrep*
 PLAN.md
+
+# Auto-generated model registry
+src/tunacode/configuration/models_registry.json
