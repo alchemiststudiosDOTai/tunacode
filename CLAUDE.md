@@ -29,6 +29,7 @@ The TUI design is heavily inspired by the classic **NeXTSTEP** user interface. T
 - Never begin coding until the objective is **explicitly defined**. If unclear, ask questions or use best practices.
 - Always use `.venv` and `uv` for package management.
 - Small, focused diffs only. Commit frequently.
+- GitHub issues must use conventional prefixes (`feat:`, `fix:`, `ux:`, etc.), proper sections, and permalink references to related code.
 
 ## Code Style & Typing
 

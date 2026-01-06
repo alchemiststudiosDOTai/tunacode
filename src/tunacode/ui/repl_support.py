@@ -98,6 +98,14 @@ class PendingConfirmationState:
     request: ToolConfirmationRequest
 
 
+@dataclass
+class PendingPlanApprovalState:
+    """Tracks pending plan approval state."""
+
+    future: asyncio.Future[tuple[bool, str]]
+    plan_content: str
+
+
 class ConfirmationRequester(Protocol):
     async def request_tool_confirmation(
         self, request: ToolConfirmationRequest
@@ -128,12 +136,23 @@ def build_textual_tool_callback(
         tool_handler = state_manager.tool_handler or ToolHandler(state_manager)
         state_manager.set_tool_handler(tool_handler)
 
-        if not tool_handler.should_confirm(part.tool_name):
-            return
-
-        from tunacode.exceptions import UserAbortError
+        from tunacode.exceptions import ToolDeniedError, UserAbortError
+        from tunacode.tools.authorization.types import AuthorizationResult
         from tunacode.utils.parsing.command_parser import parse_args
 
+        auth_result = tool_handler.get_authorization(part.tool_name)
+
+        if auth_result == AuthorizationResult.DENY:
+            raise ToolDeniedError(
+                part.tool_name,
+                "Write/execute tools are blocked in plan mode. "
+                "Use read-only tools to gather context, then call present_plan.",
+            )
+
+        if auth_result == AuthorizationResult.ALLOW:
+            return
+
+        # AuthorizationResult.CONFIRM - ask user
         args = parse_args(part.args)
         request = tool_handler.create_confirmation_request(part.tool_name, args)
         response = await app.request_tool_confirmation(request)

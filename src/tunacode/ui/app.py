@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.rule import Rule
 from rich.syntax import Syntax
 from rich.text import Text
 from textual import events
@@ -37,6 +38,7 @@ from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
     PendingConfirmationState,
+    PendingPlanApprovalState,
     build_textual_tool_callback,
     build_tool_progress_callback,
     build_tool_result_callback,
@@ -88,6 +90,7 @@ class TextualReplApp(App[None]):
         self._show_setup: bool = show_setup
         self.request_queue: asyncio.Queue[str] = asyncio.Queue()
         self.pending_confirmation: PendingConfirmationState | None = None
+        self.pending_plan_approval: PendingPlanApprovalState | None = None
 
         self._streaming_paused: bool = False
         self._streaming_cancelled: bool = False
@@ -339,6 +342,51 @@ class TextualReplApp(App[None]):
         self._show_inline_confirmation(request)
         return await future
 
+    async def request_plan_approval(self, plan_content: str) -> tuple[bool, str]:
+        """Request user approval for a plan. Returns (approved, feedback)."""
+        if self.pending_plan_approval is not None and not self.pending_plan_approval.future.done():
+            raise RuntimeError("Previous plan approval still pending")
+
+        future: asyncio.Future[tuple[bool, str]] = asyncio.Future()
+        self.pending_plan_approval = PendingPlanApprovalState(
+            future=future, plan_content=plan_content
+        )
+        self._show_plan_approval(plan_content)
+        return await future
+
+    def _show_plan_approval(self, plan_content: str) -> None:
+        """Display plan approval prompt with NeXTSTEP 4-zone layout."""
+        from rich.console import Group
+
+        context = Text()
+        context.append("Output: ", style=STYLE_MUTED)
+        context.append("PLAN.md", style=STYLE_PRIMARY)
+        context.append(" will be created in project root", style=STYLE_MUTED)
+
+        actions = Text()
+        actions.append("[1]", style=f"bold {STYLE_SUCCESS}")
+        actions.append(" Approve    ")
+        actions.append("[2]", style=f"bold {STYLE_ERROR}")
+        actions.append(" Deny")
+
+        content_parts: list[Text | Markdown | Rule] = [
+            Markdown(plan_content),
+            Rule(style=STYLE_MUTED),
+            context,
+            Rule(style=STYLE_MUTED),
+            actions,
+        ]
+
+        panel = Panel(
+            Group(*content_parts),
+            border_style=STYLE_PRIMARY,
+            padding=(0, 1),
+            expand=True,
+            title="Plan Mode",
+            subtitle="Review Implementation Plan",
+        )
+        self.rich_log.write(panel)
+
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         panel = tool_panel_smart(
             name=message.tool_name,
@@ -469,6 +517,10 @@ class TextualReplApp(App[None]):
             session_cost=usage.get("cost", 0.0),
         )
 
+        # Sync status bar mode indicator with session state
+        # (handles plan mode exit via present_plan approval)
+        self.status_bar.set_mode("PLAN" if session.plan_mode else None)
+
     def _show_inline_confirmation(self, request: ToolConfirmationRequest) -> None:
         """Display inline confirmation prompt in RichLog."""
         content_parts: list[Text | Syntax] = []
@@ -521,6 +573,12 @@ class TextualReplApp(App[None]):
 
     def on_key(self, event: events.Key) -> None:
         """Handle key events, intercepting confirmation keys when pending."""
+        # Handle plan approval first
+        if self.pending_plan_approval is not None and not self.pending_plan_approval.future.done():
+            self._handle_plan_approval_key(event)
+            return
+
+        # Handle tool confirmation
         if self.pending_confirmation is None or self.pending_confirmation.future.done():
             return
 
@@ -539,4 +597,21 @@ class TextualReplApp(App[None]):
         if response is not None:
             self.pending_confirmation.future.set_result(response)
             self.pending_confirmation = None
+            event.stop()
+
+    def _handle_plan_approval_key(self, event: events.Key) -> None:
+        """Handle key events for plan approval."""
+        if event.key == "1":
+            # Approve - plan will be saved by present_plan tool
+            self.rich_log.write(Text("Plan approved", style=STYLE_SUCCESS))
+            self.pending_plan_approval.future.set_result((True, ""))
+            self.pending_plan_approval = None
+            event.stop()
+        elif event.key == "2":
+            # Deny - return with request for revision
+            self.rich_log.write(Text("Plan denied - agent will revise", style=STYLE_ERROR))
+            self.pending_plan_approval.future.set_result(
+                (False, "Please revise the plan based on my requirements.")
+            )
+            self.pending_plan_approval = None
             event.stop()

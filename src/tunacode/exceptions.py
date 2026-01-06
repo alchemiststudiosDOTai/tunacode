@@ -128,6 +128,15 @@ class ValidationError(TunaCodeError):
 
 
 # Tool and Agent Exceptions
+class ToolDeniedError(TunaCodeError):
+    """Raised when a tool is blocked by authorization (e.g., plan mode)."""
+
+    def __init__(self, tool_name: ToolName, reason: str = "blocked by plan mode"):
+        self.tool_name = tool_name
+        self.reason = reason
+        super().__init__(f"Tool '{tool_name}' denied: {reason}")
+
+
 class ToolExecutionError(TunaCodeError):
     """Raised when a tool fails to execute."""
 

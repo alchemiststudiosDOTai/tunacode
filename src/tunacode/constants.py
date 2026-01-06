@@ -62,6 +62,7 @@ class ToolName(str, Enum):
     REACT = "react"
     RESEARCH_CODEBASE = "research_codebase"
     WEB_FETCH = "web_fetch"
+    PRESENT_PLAN = "present_plan"
 
 
 READ_ONLY_TOOLS = [
@@ -72,6 +73,7 @@ READ_ONLY_TOOLS = [
     ToolName.REACT,
     ToolName.RESEARCH_CODEBASE,
     ToolName.WEB_FETCH,
+    ToolName.PRESENT_PLAN,
 ]
 
 COMMAND_PREFIX = "/"

@@ -166,12 +166,65 @@ class BranchCommand(Command):
             app.rich_log.write(f"Error: {e}")
 
 
+PLAN_MODE_INSTRUCTION = """You are now in READ-ONLY PLANNING MODE.
+
+BLOCKED TOOLS: write_file, update_file, bash - DO NOT attempt to use them.
+AVAILABLE TOOLS: read_file, grep, list_dir, glob, web_fetch, react, research_codebase,
+  todowrite, present_plan
+
+YOUR TASK:
+1. Use read-only tools to gather context about the codebase
+2. Understand the current implementation
+3. When ready, call present_plan with your detailed implementation plan
+
+PLAN FORMAT (use present_plan tool):
+- Objective summary
+- Files to modify with brief descriptions
+- Step-by-step approach
+- Risks and considerations
+- Acceptance criteria
+
+The user will review and approve/deny your plan."""
+
+
 class PlanCommand(Command):
     name = "plan"
     description = "Toggle read-only planning mode"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        app.notify("Plan mode not yet implemented", severity="warning")
+        from tunacode.core.agents.agent_components.agent_helpers import create_user_message
+
+        session = app.state_manager.session
+        session.plan_mode = not session.plan_mode
+
+        if session.plan_mode:
+            # Set up the approval callback for the present_plan tool
+            async def plan_approval_callback(plan_content: str) -> tuple[bool, str]:
+                return await app.request_plan_approval(plan_content)
+
+            session.plan_approval_callback = plan_approval_callback
+
+            # NeXTSTEP: Modes must be visually apparent at all times
+            app.status_bar.set_mode("PLAN")
+            app.notify("Plan mode ON - write/bash tools blocked")
+            app.rich_log.write(
+                "[bold]Plan mode active[/bold]\n"
+                "Blocked: write_file, update_file, bash\n"
+                "Use read-only tools to gather context, then call present_plan."
+            )
+            # Inject instruction message for the agent
+            create_user_message(PLAN_MODE_INSTRUCTION, app.state_manager)
+        else:
+            # Clear the callback
+            session.plan_approval_callback = None
+
+            # NeXTSTEP: Clear mode indicator
+            app.status_bar.set_mode(None)
+            app.notify("Plan mode OFF - all tools available")
+            create_user_message(
+                "Plan mode has been disabled. All tools are now available.",
+                app.state_manager,
+            )
 
 
 class ThemeCommand(Command):
@@ -316,77 +369,58 @@ class ResumeCommand(Command):
 
 class UpdateCommand(Command):
     name = "update"
-    description = "Check for or install updates"
-    usage = "/update [check|install]"
+    description = "Check for updates and install if available"
+    usage = "/update"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
         import asyncio
         import subprocess
 
         from tunacode.constants import APP_VERSION
+        from tunacode.ui.screens.update_confirm import UpdateConfirmScreen
         from tunacode.utils.system.paths import check_for_updates
 
-        parts = args.split(maxsplit=1) if args else []
-        subcommand = parts[0].lower() if parts else "check"
+        # Ignore args, always do the full flow
+        app.notify("Checking for updates...")
+        has_update, latest_version = await asyncio.to_thread(check_for_updates)
 
-        if subcommand == "check":
-            app.notify("Checking for updates...")
-            has_update, latest_version = await asyncio.to_thread(check_for_updates)
+        if not has_update:
+            app.notify(f"Already on latest version ({APP_VERSION})")
+            return
 
-            if has_update:
-                app.rich_log.write(f"Current version: {APP_VERSION}")
-                app.rich_log.write(f"Latest version:  {latest_version}")
-                app.notify(f"Update available: {latest_version}")
-                app.rich_log.write("Run /update install to upgrade")
+        # Show confirmation immediately
+        confirmed = await app.push_screen_wait(UpdateConfirmScreen(APP_VERSION, latest_version))
+        if not confirmed:
+            app.notify("Update cancelled")
+            return
+
+        # Install (reuse existing code)
+        pkg_cmd_result = _get_package_manager_command(PACKAGE_NAME)
+        if not pkg_cmd_result:
+            app.notify("No package manager found (uv or pip)", severity="error")
+            return
+
+        cmd, pkg_mgr = pkg_cmd_result
+        app.notify(f"Installing with {pkg_mgr}...")
+
+        try:
+            result = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=UPDATE_INSTALL_TIMEOUT_SECONDS,
+            )
+
+            if result.returncode == 0:
+                app.notify(f"Updated to {latest_version}!")
+                app.rich_log.write("Restart tunacode to use the new version")
             else:
-                app.notify(f"Already on latest version ({APP_VERSION})")
-
-        elif subcommand == "install":
-            from tunacode.ui.screens.update_confirm import UpdateConfirmScreen
-
-            app.notify("Checking for updates...")
-            has_update, latest_version = await asyncio.to_thread(check_for_updates)
-
-            if not has_update:
-                app.notify(f"Already on latest version ({APP_VERSION})")
-                return
-
-            confirmed = await app.push_screen_wait(UpdateConfirmScreen(APP_VERSION, latest_version))
-
-            if not confirmed:
-                app.notify("Update cancelled")
-                return
-
-            pkg_cmd_result = _get_package_manager_command(PACKAGE_NAME)
-            if not pkg_cmd_result:
-                app.notify("No package manager found (uv or pip)", severity="error")
-                return
-
-            cmd, pkg_mgr = pkg_cmd_result
-            app.notify(f"Installing with {pkg_mgr}...")
-
-            try:
-                result = await asyncio.to_thread(
-                    subprocess.run,
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=UPDATE_INSTALL_TIMEOUT_SECONDS,
-                )
-
-                if result.returncode == 0:
-                    app.notify(f"Updated to {latest_version}!")
-                    app.rich_log.write("Restart tunacode to use the new version")
-                else:
-                    app.notify("Update failed", severity="error")
-                    if result.stderr:
-                        app.rich_log.write(result.stderr.strip())
-            except Exception as e:
-                app.rich_log.write(f"Error: {e}")
-
-        else:
-            app.notify(f"Unknown subcommand: {subcommand}", severity="warning")
-            app.notify("Usage: /update [check|install]")
+                app.notify("Update failed", severity="error")
+                if result.stderr:
+                    app.rich_log.write(result.stderr.strip())
+        except Exception as e:
+            app.rich_log.write(f"Error: {e}")
 
 
 COMMANDS: dict[str, Command] = {

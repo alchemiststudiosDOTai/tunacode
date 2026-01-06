@@ -79,10 +79,19 @@ class Editor(Input):
         """Handle key events for confirmation and bash-mode auto-spacing."""
         if event.key in ("1", "2", "3"):
             app = self.app
+            # Check tool confirmation
             if (
                 hasattr(app, "pending_confirmation")
                 and app.pending_confirmation is not None
                 and not app.pending_confirmation.future.done()
+            ):
+                event.prevent_default()
+                return
+            # Check plan approval
+            if (
+                hasattr(app, "pending_plan_approval")
+                and app.pending_plan_approval is not None
+                and not app.pending_plan_approval.future.done()
             ):
                 event.prevent_default()
                 return
