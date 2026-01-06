@@ -192,6 +192,11 @@ def run_headless(
                     "success": True,
                 }
                 print(json.dumps(trajectory, indent=2))
+            else:
+                # Print final assistant response as plain text
+                final_response = _get_final_response(state_manager.session.messages)
+                if final_response:
+                    print(final_response)
 
             return 0
 
@@ -219,6 +224,19 @@ def _serialize_message(msg: object) -> dict:
     if hasattr(msg, "__dict__"):
         return msg.__dict__
     return {"content": str(msg)}
+
+
+def _get_final_response(messages: list) -> str | None:
+    """Extract final assistant text response from message history."""
+    from pydantic_ai.messages import ModelResponse, TextPart
+
+    for msg in reversed(messages):
+        if not isinstance(msg, ModelResponse):
+            continue
+        for part in msg.parts:
+            if isinstance(part, TextPart):
+                return part.content
+    return None
 
 
 if __name__ == "__main__":

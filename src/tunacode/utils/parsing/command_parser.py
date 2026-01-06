@@ -12,10 +12,10 @@ from tunacode.constants import (
 from tunacode.exceptions import ValidationError
 from tunacode.types import ToolArgs
 from tunacode.utils.parsing.json_utils import safe_json_parse
-from tunacode.utils.parsing.retry import retry_json_parse
+from tunacode.utils.parsing.retry import retry_json_parse_async
 
 
-def parse_args(args) -> ToolArgs:
+async def parse_args(args) -> ToolArgs:
     """
     Parse tool arguments from a JSON string or dictionary with retry logic.
 
@@ -31,7 +31,7 @@ def parse_args(args) -> ToolArgs:
     """
     if isinstance(args, str):
         try:
-            return retry_json_parse(
+            return await retry_json_parse_async(
                 args,
                 max_retries=JSON_PARSE_MAX_RETRIES,
                 base_delay=JSON_PARSE_BASE_DELAY,
