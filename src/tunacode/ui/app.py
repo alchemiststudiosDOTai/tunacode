@@ -64,7 +64,6 @@ from tunacode.ui.widgets import (
     EditorSubmitRequested,
     FileAutoComplete,
     InfoPanel,
-    ResourceBar,
     StatusBar,
     ToolResultDisplay,
 )
@@ -100,13 +99,11 @@ class TextualReplApp(App[None]):
 
         self.rich_log: RichLog
         self.editor: Editor
-        self.resource_bar: ResourceBar
         self.status_bar: StatusBar
         self.info_panel: InfoPanel
         self.streaming_output: Static
 
     def compose(self) -> ComposeResult:
-        self.resource_bar = ResourceBar()
         self.info_panel = InfoPanel()
         self.rich_log = RichLog(wrap=True, markup=True, highlight=True, auto_scroll=True)
         self.streaming_output = Static("", id="streaming-output")
@@ -115,7 +112,6 @@ class TextualReplApp(App[None]):
         self.status_bar = StatusBar()
 
         yield self.info_panel
-        yield self.resource_bar
         with Container(id="viewport"):
             yield self.rich_log
             yield self.streaming_output
@@ -444,6 +440,7 @@ class TextualReplApp(App[None]):
         self._current_request_task.cancel()
 
     def _update_resource_bar(self) -> None:
+        """Update info panel and status bar with current session state."""
         session = self.state_manager.session
         usage = session.session_total_usage
 
@@ -453,14 +450,7 @@ class TextualReplApp(App[None]):
         model = session.current_model or "No model selected"
         session_cost = usage.get("cost", 0.0)
 
-        self.resource_bar.update_stats(
-            model=model,
-            tokens=context_tokens,
-            max_tokens=max_tokens,
-            session_cost=session_cost,
-        )
-
-        # Sync info panel with same data
+        # Update info panel with all session data
         self.info_panel.update_model(model)
         self.info_panel.update_usage(
             tokens=context_tokens,
@@ -468,6 +458,7 @@ class TextualReplApp(App[None]):
             session_cost=session_cost,
         )
         self.info_panel.set_plan_mode(session.plan_mode)
+        self.info_panel.refresh_lsp_status(session.user_config)
 
         # Sync status bar mode indicator with session state
         # (handles plan mode exit via present_plan approval)

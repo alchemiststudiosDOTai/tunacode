@@ -175,6 +175,44 @@ class InfoPanel(Container):
         self._state.lsp_server = server
         self._refresh_mode()
 
+    def refresh_lsp_status(self, user_config: dict | None) -> None:
+        """Check LSP configuration and update indicator.
+
+        Args:
+            user_config: User configuration dictionary
+        """
+        if user_config is None:
+            self.set_lsp_server(None)
+            return
+
+        from pathlib import Path
+
+        from tunacode.lsp.servers import get_server_command
+
+        settings = user_config.get("settings", {})
+        lsp_config = settings.get("lsp", {})
+        is_enabled = lsp_config.get("enabled", False)
+
+        if not is_enabled:
+            self.set_lsp_server(None)
+            return
+
+        # Check what server would actually be used for a .py file
+        command = get_server_command(Path("test.py"))
+        if command:
+            binary = command[0]
+            name_map = {
+                "ruff": "ruff",
+                "pyright-langserver": "pyright",
+                "pylsp": "pylsp",
+                "typescript-language-server": "tsserver",
+                "gopls": "gopls",
+                "rust-analyzer": "rust-analyzer",
+            }
+            self.set_lsp_server(name_map.get(binary, binary))
+        else:
+            self.set_lsp_server(None)
+
     def _refresh_all(self) -> None:
         """Refresh all panel sections."""
         self._refresh_model()
