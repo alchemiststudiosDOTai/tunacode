@@ -108,5 +108,3 @@ def format_diagnostics(diagnostics: list[Diagnostic]) -> str:
     lines.append("</file_diagnostics>")
 
     return "\n".join(lines)
-
-

@@ -19,7 +19,7 @@ from tunacode.constants import SETTINGS_BASE_URL
 from tunacode.utils.config import save_config
 
 if TYPE_CHECKING:
-    from tunacode.core.state import StateManager
+    from tunacode.types.state import StateManagerProtocol
 
 
 class SetupScreen(Screen[bool]):
@@ -95,7 +95,7 @@ class SetupScreen(Screen[bool]):
         ("escape", "skip", "Skip Setup"),
     ]
 
-    def __init__(self, state_manager: StateManager) -> None:
+    def __init__(self, state_manager: StateManagerProtocol) -> None:
         super().__init__()
         self.state_manager = state_manager
         self._selected_provider: str = ""

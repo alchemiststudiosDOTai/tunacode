@@ -20,8 +20,14 @@ class SessionStateProtocol(Protocol):
     tool_calls: list[dict[str, Any]]
     tool_ignore: list[str]
     yolo: bool
+    plan_mode: bool
+    plan_approval_callback: Any | None
     show_thoughts: bool
     operation_cancelled: bool
+    session_id: str
+    session_total_usage: dict[str, int]
+    spinner: Any | None
+    current_task: Any | None
     total_tokens: int
     max_tokens: int
     # Persistence fields

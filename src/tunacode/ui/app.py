@@ -270,7 +270,7 @@ class TextualReplApp(App[None]):
                 process_request(
                     message=message,
                     model=ModelName(model_name),
-                    state_manager=self.state_manager,
+                    state_manager=self.state_manager,  # type: ignore[arg-type]
                     tool_callback=build_textual_tool_callback(self, self.state_manager),
                     streaming_callback=self.streaming_callback,
                     tool_result_callback=build_tool_result_callback(self),
@@ -283,7 +283,7 @@ class TextualReplApp(App[None]):
 
             patch_tool_messages(
                 "Operation cancelled by user",
-                state_manager=self.state_manager,
+                state_manager=self.state_manager,  # type: ignore[arg-type]
             )
             self.notify("Cancelled")
         except Exception as e:
@@ -291,7 +291,7 @@ class TextualReplApp(App[None]):
 
             patch_tool_messages(
                 f"Request failed: {type(e).__name__}",
-                state_manager=self.state_manager,
+                state_manager=self.state_manager,  # type: ignore[arg-type]
             )
             error_renderable = render_exception(e)
             self.rich_log.write(error_renderable)
