@@ -85,8 +85,15 @@ class StatusBarLike(Protocol):
     ) -> None: ...
 
 
+class InfoPanelLike(Protocol):
+    def add_edited_file(self, filepath: str, additions: int = 0, deletions: int = 0) -> None: ...
+
+    def update_tool(self, tool_name: str | None, *, running: bool = False) -> None: ...
+
+
 class AppForCallbacks(ConfirmationRequester, Protocol):
     status_bar: StatusBarLike
+    info_panel: InfoPanelLike
 
     def post_message(self, message: ToolResultDisplay) -> None: ...
 
@@ -146,8 +153,10 @@ def build_tool_result_callback(app: AppForCallbacks) -> Callable[..., None]:
             filepath = args.get("filepath")
             if filepath:
                 app.status_bar.add_edited_file(filepath)
+                app.info_panel.add_edited_file(filepath)
 
         app.status_bar.update_last_action(tool_name)
+        app.info_panel.update_tool(tool_name, running=False)
 
         safe_result = _truncate_for_safety(result)
 
@@ -169,6 +178,7 @@ def build_tool_start_callback(app: AppForCallbacks) -> Callable[[str], None]:
 
     def _callback(tool_name: str) -> None:
         app.status_bar.update_running_action(tool_name)
+        app.info_panel.update_tool(tool_name, running=True)
 
     return _callback
 

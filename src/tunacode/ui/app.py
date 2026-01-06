@@ -63,6 +63,7 @@ from tunacode.ui.widgets import (
     Editor,
     EditorSubmitRequested,
     FileAutoComplete,
+    InfoPanel,
     ResourceBar,
     StatusBar,
     ToolResultDisplay,
@@ -101,16 +102,19 @@ class TextualReplApp(App[None]):
         self.editor: Editor
         self.resource_bar: ResourceBar
         self.status_bar: StatusBar
+        self.info_panel: InfoPanel
         self.streaming_output: Static
 
     def compose(self) -> ComposeResult:
         self.resource_bar = ResourceBar()
+        self.info_panel = InfoPanel()
         self.rich_log = RichLog(wrap=True, markup=True, highlight=True, auto_scroll=True)
         self.streaming_output = Static("", id="streaming-output")
         self.loading_indicator = LoadingIndicator()
         self.editor = Editor()
         self.status_bar = StatusBar()
 
+        yield self.info_panel
         yield self.resource_bar
         with Container(id="viewport"):
             yield self.rich_log
@@ -445,13 +449,25 @@ class TextualReplApp(App[None]):
 
         # Use actual context window tokens, not cumulative API usage
         context_tokens = session.total_tokens
+        max_tokens = session.max_tokens or 200000
+        model = session.current_model or "No model selected"
+        session_cost = usage.get("cost", 0.0)
 
         self.resource_bar.update_stats(
-            model=session.current_model or "No model selected",
+            model=model,
             tokens=context_tokens,
-            max_tokens=session.max_tokens or 200000,
-            session_cost=usage.get("cost", 0.0),
+            max_tokens=max_tokens,
+            session_cost=session_cost,
         )
+
+        # Sync info panel with same data
+        self.info_panel.update_model(model)
+        self.info_panel.update_usage(
+            tokens=context_tokens,
+            max_tokens=max_tokens,
+            session_cost=session_cost,
+        )
+        self.info_panel.set_plan_mode(session.plan_mode)
 
         # Sync status bar mode indicator with session state
         # (handles plan mode exit via present_plan approval)

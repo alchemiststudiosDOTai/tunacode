@@ -170,6 +170,40 @@ StatusBar Static {
 }
 
 /* ============================================
+ * INFO PANEL - Right-side glanceable status
+ * NeXTSTEP: "Available Actions" zone placement
+ * ============================================ */
+InfoPanel {
+    dock: right;
+    width: 26;
+    height: 100%;
+    border-left: solid $border;
+    padding: 0 1;
+    background: $background;
+}
+
+InfoPanel .section-header {
+    color: $text-muted;
+    text-style: bold;
+    margin-top: 1;
+}
+
+InfoPanel .section-content {
+    padding-left: 1;
+    height: auto;
+}
+
+InfoPanel #panel-model-header {
+    margin-top: 0;
+}
+
+InfoPanel .mode-indicator {
+    color: $warning;
+    text-style: bold;
+    margin-top: 1;
+}
+
+/* ============================================
  * MODAL OVERLAYS - Tool Confirmation
  * NeXTSTEP: "Controls change appearance immediately"
  * ============================================ */
@@ -602,4 +636,24 @@ ToolConfirmationModal {
 
 .theme-nextstep TestBar Static {
     color: #000000;
+}
+
+/* --- Info Panel (Right Sidebar) --- */
+.theme-nextstep InfoPanel {
+    background: #c8c8c8;
+    color: #000000;
+    border-left: solid #606060;
+}
+
+.theme-nextstep InfoPanel .section-header {
+    color: #404040;
+}
+
+.theme-nextstep InfoPanel .section-content {
+    color: #000000;
+}
+
+.theme-nextstep InfoPanel .mode-indicator {
+    color: #000000;
+    text-style: bold;
 }

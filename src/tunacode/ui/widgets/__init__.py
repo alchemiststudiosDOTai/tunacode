@@ -3,6 +3,7 @@
 from .command_autocomplete import CommandAutoComplete
 from .editor import Editor
 from .file_autocomplete import FileAutoComplete
+from .info_panel import InfoPanel
 from .messages import (
     EditorCompletionsAvailable,
     EditorSubmitRequested,
@@ -17,6 +18,7 @@ __all__ = [
     "EditorCompletionsAvailable",
     "EditorSubmitRequested",
     "FileAutoComplete",
+    "InfoPanel",
     "ResourceBar",
     "StatusBar",
     "ToolResultDisplay",
