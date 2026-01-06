@@ -28,7 +28,7 @@ DEFAULT_CONTEXT_WINDOW = 200000  # 200k tokens
 
 # Display truncation limits (NeXTSTEP information hierarchy)
 MAX_CALLBACK_CONTENT = 50_000  # Emergency safety - prevents UI freeze
-MAX_PANEL_LINES = 30  # Focus zone limit for tool results
+MAX_PANEL_LINES = 10  # Focus zone limit for tool results
 MAX_PANEL_LINE_WIDTH = 200  # Individual line truncation
 MAX_SEARCH_RESULTS_DISPLAY = 20  # Search results shown before "+N more"
 
