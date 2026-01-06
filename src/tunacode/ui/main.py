@@ -242,7 +242,7 @@ def run_headless(
 def _serialize_message(msg: object) -> dict:
     """Serialize a message object to a dictionary."""
     if hasattr(msg, "model_dump"):
-        return msg.model_dump()
+        return msg.model_dump()  # type: ignore[union-attr]
     if hasattr(msg, "__dict__"):
         return msg.__dict__
     return {"content": str(msg)}

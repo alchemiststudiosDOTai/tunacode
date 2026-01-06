@@ -163,8 +163,7 @@ class ParallelGrep:
 
             # 5️⃣ Format and return results with strategy info
             strategy_info = (
-                f"Strategy: {search_type} (was {original_search_type}), "
-                f"Files: {len(candidates)}/{5000}"
+                f"Strategy: {search_type} (was {original_search_type}), Files: {len(candidates)}"
             )
             formatted_results = self._result_formatter.format_results(
                 results, pattern, config, output_mode=output_mode
@@ -414,6 +413,10 @@ class ParallelGrep:
         return await asyncio.get_event_loop().run_in_executor(self._executor, search_file_sync)
 
 
+# Module-level singleton - reuses executor and FileFilter across calls
+_grep_instance = ParallelGrep()
+
+
 @base_tool
 async def grep(
     pattern: str,
@@ -451,8 +454,7 @@ async def grep(
     if path is not None:
         directory = path
 
-    tool = ParallelGrep()
-    return await tool.execute(
+    return await _grep_instance.execute(
         pattern=pattern,
         directory=directory,
         case_sensitive=case_sensitive,
