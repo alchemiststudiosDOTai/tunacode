@@ -1,12 +1,13 @@
 """Right-side info panel widget for TunaCode REPL.
 
 Provides at-a-glance status information following NeXTSTEP design principles.
-Displays: model, token usage, edited files, tool activity, and mode indicators.
+All session info consolidated in one zone: branch, model, usage, LSP, files.
 """
 
 from __future__ import annotations
 
 import os
+import subprocess
 from dataclasses import dataclass, field
 
 from rich.text import Text
@@ -41,26 +42,26 @@ class FileChange:
 class InfoPanelState:
     """State container for InfoPanel data."""
 
+    branch: str = "main"
+    project: str = "~"
     model: str = "---"
     tokens: int = 0
     max_tokens: int = 200000
     session_cost: float = 0.0
-    edited_files: dict[str, FileChange] = field(default_factory=dict)
-    current_tool: str | None = None
-    last_tool: str | None = None
-    plan_mode: bool = False
     lsp_server: str | None = None
+    edited_files: dict[str, FileChange] = field(default_factory=dict)
+    plan_mode: bool = False
 
 
 class InfoPanel(Container):
     """Right-side info panel with glanceable status.
 
     Sections (top to bottom):
+    - Branch: Git branch + project name
     - Model: Current model name
     - Usage: Token usage indicator, remaining %, cost
-    - Files: Recently edited files with +/- indicators
-    - Tools: Current/last tool execution
-    - Mode: Plan mode indicator (if active)
+    - LSP: Language server status
+    - Files: Recently edited files
     """
 
     DEFAULT_CSS = """
@@ -83,17 +84,8 @@ class InfoPanel(Container):
         padding-left: 1;
     }
 
-    InfoPanel #panel-model {
+    InfoPanel #panel-branch-header {
         margin-top: 0;
-    }
-
-    InfoPanel .file-entry {
-        color: $text;
-    }
-
-    InfoPanel .mode-indicator {
-        color: $warning;
-        text-style: bold;
     }
     """
 
@@ -102,22 +94,40 @@ class InfoPanel(Container):
         self._state = InfoPanelState()
 
     def compose(self) -> ComposeResult:
-        yield Static("MODEL", classes="section-header", id="panel-model-header")
+        yield Static("BRANCH", classes="section-header", id="panel-branch-header")
+        yield Static("", id="panel-branch", classes="section-content")
+
+        yield Static("MODEL", classes="section-header")
         yield Static("---", id="panel-model", classes="section-content")
 
         yield Static("USAGE", classes="section-header")
         yield Static("", id="panel-usage", classes="section-content")
 
+        yield Static("LSP", classes="section-header")
+        yield Static("", id="panel-lsp", classes="section-content")
+
         yield Static("FILES", classes="section-header")
         yield Static("", id="panel-files", classes="section-content")
 
-        yield Static("TOOLS", classes="section-header")
-        yield Static("", id="panel-tools", classes="section-content")
-
-        yield Static("", id="panel-mode", classes="mode-indicator")
-
     def on_mount(self) -> None:
+        self._refresh_branch()
         self._refresh_all()
+
+    def refresh_branch(self) -> None:
+        """Refresh git branch and project info."""
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            self._state.branch = result.stdout.strip() or "main"
+        except Exception:
+            self._state.branch = "main"
+
+        self._state.project = os.path.basename(os.getcwd()) or "~"
+        self._refresh_branch()
 
     def update_model(self, model: str) -> None:
         """Update the displayed model name."""
@@ -155,32 +165,22 @@ class InfoPanel(Container):
             )
         self._refresh_files()
 
-    def update_tool(self, tool_name: str | None, *, running: bool = False) -> None:
-        """Update tool status display."""
-        if running:
-            self._state.current_tool = tool_name
-        else:
-            self._state.current_tool = None
-            if tool_name:
-                self._state.last_tool = tool_name
-        self._refresh_tools()
+    def update_tool(self, tool_name: str | None, *, _running: bool = False) -> None:
+        """Update tool status (no-op, kept for interface compatibility)."""
+        _ = tool_name  # Interface compatibility
 
     def set_plan_mode(self, enabled: bool) -> None:
         """Update plan mode indicator."""
         self._state.plan_mode = enabled
-        self._refresh_mode()
+        self._refresh_branch()
 
     def set_lsp_server(self, server: str | None) -> None:
         """Update LSP server indicator."""
         self._state.lsp_server = server
-        self._refresh_mode()
+        self._refresh_lsp()
 
     def refresh_lsp_status(self, user_config: dict | None) -> None:
-        """Check LSP configuration and update indicator.
-
-        Args:
-            user_config: User configuration dictionary
-        """
+        """Check LSP configuration and update indicator."""
         if user_config is None:
             self.set_lsp_server(None)
             return
@@ -197,7 +197,6 @@ class InfoPanel(Container):
             self.set_lsp_server(None)
             return
 
-        # Check what server would actually be used for a .py file
         command = get_server_command(Path("test.py"))
         if command:
             binary = command[0]
@@ -215,24 +214,37 @@ class InfoPanel(Container):
 
     def _refresh_all(self) -> None:
         """Refresh all panel sections."""
+        self._refresh_branch()
         self._refresh_model()
         self._refresh_usage()
+        self._refresh_lsp()
         self._refresh_files()
-        self._refresh_tools()
-        self._refresh_mode()
+
+    def _refresh_branch(self) -> None:
+        """Refresh branch and project display."""
+        widget = self.query_one("#panel-branch", Static)
+        content = Text()
+
+        if self._state.plan_mode:
+            content.append("[PLAN] ", style=STYLE_WARNING)
+
+        content.append(self._state.branch, style=STYLE_PRIMARY)
+        content.append(" ", style=STYLE_MUTED)
+        content.append(self._state.project, style=STYLE_MUTED)
+
+        widget.update(content)
 
     def _refresh_model(self) -> None:
         """Refresh model display."""
-        model_widget = self.query_one("#panel-model", Static)
-        # Truncate long model names
+        widget = self.query_one("#panel-model", Static)
         model = self._state.model
         if len(model) > PANEL_WIDTH - 2:
             model = model[: PANEL_WIDTH - 5] + "..."
-        model_widget.update(Text(model, style=STYLE_PRIMARY))
+        widget.update(Text(model, style=STYLE_PRIMARY))
 
     def _refresh_usage(self) -> None:
         """Refresh usage display with token indicator and cost."""
-        usage_widget = self.query_one("#panel-usage", Static)
+        widget = self.query_one("#panel-usage", Static)
 
         remaining_pct = self._calculate_remaining_pct()
         circle_char = self._get_circle_char(remaining_pct)
@@ -244,33 +256,41 @@ class InfoPanel(Container):
         content.append("  ", style=STYLE_MUTED)
         content.append(f"${self._state.session_cost:.2f}", style=STYLE_SUCCESS)
 
-        usage_widget.update(content)
+        widget.update(content)
+
+    def _refresh_lsp(self) -> None:
+        """Refresh LSP status display."""
+        widget = self.query_one("#panel-lsp", Static)
+
+        if self._state.lsp_server:
+            content = Text(self._state.lsp_server, style=STYLE_SUCCESS)
+        else:
+            content = Text("-", style=STYLE_MUTED)
+
+        widget.update(content)
 
     def _refresh_files(self) -> None:
         """Refresh edited files display."""
-        files_widget = self.query_one("#panel-files", Static)
+        widget = self.query_one("#panel-files", Static)
         files = self._state.edited_files
 
         if not files:
-            files_widget.update(Text("-", style=STYLE_MUTED))
+            widget.update(Text("-", style=STYLE_MUTED))
             return
 
         content = Text()
-        # Show most recent files first (dict maintains insertion order)
         file_list = list(files.values())[-MAX_FILES_SHOWN:]
 
         for i, fc in enumerate(file_list):
             if i > 0:
                 content.append("\n")
 
-            # Truncate long filenames
             name = os.path.basename(fc.filepath)
             if len(name) > MAX_FILENAME_LEN:
                 name = name[: MAX_FILENAME_LEN - 3] + "..."
 
             content.append(name, style=STYLE_PRIMARY)
 
-            # Show +/- indicators if we have change metrics
             if fc.additions > 0 or fc.deletions > 0:
                 content.append(" ", style=STYLE_MUTED)
                 if fc.additions > 0:
@@ -280,40 +300,7 @@ class InfoPanel(Container):
                         content.append("/", style=STYLE_MUTED)
                     content.append(f"-{fc.deletions}", style=STYLE_ERROR)
 
-        files_widget.update(content)
-
-    def _refresh_tools(self) -> None:
-        """Refresh tools display."""
-        tools_widget = self.query_one("#panel-tools", Static)
-        content = Text()
-
-        if self._state.current_tool:
-            content.append("running: ", style=STYLE_MUTED)
-            content.append(self._state.current_tool, style=STYLE_WARNING)
-        elif self._state.last_tool:
-            content.append("last: ", style=STYLE_MUTED)
-            content.append(self._state.last_tool, style=STYLE_SUCCESS)
-        else:
-            content.append("-", style=STYLE_MUTED)
-
-        tools_widget.update(content)
-
-    def _refresh_mode(self) -> None:
-        """Refresh mode indicators."""
-        mode_widget = self.query_one("#panel-mode", Static)
-        content = Text()
-
-        indicators: list[str] = []
-        if self._state.plan_mode:
-            indicators.append("PLAN")
-        if self._state.lsp_server:
-            indicators.append(f"LSP:{self._state.lsp_server}")
-
-        if indicators:
-            content.append("\n")
-            content.append(" | ".join(indicators), style=STYLE_WARNING)
-
-        mode_widget.update(content)
+        widget.update(content)
 
     def _calculate_remaining_pct(self) -> float:
         """Calculate remaining token percentage."""

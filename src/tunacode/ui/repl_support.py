@@ -73,26 +73,13 @@ class ConfirmationRequester(Protocol):
     ) -> ToolConfirmationResponse: ...
 
 
-class StatusBarLike(Protocol):
-    def add_edited_file(self, filepath: str) -> None: ...
-
-    def update_last_action(self, tool_name: str) -> None: ...
-
-    def update_running_action(self, tool_name: str) -> None: ...
-
-    def update_subagent_progress(
-        self, subagent: str, operation: str, current: int, total: int
-    ) -> None: ...
-
-
 class InfoPanelLike(Protocol):
     def add_edited_file(self, filepath: str, additions: int = 0, deletions: int = 0) -> None: ...
 
-    def update_tool(self, tool_name: str | None, *, running: bool = False) -> None: ...
+    def update_tool(self, tool_name: str | None, *, _running: bool = False) -> None: ...
 
 
 class AppForCallbacks(ConfirmationRequester, Protocol):
-    status_bar: StatusBarLike
     info_panel: InfoPanelLike
 
     def post_message(self, message: ToolResultDisplay) -> None: ...
@@ -152,11 +139,9 @@ def build_tool_result_callback(app: AppForCallbacks) -> Callable[..., None]:
         if tool_name in FILE_EDIT_TOOLS and status == "completed":
             filepath = args.get("filepath")
             if filepath:
-                app.status_bar.add_edited_file(filepath)
                 app.info_panel.add_edited_file(filepath)
 
-        app.status_bar.update_last_action(tool_name)
-        app.info_panel.update_tool(tool_name, running=False)
+        app.info_panel.update_tool(tool_name, _running=False)
 
         safe_result = _truncate_for_safety(result)
 
@@ -177,17 +162,18 @@ def build_tool_start_callback(app: AppForCallbacks) -> Callable[[str], None]:
     """Build callback for tool start notifications."""
 
     def _callback(tool_name: str) -> None:
-        app.status_bar.update_running_action(tool_name)
-        app.info_panel.update_tool(tool_name, running=True)
+        app.info_panel.update_tool(tool_name, _running=True)
 
     return _callback
 
 
-def build_tool_progress_callback(app: AppForCallbacks) -> Callable[[str, str, int, int], None]:
-    """Build callback for subagent tool progress notifications."""
+def build_tool_progress_callback(
+    app: AppForCallbacks,
+) -> Callable[[str, str, int, int], None]:
+    """Build callback for subagent tool progress notifications (no-op)."""
 
     def _callback(subagent: str, operation: str, current: int, total: int) -> None:
-        app.status_bar.update_subagent_progress(subagent, operation, current, total)
+        pass  # Progress now tracked elsewhere
 
     return _callback
 

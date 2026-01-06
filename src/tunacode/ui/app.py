@@ -64,7 +64,6 @@ from tunacode.ui.widgets import (
     EditorSubmitRequested,
     FileAutoComplete,
     InfoPanel,
-    StatusBar,
     ToolResultDisplay,
 )
 
@@ -99,7 +98,6 @@ class TextualReplApp(App[None]):
 
         self.rich_log: RichLog
         self.editor: Editor
-        self.status_bar: StatusBar
         self.info_panel: InfoPanel
         self.streaming_output: Static
 
@@ -109,7 +107,6 @@ class TextualReplApp(App[None]):
         self.streaming_output = Static("", id="streaming-output")
         self.loading_indicator = LoadingIndicator()
         self.editor = Editor()
-        self.status_bar = StatusBar()
 
         yield self.info_panel
         with Container(id="viewport"):
@@ -119,7 +116,6 @@ class TextualReplApp(App[None]):
         yield self.editor
         yield FileAutoComplete(self.editor)
         yield CommandAutoComplete(self.editor)
-        yield self.status_bar
 
     def on_mount(self) -> None:
         tunacode_theme = build_tunacode_theme()
@@ -440,7 +436,7 @@ class TextualReplApp(App[None]):
         self._current_request_task.cancel()
 
     def _update_resource_bar(self) -> None:
-        """Update info panel and status bar with current session state."""
+        """Update info panel with current session state."""
         session = self.state_manager.session
         usage = session.session_total_usage
 
@@ -459,10 +455,6 @@ class TextualReplApp(App[None]):
         )
         self.info_panel.set_plan_mode(session.plan_mode)
         self.info_panel.refresh_lsp_status(session.user_config)
-
-        # Sync status bar mode indicator with session state
-        # (handles plan mode exit via present_plan approval)
-        self.status_bar.set_mode("PLAN" if session.plan_mode else None)
 
     def _show_inline_confirmation(self, request: ToolConfirmationRequest) -> None:
         """Display inline confirmation prompt in RichLog."""
