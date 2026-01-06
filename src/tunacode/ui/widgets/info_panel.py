@@ -69,7 +69,6 @@ class InfoPanel(Container):
         dock: right;
         width: 26;
         height: 100%;
-        border-left: solid $border;
         padding: 0 1;
         background: $background;
     }

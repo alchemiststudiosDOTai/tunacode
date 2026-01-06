@@ -177,7 +177,6 @@ InfoPanel {
     dock: right;
     width: 26;
     height: 100%;
-    border-left: solid $border;
     padding: 0 1;
     background: $background;
 }
@@ -642,7 +641,6 @@ ToolConfirmationModal {
 .theme-nextstep InfoPanel {
     background: #c8c8c8;
     color: #000000;
-    border-left: solid #606060;
 }
 
 .theme-nextstep InfoPanel .section-header {
