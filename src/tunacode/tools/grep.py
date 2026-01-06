@@ -205,6 +205,9 @@ class ParallelGrep:
         Run ripgrep on pre-filtered file list using the enhanced RipgrepExecutor.
         """
 
+        # Build set of resolved candidate paths for O(1) lookup
+        candidate_set = {p.resolve() for p in candidates}
+
         def run_enhanced_ripgrep():
             """Execute ripgrep search using the new executor."""
             start_time = time.time()
@@ -219,12 +222,10 @@ class ParallelGrep:
                 return []
 
             try:
-                # Use the enhanced executor with support for context lines
-                # Note: Currently searching all files, not using candidates
-                # This is a limitation that should be addressed in future enhancement
+                # Ripgrep respects .gitignore by default
                 search_results = self._ripgrep_executor.search(
                     pattern=pattern,
-                    path=".",  # Search in current directory
+                    path=".",
                     timeout=timeout,
                     max_matches=config.max_results,
                     case_insensitive=not config.case_sensitive,
@@ -232,17 +233,15 @@ class ParallelGrep:
                     context_after=config.context_lines,
                 )
 
-                # Ripgrep doesn't provide timing info for first match, so we rely on
-                # the overall timeout mechanism instead of first_match_deadline
-
                 # Parse results
                 for result_line in search_results:
                     # Parse ripgrep output format "file:line:content"
                     parts = result_line.split(":", 2)
                     if len(parts) >= 3:
                         # Filter to only include results from candidates
-                        file_path = Path(parts[0])
-                        if file_path not in candidates:
+                        # Resolve to absolute path for comparison (ripgrep returns relative)
+                        file_path = Path(parts[0]).resolve()
+                        if file_path not in candidate_set:
                             continue
 
                         try:
