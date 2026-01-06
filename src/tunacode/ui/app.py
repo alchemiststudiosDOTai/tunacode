@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.rule import Rule
 from rich.syntax import Syntax
 from rich.text import Text
 from textual import events
@@ -33,6 +32,12 @@ from tunacode.types import (
     StateManager,
     ToolConfirmationRequest,
     ToolConfirmationResponse,
+)
+from tunacode.ui.plan_approval import (
+    handle_plan_approval_key,
+)
+from tunacode.ui.plan_approval import (
+    request_plan_approval as _request_plan_approval,
 )
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
@@ -344,48 +349,7 @@ class TextualReplApp(App[None]):
 
     async def request_plan_approval(self, plan_content: str) -> tuple[bool, str]:
         """Request user approval for a plan. Returns (approved, feedback)."""
-        if self.pending_plan_approval is not None and not self.pending_plan_approval.future.done():
-            raise RuntimeError("Previous plan approval still pending")
-
-        future: asyncio.Future[tuple[bool, str]] = asyncio.Future()
-        self.pending_plan_approval = PendingPlanApprovalState(
-            future=future, plan_content=plan_content
-        )
-        self._show_plan_approval(plan_content)
-        return await future
-
-    def _show_plan_approval(self, plan_content: str) -> None:
-        """Display plan approval prompt with NeXTSTEP 4-zone layout."""
-        from rich.console import Group
-
-        context = Text()
-        context.append("Output: ", style=STYLE_MUTED)
-        context.append("PLAN.md", style=STYLE_PRIMARY)
-        context.append(" will be created in project root", style=STYLE_MUTED)
-
-        actions = Text()
-        actions.append("[1]", style=f"bold {STYLE_SUCCESS}")
-        actions.append(" Approve    ")
-        actions.append("[2]", style=f"bold {STYLE_ERROR}")
-        actions.append(" Deny")
-
-        content_parts: list[Text | Markdown | Rule] = [
-            Markdown(plan_content),
-            Rule(style=STYLE_MUTED),
-            context,
-            Rule(style=STYLE_MUTED),
-            actions,
-        ]
-
-        panel = Panel(
-            Group(*content_parts),
-            border_style=STYLE_PRIMARY,
-            padding=(0, 1),
-            expand=True,
-            title="Plan Mode",
-            subtitle="Review Implementation Plan",
-        )
-        self.rich_log.write(panel)
+        return await _request_plan_approval(plan_content, self, self.rich_log)
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         panel = tool_panel_smart(
@@ -601,17 +565,6 @@ class TextualReplApp(App[None]):
 
     def _handle_plan_approval_key(self, event: events.Key) -> None:
         """Handle key events for plan approval."""
-        if event.key == "1":
-            # Approve - plan will be saved by present_plan tool
-            self.rich_log.write(Text("Plan approved", style=STYLE_SUCCESS))
-            self.pending_plan_approval.future.set_result((True, ""))
+        assert self.pending_plan_approval is not None  # Guarded by caller
+        if handle_plan_approval_key(event, self.pending_plan_approval, self.rich_log):
             self.pending_plan_approval = None
-            event.stop()
-        elif event.key == "2":
-            # Deny - return with request for revision
-            self.rich_log.write(Text("Plan denied - agent will revise", style=STYLE_ERROR))
-            self.pending_plan_approval.future.set_result(
-                (False, "Please revise the plan based on my requirements.")
-            )
-            self.pending_plan_approval = None
-            event.stop()
