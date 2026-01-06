@@ -7,7 +7,6 @@ from textual.binding import Binding
 from textual.widgets import Input
 
 from .messages import EditorSubmitRequested
-from .status_bar import StatusBar
 
 
 class Editor(Input):
@@ -24,16 +23,6 @@ class Editor(Input):
         self._placeholder_cleared: bool = False
         self._was_pasted: bool = False
         self._pasted_content: str = ""
-
-    @property
-    def _status_bar(self) -> StatusBar | None:
-        """Get status bar or None if not available."""
-        from textual.css.query import NoMatches
-
-        try:
-            return self.app.query_one(StatusBar)
-        except NoMatches:
-            return None
 
     def on_key(self, event: events.Key) -> None:
         """Handle key events for confirmation and bash-mode auto-spacing."""
@@ -84,10 +73,6 @@ class Editor(Input):
         self._was_pasted = False
         self._pasted_content = ""
 
-        # Reset StatusBar mode
-        if status_bar := self._status_bar:
-            status_bar.set_mode(None)
-
     def _on_paste(self, event: events.Paste) -> None:
         """Capture full paste content before Input truncates to first line."""
         lines = event.text.splitlines()
@@ -100,11 +85,6 @@ class Editor(Input):
 
             # Show paste indicator in Input
             self.value = f"[[PASTED {line_count} LINES]]"
-
-            # Update StatusBar
-            if status_bar := self._status_bar:
-                status_bar.set_mode(f"pasted {line_count} lines")
-
             event.stop()  # Prevent parent from processing
         else:
             # Single line - let parent handle normally
@@ -122,7 +102,7 @@ class Editor(Input):
             self._placeholder_cleared = True
 
     def _update_bash_mode(self, value: str) -> None:
-        """Toggle bash-mode class and status bar indicator."""
+        """Toggle bash-mode class based on ! prefix."""
         self.remove_class("bash-mode")
 
         if self._was_pasted:
@@ -130,7 +110,3 @@ class Editor(Input):
 
         if value.startswith("!"):
             self.add_class("bash-mode")
-
-        if status_bar := self._status_bar:
-            mode = "bash mode" if value.startswith("!") else None
-            status_bar.set_mode(mode)

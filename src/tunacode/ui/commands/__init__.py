@@ -158,7 +158,7 @@ class BranchCommand(Command):
             )
             if result.returncode == 0:
                 app.notify(f"Created branch: {branch_name}")
-                app.status_bar._refresh_location()
+                app.info_panel.refresh_branch()
             else:
                 app.rich_log.write(f"Error: {result.stderr.strip()}")
         except Exception as e:
@@ -204,7 +204,7 @@ class PlanCommand(Command):
             session.plan_approval_callback = plan_approval_callback
 
             # NeXTSTEP: Modes must be visually apparent at all times
-            app.status_bar.set_mode("PLAN")
+            app.info_panel.set_plan_mode(True)
             app.notify("Plan mode ON - write/bash tools blocked")
             app.rich_log.write(
                 "[bold]Plan mode active[/bold]\n"
@@ -218,7 +218,7 @@ class PlanCommand(Command):
             session.plan_approval_callback = None
 
             # NeXTSTEP: Clear mode indicator
-            app.status_bar.set_mode(None)
+            app.info_panel.set_plan_mode(False)
             app.notify("Plan mode OFF - all tools available")
             create_user_message(
                 "Plan mode has been disabled. All tools are now available.",

@@ -9,8 +9,6 @@ from .messages import (
     EditorSubmitRequested,
     ToolResultDisplay,
 )
-from .resource_bar import ResourceBar
-from .status_bar import StatusBar
 
 __all__ = [
     "CommandAutoComplete",
@@ -19,7 +17,5 @@ __all__ = [
     "EditorSubmitRequested",
     "FileAutoComplete",
     "InfoPanel",
-    "ResourceBar",
-    "StatusBar",
     "ToolResultDisplay",
 ]
