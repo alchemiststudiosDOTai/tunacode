@@ -14,6 +14,7 @@ from .factory import create_default_authorization_policy
 from .notifier import ToolRejectionNotifier
 from .policy import AuthorizationPolicy
 from .requests import ConfirmationRequestFactory
+from .types import AuthorizationResult
 
 
 class ToolHandler:
@@ -39,7 +40,13 @@ class ToolHandler:
     def set_active_template(self, template: Template | None) -> None:
         self.active_template = template
 
+    def get_authorization(self, tool_name: ToolName) -> AuthorizationResult:
+        """Get authorization decision for a tool."""
+        context = AuthContext.from_state(self.state)
+        return self._policy.get_authorization(tool_name, context)
+
     def should_confirm(self, tool_name: ToolName) -> bool:
+        """Legacy method - returns True if tool needs confirmation or is denied."""
         context = AuthContext.from_state(self.state)
         return self._policy.should_confirm(tool_name, context)
 

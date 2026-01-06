@@ -1,0 +1,42 @@
+<present_plan>
+Present your implementation plan to the user for approval.
+
+WHEN TO USE:
+- After gathering sufficient context in plan mode
+- When you have a clear understanding of what needs to be done
+- When ready to propose specific changes
+
+PLAN FORMAT (markdown):
+```markdown
+# Implementation Plan: [Brief Title]
+
+## Objective
+[1-2 sentence summary of what will be accomplished]
+
+## Files to Modify
+- `path/to/file1.py` - [brief change description]
+- `path/to/file2.py` - [brief change description]
+
+## Approach
+1. [First step with rationale]
+2. [Second step with rationale]
+3. [Continue as needed]
+
+## Considerations
+- [Risk or edge case to handle]
+- [Dependencies or prerequisites]
+
+## Acceptance Criteria
+- [ ] [Specific, verifiable outcome]
+- [ ] [Another verifiable outcome]
+```
+
+AFTER CALLING:
+- If approved: Plan saved to PLAN.md, plan mode exits, you can use write tools
+- If denied: Revise based on feedback and call present_plan again
+
+DO NOT call this tool until you have:
+1. Read relevant files to understand current implementation
+2. Identified all files that need modification
+3. Formed a clear step-by-step approach
+</present_plan>
