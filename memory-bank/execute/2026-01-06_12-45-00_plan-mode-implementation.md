@@ -151,9 +151,9 @@ Implemented plan mode: a read-only exploration mode where the agent gathers cont
 
 ## Gate Results
 
-- **Tests:** PASS - 130/130 tests passed
+- **Tests:** N/A - CI runs pre-commit hooks only (linting, formatting, mypy, security). Repository has 13 test functions (9 in test_prompting_engine.py, 2 in test_headless_cli.py, 2 in test_cli_default_command.py) but pytest is not run in CI workflow.
 - **Linting (ruff):** PASS - All checks passed
-- **Type checks:** N/A - mypy not configured in project
+- **Type checks:** PASS - mypy v1.14.1 configured via .pre-commit-config.yaml with appropriate stub dependencies (pydantic, typer, requests)
 
 ---
 
