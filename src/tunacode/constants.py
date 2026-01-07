@@ -34,13 +34,11 @@ MAX_PANEL_LINE_WIDTH = 60
 MAX_SEARCH_RESULTS_DISPLAY = 20
 MODEL_PICKER_UNFILTERED_LIMIT = 50
 
-# Tool panel viewport sizing (standardized across all renderers)
 TOOL_VIEWPORT_LINES = 10
 MIN_VIEWPORT_LINES = 4
 TOOL_PANEL_WIDTH = 60
 URL_DISPLAY_MAX_LENGTH = 70
 
-# Tool panel separator styling
 BOX_HORIZONTAL = "\u2500"  # ─
 SEPARATOR_WIDTH = 10
 
