@@ -7,8 +7,8 @@ from typing import Any
 
 from pydantic_ai.exceptions import ModelRetry
 
-from tunacode.core.state import StateManager
 from tunacode.tools.xml_helper import load_prompt_from_xml
+from tunacode.types import StateManagerProtocol
 
 # Heavily yoinked from https://github.com/sst/opencode/blob/dev/packages/opencode/src/tool/todo.ts
 # and adapted for python.
@@ -121,7 +121,7 @@ def _format_todos(todos: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def create_todowrite_tool(state_manager: StateManager) -> Callable:
+def create_todowrite_tool(state_manager: StateManagerProtocol) -> Callable:
     # Heavily yoinked from https://github.com/sst/opencode/blob/dev/packages/opencode/src/tool/todo.ts
     # and adapted for python.
     """Factory to create a todowrite tool bound to a state manager.
@@ -161,7 +161,7 @@ def create_todowrite_tool(state_manager: StateManager) -> Callable:
     return todowrite
 
 
-def create_todoread_tool(state_manager: StateManager) -> Callable:
+def create_todoread_tool(state_manager: StateManagerProtocol) -> Callable:
     # Heavily yoinked from https://github.com/sst/opencode/blob/dev/packages/opencode/src/tool/todo.ts
     # and adapted for python.
     """Factory to create a todoread tool bound to a state manager.
@@ -193,7 +193,7 @@ def create_todoread_tool(state_manager: StateManager) -> Callable:
     return todoread
 
 
-def create_todoclear_tool(state_manager: StateManager) -> Callable:
+def create_todoclear_tool(state_manager: StateManagerProtocol) -> Callable:
     """Factory to create a todoclear tool bound to a state manager.
 
     Args:

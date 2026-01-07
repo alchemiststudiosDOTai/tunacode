@@ -3,10 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from tunacode.types import ToolName
+from tunacode.types import StateManagerProtocol, ToolName
 
 if TYPE_CHECKING:
-    from tunacode.core.state import StateManager
     from tunacode.templates.loader import Template
 
 
@@ -20,7 +19,7 @@ class AuthContext:
     active_template: Template | None
 
     @classmethod
-    def from_state(cls, state: StateManager) -> AuthContext:
+    def from_state(cls, state: StateManagerProtocol) -> AuthContext:
         """Build context directly from session state."""
         active_template = None
         if hasattr(state, "tool_handler") and state.tool_handler is not None:

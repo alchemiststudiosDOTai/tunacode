@@ -81,3 +81,5 @@ vendor/
 .beads/
 .osgrep
 .osgrep*
+.pre-commit-cache/
+TODO.md

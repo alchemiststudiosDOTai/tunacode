@@ -71,6 +71,7 @@ done < <(find . -type f \
     -not -path "./node_modules/*" \
     -not -path "./llm-agent-tools/*" \
     -not -path "./.osgrep/*" \
+    -not -path "./.pre-commit-cache/*" \
     -not -name "*.pyc" \
     -not -name "*.pyo" \
     -not -name "*.so" \

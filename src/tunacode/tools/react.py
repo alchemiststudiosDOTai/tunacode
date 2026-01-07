@@ -7,10 +7,10 @@ from typing import Any, Literal
 
 from pydantic_ai.exceptions import ModelRetry
 
-from tunacode.core.state import StateManager
+from tunacode.types import StateManagerProtocol
 
 
-def create_react_tool(state_manager: StateManager) -> Callable:
+def create_react_tool(state_manager: StateManagerProtocol) -> Callable:
     """Factory to create a react tool bound to a state manager.
 
     Args:
@@ -90,7 +90,7 @@ def _format_entry(item: dict[str, Any]) -> str:
 class ReactTool:
     """Wrapper class for backwards compatibility with existing code."""
 
-    def __init__(self, state_manager: StateManager) -> None:
+    def __init__(self, state_manager: StateManagerProtocol) -> None:
         self.state_manager = state_manager
         self._react = create_react_tool(state_manager)
 

@@ -7,13 +7,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from tunacode.tools.xml_helper import load_prompt_from_xml
-
-if TYPE_CHECKING:
-    from tunacode.core.state import StateManager
-
+from tunacode.types import StateManagerProtocol
 
 PLAN_APPROVED_MESSAGE = (
     "Plan approved and saved to PLAN.md. Plan mode exited. You may now use write tools."
@@ -27,7 +23,7 @@ PLAN_NOT_IN_PLAN_MODE = (
 )
 
 
-def create_present_plan_tool(state_manager: StateManager) -> Callable:
+def create_present_plan_tool(state_manager: StateManagerProtocol) -> Callable:
     """Factory to create a present_plan tool bound to a state manager.
 
     The tool requires a plan_approval_callback to be set on the session
