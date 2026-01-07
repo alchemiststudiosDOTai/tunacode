@@ -8,21 +8,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from rich.console import RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.text import Text
 
 from tunacode.constants import (
-    MAX_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
-    TOOL_PANEL_WIDTH,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
-    pad_lines,
     tool_renderer,
     truncate_line,
 )
@@ -123,7 +118,9 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
         header.append("Query: ", style="dim")
         max_query_display_length = 60
         query_too_long = len(data.query) > max_query_display_length
-        query_display = data.query[:max_query_display_length] + "..." if query_too_long else data.query
+        query_display = (
+            data.query[:max_query_display_length] + "..." if query_too_long else data.query
+        )
         header.append(f'"{query_display}"', style="bold")
         return header
 
@@ -143,7 +140,6 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
 
     def build_viewport(self, data: ResearchData) -> RenderableType:
         """Zone 3: Multi-section viewport (files, findings, recommendations)."""
-        from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
         viewport_lines: list[Text] = []
         lines_used = 0

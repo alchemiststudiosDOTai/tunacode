@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tunacode.constants import MAX_PANEL_LINE_WIDTH
-from tunacode.ui.renderers.tools.update_file import UpdateFileRenderer, _renderer
+from tunacode.ui.renderers.tools.update_file import _renderer
 
 EXTRA_CHAR_COUNT: int = 1
 FILLER_CHAR: str = "a"

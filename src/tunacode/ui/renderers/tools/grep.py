@@ -138,7 +138,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
 
     def build_viewport(self, data: GrepData) -> RenderableType:
         """Zone 3: Matches viewport grouped by file."""
-        from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+        from tunacode.constants import TOOL_VIEWPORT_LINES
 
         viewport_lines: list[str] = []
         current_file: str | None = None
@@ -156,7 +156,9 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
                 viewport_lines.append(f"  {current_file}")
                 shown_matches += 1
 
-            line_content = f"    {match['line']:>4}| {match['before']}{match['match']}{match['after']}"
+            line_content = (
+                f"    {match['line']:>4}| {match['before']}{match['match']}{match['after']}"
+            )
             viewport_lines.append(truncate_line(line_content))
             shown_matches += 1
 

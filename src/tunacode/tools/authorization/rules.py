@@ -81,9 +81,7 @@ class PlanModeBlockRule:
             return AuthorizationResult.DENY
         return AuthorizationResult.CONFIRM
 
-    def should_allow_without_confirmation(
-        self, tool_name: ToolName, context: AuthContext
-    ) -> bool:
+    def should_allow_without_confirmation(self, tool_name: ToolName, context: AuthContext) -> bool:
         # This rule never allows - it only blocks or defers
         return False
 

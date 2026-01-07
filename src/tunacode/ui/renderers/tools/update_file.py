@@ -19,7 +19,6 @@ from tunacode.constants import (
     MIN_VIEWPORT_LINES,
     TOOL_PANEL_WIDTH,
     TOOL_VIEWPORT_LINES,
-    UI_COLORS,
 )
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -151,7 +150,9 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         max_content = TOOL_VIEWPORT_LINES
         max_line_width = MAX_PANEL_LINE_WIDTH
 
-        capped_lines = [self._truncate_line_width(line, max_line_width) for line in lines[:max_content]]
+        capped_lines = [
+            self._truncate_line_width(line, max_line_width) for line in lines[:max_content]
+        ]
 
         if total <= max_content:
             return "\n".join(capped_lines), total, total
@@ -159,7 +160,6 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
 
     def build_status(self, data: UpdateFileData, duration_ms: float | None) -> Text:
         """Zone 4: Status with hunks, truncation info, timing."""
-        from tunacode.constants import TOOL_VIEWPORT_LINES
 
         status_items: list[str] = []
 

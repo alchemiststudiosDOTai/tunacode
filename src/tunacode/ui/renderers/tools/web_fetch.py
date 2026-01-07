@@ -102,7 +102,6 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
 
     def build_status(self, data: WebFetchData, duration_ms: float | None) -> Text:
         """Zone 4: Status with truncation info and timing."""
-        from tunacode.constants import TOOL_VIEWPORT_LINES
 
         status_items: list[str] = []
 

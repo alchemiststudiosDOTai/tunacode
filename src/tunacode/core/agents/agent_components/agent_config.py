@@ -280,8 +280,6 @@ def _get_provider_config_from_registry(provider_name: str) -> dict:
     }
 
 
-
-
 def _create_model_with_retry(
     model_string: str, http_client: AsyncClient, state_manager: StateManager
 ):

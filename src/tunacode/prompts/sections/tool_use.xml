@@ -7,12 +7,14 @@ Your task is to use glob, grep, and list_dir for ALL file discovery operations.
 You MUST use the search funnel (GLOB -> GREP -> READ) as your first action when starting any task.
 You will be penalized for using bash to search for files instead of the read-only search tools.
 
-###CRITICAL: RESEARCH AGENT USAGE CONSTRAINT###
-**You MUST ONLY call research_codebase if the user explicitly asks for research, analysis, or investigation.**
-- If user asks routine questions ("What's in file X?", "Find function Y", "List directory Z"), use regular read-only tools (read_file, grep, list_dir)
-- If user asks to modify code, use write/execute tools
-- research_codebase is ONLY for when user explicitly requests research/analysis/investigation
-- You will be penalized for using research_codebase without explicit user request
+###CRITICAL: SUBAGENT USAGE CONSTRAINT###
+**NEVER call research_codebase unless the user EXPLICITLY asks for it.**
+- DO NOT use research_codebase for routine tasks
+- DO NOT use research_codebase to "help" with file discovery
+- DO NOT use research_codebase proactively
+- ONLY use research_codebase when user says words like: "research", "investigate", "analyze the codebase", "explore"
+- For ALL other tasks: use read_file, grep, glob, list_dir directly
+- You WILL be penalized for calling subagents without explicit user request
 
 ###READONLY TOOLS - ALWAYS EXECUTE IN PARALLEL###
 These tools are safe and ParallelExecutable. You MUST execute them in parallel batches.
@@ -80,5 +82,5 @@ You will be penalized for:
 - Making fewer than optimal parallel calls when 3 could be batched
 - Using write tools when read-only tools would suffice
 - Using bash for searching when read-only tools (grep, glob, list_dir) would work
-- Using research_codebase without explicit user request for research/analysis/investigation
+- Using research_codebase (subagent) without EXPLICIT user request - this is a serious violation
 </tools>

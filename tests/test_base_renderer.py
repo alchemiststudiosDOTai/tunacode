@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from rich.panel import Panel
-
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     list_renderers,
