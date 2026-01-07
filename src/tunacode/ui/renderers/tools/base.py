@@ -29,7 +29,7 @@ from tunacode.constants import (
 )
 
 BOX_HORIZONTAL = "="  # TEST: proving unified logic
-SEPARATOR_WIDTH = 60  # TEST: wider separator
+SEPARATOR_WIDTH = 10
 
 
 def truncate_line(line: str, max_width: int = MAX_PANEL_LINE_WIDTH) -> str:
@@ -407,26 +407,13 @@ class BaseToolRenderer(ABC, Generic[T]):
         status = self.build_status(data, duration_ms)
         separator = self.build_separator()
 
-        # Compose content with separators
-        content_parts: list[RenderableType] = [
-            header,
-            Text("\n"),
-        ]
+        # Compose content - compact zones per NeXTSTEP guidelines
+        content_parts: list[RenderableType] = [header]
 
         if params is not None:
-            content_parts.extend([params, Text("\n")])
+            content_parts.append(params)
 
-        content_parts.extend(
-            [
-                separator,
-                Text("\n"),
-                viewport,
-                Text("\n"),
-                separator,
-                Text("\n"),
-                status,
-            ]
-        )
+        content_parts.extend([Text("\n"), separator, viewport, Text("\n"), separator, status])
 
         content = Group(*content_parts)
 

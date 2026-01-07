@@ -50,9 +50,7 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
 
         # First line is summary: "45 files  12 dirs" or "0 files  0 dirs"
         summary_line = lines[0]
-        summary_match = re.match(
-            r"(\d+)\s+files\s+(\d+)\s+dirs(?:\s+\(truncated\))?", summary_line
-        )
+        summary_match = re.match(r"(\d+)\s+files\s+(\d+)\s+dirs(?:\s+\(truncated\))?", summary_line)
 
         if not summary_match:
             return None
@@ -117,7 +115,6 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
         data.shown_lines = shown
         data.total_lines = total
 
-        # Pad to minimum height
         padded = pad_lines(truncated_tree.split("\n"))
         return Text("\n".join(padded))
 

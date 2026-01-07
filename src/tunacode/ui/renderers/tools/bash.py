@@ -9,6 +9,7 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
+from tunacode.constants import MIN_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -144,7 +145,7 @@ class BashRenderer(BaseToolRenderer[BashData]):
         viewport_line_count = sum(
             1 + str(part).count("\n") for part in viewport_parts if isinstance(part, Text)
         )
-        while viewport_line_count < 26:
+        while viewport_line_count < MIN_VIEWPORT_LINES:
             viewport_parts.append(Text(""))
             viewport_line_count += 1
 
