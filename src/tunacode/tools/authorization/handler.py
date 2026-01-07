@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from tunacode.core.state import StateManager
 from tunacode.templates.loader import Template
 from tunacode.types import (
-    StateManager,
     ToolArgs,
     ToolConfirmationRequest,
     ToolConfirmationResponse,

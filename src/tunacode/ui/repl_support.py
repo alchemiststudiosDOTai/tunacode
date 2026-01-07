@@ -17,9 +17,9 @@ from rich.console import Console
 from rich.text import Text
 
 from tunacode.constants import MAX_CALLBACK_CONTENT
+from tunacode.core.state import StateManager
 from tunacode.tools.authorization.handler import ToolHandler
 from tunacode.types import (
-    StateManager,
     ToolConfirmationRequest,
     ToolConfirmationResponse,
     ToolProgress,

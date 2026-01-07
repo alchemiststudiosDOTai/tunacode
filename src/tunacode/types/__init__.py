@@ -9,9 +9,6 @@ All types are re-exported from this module for backward compatibility.
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-# Concrete StateManager re-exported for convenience
-from tunacode.core.state import StateManager
-
 # Base types
 from tunacode.types.base import (
     AgentConfig,
@@ -93,8 +90,8 @@ from tunacode.types.state import (
     StateManagerProtocol,
 )
 
-# Backward compatibility: ProcessRequestCallback needs StateManager
-ProcessRequestCallback = Callable[[str, StateManager, bool], Awaitable[Any]]
+# ProcessRequestCallback uses the protocol, not concrete implementation
+ProcessRequestCallback = Callable[[str, StateManagerProtocol, bool], Awaitable[Any]]
 
 __all__ = [
     # Base types
@@ -151,7 +148,6 @@ __all__ = [
     "UIInputCallback",
     # State
     "SessionStateProtocol",
-    "StateManager",
     "StateManagerProtocol",
     # Dataclasses
     "AgentState",

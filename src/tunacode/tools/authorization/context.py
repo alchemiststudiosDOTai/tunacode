@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 from tunacode.types import ToolName
 
 if TYPE_CHECKING:
+    from tunacode.core.state import StateManager
     from tunacode.templates.loader import Template
-    from tunacode.types import StateManager
 
 
 @dataclass(frozen=True)

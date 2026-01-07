@@ -25,11 +25,11 @@ from tunacode.constants import (
     build_tunacode_theme,
 )
 from tunacode.core.agents.main import process_request
+from tunacode.core.state import StateManager
 from tunacode.indexing import CodeIndex
 from tunacode.indexing.constants import QUICK_INDEX_THRESHOLD
 from tunacode.types import (
     ModelName,
-    StateManager,
     ToolConfirmationRequest,
     ToolConfirmationResponse,
 )
