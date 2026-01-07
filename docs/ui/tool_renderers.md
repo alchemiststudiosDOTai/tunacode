@@ -17,13 +17,10 @@ Every tool panel follows this structure:
 ```
 ┌──────────────────────────────────────────────────┐
 │ [bold]tool_name[/]   status info                 │  Zone 1: Header
-├──────────────────────────────────────────────────┤
 │ param1: value1   param2: value2                  │  Zone 2: Params
-├──────────────────────────────────────────────────┤
-│                                                  │
-│         main content (padded)                    │  Zone 3: Viewport
-│                                                  │
-├──────────────────────────────────────────────────┤
+│ ──────────                                       │  Separator
+│ main content                                     │  Zone 3: Viewport
+│ ──────────                                       │  Separator
 │ info1   info2   123ms                            │  Zone 4: Status
 └──────────────────────────────────────────────────┘
   09:41:23                                           Subtitle (timestamp)
@@ -89,13 +86,13 @@ Shared utilities eliminate duplication across renderers:
 from tunacode.ui.renderers.tools import truncate_line, truncate_content, pad_lines
 
 # Truncate single line with ellipsis
-line = truncate_line("very long line...", max_width=80)
+line = truncate_line("very long line...", max_width=60)
 
 # Truncate multi-line content, returns (content, shown, total)
-content, shown, total = truncate_content(raw_output, max_lines=26)
+content, shown, total = truncate_content(raw_output, max_lines=10)
 
 # Pad to minimum viewport height
-lines = pad_lines(content.split("\n"), min_lines=26)
+lines = pad_lines(content.split("\n"), min_lines=4)
 ```
 
 ## Registry Pattern
@@ -114,15 +111,10 @@ def render_my_tool(args, result, duration_ms=None):
 ### Lookup Functions
 
 ```python
-from tunacode.ui.renderers.tools import get_renderer, list_renderers
-
-# Get renderer by tool name
-renderer = get_renderer("list_dir")
-if renderer:
-    panel = renderer(args, result, duration_ms)
+from tunacode.ui.renderers.tools import list_renderers
 
 # List all registered renderers
-names = list_renderers()  # ["bash", "glob", "grep", "list_dir", ...]
+names = list_renderers()  # ["bash", "list_dir", ...]
 ```
 
 ## Creating a New Renderer
@@ -133,6 +125,7 @@ names = list_renderers()  # ["bash", "glob", "grep", "list_dir", ...]
 4. Create module-level instance and render function
 5. Register with `@tool_renderer`
 6. Export from `__init__.py`
+7. Add to `UNIFIED_RENDERERS` in `tests/test_base_renderer.py`
 
 ### Minimal Example
 
@@ -166,7 +159,6 @@ class MyToolRenderer(BaseToolRenderer[MyToolData]):
     def parse_result(self, args, result) -> MyToolData | None:
         if not result:
             return None
-        # Parse result string into structured data
         return MyToolData(name="example", content=result, count=len(result.splitlines()))
 
     def build_header(self, data, duration_ms) -> Text:
@@ -204,41 +196,54 @@ Defined in `tunacode.constants`:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `TOOL_PANEL_WIDTH` | 80 | Panel width in characters |
-| `TOOL_VIEWPORT_LINES` | 26 | Max lines before truncation |
-| `MIN_VIEWPORT_LINES` | 26 | Minimum viewport height (padding) |
-| `MAX_PANEL_LINE_WIDTH` | 200 | Max chars per line before truncation |
+| `TOOL_PANEL_WIDTH` | 60 | Panel width in characters |
+| `TOOL_VIEWPORT_LINES` | 10 | Max lines before truncation |
+| `MIN_VIEWPORT_LINES` | 4 | Minimum viewport height (padding) |
+| `MAX_PANEL_LINE_WIDTH` | 60 | Max chars per line before truncation |
 
 Defined in `base.py`:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
 | `BOX_HORIZONTAL` | `─` | Separator character |
-| `SEPARATOR_WIDTH` | 52 | Separator line width |
+| `SEPARATOR_WIDTH` | 10 | Separator line width |
 
 ## Current Renderers
 
-| Tool | Renderer | Data Class |
-|------|----------|------------|
-| `list_dir` | `ListDirRenderer` | `ListDirData` |
-| `bash` | (function) | `BashData` |
-| `read_file` | (function) | `ReadFileData` |
-| `update_file` | (function) | `UpdateFileData` |
-| `glob` | (function) | `GlobData` |
-| `grep` | (function) | `GrepData` |
-| `web_fetch` | (function) | `WebFetchData` |
-| `research_codebase` | (function) | `ResearchData` |
+| Tool | Status | Renderer Class |
+|------|--------|----------------|
+| `list_dir` | Unified | `ListDirRenderer` |
+| `bash` | Unified | `BashRenderer` |
+| `read_file` | Legacy | (function) |
+| `update_file` | Legacy | (function) |
+| `glob` | Legacy | (function) |
+| `grep` | Legacy | (function) |
+| `web_fetch` | Legacy | (function) |
+| `research_codebase` | Legacy | (function) |
 
-Note: Only `list_dir` currently uses `BaseToolRenderer`. Others are candidates for migration.
+## Testing & Enforcement
+
+Renderers using `BaseToolRenderer` are enforced via `tests/test_base_renderer.py`:
+
+```python
+UNIFIED_RENDERERS = {
+    "list_dir": ListDirRenderer,
+    "bash": BashRenderer,
+}
+```
+
+Tests verify:
+- Each renderer inherits from `BaseToolRenderer`
+- Each renderer is registered in the registry
+
+When migrating a renderer, add it to `UNIFIED_RENDERERS` dict.
 
 ## Verification Checklist
 
 When creating or modifying a renderer:
 
-- [ ] Follows 4-zone layout
+- [ ] Inherits from `BaseToolRenderer`
 - [ ] Uses shared helpers (no local `_truncate_line`)
 - [ ] Registered with `@tool_renderer`
+- [ ] Added to `UNIFIED_RENDERERS` in test file
 - [ ] Exported from `__init__.py`
-- [ ] Viewport padded to `MIN_VIEWPORT_LINES`
-- [ ] Status includes duration when provided
-- [ ] Panel width is `TOOL_PANEL_WIDTH`

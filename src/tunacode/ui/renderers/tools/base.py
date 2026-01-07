@@ -21,15 +21,14 @@ from rich.style import Style
 from rich.text import Text
 
 from tunacode.constants import (
+    BOX_HORIZONTAL,
     MAX_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
+    SEPARATOR_WIDTH,
     TOOL_PANEL_WIDTH,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
-
-BOX_HORIZONTAL = "="  # TEST: proving unified logic
-SEPARATOR_WIDTH = 10
 
 
 def truncate_line(line: str, max_width: int = MAX_PANEL_LINE_WIDTH) -> str:
@@ -407,24 +406,35 @@ class BaseToolRenderer(ABC, Generic[T]):
         status = self.build_status(data, duration_ms)
         separator = self.build_separator()
 
-        # Compose content - compact zones per NeXTSTEP guidelines
-        content_parts: list[RenderableType] = [header]
+        content_parts: list[RenderableType] = [
+            header,
+            Text("\n"),
+        ]
 
         if params is not None:
-            content_parts.append(params)
+            content_parts.extend([params, Text("\n")])
 
-        content_parts.extend([Text("\n"), separator, viewport, Text("\n"), separator, status])
+        content_parts.extend(
+            [
+                separator,
+                Text("\n"),
+                viewport,
+                Text("\n"),
+                separator,
+                Text("\n"),
+                status,
+            ]
+        )
 
         content = Group(*content_parts)
 
-        # Build panel
         timestamp = datetime.now().strftime("%H:%M:%S")
         border_color = self.get_border_color(data)
         status_text = self.get_status_text(data)
 
         return Panel(
             content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}] [UNIFIED]",
+            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
             subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
             border_style=Style(color=border_color),
             padding=(0, 1),
