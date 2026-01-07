@@ -9,6 +9,9 @@ All types are re-exported from this module for backward compatibility.
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+# Concrete StateManager re-exported for convenience
+from tunacode.core.state import StateManager
+
 # Base types
 from tunacode.types.base import (
     AgentConfig,
@@ -87,7 +90,6 @@ from tunacode.types.pydantic_ai import (
 # State protocol
 from tunacode.types.state import (
     SessionStateProtocol,
-    StateManager,
     StateManagerProtocol,
 )
 

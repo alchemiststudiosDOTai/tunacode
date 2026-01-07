@@ -13,6 +13,9 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
+        # models_registry.json is auto-generated config; lsp/__init__.py is empty stub
+        # trailing newline changes create diff noise
+        exclude: (models_registry\.json|lsp/__init__\.py)$
       - id: check-yaml
         args: ['--allow-multiple-documents']
       - id: check-added-large-files

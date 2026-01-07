@@ -14,6 +14,7 @@ Supported formats:
 import json
 import re
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -170,7 +171,7 @@ def _parse_tool_json(json_str: str) -> ParsedToolCall | None:
     return _normalize_tool_object(obj)
 
 
-def _normalize_tool_object(obj: Any) -> ParsedToolCall | None:
+def _normalize_tool_object(obj: object) -> ParsedToolCall | None:
     """Normalize various tool call object formats into ParsedToolCall.
 
     Supported formats:
@@ -205,7 +206,7 @@ def _normalize_tool_object(obj: Any) -> ParsedToolCall | None:
     )
 
 
-PARSING_STRATEGIES: list[tuple[str, callable]] = [
+PARSING_STRATEGIES: list[tuple[str, Callable[[str], list[ParsedToolCall]]]] = [
     ("qwen2_xml", parse_qwen2_xml),
     ("hermes_style", parse_hermes_style),
     ("code_fence", parse_code_fence),

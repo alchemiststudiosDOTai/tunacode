@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from tunacode.core.state import StateManager
+from tunacode.types.state import StateManagerProtocol
 
 ToolCallId = str
 ToolName = str
@@ -41,7 +41,7 @@ def get_model_messages():
 
 def patch_tool_messages(
     error_message: ErrorMessage = "Tool operation failed",
-    state_manager: StateManager = None,
+    state_manager: StateManagerProtocol | None = None,
 ):
     """
     Find any tool calls without responses and add synthetic error responses for them.

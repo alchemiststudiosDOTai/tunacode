@@ -297,6 +297,8 @@ Format: `[date] [type] description`
 
 Types: bug, smell, pattern, lesson, antipattern
 
+[2026-01-07] [lesson] When there's a type mismatch between A and B, fix where A or B is defined, not every place that uses them. Don't scatter changes across 5+ files when one line at the source fixes everything.
+
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go

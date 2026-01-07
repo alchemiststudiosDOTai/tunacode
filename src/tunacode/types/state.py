@@ -27,9 +27,25 @@ class SessionStateProtocol(Protocol):
     total_tokens: int
     max_tokens: int
     # Persistence fields
+    session_id: str
     project_id: str
     created_at: str
     working_directory: str
+    # Usage tracking
+    session_total_usage: dict[str, Any]
+    # Agent execution state
+    consecutive_empty_responses: int
+    current_iteration: int
+    iteration_count: int
+    batch_counter: int
+    request_id: str
+    original_query: str
+    # ReAct tracking
+    react_forced_calls: int
+    react_scratchpad: dict[str, Any]
+    react_guidance: list[str]
+    # Tool tracking
+    tool_call_args_by_id: dict[str, dict[str, Any]]
 
     def update_token_count(self) -> None:
         """Calculate total token count from conversation messages."""
@@ -114,11 +130,7 @@ class StateManagerProtocol(Protocol):
         ...
 
 
-# Backward compatibility alias
-StateManager = StateManagerProtocol
-
 __all__ = [
     "SessionStateProtocol",
-    "StateManager",
     "StateManagerProtocol",
 ]
