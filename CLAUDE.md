@@ -215,6 +215,28 @@ Every function is a contract with three parts:
 
 **Example:** If a tool expects a valid directory, don't silently return an empty result. That's a contract violation - raise.
 
+**Wrong:**
+
+```python
+def list_dir(directory: str) -> str | None:
+    if not Path(directory).exists():
+        return None  # silent failure, caller doesn't know why
+    return _render_dir(Path(directory))
+```
+
+**Right:**
+
+```python
+def list_dir(directory: str) -> str:
+    """Precondition: directory exists and is a directory."""
+    path = Path(directory)
+    if not path.exists():
+        raise FileNotFoundError(f"Directory not found: {path}")
+    if not path.is_dir():
+        raise NotADirectoryError(f"Not a directory: {path}")
+    return _render_dir(path)
+```
+
 ### Gate 4: Documentation is Code (Knuth)
 
 Docs and code are one system. If they diverge, the docs are lying.
@@ -267,7 +289,7 @@ Maintain a `.claude/` directory with:
 - **qa/** — solved problems database with reasoning
 - **delta/** — semantic changelogs explaining changes
 
-select the most semanticaly correct dir and make a card in it
+Select the most semantically correct directory and create a card in it.
 
 ### Continuous Learning
 
