@@ -25,16 +25,16 @@ PART_KIND_TOOL_RETURN = "tool-return"
 UNKNOWN_TOOL_NAME = "unknown"
 
 
-def _normalize_tool_args(raw_args: Any) -> ToolArgs:
+async def _normalize_tool_args(raw_args: Any) -> ToolArgs:
     from tunacode.utils.parsing.command_parser import parse_args
 
-    parsed_args = parse_args(raw_args)
+    parsed_args = await parse_args(raw_args)
     return cast(ToolArgs, parsed_args)
 
 
-def _record_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
+async def _record_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
     raw_args = getattr(part, "args", {})
-    parsed_args = _normalize_tool_args(raw_args)
+    parsed_args = await _normalize_tool_args(raw_args)
     tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
     if tool_call_id:
         state_manager.session.tool_call_args_by_id[tool_call_id] = parsed_args
@@ -58,7 +58,7 @@ def _has_tool_calls(parts: list[Any]) -> bool:
 PART_KIND_TEXT = "text"
 
 
-def _extract_fallback_tool_calls(
+async def _extract_fallback_tool_calls(
     parts: list[Any],
     state_manager: StateManager,
     response_state: "ResponseState | None",
@@ -118,7 +118,7 @@ def _extract_fallback_tool_calls(
         )
 
         # Record args for later retrieval
-        tool_args = _normalize_tool_args(parsed.args)
+        tool_args = await _normalize_tool_args(parsed.args)
         state_manager.session.tool_call_args_by_id[parsed.tool_call_id] = tool_args
 
         results.append((part, tool_args))
@@ -377,7 +377,7 @@ async def _process_tool_calls(
         if response_state and response_state.can_transition_to(AgentState.TOOL_EXECUTION):
             response_state.transition_to(AgentState.TOOL_EXECUTION)
 
-        tool_args = _record_tool_call_args(part, state_manager)
+        tool_args = await _record_tool_call_args(part, state_manager)
         tool_call_records.append((part, tool_args))
 
         if tool_callback:
@@ -392,7 +392,7 @@ async def _process_tool_calls(
     # Phase 1.5: FALLBACK - Parse text parts if no structured tool calls found
     # Handles non-standard formats like Qwen2-style XML, Hermes-style, etc.
     if not tool_call_records and tool_callback:
-        fallback_tool_calls = _extract_fallback_tool_calls(
+        fallback_tool_calls = await _extract_fallback_tool_calls(
             node.model_response.parts,
             state_manager,
             response_state,

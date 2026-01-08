@@ -8,33 +8,26 @@ Inspired by OpenCode's compaction strategy.
 
 from typing import Any
 
-from tunacode.utils.config.user_configuration import load_config
+from tunacode.core.limits import is_local_mode
 from tunacode.utils.messaging import estimate_tokens
 
-# Default pruning thresholds (full models)
-PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens of tool outputs
+# Pruning thresholds - binary switch based on local_mode
+PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens
 PRUNE_MINIMUM_THRESHOLD: int = 20_000  # Only prune if savings exceed 20k
-
-# Local mode thresholds (aggressive for small context windows)
-LOCAL_PRUNE_PROTECT_TOKENS: int = 2_000  # Protect last 2k tokens
-LOCAL_PRUNE_MINIMUM_THRESHOLD: int = 500  # Prune if savings exceed 500
+LOCAL_PRUNE_PROTECT_TOKENS: int = 2_000  # Aggressive for small context
+LOCAL_PRUNE_MINIMUM_THRESHOLD: int = 500
 
 PRUNE_MIN_USER_TURNS: int = 2  # Require at least 2 user turns before pruning
 PRUNE_PLACEHOLDER: str = "[Old tool result content cleared]"
 
 
 def get_prune_thresholds() -> tuple[int, int]:
-    """Get pruning thresholds based on local_mode setting.
+    """Get pruning thresholds based on local_mode (binary switch).
 
     Returns:
         Tuple of (protect_tokens, minimum_threshold)
     """
-    config = load_config()
-    local_mode = False
-    if config and "settings" in config:
-        local_mode = config["settings"].get("local_mode", False)
-
-    if local_mode:
+    if is_local_mode():
         return (LOCAL_PRUNE_PROTECT_TOKENS, LOCAL_PRUNE_MINIMUM_THRESHOLD)
     return (PRUNE_PROTECT_TOKENS, PRUNE_MINIMUM_THRESHOLD)
 
@@ -107,7 +100,7 @@ def estimate_part_tokens(part: Any, model_name: str) -> int:
 
     Args:
         part: Message part with content attribute
-        model_name: Model for tiktoken encoding selection
+        model_name: Model identifier for heuristic estimation
 
     Returns:
         Estimated token count; 0 if content not extractable

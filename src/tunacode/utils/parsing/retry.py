@@ -3,7 +3,6 @@
 import asyncio
 import functools
 import json
-import time
 from collections.abc import Callable
 from typing import Any
 
@@ -25,6 +24,14 @@ def retry_on_json_error(
     Returns:
         Decorated function that retries on JSONDecodeError
     """
+
+    def _sleep_sync(delay: float) -> None:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(asyncio.sleep(delay))
+            return
+        raise RuntimeError("Sync JSON retry cannot sleep in a running event loop.")
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
@@ -67,8 +74,7 @@ def retry_on_json_error(
                     # Calculate delay with exponential backoff
                     delay = min(base_delay * (2**attempt), max_delay)
 
-                    # Note: For async, prefer retry_json_parse_async (uses asyncio.sleep)
-                    time.sleep(delay)
+                    _sleep_sync(delay)
 
             # Should never reach here, but just in case
             if last_exception:

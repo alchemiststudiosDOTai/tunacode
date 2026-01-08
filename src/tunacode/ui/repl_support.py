@@ -142,7 +142,7 @@ def build_textual_tool_callback(
         from tunacode.exceptions import UserAbortError
         from tunacode.utils.parsing.command_parser import parse_args
 
-        args = parse_args(part.args)
+        args = await parse_args(part.args)
         request = tool_handler.create_confirmation_request(part.tool_name, args)
         response = await app.request_tool_confirmation(request)
         if not tool_handler.process_confirmation(response, part.tool_name):

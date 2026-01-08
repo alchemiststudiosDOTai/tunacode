@@ -1,61 +1,15 @@
-"""Token counting utility using tiktoken for accurate, offline token estimation."""
+"""Token counting utility using a lightweight heuristic."""
 
-from functools import lru_cache
-from typing import Any
-
-# Cache for tokenizer encodings
-_encoding_cache: dict[str, Any] = {}
-
-
-@lru_cache(maxsize=8)
-def get_encoding(model_name: str):
-    """Get the appropriate tiktoken encoding for a model.
-
-    Args:
-        model_name: The model name in format "provider:model"
-
-    Returns:
-        A tiktoken encoding instance
-    """
-    try:
-        import tiktoken
-    except ImportError:
-        return None
-
-    # Extract the model part from "provider:model" format
-    if ":" in model_name:
-        provider, model = model_name.split(":", 1)
-    else:
-        provider, model = "unknown", model_name
-
-    # Map common models to their tiktoken encodings
-    if provider == "openai":
-        if "gpt-4" in model:
-            encoding_name = "cl100k_base"  # GPT-4 encoding
-        elif "gpt-3.5" in model:
-            encoding_name = "cl100k_base"  # GPT-3.5-turbo encoding
-        else:
-            encoding_name = "cl100k_base"  # Default for newer models
-    elif provider == "anthropic":
-        # Claude models use similar tokenization to GPT-4
-        encoding_name = "cl100k_base"
-    else:
-        # Default encoding for unknown models
-        encoding_name = "cl100k_base"
-
-    try:
-        return tiktoken.get_encoding(encoding_name)
-    except Exception:
-        return None
+CHARS_PER_TOKEN: int = 4
 
 
 def estimate_tokens(text: str, model_name: str | None = None) -> int:
     """
-    Estimate token count using tiktoken for accurate results.
+    Estimate token count using a simple character heuristic.
 
     Args:
         text: The text to count tokens for.
-        model_name: Optional model name for model-specific tokenization.
+        model_name: Optional model name (unused).
 
     Returns:
         The estimated number of tokens.
@@ -63,15 +17,4 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
     if not text:
         return 0
 
-    # Try tiktoken first if model is specified
-    if model_name:
-        encoding = get_encoding(model_name)
-        if encoding:
-            try:
-                return len(encoding.encode(text))
-            except Exception:
-                pass
-
-    # Fallback to character-based estimation
-    # This is roughly accurate for English text
-    return len(text) // 4
+    return len(text) // CHARS_PER_TOKEN

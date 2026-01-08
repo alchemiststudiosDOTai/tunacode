@@ -19,6 +19,7 @@ from tenacity import retry_if_exception_type, stop_after_attempt
 from tunacode.configuration.models import load_models_registry
 from tunacode.constants import ENV_OPENAI_BASE_URL, SETTINGS_BASE_URL, UI_THINKING_MESSAGE
 from tunacode.core.agents.delegation_tools import create_research_codebase_tool
+from tunacode.core.limits import get_max_tokens, is_local_mode
 from tunacode.core.prompting import (
     LOCAL_TEMPLATE,
     MAIN_TEMPLATE,
@@ -231,14 +232,8 @@ def load_system_prompt(base_path: Path, model: str | None = None) -> str:
     loader = SectionLoader(sections_dir)
     sections = {s.value: loader.load_section(s) for s in SystemPromptSection}
 
-    # Check for local_mode in settings
-    config = load_config()
-    local_mode = False
-    if config and "settings" in config:
-        local_mode = config["settings"].get("local_mode", False)
-
     # Get template (local mode, model-specific override, or default)
-    if local_mode:
+    if is_local_mode():
         template = LOCAL_TEMPLATE
     elif model:
         template = TEMPLATE_OVERRIDES.get(model, MAIN_TEMPLATE)
@@ -253,16 +248,23 @@ def load_system_prompt(base_path: Path, model: str | None = None) -> str:
 def load_tunacode_context() -> str:
     """Load guide file context if it exists with caching.
 
-    Uses guide_file from settings (defaults to AGENTS.md).
+    For local_mode: loads local_prompt.md from prompting directory.
+    Otherwise: uses guide_file from settings (defaults to AGENTS.md).
     """
     try:
-        # Get guide_file from config, default to AGENTS.md
-        config = load_config()
-        guide_file = "AGENTS.md"
-        if config and "settings" in config:
-            guide_file = config["settings"].get("guide_file", "AGENTS.md")
+        if is_local_mode():
+            # Load condensed prompt from prompting directory
+            prompting_dir = Path(__file__).parent.parent.parent / "prompting"
+            tunacode_path = prompting_dir / "local_prompt.md"
+            guide_file = "local_prompt.md"
+        else:
+            # Load guide_file from cwd (defaults to AGENTS.md)
+            config = load_config()
+            guide_file = "AGENTS.md"
+            if config and "settings" in config:
+                guide_file = config["settings"].get("guide_file", "AGENTS.md")
+            tunacode_path = Path.cwd() / guide_file
 
-        tunacode_path = Path.cwd() / guide_file
         cache_key = str(tunacode_path)
 
         if not tunacode_path.exists():
@@ -402,9 +404,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         tool_strict_validation = settings.get("tool_strict_validation", False)
 
         # Check for local_mode - use minimal tools with short descriptions
-        local_mode = settings.get("local_mode", False)
-
-        if local_mode:
+        if is_local_mode():
             # Minimal tool set with short descriptions to save tokens
             strict = tool_strict_validation
             tools_list = [
@@ -462,20 +462,14 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # Create model instance with retry-enabled HTTP client
         model_instance = _create_model_with_retry(model, http_client, state_manager)
 
-        # Check for local_mode to limit response tokens
-        config = load_config()
-        local_mode = False
-        local_max_tokens = 1000  # Default for local models
-        if config and "settings" in config:
-            local_mode = config["settings"].get("local_mode", False)
-            local_max_tokens = config["settings"].get("local_max_tokens", 1000)
-
-        if local_mode:
+        # Apply max_tokens if configured (local_mode sets default, explicit overrides)
+        max_tokens = get_max_tokens()
+        if max_tokens is not None:
             agent = Agent(
                 model=model_instance,
                 system_prompt=system_prompt,
                 tools=tools_list,
-                model_settings=ModelSettings(max_tokens=local_max_tokens),
+                model_settings=ModelSettings(max_tokens=max_tokens),
             )
         else:
             agent = Agent(
