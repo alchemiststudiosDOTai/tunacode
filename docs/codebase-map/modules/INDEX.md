@@ -28,6 +28,7 @@ Each module file includes:
 - **[core-agents.md](./core-agents.md)** - AI agent orchestration (process_request, RequestOrchestrator)
 - **[core-prompting.md](./core-prompting.md)** - System prompt composition (PromptingEngine, SectionLoader)
 - **[core-compaction.md](./core-compaction.md)** - Context window management (prune_old_tool_outputs)
+- **[core-limits.md](./core-limits.md)** - Tool output limits with cascading defaults (get_read_limit, is_local_mode)
 
 ### UI Module
 - **[ui-overview.md](./ui-overview.md)** - Textual TUI interface (TextualReplApp, screens, renderers)
@@ -83,7 +84,8 @@ src/tunacode/
 │   ├── agents/ → core-agents.md
 │   ├── prompting/ → core-prompting.md
 │   ├── state.py → core-state.md
-│   └── compaction.py → core-compaction.md
+│   ├── compaction.py → core-compaction.md
+│   └── limits.py → core-limits.md
 ├── ui/ → ui-overview.md
 ├── tools/ → tools-overview.md
 ├── configuration/ → configuration.md

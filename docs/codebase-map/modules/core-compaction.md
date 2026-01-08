@@ -53,8 +53,20 @@ Pruned content replaced with:
 [Old tool result content cleared - tool_name: args...]
 ```
 
+## Pruning Thresholds
+
+Binary switch based on `local_mode`:
+
+| Mode | protect_tokens | minimum_threshold |
+|------|----------------|-------------------|
+| Standard | 40,000 | 20,000 |
+| Local | 2,000 | 500 |
+
+Thresholds are not user-configurable (internal optimization).
+
 ## Integration Points
 
+- **core/limits.py** - Uses `is_local_mode()` for threshold selection
 - **core/state.py** - Token tracking and message history
 - **core/agents/main.py** - Called during iteration loop
 - **types/** - MessageHistory type definitions

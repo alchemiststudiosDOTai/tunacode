@@ -18,6 +18,13 @@
         "context_window_size": 200000,
         "enable_streaming": true,
         "theme": "dracula",
+        "local_mode": false,
+        "local_max_tokens": 1000,
+        "read_limit": 2000,
+        "max_line_length": 2000,
+        "max_command_output": 5000,
+        "max_files_in_dir": 50,
+        "max_tokens": null,
         "ripgrep": {
             "timeout": 10,
             "max_buffer_size": 1048576,

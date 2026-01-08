@@ -393,7 +393,6 @@ Located in `/Users/tuna/Desktop/tunacode/tests/`:
 | pydantic | ^2.12.4 | Data validation |
 | typer | ^0.15.0 | CLI framework |
 | rich | ^14.2.0 | Terminal formatting |
-| tiktoken | ^0.12.0 | Token counting |
 | pathspec | ^0.12.1 | Gitignore patterns |
 | html2text | ^2024.2.26 | HTML conversion |
 

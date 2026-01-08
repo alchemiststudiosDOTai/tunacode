@@ -97,19 +97,19 @@ def load_models_registry() -> dict:
 
 The models registry is cached in memory to avoid repeated file reads.
 
-### 2.3 Token Counter Memoization
+### 2.3 Token Counter Heuristic
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/utils/messaging/token_counter.py`
 
-Uses `functools.lru_cache` for memoization:
+Uses a lightweight character heuristic:
 
 ```python
-from functools import lru_cache
+CHARS_PER_TOKEN: int = 4
 
-@lru_cache(maxsize=8)
-def get_encoding(model_name: str):
-    # ...
-    return tiktoken.get_encoding(encoding_name)
+def estimate_tokens(text: str, model_name: str | None = None) -> int:
+    if not text:
+        return 0
+    return len(text) // CHARS_PER_TOKEN
 ```
 
 ### 2.4 Tool Buffer

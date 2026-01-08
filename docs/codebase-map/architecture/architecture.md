@@ -439,7 +439,6 @@ Level 3 (Application):
 | `pydantic` | ^2.12.4 | Data validation |
 | `typer` | ^0.15.0 | CLI framework |
 | `rich` | ^14.2.0 | Terminal formatting |
-| `tiktoken` | ^0.12.0 | Token counting |
 | `pathspec` | ^0.12.1 | Gitignore pattern matching |
 | `html2text` | ^2024.2.26 | HTML to Markdown conversion |
 | `python-Levenshtein` | ^0.21.0 | String similarity |
