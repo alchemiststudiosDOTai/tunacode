@@ -13,12 +13,14 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
+from pydantic_ai.settings import ModelSettings
 from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.models import load_models_registry
 from tunacode.constants import ENV_OPENAI_BASE_URL, SETTINGS_BASE_URL, UI_THINKING_MESSAGE
 from tunacode.core.agents.delegation_tools import create_research_codebase_tool
 from tunacode.core.prompting import (
+    LOCAL_TEMPLATE,
     MAIN_TEMPLATE,
     TEMPLATE_OVERRIDES,
     SectionLoader,
@@ -37,6 +39,7 @@ from tunacode.tools.update_file import update_file
 from tunacode.tools.web_fetch import web_fetch
 from tunacode.tools.write_file import write_file
 from tunacode.types import ModelName, PydanticAgent
+from tunacode.utils.config.user_configuration import load_config
 
 # Module-level caches for system prompts
 _PROMPT_CACHE: dict[str, tuple[str, float]] = {}
@@ -228,8 +231,19 @@ def load_system_prompt(base_path: Path, model: str | None = None) -> str:
     loader = SectionLoader(sections_dir)
     sections = {s.value: loader.load_section(s) for s in SystemPromptSection}
 
-    # Get template (model-specific override or default)
-    template = TEMPLATE_OVERRIDES.get(model, MAIN_TEMPLATE) if model else MAIN_TEMPLATE
+    # Check for local_mode in settings
+    config = load_config()
+    local_mode = False
+    if config and "settings" in config:
+        local_mode = config["settings"].get("local_mode", False)
+
+    # Get template (local mode, model-specific override, or default)
+    if local_mode:
+        template = LOCAL_TEMPLATE
+    elif model:
+        template = TEMPLATE_OVERRIDES.get(model, MAIN_TEMPLATE)
+    else:
+        template = MAIN_TEMPLATE
 
     # Compose sections into template, then resolve dynamic placeholders
     prompt = compose_prompt(template, sections)
@@ -237,9 +251,18 @@ def load_system_prompt(base_path: Path, model: str | None = None) -> str:
 
 
 def load_tunacode_context() -> str:
-    """Load AGENTS.md context if it exists with caching."""
+    """Load guide file context if it exists with caching.
+
+    Uses guide_file from settings (defaults to AGENTS.md).
+    """
     try:
-        tunacode_path = Path.cwd() / "AGENTS.md"
+        # Get guide_file from config, default to AGENTS.md
+        config = load_config()
+        guide_file = "AGENTS.md"
+        if config and "settings" in config:
+            guide_file = config["settings"].get("guide_file", "AGENTS.md")
+
+        tunacode_path = Path.cwd() / guide_file
         cache_key = str(tunacode_path)
 
         if not tunacode_path.exists():
@@ -255,7 +278,7 @@ def load_tunacode_context() -> str:
         # Load from file and cache
         tunacode_content = tunacode_path.read_text(encoding="utf-8")
         if tunacode_content.strip():
-            result = "\n\n# Project Context from AGENTS.md\n" + tunacode_content
+            result = f"\n\n# Project Context from {guide_file}\n" + tunacode_content
             _TUNACODE_CACHE[cache_key] = (result, tunacode_path.stat().st_mtime)
             return result
         else:
@@ -378,31 +401,47 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # compatibility)
         tool_strict_validation = settings.get("tool_strict_validation", False)
 
-        # Create tool list
-        tools_list = [
-            Tool(bash, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(web_fetch, max_retries=max_retries, strict=tool_strict_validation),
-            Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
-        ]
+        # Check for local_mode - use minimal tools with short descriptions
+        local_mode = settings.get("local_mode", False)
 
-        # Add delegation tool (multi-agent pattern)
-        research_codebase = create_research_codebase_tool(state_manager)
-        tools_list.append(
-            Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
-        )
+        if local_mode:
+            # Minimal tool set with short descriptions to save tokens
+            strict = tool_strict_validation
+            tools_list = [
+                Tool(bash, max_retries=max_retries, strict=strict, description="Shell"),
+                Tool(read_file, max_retries=max_retries, strict=strict, description="Read"),
+                Tool(update_file, max_retries=max_retries, strict=strict, description="Edit"),
+                Tool(write_file, max_retries=max_retries, strict=strict, description="Write"),
+                Tool(glob, max_retries=max_retries, strict=strict, description="Find"),
+                Tool(list_dir, max_retries=max_retries, strict=strict, description="List"),
+            ]
+        else:
+            # Full tool set with detailed descriptions
+            tools_list = [
+                Tool(bash, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(web_fetch, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
+            ]
 
-        # Add todo tools (task tracking)
-        todowrite = create_todowrite_tool(state_manager)
-        todoread = create_todoread_tool(state_manager)
-        todoclear = create_todoclear_tool(state_manager)
-        tools_list.append(Tool(todowrite, max_retries=max_retries, strict=tool_strict_validation))
-        tools_list.append(Tool(todoread, max_retries=max_retries, strict=tool_strict_validation))
-        tools_list.append(Tool(todoclear, max_retries=max_retries, strict=tool_strict_validation))
+            # Add delegation tool (multi-agent pattern) - skip in local mode
+            research_codebase = create_research_codebase_tool(state_manager)
+            tools_list.append(
+                Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
+            )
+
+            # Add todo tools (task tracking) - skip in local mode
+            todowrite = create_todowrite_tool(state_manager)
+            todoread = create_todoread_tool(state_manager)
+            todoclear = create_todoclear_tool(state_manager)
+            strict = tool_strict_validation
+            tools_list.append(Tool(todowrite, max_retries=max_retries, strict=strict))
+            tools_list.append(Tool(todoread, max_retries=max_retries, strict=strict))
+            tools_list.append(Tool(todoclear, max_retries=max_retries, strict=strict))
 
         # Configure HTTP client with retry logic at transport layer
         # This handles retries BEFORE node creation, avoiding pydantic-ai's
@@ -423,11 +462,27 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         # Create model instance with retry-enabled HTTP client
         model_instance = _create_model_with_retry(model, http_client, state_manager)
 
-        agent = Agent(
-            model=model_instance,
-            system_prompt=system_prompt,
-            tools=tools_list,
-        )
+        # Check for local_mode to limit response tokens
+        config = load_config()
+        local_mode = False
+        local_max_tokens = 1000  # Default for local models
+        if config and "settings" in config:
+            local_mode = config["settings"].get("local_mode", False)
+            local_max_tokens = config["settings"].get("local_max_tokens", 1000)
+
+        if local_mode:
+            agent = Agent(
+                model=model_instance,
+                system_prompt=system_prompt,
+                tools=tools_list,
+                model_settings=ModelSettings(max_tokens=local_max_tokens),
+            )
+        else:
+            agent = Agent(
+                model=model_instance,
+                system_prompt=system_prompt,
+                tools=tools_list,
+            )
 
         # Store in both caches
         _AGENT_CACHE[model] = agent

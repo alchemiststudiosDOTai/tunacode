@@ -12,9 +12,19 @@ from tunacode.constants import (
     COMMAND_OUTPUT_END_SIZE,
     COMMAND_OUTPUT_START_INDEX,
     COMMAND_OUTPUT_THRESHOLD,
+    LOCAL_MAX_COMMAND_OUTPUT,
     MAX_COMMAND_OUTPUT,
 )
 from tunacode.tools.decorators import base_tool
+from tunacode.utils.config.user_configuration import load_config
+
+
+def _get_max_output() -> int:
+    """Get max command output based on local_mode setting."""
+    config = load_config()
+    if config and config.get("settings", {}).get("local_mode", False):
+        return LOCAL_MAX_COMMAND_OUTPUT
+    return MAX_COMMAND_OUTPUT
 
 # Enhanced dangerous patterns from run_command.py
 DESTRUCTIVE_PATTERNS = ["rm -rf", "rm -r", "rm /", "dd if=", "mkfs", "fdisk"]
@@ -211,7 +221,8 @@ def _format_output(command: str, exit_code: int, stdout: str, stderr: str, cwd: 
 
     result = "\n".join(lines)
 
-    if len(result) > MAX_COMMAND_OUTPUT:
+    max_output = _get_max_output()
+    if len(result) > max_output:
         start_part = result[:COMMAND_OUTPUT_START_INDEX]
         if len(result) > COMMAND_OUTPUT_THRESHOLD:
             end_part = result[-COMMAND_OUTPUT_END_SIZE:]

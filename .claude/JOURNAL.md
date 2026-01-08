@@ -1,6 +1,6 @@
-# Session Journal - 2026-01-07
+# Claude Journal
 
-## Task: Renderer Unification
+## 2026-01-07: Renderer Unification
 
 Unifying the 8 tool renderers in `src/tunacode/ui/renderers/tools/` to eliminate duplication via a shared base class and registry pattern.
 
@@ -48,3 +48,175 @@ Migrate remaining 7 renderers to use `BaseToolRenderer`:
 - Render functions remain the public API (backward compatible)
 - `@tool_renderer` decorator for self-registration
 - Helpers are standalone functions, not methods (easier to use without instantiation)
+
+---
+
+## 2026-01-07: Local Mode Context Optimization
+
+### Task: Reduce context usage for local models with small context windows (10k)
+
+### Problem:
+- System prompt + tool schemas used ~3.5k tokens before any conversation
+- Each file read could use 2000 lines (~20k tokens)
+- With 10k context, only ~6.5k left for conversation
+- LLM APIs are stateless - system prompt sent every turn
+
+### Completed:
+
+**1. Minimal System Prompt**
+- Created `CLAUDE_LOCAL.md` - condensed project instructions (~400 tokens)
+- Added `LOCAL_TEMPLATE` in `templates.py` - only 3 sections: AGENT_ROLE, TOOL_USE, USER_INSTRUCTIONS
+- `local_mode: true` setting triggers minimal template
+
+**2. Minimal Tool Schemas**
+- Reduced from 11 tools to 6 (bash, read_file, update_file, write_file, glob, list_dir)
+- Removed: grep, web_fetch, research_codebase, todo tools
+- 1-word descriptions ("Shell", "Read", "Edit", etc.) - saves ~1k tokens
+
+**3. Aggressive Pruning**
+- LOCAL_PRUNE_PROTECT_TOKENS: 2,000 (vs 40,000)
+- LOCAL_PRUNE_MINIMUM_THRESHOLD: 500 (vs 20,000)
+- Messages pruned much faster to save context
+
+**4. Tool Output Limits**
+- LOCAL_DEFAULT_READ_LIMIT: 200 lines (vs 2,000)
+- LOCAL_MAX_LINE_LENGTH: 500 chars (vs 2,000)
+- LOCAL_MAX_COMMAND_OUTPUT: 1,500 chars (vs 5,000)
+
+**5. Response Limit**
+- local_max_tokens: 1000 - caps model output per turn
+
+### Key Files Modified:
+- `CLAUDE_LOCAL.md` - Condensed project guide with few-shot example
+- `src/tunacode/core/prompting/templates.py` - Added LOCAL_TEMPLATE
+- `src/tunacode/core/prompting/__init__.py` - Export LOCAL_TEMPLATE
+- `src/tunacode/core/agents/agent_components/agent_config.py` - Local mode tool/prompt selection
+- `src/tunacode/core/compaction.py` - Dynamic thresholds via get_prune_thresholds()
+- `src/tunacode/constants.py` - Local mode limit constants
+- `src/tunacode/tools/read_file.py` - Uses local limits
+- `src/tunacode/tools/bash.py` - Uses local limits
+- `tests/test_compaction.py` - Mock get_prune_thresholds for tests
+- `~/.config/tunacode.json` - User config
+- `~/.config/tunacode.json.bak` - Backup of original config
+
+### Current Config (~/.config/tunacode.json):
+```json
+{
+  "default_model": "openai:NousResearch/NousCoder-14B",
+  "env": {
+    "OPENAI_BASE_URL": "http://127.0.0.1:8080/v1",
+    "OPENAI_API_KEY": "not-needed"
+  },
+  "settings": {
+    "local_mode": true,
+    "local_max_tokens": 1000,
+    "context_window_size": 10000,
+    "guide_file": "CLAUDE_LOCAL.md"
+  }
+}
+```
+
+### Token Budget (Local Mode):
+| Component | Tokens |
+|-----------|--------|
+| System prompt | ~1,117 |
+| Guide file | ~527 |
+| 6 tools (minimal) | ~575 |
+| **Total base** | **~2,200** |
+
+With 10k context: ~7.8k available for conversation
+
+### Key Insight:
+LLM APIs are stateless. Every request sends: system prompt + tool schemas + full conversation history. Model has no memory - re-reads everything each turn.
+
+### Commands:
+- `uv run pytest tests/ -x -q` - All tests pass
+- `uv run ruff check --fix .` - Lint
+- Restore config: `cp ~/.config/tunacode.json.bak ~/.config/tunacode.json`
+
+### Branch: master
+
+### Notes:
+- llama.cpp uses KV cache efficiently (LCP similarity) so repeated prompt not re-computed
+- guide_file setting now actually used (was hardcoded to AGENTS.md)
+- Few-shot example in CLAUDE_LOCAL.md uses real JSON tool call format
+
+### Next Steps:
+- Test with actual local model to verify token savings
+- Consider further prompt compression if needed
+- May add more few-shot examples for complex tasks
+
+---
+
+## 2026-01-06: Local Model Support
+
+### Task: Add local model support to tunacode
+
+### Completed:
+- Created condensed system prompt at `src/tunacode/prompts/local_model_prompt.txt` (~500 bytes vs 34KB full prompt)
+- Added `local_model: true/false` setting in config defaults
+- Modified `load_system_prompt()` to use condensed prompt when `local_model=true`
+- Added cache invalidation for `local_model` setting in `_compute_agent_version()`
+- Skip AGENTS.md loading for local models to save tokens
+- Created `fallback_executor.py` for models that output tool calls in text (e.g., `<tool_call>` tags)
+- Updated `node_processor.py` to detect and execute fallback tool calls
+- Passed `agent_ctx` through the call chain for result injection
+- Tested with multiple local models via LM Studio/vLLM
+
+### Key Files Modified:
+- `src/tunacode/prompts/local_model_prompt.txt` - Condensed prompt
+- `src/tunacode/configuration/defaults.py` - Added `local_model` setting
+- `src/tunacode/core/agents/agent_components/agent_config.py` - Local model loading logic
+- `src/tunacode/core/agents/agent_components/node_processor.py` - Fallback tool parsing
+- `src/tunacode/core/agents/agent_components/fallback_executor.py` - Direct tool execution
+- `src/tunacode/core/agents/main.py` - Pass agent_ctx to node processor
+- `~/.config/tunacode.json` - User config with local model settings
+
+### Current Config:
+```json
+{
+  "default_model": "openai:cerebras_Qwen3-Coder-REAP-25B-A3B-Q3_K_L.gguf",
+  "env": {
+    "OPENAI_BASE_URL": "http://localhost:8080/v1",
+    "OPENAI_API_KEY": "lm-studio"
+  },
+  "settings": {
+    "local_model": true
+  }
+}
+```
+
+### Current Prompt:
+```
+###Role###
+You are TunaCode, a coding assistant.
+
+###Rules###
+- ONE tool call at a time max
+- Keep responses to 1 sentence
+- No explanations. No chitchat.
+Say "TUNACODE DONE:" when task complete.
+
+###Tools###
+glob(pattern) - Find files
+grep(pattern, directory) - Search code
+read_file(filepath) - Read file
+list_dir(directory) - List dir
+write_file(filepath, content) - Create file
+update_file(filepath, old_text, new_text) - Edit file
+bash(command) - Run command
+
+Working directory: {{CWD}}
+```
+
+### Notes:
+- Qwen2.5-Coder-14B supports native OpenAI tool calling format
+- Smaller models (0.6B-1.7B) output `<tool_call>` tags in content - fallback parser handles this
+- Model is still chatty despite "keep short" instructions - may need further prompt tuning
+- Branch: master
+- Version bumped to 0.1.21
+
+### Next Steps:
+- Continue testing prompt variations for brevity
+- Consider adding few-shot examples if model continues verbose
+- May need model-specific prompt variations

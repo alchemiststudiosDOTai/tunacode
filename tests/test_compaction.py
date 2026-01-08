@@ -307,7 +307,13 @@ class TestPruneOldToolOutputs:
                 return 10000
             return 10
 
-        with patch("tunacode.core.compaction.estimate_tokens", side_effect=mock_tokens):
+        with (
+            patch("tunacode.core.compaction.estimate_tokens", side_effect=mock_tokens),
+            patch(
+                "tunacode.core.compaction.get_prune_thresholds",
+                return_value=(PRUNE_PROTECT_TOKENS, PRUNE_MINIMUM_THRESHOLD),
+            ),
+        ):
             result, reclaimed = prune_old_tool_outputs(messages, "anthropic:claude-sonnet")
 
         assert reclaimed == 0

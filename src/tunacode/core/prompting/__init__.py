@@ -9,6 +9,7 @@ from tunacode.core.prompting.prompting_engine import (
 )
 from tunacode.core.prompting.sections import SystemPromptSection
 from tunacode.core.prompting.templates import (
+    LOCAL_TEMPLATE,
     MAIN_TEMPLATE,
     RESEARCH_TEMPLATE,
     TEMPLATE_OVERRIDES,
@@ -20,6 +21,7 @@ __all__ = [
     "resolve_prompt",
     "compose_prompt",
     "SystemPromptSection",
+    "LOCAL_TEMPLATE",
     "MAIN_TEMPLATE",
     "RESEARCH_TEMPLATE",
     "TEMPLATE_OVERRIDES",

@@ -59,6 +59,17 @@ RESEARCH_TEMPLATE = """{{AGENT_ROLE}}
 
 {{OUTPUT_FORMAT}}"""
 
+# Minimal template for local/small models
+LOCAL_TEMPLATE = """{{AGENT_ROLE}}
+
+====
+
+{{TOOL_USE}}
+
+====
+
+{{USER_INSTRUCTIONS}}"""
+
 # Model-specific template overrides
 # Key: model name prefix (e.g., "gpt-5", "claude-opus")
 # Value: custom template string

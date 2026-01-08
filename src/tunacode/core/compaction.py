@@ -8,13 +8,35 @@ Inspired by OpenCode's compaction strategy.
 
 from typing import Any
 
+from tunacode.utils.config.user_configuration import load_config
 from tunacode.utils.messaging import estimate_tokens
 
-# Symbolic constants for pruning thresholds
+# Default pruning thresholds (full models)
 PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens of tool outputs
 PRUNE_MINIMUM_THRESHOLD: int = 20_000  # Only prune if savings exceed 20k
+
+# Local mode thresholds (aggressive for small context windows)
+LOCAL_PRUNE_PROTECT_TOKENS: int = 2_000  # Protect last 2k tokens
+LOCAL_PRUNE_MINIMUM_THRESHOLD: int = 500  # Prune if savings exceed 500
+
 PRUNE_MIN_USER_TURNS: int = 2  # Require at least 2 user turns before pruning
 PRUNE_PLACEHOLDER: str = "[Old tool result content cleared]"
+
+
+def get_prune_thresholds() -> tuple[int, int]:
+    """Get pruning thresholds based on local_mode setting.
+
+    Returns:
+        Tuple of (protect_tokens, minimum_threshold)
+    """
+    config = load_config()
+    local_mode = False
+    if config and "settings" in config:
+        local_mode = config["settings"].get("local_mode", False)
+
+    if local_mode:
+        return (LOCAL_PRUNE_PROTECT_TOKENS, LOCAL_PRUNE_MINIMUM_THRESHOLD)
+    return (PRUNE_PROTECT_TOKENS, PRUNE_MINIMUM_THRESHOLD)
 
 # Message part kind identifiers
 PART_KIND_TOOL_RETURN: str = "tool-return"
@@ -187,13 +209,16 @@ def prune_old_tool_outputs(
     if not tool_parts:
         return (messages, 0)
 
+    # Get dynamic thresholds based on local_mode
+    protect_tokens, minimum_threshold = get_prune_thresholds()
+
     # Phase 2: Determine pruning boundary
     accumulated_tokens = 0
     prune_start_index = -1
 
     for i, (_, _, _, tokens) in enumerate(tool_parts):
         accumulated_tokens += tokens
-        if accumulated_tokens > PRUNE_PROTECT_TOKENS:
+        if accumulated_tokens > protect_tokens:
             prune_start_index = i
             break
 
@@ -206,7 +231,7 @@ def prune_old_tool_outputs(
     total_prunable_tokens = sum(tokens for _, _, _, tokens in parts_to_prune)
 
     # Early exit: savings below threshold
-    if total_prunable_tokens < PRUNE_MINIMUM_THRESHOLD:
+    if total_prunable_tokens < minimum_threshold:
         return (messages, 0)
 
     # Phase 4: Apply pruning

@@ -6,12 +6,23 @@ import os
 from tunacode.constants import (
     DEFAULT_READ_LIMIT,
     ERROR_FILE_TOO_LARGE,
+    LOCAL_DEFAULT_READ_LIMIT,
+    LOCAL_MAX_LINE_LENGTH,
     MAX_FILE_SIZE,
     MAX_LINE_LENGTH,
     MSG_FILE_SIZE_LIMIT,
 )
 from tunacode.exceptions import ToolExecutionError
 from tunacode.tools.decorators import file_tool
+from tunacode.utils.config.user_configuration import load_config
+
+
+def _get_limits() -> tuple[int, int]:
+    """Get read limits based on local_mode setting."""
+    config = load_config()
+    if config and config.get("settings", {}).get("local_mode", False):
+        return (LOCAL_DEFAULT_READ_LIMIT, LOCAL_MAX_LINE_LENGTH)
+    return (DEFAULT_READ_LIMIT, MAX_LINE_LENGTH)
 
 
 @file_tool
@@ -36,9 +47,10 @@ async def read_file(
             message=ERROR_FILE_TOO_LARGE.format(filepath=filepath) + MSG_FILE_SIZE_LIMIT,
         )
 
-    effective_limit = limit if limit is not None else DEFAULT_READ_LIMIT
+    default_limit, max_line_len = _get_limits()
+    effective_limit = limit if limit is not None else default_limit
 
-    def _read_sync(path: str) -> str:
+    def _read_sync(path: str, line_limit: int) -> str:
         with open(path, encoding="utf-8") as f:
             lines = f.readlines()
 
@@ -48,8 +60,8 @@ async def read_file(
         content_lines = []
         for i, line in enumerate(raw):
             line = line.rstrip("\n")
-            if len(line) > MAX_LINE_LENGTH:
-                line = line[:MAX_LINE_LENGTH] + "..."
+            if len(line) > line_limit:
+                line = line[:line_limit] + "..."
             line_num = str(i + offset + 1).zfill(5)
             content_lines.append(f"{line_num}| {line}")
 
@@ -65,4 +77,4 @@ async def read_file(
 
         return output
 
-    return await asyncio.to_thread(_read_sync, filepath)
+    return await asyncio.to_thread(_read_sync, filepath, max_line_len)
