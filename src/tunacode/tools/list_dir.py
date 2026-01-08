@@ -4,6 +4,8 @@ import asyncio
 import os
 from pathlib import Path
 
+from pydantic_ai.exceptions import ModelRetry
+
 from tunacode.tools.decorators import base_tool
 
 IGNORE_PATTERNS = [
@@ -178,10 +180,10 @@ async def list_dir(
     dir_path = Path(directory).resolve()
 
     if not dir_path.exists():
-        raise FileNotFoundError(f"Directory not found: {dir_path}")
+        raise ModelRetry(f"Directory not found: {dir_path}. Check the path.")
 
     if not dir_path.is_dir():
-        raise NotADirectoryError(f"Not a directory: {dir_path}")
+        raise ModelRetry(f"Not a directory: {dir_path}. Provide a directory path.")
 
     # Combine default and custom ignore patterns
     ignore_patterns = list(IGNORE_PATTERNS)
