@@ -18,6 +18,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
+from pydantic_ai.exceptions import ModelRetry
+
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import TooBroadPatternError, ToolExecutionError
 from tunacode.tools.decorators import base_tool
@@ -95,6 +97,13 @@ class ParallelGrep:
             Formatted search results
         """
         try:
+            # 0️⃣ Validate directory path before any file operations
+            dir_path = Path(directory).resolve()
+            if not dir_path.exists():
+                raise ModelRetry(f"Directory not found: {directory}. Check the path.")
+            if not dir_path.is_dir():
+                raise ModelRetry(f"Not a directory: {directory}. Provide a directory path.")
+
             # 1️⃣ Fast-glob prefilter to find candidate files
             include_pattern = include_files or "*"
             exclude_pattern = exclude_files
@@ -190,6 +199,9 @@ class ParallelGrep:
 
         except TooBroadPatternError:
             # Re-raise TooBroadPatternError without wrapping it
+            raise
+        except ModelRetry:
+            # Re-raise ModelRetry for LLM self-correction
             raise
         except Exception as err:
             raise ToolExecutionError(

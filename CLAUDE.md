@@ -279,7 +279,7 @@ PR #263: "chore: remove unused grep tool"
 
 ## KB Directory
 
-Maintain a `.claude/markdown` directory with:
+Maintain a `.claude/` directory with:
 
 - **metadata/** — dependency graphs, file classifications, error pattern database
 - **code_index/** — function call graphs, type relationships, interface mappings
@@ -289,15 +289,13 @@ Maintain a `.claude/markdown` directory with:
 - **qa/** — solved problems database with reasoning
 - **delta/** — semantic changelogs explaining changes
 
+Select the most semantically correct directory and create a card in it.
+
 ### Continuous Learning
 
 Dump bugs, smells, issues here as you encounter them. Raw is fine. A skill will organize this into proper kb entries later.
 
 Format: `[date] [type] description`
-
-Types: bug, smell, pattern, lesson, antipattern
-
-[2026-01-07] [lesson] When there's a type mismatch between A and B, fix where A or B is defined, not every place that uses them. Don't scatter changes across 5+ files when one line at the source fixes everything.
 
 ---
 

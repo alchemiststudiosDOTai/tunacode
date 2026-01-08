@@ -31,6 +31,7 @@ def get_prune_thresholds() -> tuple[int, int]:
         return (LOCAL_PRUNE_PROTECT_TOKENS, LOCAL_PRUNE_MINIMUM_THRESHOLD)
     return (PRUNE_PROTECT_TOKENS, PRUNE_MINIMUM_THRESHOLD)
 
+
 # Message part kind identifiers
 PART_KIND_TOOL_RETURN: str = "tool-return"
 PART_KIND_USER_PROMPT: str = "user-prompt"
