@@ -279,7 +279,7 @@ PR #263: "chore: remove unused grep tool"
 
 ## KB Directory
 
-Maintain a `.claude/markdown` directory with:
+Maintain a `.claude/` directory with:
 
 - **metadata/** — dependency graphs, file classifications, error pattern database
 - **code_index/** — function call graphs, type relationships, interface mappings
@@ -288,6 +288,8 @@ Maintain a `.claude/markdown` directory with:
 - **cheatsheets/** — quick-reference guides per component with gotchas
 - **qa/** — solved problems database with reasoning
 - **delta/** — semantic changelogs explaining changes
+
+select the most semanticaly correct dir and make a card in it
 
 ### Continuous Learning
 
@@ -298,6 +300,10 @@ Format: `[date] [type] description`
 Types: bug, smell, pattern, lesson, antipattern
 
 [2026-01-07] [lesson] When there's a type mismatch between A and B, fix where A or B is defined, not every place that uses them. Don't scatter changes across 5+ files when one line at the source fixes everything.
+
+[2026-01-07] [bug] list_dir raised FileNotFoundError on bad paths, which @base_tool wrapped as ToolExecutionError (non-retryable), halting the agent. Fix: raise ModelRetry directly so LLM can self-correct. Note: @file_tool decorator doesn't work here because it expects required `filepath` arg, but list_dir has optional `directory="."`.
+
+[2026-01-07] [smell] glob and grep tools return error strings instead of raising exceptions on bad paths. No crash, but no ModelRetry either - LLM can't self-correct. Inconsistent with file_tool pattern.
 
 ---
 
