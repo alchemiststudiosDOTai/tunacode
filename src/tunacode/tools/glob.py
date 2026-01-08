@@ -7,6 +7,8 @@ import re
 from enum import Enum
 from pathlib import Path
 
+from pydantic_ai.exceptions import ModelRetry
+
 from tunacode.indexing import CodeIndex
 from tunacode.tools.decorators import base_tool
 
@@ -73,9 +75,9 @@ async def glob(
     """
     root_path = Path(directory).resolve()
     if not root_path.exists():
-        return f"Error: Directory '{directory}' does not exist"
+        raise ModelRetry(f"Directory not found: {directory}. Check the path.")
     if not root_path.is_dir():
-        return f"Error: '{directory}' is not a directory"
+        raise ModelRetry(f"Not a directory: {directory}. Provide a directory path.")
 
     all_exclude = EXCLUDE_DIRS.copy()
     if exclude_dirs:
