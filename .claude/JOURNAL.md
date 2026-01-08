@@ -220,3 +220,72 @@ Working directory: {{CWD}}
 - Continue testing prompt variations for brevity
 - Consider adding few-shot examples if model continues verbose
 - May need model-specific prompt variations
+
+---
+
+## 2026-01-07: Centralized Limits Module + Tool Tweaks
+
+### Task: Refactor scattered local_mode checks into centralized limits.py module
+
+### Completed:
+
+**1. Created `src/tunacode/core/limits.py`**
+- Centralized all tool output limits with 3-tier precedence: explicit setting > local_mode default > standard default
+- Functions: `is_local_mode()`, `get_read_limit()`, `get_max_line_length()`, `get_command_limit()`, `get_max_files_in_dir()`, `get_max_tokens()`
+- Uses `@lru_cache` for settings, `clear_cache()` to invalidate
+
+**2. Refactored tools to use limits module**
+- `bash.py` → `get_command_limit()`
+- `read_file.py` → `get_read_limit()`, `get_max_line_length()`
+- `agent_config.py` → `is_local_mode()`, `get_max_tokens()`
+
+**3. Kept prune thresholds binary in compaction.py**
+- Decided prune thresholds are internal optimization, not user-configurable
+- `compaction.py` imports `is_local_mode()` from limits, does binary switch
+
+**4. Renamed CLAUDE_LOCAL.md → src/tunacode/core/prompting/local_prompt.md**
+- Moved into prompting directory as part of the system
+- `load_tunacode_context()` loads it automatically for local_mode
+
+**5. Documentation**
+- `docs/configuration/README.md` - tool limits + local mode sections
+- `docs/configuration/tunacode.json.example` - all new settings
+- `docs/codebase-map/modules/core-limits.md` - new module doc
+- Updated INDEX.md and core-compaction.md
+
+### Key Design Decision:
+- **Tool limits** (read_limit, max_command_output, etc.) → Option 3: user configurable with cascading defaults
+- **Prune thresholds** → Binary switch only (local_mode on/off), not user-configurable
+
+### PR #215: feat: local mode + configurable tool limits
+- Branch: `local`
+- Status: Open
+- URL: https://github.com/alchemiststudiosDOTai/tunacode/pull/215
+
+---
+
+**6. Tool-tweaks branch (separate PR)**
+- Fixed `list_dir.py`: FileNotFoundError → ModelRetry for recoverable errors
+- Added debug history: `.claude/debug_history/list-dir-tool-execution-error.md`
+- Added KB entries to CLAUDE.md for list_dir bug and glob/grep smell
+
+### Branch: tool-tweaks
+- Status: Pushed, ready for PR
+- Commits:
+  - `cfbafb3 chore: add debug history`
+  - `3a9edf7 docs: add KB entries for list_dir bug and glob/grep smell`
+  - `4e4d0bc fix: list_dir uses ModelRetry for recoverable errors`
+
+### Key Files:
+- `src/tunacode/core/limits.py` - NEW centralized limits
+- `src/tunacode/core/prompting/local_prompt.md` - renamed from CLAUDE_LOCAL.md
+- `src/tunacode/tools/list_dir.py` - ModelRetry fix (tool-tweaks branch)
+
+### Commands:
+- `uv run pytest tests/ -x -q` - 188 tests pass
+- `uv run ruff check --fix .` - lint
+
+### Next Steps:
+- Open PR for tool-tweaks branch
+- Consider fixing glob/grep to use ModelRetry pattern (noted smell)
+- Test local_mode with actual local model
