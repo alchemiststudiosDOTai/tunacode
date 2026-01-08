@@ -215,28 +215,6 @@ Every function is a contract with three parts:
 
 **Example:** If a tool expects a valid directory, don't silently return an empty result. That's a contract violation - raise.
 
-**Wrong:**
-
-```python
-def list_dir(directory: str) -> str | None:
-    if not Path(directory).exists():
-        return None  # silent failure, caller doesn't know why
-    return _render_dir(Path(directory))
-```
-
-**Right:**
-
-```python
-def list_dir(directory: str) -> str:
-    """Precondition: directory exists and is a directory."""
-    path = Path(directory)
-    if not path.exists():
-        raise FileNotFoundError(f"Directory not found: {path}")
-    if not path.is_dir():
-        raise NotADirectoryError(f"Not a directory: {path}")
-    return _render_dir(path)
-```
-
 ### Gate 4: Documentation is Code (Knuth)
 
 Docs and code are one system. If they diverge, the docs are lying.
@@ -296,14 +274,6 @@ select the most semanticaly correct dir and make a card in it
 Dump bugs, smells, issues here as you encounter them. Raw is fine. A skill will organize this into proper kb entries later.
 
 Format: `[date] [type] description`
-
-Types: bug, smell, pattern, lesson, antipattern
-
-[2026-01-07] [lesson] When there's a type mismatch between A and B, fix where A or B is defined, not every place that uses them. Don't scatter changes across 5+ files when one line at the source fixes everything.
-
-[2026-01-07] [bug] list_dir raised FileNotFoundError on bad paths, which @base_tool wrapped as ToolExecutionError (non-retryable), halting the agent. Fix: raise ModelRetry directly so LLM can self-correct. Note: @file_tool decorator doesn't work here because it expects required `filepath` arg, but list_dir has optional `directory="."`.
-
-[2026-01-07] [smell] glob and grep tools return error strings instead of raising exceptions on bad paths. No crash, but no ModelRetry either - LLM can't self-correct. Inconsistent with file_tool pattern.
 
 ---
 
