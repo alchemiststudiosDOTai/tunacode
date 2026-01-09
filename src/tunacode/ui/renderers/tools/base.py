@@ -25,7 +25,6 @@ from tunacode.constants import (
     MAX_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
     SEPARATOR_WIDTH,
-    TOOL_PANEL_WIDTH,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
@@ -439,5 +438,4 @@ class BaseToolRenderer(ABC, Generic[T]):
             border_style=Style(color=border_color),
             padding=(0, 1),
             expand=True,
-            width=TOOL_PANEL_WIDTH,
         )

@@ -24,7 +24,6 @@ from tunacode.constants import (
     BOX_HORIZONTAL,
     MIN_VIEWPORT_LINES,
     SEPARATOR_WIDTH,
-    TOOL_PANEL_WIDTH,
     UI_COLORS,
 )
 
@@ -132,5 +131,4 @@ def render_agent_response(
         border_style=Style(color=border_color),
         padding=(0, 1),
         expand=True,
-        width=TOOL_PANEL_WIDTH,
     )
