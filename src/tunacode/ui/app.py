@@ -39,6 +39,7 @@ from tunacode.ui.plan_approval import (
 from tunacode.ui.plan_approval import (
     request_plan_approval as _request_plan_approval,
 )
+from tunacode.ui.renderers.agent_response import render_agent_streaming
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
@@ -104,6 +105,7 @@ class TextualReplApp(App[None]):
         self._current_request_task: asyncio.Task | None = None
         self._loading_indicator_shown: bool = False
         self._last_display_update: float = 0.0
+        self._request_start_time: float = 0.0
 
         self.shell_runner = ShellRunner(self)
 
@@ -260,7 +262,7 @@ class TextualReplApp(App[None]):
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
 
-        request_start_time = time.monotonic()
+        self._request_start_time = time.monotonic()
 
         try:
             model_name = self.state_manager.session.current_model or "openai/gpt-4o"
@@ -309,7 +311,7 @@ class TextualReplApp(App[None]):
             if self.current_stream_text and not self._streaming_cancelled:
                 from tunacode.ui.renderers.agent_response import render_agent_response
 
-                duration_ms = (time.monotonic() - request_start_time) * 1000
+                duration_ms = (time.monotonic() - self._request_start_time) * 1000
                 usage = self.state_manager.session.last_call_usage or {}
                 tokens = usage.get("completion_tokens", 0)
                 model = self.state_manager.session.current_model or ""
@@ -412,7 +414,14 @@ class TextualReplApp(App[None]):
 
         if elapsed_ms >= STREAM_THROTTLE_MS:
             self._last_display_update = now
-            self.streaming_output.update(Markdown(self.current_stream_text))
+            stream_elapsed_ms = (now - self._request_start_time) * 1000
+            model = self.state_manager.session.current_model or ""
+            panel = render_agent_streaming(
+                content=self.current_stream_text,
+                elapsed_ms=stream_elapsed_ms,
+                model=model,
+            )
+            self.streaming_output.update(panel)
             self.streaming_output.add_class("active")
             self.rich_log.scroll_end()
 
@@ -438,8 +447,16 @@ class TextualReplApp(App[None]):
             self._stream_buffer.clear()
 
         # Force immediate display update on resume
-        self._last_display_update = time.monotonic()
-        self.streaming_output.update(Markdown(self.current_stream_text))
+        now = time.monotonic()
+        self._last_display_update = now
+        stream_elapsed_ms = (now - self._request_start_time) * 1000
+        model = self.state_manager.session.current_model or ""
+        panel = render_agent_streaming(
+            content=self.current_stream_text,
+            elapsed_ms=stream_elapsed_ms,
+            model=model,
+        )
+        self.streaming_output.update(panel)
 
     def action_cancel_stream(self) -> None:
         # If confirmation is pending, Escape rejects it

@@ -62,6 +62,12 @@ RESEARCH_TEMPLATE = """{{AGENT_ROLE}}
 # Minimal template for local/small models
 LOCAL_TEMPLATE = """{{AGENT_ROLE}}
 
+## EFFICIENCY (LOCAL MODE)
+- Keep responses SHORT. 1-2 sentences max for explanations.
+- Work FAST. Do the task, skip the preamble.
+- One tool call at a time. No chatter between calls.
+- No summaries unless asked. Just act.
+
 ====
 
 {{TOOL_USE}}

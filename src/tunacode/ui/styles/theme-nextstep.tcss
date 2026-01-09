@@ -96,10 +96,21 @@
     color: #000000;
 }
 
-/* --- Streaming Output --- */
+/* --- Streaming Output (NeXTSTEP Panel Container) --- */
 .theme-nextstep #streaming-output {
     background: #d0d0d0;
     color: #000000;
+}
+
+/* --- Streaming Panel (Active Agent Response) --- */
+.theme-nextstep .streaming-panel {
+    background: #c8c8c8;
+    color: #000000;
+    /* Active/running state = inverted bevel */
+    border-top: solid #606060;
+    border-left: solid #606060;
+    border-bottom: solid #e8e8e8;
+    border-right: solid #e8e8e8;
 }
 
 /* --- Modal Dialogs --- */

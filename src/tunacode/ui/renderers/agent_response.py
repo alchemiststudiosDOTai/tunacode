@@ -58,6 +58,59 @@ def _build_separator() -> Text:
     return Text(BOX_HORIZONTAL * SEPARATOR_WIDTH, style="dim")
 
 
+def render_agent_streaming(
+    content: str,
+    elapsed_ms: float = 0.0,
+    model: str = "",
+) -> RenderableType:
+    """Render streaming agent response in a NeXTSTEP panel.
+
+    Uses same 3-zone layout as finalized response but with
+    visual indicators for active streaming state.
+
+    Args:
+        content: Current markdown content being streamed
+        elapsed_ms: Time since streaming started
+        model: Model name being used
+
+    Returns:
+        Rich Panel with streaming indicator
+    """
+    border_color = UI_COLORS["primary"]  # Primary color for "running" state
+    muted_color = UI_COLORS["muted"]
+
+    # Viewport (markdown content)
+    viewport = Markdown(content) if content else Text("...", style="dim italic")
+
+    # Status bar - streaming indicator
+    status_parts = ["streaming"]
+    if elapsed_ms > 0:
+        status_parts.append(_format_duration(elapsed_ms))
+    if model:
+        status_parts.append(_format_model(model))
+
+    status = Text()
+    status.append("  ·  ".join(status_parts), style=muted_color)
+
+    separator = _build_separator()
+
+    content_parts: list[RenderableType] = [
+        viewport,
+        Text("\n"),
+        separator,
+        Text("\n"),
+        status,
+    ]
+
+    return Panel(
+        Group(*content_parts),
+        title=f"[{border_color}]agent[/] [...]",
+        border_style=Style(color=border_color),
+        padding=(0, 1),
+        expand=True,
+    )
+
+
 def render_agent_response(
     content: str,
     tokens: int = 0,

@@ -63,16 +63,15 @@ LoadingIndicator.active {
 
 /* ============================================
  * STREAMING OUTPUT - Live text display during generation
- * Inside viewport container; dashed separator distinguishes live content
+ * Inside viewport container; NeXTSTEP panel renders inside Static widget
  * ============================================ */
 #streaming-output {
     height: auto;
-    max-height: 30%;
+    max-height: 40%;
     display: none;
     background: $background;
-    padding: 0 1;
+    padding: 0;
     overflow-y: auto;
-    border-top: dashed #6272a4;
 }
 
 #streaming-output.active {
