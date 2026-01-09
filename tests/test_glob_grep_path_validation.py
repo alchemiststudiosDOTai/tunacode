@@ -20,9 +20,10 @@ class TestGlobPathValidation:
         with pytest.raises(ModelRetry) as exc_info:
             await glob(pattern="*.py", directory=str(nonexistent))
 
-        assert "not found" in str(exc_info.value).lower() or "does not exist" in str(
-            exc_info.value
-        ).lower()
+        assert (
+            "not found" in str(exc_info.value).lower()
+            or "does not exist" in str(exc_info.value).lower()
+        )
 
     async def test_file_path_instead_of_directory_raises_modelretry(self, tmp_path):
         """Glob with file path (not directory) raises ModelRetry."""
@@ -50,9 +51,10 @@ class TestGrepPathValidation:
         with pytest.raises(ModelRetry) as exc_info:
             await grep(pattern="test", directory=str(nonexistent))
 
-        assert "not found" in str(exc_info.value).lower() or "does not exist" in str(
-            exc_info.value
-        ).lower()
+        assert (
+            "not found" in str(exc_info.value).lower()
+            or "does not exist" in str(exc_info.value).lower()
+        )
 
     async def test_file_path_instead_of_directory_raises_modelretry(self, tmp_path):
         """Grep with file path (not directory) raises ModelRetry."""

@@ -414,16 +414,16 @@ class TextualReplApp(App[None]):
 
         if elapsed_ms >= STREAM_THROTTLE_MS:
             self._last_display_update = now
-            stream_elapsed_ms = (now - self._request_start_time) * 1000
-            model = self.state_manager.session.current_model or ""
-            panel = render_agent_streaming(
-                content=self.current_stream_text,
-                elapsed_ms=stream_elapsed_ms,
-                model=model,
-            )
-            self.streaming_output.update(panel)
+            self._update_streaming_panel(now)
             self.streaming_output.add_class("active")
             self.rich_log.scroll_end()
+
+    def _update_streaming_panel(self, now: float) -> None:
+        """Update streaming output with current content and elapsed time."""
+        elapsed_ms = (now - self._request_start_time) * 1000
+        model = self.state_manager.session.current_model or ""
+        panel = render_agent_streaming(self.current_stream_text, elapsed_ms, model)
+        self.streaming_output.update(panel)
 
     def action_toggle_pause(self) -> None:
         if self._streaming_paused:
@@ -449,14 +449,7 @@ class TextualReplApp(App[None]):
         # Force immediate display update on resume
         now = time.monotonic()
         self._last_display_update = now
-        stream_elapsed_ms = (now - self._request_start_time) * 1000
-        model = self.state_manager.session.current_model or ""
-        panel = render_agent_streaming(
-            content=self.current_stream_text,
-            elapsed_ms=stream_elapsed_ms,
-            model=model,
-        )
-        self.streaming_output.update(panel)
+        self._update_streaming_panel(now)
 
     def action_cancel_stream(self) -> None:
         # If confirmation is pending, Escape rejects it

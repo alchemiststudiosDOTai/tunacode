@@ -10,7 +10,6 @@ from tunacode.types import UserConfig
 from tunacode.ui.styles import (
     STYLE_ERROR,
     STYLE_MUTED,
-    STYLE_PRIMARY,
     STYLE_SUCCESS,
     STYLE_WARNING,
 )

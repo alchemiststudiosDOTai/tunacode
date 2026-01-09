@@ -130,7 +130,7 @@ class BashRenderer(BaseToolRenderer[BashData]):
         # JSON output commands
         is_json_cmd = any(x in cmd_lower for x in ["--json", "-j ", "| jq", "curl ", "http"])
         if is_json_cmd and output.strip().startswith(("{", "[")):
-                return "json"
+            return "json"
 
         # Python commands
         if cmd_lower.startswith(("python", "uv run python", "pytest")):
