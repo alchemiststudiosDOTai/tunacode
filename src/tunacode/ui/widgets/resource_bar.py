@@ -165,8 +165,6 @@ class ResourceBar(Static):
         lsp_text, lsp_style = self._get_lsp_indicator()
 
         parts: list[tuple[str, str]] = [
-            (self._model, STYLE_PRIMARY),
-            (sep, STYLE_MUTED),
             (circle_char, circle_color),
             (f" {remaining_pct:.0f}%", circle_color),
             (sep, STYLE_MUTED),
