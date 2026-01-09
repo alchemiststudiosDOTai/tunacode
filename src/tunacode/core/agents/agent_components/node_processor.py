@@ -24,6 +24,30 @@ PART_KIND_TOOL_CALL = "tool-call"
 PART_KIND_TOOL_RETURN = "tool-return"
 UNKNOWN_TOOL_NAME = "unknown"
 
+ERROR_INDICATORS = ("error", "failed", "exception", "traceback", "errno")
+
+
+def _debug_log(event: str, data: str, state_manager: StateManager) -> None:
+    """Log conversation events to file if debug_tool_errors is enabled."""
+    from datetime import datetime
+    from pathlib import Path
+
+    user_config = getattr(state_manager.session, "user_config", {}) or {}
+    settings = user_config.get("settings", {})
+    if not settings.get("debug_tool_errors", False):
+        return
+
+    log_dir = Path.home() / ".tunacode" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "conversation.log"
+
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    # Truncate long data for readability
+    if len(data) > 500:
+        data = data[:500] + "...[truncated]"
+    with open(log_file, "a") as f:
+        f.write(f"[{timestamp}] {event}: {data}\n")
+
 
 async def _normalize_tool_args(raw_args: Any) -> ToolArgs:
     from tunacode.utils.parsing.command_parser import parse_args
@@ -185,6 +209,7 @@ async def _process_node(
 
     if hasattr(node, "request"):
         state_manager.session.messages.append(node.request)
+        _debug_log("REQUEST", str(node.request)[:200], state_manager)
 
         # Display tool returns from previous iteration (they're in node.request)
         if tool_result_callback and hasattr(node.request, "parts"):
@@ -196,6 +221,11 @@ async def _process_node(
                 tool_args = _consume_tool_call_args(part, state_manager)
                 content = getattr(part, "content", None)
                 result_str = str(content) if content is not None else None
+                # Log tool result
+                is_error = result_str and any(e in result_str.lower() for e in ERROR_INDICATORS)
+                status = "ERROR" if is_error else "ok"
+                preview = result_str[:200] if result_str else "None"
+                _debug_log(f"TOOL_RESULT[{tool_name}]", f"{status} | {preview}", state_manager)
                 tool_result_callback(
                     tool_name=tool_name,
                     status="completed",
@@ -208,6 +238,19 @@ async def _process_node(
 
     if hasattr(node, "model_response"):
         state_manager.session.messages.append(node.model_response)
+        # Log response parts
+        parts_summary = []
+        for p in getattr(node.model_response, "parts", []):
+            kind = getattr(p, "part_kind", "?")
+            if kind == "text":
+                content = getattr(p, "content", "")[:100]
+                parts_summary.append(f"text:{content}")
+            elif kind == "tool-call":
+                name = getattr(p, "tool_name", "?")
+                parts_summary.append(f"tool:{name}")
+            else:
+                parts_summary.append(kind)
+        _debug_log("RESPONSE", " | ".join(parts_summary), state_manager)
 
         _update_token_usage(node.model_response, state_manager)
         # Update context window token count

@@ -8,6 +8,7 @@ This module provides decorators that wrap tool functions with:
 """
 
 import asyncio
+import inspect
 import logging
 from collections.abc import Callable, Coroutine
 from functools import wraps
@@ -119,6 +120,9 @@ def base_tool(
     if xml_prompt:
         wrapper.__doc__ = xml_prompt
 
+    wrapper_signature = inspect.signature(func)
+    wrapper.__signature__ = wrapper_signature  # type: ignore[attr-defined]
+
     return wrapper  # type: ignore[return-value]
 
 
@@ -204,6 +208,9 @@ def file_tool(
                 raise FileOperationError(
                     operation="read/write", path=filepath, message=str(e), original_error=e
                 ) from e
+
+        wrapper_signature = inspect.signature(fn)
+        wrapper.__signature__ = wrapper_signature  # type: ignore[attr-defined]
 
         return base_tool(wrapper)  # type: ignore[arg-type]
 

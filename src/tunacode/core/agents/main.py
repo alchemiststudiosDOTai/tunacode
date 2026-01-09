@@ -48,7 +48,7 @@ class AgentConfig:
 
     max_iterations: int = 15
     unproductive_limit: int = 3
-    forced_react_interval: int = 2
+    forced_react_interval: int = 5
     forced_react_limit: int = 5
     debug_metrics: bool = False
 
@@ -294,7 +294,7 @@ class RequestOrchestrator:
         self.config = AgentConfig(
             max_iterations=int(settings.get("max_iterations", 15)),
             unproductive_limit=3,
-            forced_react_interval=2,
+            forced_react_interval=5,
             forced_react_limit=5,
             debug_metrics=bool(settings.get("debug_metrics", False)),
         )
@@ -375,6 +375,11 @@ class RequestOrchestrator:
         tool_buffer = ac.ToolBuffer()
         response_state = ac.ResponseState()
 
+        # Log user request
+        from tunacode.core.agents.agent_components.node_processor import _debug_log
+
+        _debug_log("USER_REQUEST", self.message[:300], self.state_manager)
+
         try:
             async with agent.iter(self.message, message_history=message_history) as agent_run:
                 i = 1
@@ -450,6 +455,9 @@ class RequestOrchestrator:
                 return ac.AgentRunWithState(agent_run, response_state)
 
         except UserAbortError:
+            raise
+        except Exception as e:
+            _debug_log("ERROR", f"{type(e).__name__}: {e}", self.state_manager)
             raise
 
 

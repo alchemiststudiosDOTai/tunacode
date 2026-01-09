@@ -41,5 +41,6 @@ DEFAULT_USER_CONFIG: UserConfig = {
             "timeout": 5.0,  # Maximum seconds to wait for diagnostics
             "max_diagnostics": 20,  # Maximum number of diagnostics to show
         },
+        "debug_tool_errors": True,  # Print tool errors to stderr
     },
 }

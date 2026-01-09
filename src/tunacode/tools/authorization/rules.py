@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from tunacode.constants import EXECUTE_TOOLS, READ_ONLY_TOOLS, WRITE_TOOLS
+from tunacode.constants import ToolName as ToolNameEnum
 from tunacode.types import ToolName
 
 from .context import AuthContext
@@ -10,6 +11,7 @@ from .types import AuthorizationResult
 
 READ_ONLY_TOOL_NAMES: set[str] = {tool.value for tool in READ_ONLY_TOOLS}
 PLAN_MODE_BLOCKED_TOOLS: set[str] = {tool.value for tool in WRITE_TOOLS + EXECUTE_TOOLS}
+PRESENT_PLAN_TOOL_NAME: str = ToolNameEnum.PRESENT_PLAN.value
 
 
 class AuthorizationRule(Protocol):
@@ -30,6 +32,16 @@ class ReadOnlyToolRule:
 
     def should_allow_without_confirmation(self, tool_name: ToolName, _: AuthContext) -> bool:
         return is_read_only_tool(tool_name)
+
+
+class PlanPresentationToolRule:
+    """Bypass confirmation for plan presentation."""
+
+    def priority(self) -> int:
+        return 205
+
+    def should_allow_without_confirmation(self, tool_name: ToolName, _: AuthContext) -> bool:
+        return tool_name == PRESENT_PLAN_TOOL_NAME
 
 
 class TemplateAllowedToolsRule:

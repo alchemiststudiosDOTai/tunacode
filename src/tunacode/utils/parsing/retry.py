@@ -2,6 +2,7 @@
 
 import asyncio
 import functools
+import inspect
 import json
 from collections.abc import Callable
 from typing import Any
@@ -79,6 +80,10 @@ def retry_on_json_error(
             # Should never reach here, but just in case
             if last_exception:
                 raise last_exception
+
+        wrapper_signature = inspect.signature(func)
+        async_wrapper.__signature__ = wrapper_signature  # type: ignore[attr-defined]
+        sync_wrapper.__signature__ = wrapper_signature  # type: ignore[attr-defined]
 
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):

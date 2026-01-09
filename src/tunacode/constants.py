@@ -69,6 +69,7 @@ class ToolName(str, Enum):
     REACT = "react"
     RESEARCH_CODEBASE = "research_codebase"
     WEB_FETCH = "web_fetch"
+    PRESENT_PLAN = "present_plan"
 
 
 READ_ONLY_TOOLS = [

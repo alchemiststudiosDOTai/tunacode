@@ -21,6 +21,23 @@ from tunacode.exceptions import (
 )
 from tunacode.types import ToolCallback
 
+
+def _log_tool_error(tool_name: str, error: Exception, attempt: int, is_final: bool) -> None:
+    """Log tool execution errors to conversation log."""
+    from datetime import datetime
+    from pathlib import Path
+
+    log_dir = Path.home() / ".tunacode" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "conversation.log"
+
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    status = "FAILED" if is_final else f"RETRY({attempt})"
+    error_msg = f"{type(error).__name__}: {error}"
+    with open(log_file, "a") as f:
+        f.write(f"[{timestamp}] TOOL_ERROR[{tool_name}]: {status} | {error_msg}\n")
+
+
 # Errors that should NOT be retried - they represent user intent or unrecoverable states
 NON_RETRYABLE_ERRORS = (
     UserAbortError,
@@ -68,10 +85,13 @@ async def execute_tools_parallel(
                 result = await callback(part, node)
 
                 return result
-            except NON_RETRYABLE_ERRORS:
+            except NON_RETRYABLE_ERRORS as e:
+                _log_tool_error(part.tool_name, e, attempt, is_final=True)
                 raise
-            except Exception:
-                if attempt == TOOL_MAX_RETRIES:
+            except Exception as e:
+                is_final = attempt == TOOL_MAX_RETRIES
+                _log_tool_error(part.tool_name, e, attempt, is_final=is_final)
+                if is_final:
                     raise
                 backoff = _calculate_backoff(attempt)
                 await asyncio.sleep(backoff)

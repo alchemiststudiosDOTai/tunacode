@@ -34,6 +34,7 @@ from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
+from tunacode.tools.present_plan import create_present_plan_tool
 from tunacode.tools.read_file import read_file
 from tunacode.tools.todo import create_todoclear_tool, create_todoread_tool, create_todowrite_tool
 from tunacode.tools.update_file import update_file
@@ -141,14 +142,19 @@ def _resolve_base_url_override(
     return None
 
 
-def _compute_agent_version(settings: dict[str, Any], request_delay: float) -> int:
-    """Compute a hash representing agent-defining configuration."""
+def _compute_agent_version(settings: dict[str, Any], request_delay: float, plan_mode: bool) -> int:
+    """Compute a hash representing agent-defining configuration.
+
+    Includes plan_mode so the agent is recreated when toggling plan mode,
+    ensuring present_plan tool availability matches the current mode.
+    """
     return hash(
         (
             str(settings.get("max_retries", 3)),
             str(settings.get("tool_strict_validation", False)),
             str(request_delay),
             str(settings.get("global_request_timeout", 90.0)),
+            str(plan_mode),
         )
     )
 
@@ -363,7 +369,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
     """Get existing agent or create new one for the specified model."""
     request_delay = _coerce_request_delay(state_manager)
     settings = state_manager.session.user_config.get("settings", {})
-    agent_version = _compute_agent_version(settings, request_delay)
+    plan_mode = state_manager.session.plan_mode
+    agent_version = _compute_agent_version(settings, request_delay, plan_mode)
 
     # Check session-level cache first (for backward compatibility with tests)
     session_agent = state_manager.session.agents.get(model)
@@ -442,6 +449,11 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             tools_list.append(Tool(todowrite, max_retries=max_retries, strict=strict))
             tools_list.append(Tool(todoread, max_retries=max_retries, strict=strict))
             tools_list.append(Tool(todoclear, max_retries=max_retries, strict=strict))
+
+            # Add present_plan tool when in plan mode
+            if plan_mode:
+                present_plan = create_present_plan_tool(state_manager)
+                tools_list.append(Tool(present_plan, max_retries=max_retries, strict=strict))
 
         # Configure HTTP client with retry logic at transport layer
         # This handles retries BEFORE node creation, avoiding pydantic-ai's

@@ -55,6 +55,10 @@ Aggregates authorization rules:
 - Bypasses confirmation for safe read-only tools
 - Covers: glob, grep, read_file, list_dir
 
+**PlanPresentationToolRule**
+- Bypasses confirmation for plan presentation
+- Covers: present_plan
+
 **TemplateAllowedToolsRule**
 - Respects template's allowed_tools list
 - Template-specific permission grants

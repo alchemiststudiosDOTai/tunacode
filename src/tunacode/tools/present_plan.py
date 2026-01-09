@@ -5,6 +5,7 @@ When in plan mode, the agent uses this tool to present a plan for user approval.
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from tunacode.tools.xml_helper import load_prompt_from_xml
 from tunacode.types import StateManagerProtocol
 
 PLAN_APPROVED_MESSAGE = (
-    "Plan approved and saved to PLAN.md. Plan mode exited. You may now use write tools."
+    "Plan approved and saved to PLAN.md. Plan mode exited. Implement the plan now."
 )
 PLAN_DENIED_MESSAGE = (
     "Plan denied by user. Feedback: {feedback}\n\n"
@@ -94,5 +95,10 @@ def create_present_plan_tool(state_manager: StateManagerProtocol) -> Callable:
     prompt = load_prompt_from_xml("present_plan")
     if prompt:
         present_plan.__doc__ = prompt
+
+    # Preserve signature for pydantic-ai tool schema generation.
+    # Without this, inspect.signature() can't see parameter types,
+    # causing LLMs to hallucinate wrong argument types.
+    present_plan.__signature__ = inspect.signature(present_plan)  # type: ignore[attr-defined]
 
     return present_plan

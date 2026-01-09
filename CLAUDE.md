@@ -328,6 +328,8 @@ Types: bug, smell, pattern, lesson, antipattern
 
 [2026-01-08] [lesson] **RichLog.write() has its own expand parameter!** When Panel(expand=True) doesn't expand in Textual, the fix is `rich_log.write(panel, expand=True)`. Panel.expand tells Rich what to do; RichLog.write(expand=) tells Rich what canvas size to use. Two different systems - canvas wins. See JOURNAL.md "The Great Panel Width Debugging Adventure".
 
+[2026-01-09] [antipattern] **Signature Erasure in Decorators.** Wrapping functions with `*args, **kwargs` erases the original signature. Frameworks using `inspect.signature()` (like pydantic-ai for tool schemas) can't see parameter types, causing LLMs to hallucinate wrong argument types. Fix: always copy `__signature__` when wrapping: `wrapped.__signature__ = inspect.signature(original_func)`. `functools.wraps` alone is NOT enough.
+
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go
