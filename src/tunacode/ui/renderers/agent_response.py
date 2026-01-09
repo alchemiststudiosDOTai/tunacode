@@ -1,13 +1,12 @@
-"""Agent response renderer following NeXTSTEP 3-zone pattern.
+"""Agent response renderer following NeXTSTEP panel pattern.
 
-Renders finalized agent text responses in a styled panel matching
-tool panel aesthetics. Uses accent (pink) border color to match
-the existing "agent:" label styling.
+Renders finalized agent text responses in a styled panel.
+Uses accent (pink) border color for visual consistency.
 
-Zones:
-- Zone 1: Header (agent label + timestamp)
-- Zone 2: Viewport (markdown content)
-- Zone 3: Status (tokens · duration · model)
+Layout:
+- Title bar: "agent" label + timestamp
+- Viewport: markdown content
+- Status: tokens · duration · model
 """
 
 from __future__ import annotations
@@ -22,7 +21,6 @@ from rich.text import Text
 
 from tunacode.constants import (
     BOX_HORIZONTAL,
-    MIN_VIEWPORT_LINES,
     SEPARATOR_WIDTH,
     UI_COLORS,
 )
@@ -60,14 +58,6 @@ def _build_separator() -> Text:
     return Text(BOX_HORIZONTAL * SEPARATOR_WIDTH, style="dim")
 
 
-def _pad_content(content: str) -> str:
-    """Ensure content has minimum viewport height."""
-    lines = content.splitlines()
-    while len(lines) < MIN_VIEWPORT_LINES:
-        lines.append("")
-    return "\n".join(lines)
-
-
 def render_agent_response(
     content: str,
     tokens: int = 0,
@@ -89,15 +79,10 @@ def render_agent_response(
     muted_color = UI_COLORS["muted"]
     timestamp = datetime.now().strftime("%I:%M %p").lstrip("0")
 
-    # Zone 1: Header
-    header = Text()
-    header.append("agent", style=f"bold {border_color}")
+    # Viewport (markdown content)
+    viewport = Markdown(content)
 
-    # Zone 2: Viewport (markdown content)
-    padded_content = _pad_content(content)
-    viewport = Markdown(padded_content)
-
-    # Zone 3: Status bar
+    # Status bar
     status_parts = []
     if tokens > 0:
         status_parts.append(_format_tokens(tokens))
@@ -111,12 +96,8 @@ def render_agent_response(
 
     separator = _build_separator()
 
-    # Compose zones
+    # Compose: viewport + separator + status
     content_parts: list[RenderableType] = [
-        header,
-        Text("\n"),
-        separator,
-        Text("\n"),
         viewport,
         Text("\n"),
         separator,
