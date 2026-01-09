@@ -1,3 +1,24 @@
+---
+title: Tunacode Project Guidelines
+link: claude-md
+type: doc
+path: CLAUDE.md
+depth: 0
+seams: [A, M]
+ontological_relations:
+  - relates_to: [[tunacode]]
+  - affects: [[code-style, workflow, quality-gates]]
+tags:
+  - guidelines
+  - cheatsheet
+  - code-style
+  - quality-gates
+  - workflow
+created_at: 2025-01-01T00:00:00Z
+updated_at: 2026-01-08T00:00:00Z
+uuid: claude-md-tunacode-001
+---
+
 ## Tunacode
 
 This project is tunacode, much like you! It's a TUI code agent that can be used to code and debug code or general agentic tasks.
@@ -296,6 +317,14 @@ Select the most semantically correct directory and create a card in it.
 Dump bugs, smells, issues here as you encounter them. Raw is fine. A skill will organize this into proper kb entries later.
 
 Format: `[date] [type] description`
+
+Types: bug, smell, pattern, lesson, antipattern
+
+[2026-01-07] [lesson] When there's a type mismatch between A and B, fix where A or B is defined, not every place that uses them. Don't scatter changes across 5+ files when one line at the source fixes everything.
+
+[2026-01-08] [pattern] Local mode config: `docs/configuration/tunacode.local.json.example` - use when running local models. Key settings: `local_mode: true`, `local_max_tokens: 1000`, `context_window_size: 10000`, `OPENAI_BASE_URL` for local server.
+
+[2026-01-08] [pattern] Syntax highlighting in tool renderers: Use `syntax_utils.py` for `get_lexer(filepath)` and `syntax_or_text(content, filepath)`. Consistent monokai theme. 9 renderers now registered: bash, glob, grep, list_dir, read_file, research_codebase, update_file, web_fetch, write_file. Commit `9db8e92`.
 
 ---
 

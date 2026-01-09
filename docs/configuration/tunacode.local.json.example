@@ -1,0 +1,34 @@
+{
+    "default_model": "openai:local-model",
+    "env": {
+        "OPENAI_API_KEY": "not-needed",
+        "OPENAI_BASE_URL": "http://127.0.0.1:8080/v1"
+    },
+    "settings": {
+        "max_retries": 3,
+        "max_iterations": 40,
+        "request_delay": 0.0,
+        "global_request_timeout": 90.0,
+        "tool_ignore": [],
+        "guide_file": "CLAUDE_LOCAL.md",
+        "fallback_response": true,
+        "fallback_verbosity": "normal",
+        "context_window_size": 10000,
+        "enable_streaming": true,
+        "theme": "dracula",
+        "ripgrep": {
+            "timeout": 10,
+            "max_buffer_size": 1048576,
+            "max_results": 100,
+            "enable_metrics": false,
+            "debug": false
+        },
+        "lsp": {
+            "enabled": true,
+            "timeout": 5.0,
+            "max_diagnostics": 20
+        },
+        "local_mode": true,
+        "local_max_tokens": 1000
+    }
+}
