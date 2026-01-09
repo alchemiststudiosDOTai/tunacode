@@ -260,6 +260,8 @@ class TextualReplApp(App[None]):
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
 
+        request_start_time = time.monotonic()
+
         try:
             model_name = self.state_manager.session.current_model or "openai/gpt-4o"
 
@@ -305,9 +307,21 @@ class TextualReplApp(App[None]):
             self.streaming_output.remove_class("active")
 
             if self.current_stream_text and not self._streaming_cancelled:
+                from tunacode.ui.renderers.agent_response import render_agent_response
+
+                duration_ms = (time.monotonic() - request_start_time) * 1000
+                usage = self.state_manager.session.last_call_usage or {}
+                tokens = usage.get("completion_tokens", 0)
+                model = self.state_manager.session.current_model or ""
+
+                panel = render_agent_response(
+                    content=self.current_stream_text,
+                    tokens=tokens,
+                    duration_ms=duration_ms,
+                    model=model,
+                )
                 self.rich_log.write("")
-                self.rich_log.write(Text("agent:", style="accent"))
-                self.rich_log.write(Markdown(self.current_stream_text))
+                self.rich_log.write(panel)
 
             self.current_stream_text = ""
             self._streaming_cancelled = False
