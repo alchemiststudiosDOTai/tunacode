@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for web_fetch tool output."""
+"""NeXTSTEP-style panel renderer for web_fetch tool output.
+
+Displays fetched web content with smart syntax highlighting based on URL or content.
+"""
 
 from __future__ import annotations
 
@@ -9,14 +12,14 @@ from urllib.parse import urlparse
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.constants import URL_DISPLAY_MAX_LENGTH
+from tunacode.constants import MIN_VIEWPORT_LINES, URL_DISPLAY_MAX_LENGTH
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
-    pad_lines,
     tool_renderer,
     truncate_content,
 )
+from tunacode.ui.renderers.tools.syntax_utils import detect_code_lexer, syntax_or_text
 
 
 @dataclass
@@ -89,16 +92,57 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
         params.append(f" {data.timeout}s", style="dim bold")
         return params
 
+    def _detect_content_type(self, url: str, content: str) -> str | None:
+        """Detect content type from URL or content."""
+        url_lower = url.lower()
+
+        # URL-based detection
+        is_json_url = ".json" in url_lower or "/api/" in url_lower
+        if is_json_url and content.strip().startswith(("{", "[")):
+            return "json"
+
+        is_xml_url = ".xml" in url_lower or "rss" in url_lower or "atom" in url_lower
+        if is_xml_url and content.strip().startswith("<"):
+            return "xml"
+
+        if ".yaml" in url_lower or ".yml" in url_lower:
+            return "yaml"
+
+        if "raw.githubusercontent.com" in url_lower:
+            # Try to detect from path
+            if ".py" in url_lower:
+                return "python"
+            if ".js" in url_lower:
+                return "javascript"
+            if ".ts" in url_lower:
+                return "typescript"
+            if ".rs" in url_lower:
+                return "rust"
+            if ".go" in url_lower:
+                return "go"
+
+        # Content-based detection
+        return detect_code_lexer(content)
+
     def build_viewport(self, data: WebFetchData) -> RenderableType:
-        """Zone 3: Content viewport."""
+        """Zone 3: Content viewport with smart highlighting."""
+        if not data.content:
+            return Text("(no content)", style="dim italic")
+
         truncated_content, shown, total = truncate_content(data.content)
 
-        # Pad viewport to minimum height
-        content_lines = truncated_content.split("\n")
-        padded = pad_lines(content_lines)
-        truncated_content = "\n".join(padded)
+        # Detect if content is code/structured data
+        lexer = self._detect_content_type(data.url, data.content)
 
-        return Text(truncated_content)
+        if lexer:
+            return syntax_or_text(truncated_content, lexer=lexer)
+
+        # Pad viewport for plain text
+        content_lines = truncated_content.split("\n")
+        while len(content_lines) < MIN_VIEWPORT_LINES:
+            content_lines.append("")
+
+        return Text("\n".join(content_lines))
 
     def build_status(self, data: WebFetchData, duration_ms: float | None) -> Text:
         """Zone 4: Status with truncation info and timing."""

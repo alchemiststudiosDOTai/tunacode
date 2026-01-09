@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for bash tool output."""
+"""NeXTSTEP-style panel renderer for bash tool output.
+
+Displays command output with smart code detection and syntax highlighting.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ from tunacode.ui.renderers.tools.base import (
     truncate_content,
     truncate_line,
 )
+from tunacode.ui.renderers.tools.syntax_utils import detect_code_lexer, syntax_or_text
 
 
 @dataclass
@@ -118,33 +122,74 @@ class BashRenderer(BaseToolRenderer[BashData]):
         params.append(f" {data.timeout}s", style="dim bold")
         return params
 
+    def _detect_output_type(self, command: str, output: str) -> str | None:
+        """Detect lexer from command or output content."""
+        # Check command for hints
+        cmd_lower = command.lower()
+
+        # JSON output commands
+        is_json_cmd = any(x in cmd_lower for x in ["--json", "-j ", "| jq", "curl ", "http"])
+        if is_json_cmd and output.strip().startswith(("{", "[")):
+                return "json"
+
+        # Python commands
+        if cmd_lower.startswith(("python", "uv run python", "pytest")):
+            return None  # Usually plain output, not code
+
+        # Git commands with special output
+        if cmd_lower.startswith("git diff"):
+            return "diff"
+        if cmd_lower.startswith("git log") and "--format" not in cmd_lower:
+            return None
+
+        # Try content-based detection
+        return detect_code_lexer(output)
+
     def build_viewport(self, data: BashData) -> RenderableType:
-        """Zone 3: stdout/stderr output."""
-        viewport_parts: list[Text] = []
+        """Zone 3: stdout/stderr output with smart highlighting."""
+        viewport_parts: list[RenderableType] = []
 
         if data.stdout:
             truncated_stdout, _, _ = truncate_content(data.stdout)
-            stdout_text = Text()
-            stdout_text.append("stdout:\n", style="dim")
-            stdout_text.append(truncated_stdout)
-            viewport_parts.append(stdout_text)
+
+            # Try to detect if output is code
+            lexer = self._detect_output_type(data.command, data.stdout)
+
+            stdout_header = Text()
+            stdout_header.append("stdout", style="dim bold")
+            if lexer:
+                stdout_header.append(f" ({lexer})", style="dim italic")
+            stdout_header.append(":", style="dim")
+            viewport_parts.append(stdout_header)
+
+            if lexer:
+                viewport_parts.append(syntax_or_text(truncated_stdout, lexer=lexer))
+            else:
+                viewport_parts.append(Text(truncated_stdout))
 
         if data.stderr:
             if viewport_parts:
-                viewport_parts.append(Text("\n"))
+                viewport_parts.append(Text(""))
+
+            stderr_header = Text()
+            stderr_header.append("stderr:", style="dim bold red")
+            viewport_parts.append(stderr_header)
+
             truncated_stderr, _, _ = truncate_content(data.stderr)
-            stderr_text = Text()
-            stderr_text.append("stderr:\n", style="dim")
-            stderr_text.append(truncated_stderr, style="red")
+            stderr_text = Text(truncated_stderr, style="red")
             viewport_parts.append(stderr_text)
 
         if not viewport_parts:
-            viewport_parts.append(Text("(no output)", style="dim"))
+            viewport_parts.append(Text("(no output)", style="dim italic"))
 
         # Pad viewport to minimum height
-        viewport_line_count = sum(
-            1 + str(part).count("\n") for part in viewport_parts if isinstance(part, Text)
-        )
+        viewport_line_count = 0
+        for part in viewport_parts:
+            if isinstance(part, Text):
+                viewport_line_count += 1 + str(part).count("\n")
+            else:
+                viewport_line_count += 1
+
         while viewport_line_count < MIN_VIEWPORT_LINES:
             viewport_parts.append(Text(""))
             viewport_line_count += 1

@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for glob tool output."""
+"""NeXTSTEP-style panel renderer for glob tool output.
+
+Displays file list with styled paths - directories vs files distinguished.
+"""
 
 from __future__ import annotations
 
@@ -7,16 +10,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from rich.console import RenderableType
+from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH
+from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
-    pad_lines,
     tool_renderer,
 )
+from tunacode.ui.renderers.tools.syntax_utils import get_lexer
 
 
 @dataclass
@@ -143,21 +146,64 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
         params.append(f" {data.sort_by}", style="dim bold")
         return params
 
+    def _get_file_style(self, filepath: str) -> str:
+        """Get style based on file type."""
+        lexer = get_lexer(filepath)
+        path = Path(filepath)
+
+        # Color by type
+        if lexer == "python":
+            return "bright_blue"
+        if lexer in ("javascript", "typescript", "jsx", "tsx"):
+            return "yellow"
+        if lexer in ("json", "yaml", "toml"):
+            return "green"
+        if lexer in ("markdown", "rst"):
+            return "cyan"
+        if lexer in ("bash", "zsh"):
+            return "magenta"
+        if path.suffix in (".test.py", ".spec.ts", ".test.ts", ".spec.js", ".test.js"):
+            return "bright_green"
+
+        return ""
+
     def build_viewport(self, data: GlobData) -> RenderableType:
-        """Zone 3: File list viewport."""
-        from tunacode.constants import TOOL_VIEWPORT_LINES
+        """Zone 3: Styled file list viewport."""
+        if not data.files:
+            return Text("(no files)", style="dim italic")
 
-        viewport_lines: list[str] = []
+        viewport_parts: list[RenderableType] = []
         max_display = TOOL_VIEWPORT_LINES
+        lines_used = 0
 
-        for i, filepath in enumerate(data.files):
-            if i >= max_display:
+        for filepath in data.files:
+            if lines_used >= max_display:
                 break
-            viewport_lines.append(self._truncate_path(filepath))
 
-        # Pad viewport to minimum height
-        padded = pad_lines(viewport_lines)
-        return Text("\n".join(padded)) if padded else Text("(no files)")
+            truncated = self._truncate_path(filepath)
+            path = Path(filepath)
+            style = self._get_file_style(filepath)
+
+            line = Text()
+            # Show directory in dim, filename in color
+            if "/" in truncated:
+                dir_part = str(path.parent)
+                if len(dir_part) > 30:
+                    dir_part = "..." + dir_part[-27:]
+                line.append(dir_part + "/", style="dim")
+                line.append(path.name, style=style or "bold")
+            else:
+                line.append(truncated, style=style or "bold")
+
+            viewport_parts.append(line)
+            lines_used += 1
+
+        # Pad to minimum height
+        while lines_used < MIN_VIEWPORT_LINES:
+            viewport_parts.append(Text(""))
+            lines_used += 1
+
+        return Group(*viewport_parts)
 
     def build_status(self, data: GlobData, duration_ms: float | None) -> Text:
         """Zone 4: Status with source, truncation info, timing."""

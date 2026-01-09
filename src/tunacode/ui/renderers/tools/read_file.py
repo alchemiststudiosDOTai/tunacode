@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for read_file tool output."""
+"""NeXTSTEP-style panel renderer for read_file tool output.
+
+Displays file contents with syntax highlighting based on file extension.
+"""
 
 from __future__ import annotations
 
@@ -13,10 +16,10 @@ from rich.text import Text
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
-    pad_lines,
     tool_renderer,
     truncate_line,
 )
+from tunacode.ui.renderers.tools.syntax_utils import syntax_or_text
 
 
 @dataclass
@@ -140,21 +143,37 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         return params
 
     def build_viewport(self, data: ReadFileData) -> RenderableType:
-        """Zone 3: Line-numbered content viewport."""
-        from tunacode.constants import TOOL_VIEWPORT_LINES
+        """Zone 3: Syntax-highlighted content viewport."""
+        from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
-        viewport_lines: list[str] = []
+        if not data.content_lines:
+            return Text("(empty file)", style="dim italic")
+
         max_display = TOOL_VIEWPORT_LINES
 
-        for i, (line_num, line_content) in enumerate(data.content_lines):
+        # Extract just the content without line numbers for syntax highlighting
+        content_only: list[str] = []
+        for i, (_line_num, line_content) in enumerate(data.content_lines):
             if i >= max_display:
                 break
-            formatted = f"{line_num:>5}| {line_content}"
-            viewport_lines.append(truncate_line(formatted))
+            # Truncate long lines
+            truncated = truncate_line(line_content, max_width=80)
+            content_only.append(truncated)
 
-        # Pad viewport to minimum height
-        padded = pad_lines(viewport_lines)
-        return Text("\n".join(padded)) if padded else Text("(empty file)")
+        # Pad to minimum height
+        while len(content_only) < MIN_VIEWPORT_LINES:
+            content_only.append("")
+
+        code_content = "\n".join(content_only)
+        start_line = data.content_lines[0][0] if data.content_lines else 1
+
+        # Use syntax highlighting with line numbers
+        return syntax_or_text(
+            code_content,
+            filepath=data.filepath,
+            line_numbers=True,
+            start_line=start_line,
+        )
 
     def build_status(self, data: ReadFileData, duration_ms: float | None) -> Text:
         """Zone 4: Status with continuation info and timing."""

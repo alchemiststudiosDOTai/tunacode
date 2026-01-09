@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for list_dir tool output."""
+"""NeXTSTEP-style panel renderer for list_dir tool output.
+
+Displays directory tree with styled entries - directories bold, files colored by type.
+"""
 
 from __future__ import annotations
 
@@ -6,17 +9,18 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from rich.console import RenderableType
+from rich.console import Group, RenderableType
 from rich.text import Text
 
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.tools.list_dir import IGNORE_PATTERNS_COUNT
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
-    pad_lines,
     tool_renderer,
-    truncate_content,
+    truncate_line,
 )
+from tunacode.ui.renderers.tools.syntax_utils import get_lexer
 
 
 @dataclass
@@ -103,20 +107,87 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
         params.append(f" {data.ignore_count}", style="dim bold")
         return params
 
+    def _get_file_style(self, name: str) -> str:
+        """Get style based on file name/extension."""
+        lexer = get_lexer(name)
+
+        # Color by type
+        if lexer == "python":
+            return "bright_blue"
+        if lexer in ("javascript", "typescript", "jsx", "tsx"):
+            return "yellow"
+        if lexer in ("json", "yaml", "toml"):
+            return "green"
+        if lexer in ("markdown", "rst"):
+            return "cyan"
+        if lexer in ("bash", "zsh"):
+            return "magenta"
+
+        return ""
+
+    def _style_tree_line(self, line: str) -> Text:
+        """Style a tree line with appropriate colors."""
+        styled = Text()
+
+        # Extract tree prefix (├──, │  , └──, etc) and name
+        tree_chars = "├└│─ "
+        prefix_end = 0
+        for i, char in enumerate(line):
+            if char in tree_chars:
+                prefix_end = i + 1
+            else:
+                break
+
+        prefix = line[:prefix_end]
+        name = line[prefix_end:].strip()
+
+        # Tree structure in dim
+        styled.append(prefix, style="dim")
+
+        # Determine if directory or file
+        is_dir = name.endswith("/") or "." not in name
+
+        if is_dir:
+            # Directories in bold cyan
+            styled.append(name, style="bold cyan")
+        else:
+            # Files colored by type
+            style = self._get_file_style(name)
+            styled.append(name, style=style or "")
+
+        return styled
+
     def build_viewport(self, data: ListDirData) -> RenderableType:
-        """Build tree content viewport."""
+        """Build styled tree content viewport."""
         # Skip first line (dirname already in header)
         tree_lines = data.tree_content.splitlines()[1:]
-        tree_only = "\n".join(tree_lines) if tree_lines else "(empty)"
 
-        truncated_tree, shown, total = truncate_content(tree_only)
+        if not tree_lines:
+            return Text("(empty directory)", style="dim italic")
+
+        viewport_parts: list[RenderableType] = []
+        max_display = TOOL_VIEWPORT_LINES
+        lines_used = 0
+
+        for line in tree_lines:
+            if lines_used >= max_display:
+                break
+
+            truncated = truncate_line(line, max_width=60)
+            styled_line = self._style_tree_line(truncated)
+            viewport_parts.append(styled_line)
+            lines_used += 1
 
         # Store for status zone
-        data.shown_lines = shown
-        data.total_lines = total
+        data.shown_lines = lines_used
+        data.total_lines = len(tree_lines)
 
-        padded = pad_lines(truncated_tree.split("\n"))
-        return Text("\n".join(padded))
+        # Pad to minimum height
+        while lines_used < MIN_VIEWPORT_LINES:
+            viewport_parts.append(Text(""))
+            lines_used += 1
+
+        return Group(*viewport_parts)
 
     def build_status(self, data: ListDirData, duration_ms: float | None) -> Text:
         """Build status line with truncation info and timing."""

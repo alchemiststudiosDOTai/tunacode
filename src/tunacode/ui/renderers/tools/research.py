@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for research_codebase tool output."""
+"""NeXTSTEP-style panel renderer for research_codebase tool output.
+
+Displays research results with syntax-highlighted code examples.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from rich.console import RenderableType
+from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import (
@@ -21,6 +24,7 @@ from tunacode.ui.renderers.tools.base import (
     tool_renderer,
     truncate_line,
 )
+from tunacode.ui.renderers.tools.syntax_utils import syntax_or_text
 
 
 @dataclass
@@ -139,86 +143,109 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
         return params
 
     def build_viewport(self, data: ResearchData) -> RenderableType:
-        """Zone 3: Multi-section viewport (files, findings, recommendations)."""
-
-        viewport_lines: list[Text] = []
+        """Zone 3: Multi-section viewport (files, findings, code examples)."""
+        viewport_parts: list[RenderableType] = []
         lines_used = 0
         max_viewport_lines = TOOL_VIEWPORT_LINES
-        min_lines_for_recommendations = 2
 
         # Error state
         if data.is_error:
             error_text = Text()
             error_text.append("Error: ", style="bold red")
             error_text.append(data.error_message or "Unknown error", style="red")
-            viewport_lines.append(error_text)
+            viewport_parts.append(error_text)
             lines_used += 1
 
         # Relevant files section
         if data.relevant_files and lines_used < max_viewport_lines:
             files_header = Text()
-            files_header.append("Relevant Files", style="bold")
+            files_header.append("Files", style="bold cyan")
             files_header.append(f" ({len(data.relevant_files)})", style="dim")
-            viewport_lines.append(files_header)
+            viewport_parts.append(files_header)
             lines_used += 1
 
-            for filepath in data.relevant_files:
+            for filepath in data.relevant_files[:3]:  # Show max 3 files
                 if lines_used >= max_viewport_lines:
                     break
                 file_line = Text()
-                file_line.append("  - ", style="dim")
-                file_line.append(truncate_line(filepath), style="cyan")
-                viewport_lines.append(file_line)
+                file_line.append("  ", style="")
+                file_line.append(truncate_line(filepath, max_width=50), style="cyan")
+                viewport_parts.append(file_line)
                 lines_used += 1
 
-            viewport_lines.append(Text(""))
-            lines_used += 1
+            if len(data.relevant_files) > 3:
+                more_line = Text()
+                more_line.append(f"  (+{len(data.relevant_files) - 3} more)", style="dim italic")
+                viewport_parts.append(more_line)
+                lines_used += 1
 
         # Key findings section
         if data.key_findings and lines_used < max_viewport_lines:
+            if viewport_parts:
+                viewport_parts.append(Text(""))
+                lines_used += 1
+
             findings_header = Text()
-            findings_header.append("Key Findings", style="bold")
-            viewport_lines.append(findings_header)
+            findings_header.append("Findings", style="bold green")
+            viewport_parts.append(findings_header)
             lines_used += 1
 
-            for i, finding in enumerate(data.key_findings, 1):
+            for i, finding in enumerate(data.key_findings[:3], 1):  # Show max 3 findings
                 if lines_used >= max_viewport_lines:
-                    remaining = len(data.key_findings) - i + 1
-                    viewport_lines.append(Text(f"  (+{remaining} more)", style="dim italic"))
-                    lines_used += 1
                     break
                 finding_line = Text()
                 finding_line.append(f"  {i}. ", style="dim")
-                finding_text = truncate_line(finding)
-                finding_line.append(finding_text)
-                viewport_lines.append(finding_line)
+                finding_line.append(truncate_line(finding, max_width=55))
+                viewport_parts.append(finding_line)
                 lines_used += 1
 
-            viewport_lines.append(Text(""))
-            lines_used += 1
-
-        # Recommendations section (if space)
-        if data.recommendations and lines_used < max_viewport_lines - min_lines_for_recommendations:
-            rec_header = Text()
-            rec_header.append("Recommendations", style="bold")
-            viewport_lines.append(rec_header)
-            lines_used += 1
-
-            for rec in data.recommendations:
-                if lines_used >= max_viewport_lines:
-                    break
-                rec_line = Text()
-                rec_line.append("  > ", style="dim")
-                rec_line.append(truncate_line(rec), style="italic")
-                viewport_lines.append(rec_line)
+            if len(data.key_findings) > 3:
+                more_line = Text()
+                more_line.append(f"  (+{len(data.key_findings) - 3} more)", style="dim italic")
+                viewport_parts.append(more_line)
                 lines_used += 1
+
+        # Code examples section (with syntax highlighting)
+        if data.code_examples and lines_used < max_viewport_lines - 2:
+            if viewport_parts:
+                viewport_parts.append(Text(""))
+                lines_used += 1
+
+            code_header = Text()
+            code_header.append("Code", style="bold yellow")
+            code_header.append(f" ({len(data.code_examples)} examples)", style="dim")
+            viewport_parts.append(code_header)
+            lines_used += 1
+
+            # Show first code example with syntax highlighting
+            example = data.code_examples[0]
+            filepath = example.get("file", "")
+            code = example.get("code", "")
+
+            if filepath:
+                file_text = Text()
+                file_text.append("  ", style="")
+                file_text.append(truncate_line(filepath, max_width=50), style="cyan dim")
+                viewport_parts.append(file_text)
+                lines_used += 1
+
+            if code and lines_used < max_viewport_lines:
+                # Truncate code to fit
+                code_lines = code.splitlines()[:3]  # Max 3 lines
+                truncated_code = "\n".join(code_lines)
+
+                highlighted = syntax_or_text(truncated_code, filepath=filepath)
+                viewport_parts.append(highlighted)
+                lines_used += min(3, len(code_lines))
 
         # Pad viewport to minimum height
         while lines_used < MIN_VIEWPORT_LINES:
-            viewport_lines.append(Text(""))
+            viewport_parts.append(Text(""))
             lines_used += 1
 
-        return Text("\n").join(viewport_lines) if viewport_lines else Text("(no findings)")
+        if not viewport_parts:
+            return Text("(no findings)", style="dim italic")
+        return Group(*viewport_parts)
 
     def build_status(self, data: ResearchData, duration_ms: float | None) -> Text:
         """Zone 4: Status with file count, findings count, timing."""

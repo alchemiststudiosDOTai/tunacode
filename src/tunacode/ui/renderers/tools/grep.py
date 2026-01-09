@@ -1,4 +1,7 @@
-"""NeXTSTEP-style panel renderer for grep tool output."""
+"""NeXTSTEP-style panel renderer for grep tool output.
+
+Displays search results with syntax highlighting based on matched file types.
+"""
 
 from __future__ import annotations
 
@@ -6,13 +9,13 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from rich.console import RenderableType
+from rich.console import Group, RenderableType
 from rich.text import Text
 
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
-    pad_lines,
     tool_renderer,
     truncate_line,
 )
@@ -137,34 +140,66 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
         return params
 
     def build_viewport(self, data: GrepData) -> RenderableType:
-        """Zone 3: Matches viewport grouped by file."""
-        from tunacode.constants import TOOL_VIEWPORT_LINES
+        """Zone 3: Matches viewport with styled file paths and highlighted matches."""
+        if not data.matches:
+            return Text("(no matches)", style="dim italic")
 
-        viewport_lines: list[str] = []
+        viewport_parts: list[RenderableType] = []
         current_file: str | None = None
-        shown_matches = 0
+        lines_used = 0
+        max_lines = TOOL_VIEWPORT_LINES
 
         for match in data.matches:
-            if shown_matches >= TOOL_VIEWPORT_LINES:
+            if lines_used >= max_lines:
                 break
 
+            # File header when switching files
             if match["file"] != current_file:
-                if current_file is not None:
-                    viewport_lines.append("")
-                    shown_matches += 1
+                if current_file is not None and lines_used < max_lines:
+                    viewport_parts.append(Text(""))
+                    lines_used += 1
+
                 current_file = match["file"]
-                viewport_lines.append(f"  {current_file}")
-                shown_matches += 1
+                if lines_used < max_lines:
+                    file_header = Text()
+                    file_header.append("  ", style="")
+                    file_header.append(current_file, style="cyan bold")
+                    viewport_parts.append(file_header)
+                    lines_used += 1
 
-            line_content = (
-                f"    {match['line']:>4}| {match['before']}{match['match']}{match['after']}"
-            )
-            viewport_lines.append(truncate_line(line_content))
-            shown_matches += 1
+            if lines_used >= max_lines:
+                break
 
-        # Pad viewport to minimum height
-        padded = pad_lines(viewport_lines)
-        return Text("\n".join(padded)) if padded else Text("(no matches)")
+            # Match line with highlighted match text
+            match_line = Text()
+            match_line.append(f"    {match['line']:>4}", style="dim")
+            match_line.append("│ ", style="dim")
+
+            # Truncate the full content
+            before = match["before"]
+            match_text = match["match"]
+            after = match["after"]
+            full_line = f"{before}{match_text}{after}"
+            truncated = truncate_line(full_line, max_width=60)
+
+            # If truncated, we need to reconstruct with highlight
+            if truncated == full_line:
+                match_line.append(before, style="")
+                match_line.append(match_text, style="bold yellow reverse")
+                match_line.append(after, style="")
+            else:
+                # Simple truncation - show what we can
+                match_line.append(truncated, style="")
+
+            viewport_parts.append(match_line)
+            lines_used += 1
+
+        # Pad to minimum height
+        while lines_used < MIN_VIEWPORT_LINES:
+            viewport_parts.append(Text(""))
+            lines_used += 1
+
+        return Group(*viewport_parts)
 
     def build_status(self, data: GrepData, duration_ms: float | None) -> Text:
         """Zone 4: Status with truncation info and timing."""
