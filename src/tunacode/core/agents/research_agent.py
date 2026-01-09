@@ -1,5 +1,6 @@
 """Research agent factory for read-only codebase exploration."""
 
+import inspect
 from pathlib import Path
 from typing import Any
 
@@ -138,10 +139,11 @@ class ProgressTracker:
             self.emit(operation)
             return await tool_func(*args, **kwargs)
 
-        # Preserve function metadata for pydantic-ai
+        # Preserve function metadata for pydantic-ai schema generation
         wrapped.__name__ = tool_func.__name__
         wrapped.__doc__ = tool_func.__doc__
         wrapped.__annotations__ = getattr(tool_func, "__annotations__", {})
+        wrapped.__signature__ = inspect.signature(tool_func)  # type: ignore[attr-defined]
 
         return wrapped
 

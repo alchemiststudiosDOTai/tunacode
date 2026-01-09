@@ -5,6 +5,7 @@ When in plan mode, the agent uses this tool to present a plan for user approval.
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
 from pathlib import Path
 
@@ -94,5 +95,8 @@ def create_present_plan_tool(state_manager: StateManagerProtocol) -> Callable:
     prompt = load_prompt_from_xml("present_plan")
     if prompt:
         present_plan.__doc__ = prompt
+
+    # Preserve signature for pydantic-ai schema generation
+    present_plan.__signature__ = inspect.signature(present_plan)  # type: ignore[attr-defined]
 
     return present_plan
