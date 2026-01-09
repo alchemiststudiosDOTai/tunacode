@@ -13,7 +13,7 @@ tags: [plan, ui, rendering, nextstep]
 Create a 3-zone panel renderer for agent text responses that matches the visual consistency of existing tool panels, following NeXTSTEP design principles.
 
 **Non-goals:**
-- Streaming panel display (keep current streaming behavior)
+- ~~Streaming panel display (keep current streaming behavior)~~ **SUPERSEDED: Streaming panels implemented**
 - User message panel treatment (future work)
 - New test files (existing pattern, no new tests needed)
 
@@ -26,7 +26,7 @@ Create a 3-zone panel renderer for agent text responses that matches the visual 
 - Integration at finalization point in `app.py`
 
 **Out of scope:**
-- Streaming display changes
+- ~~Streaming display changes~~ **SUPERSEDED: `render_agent_streaming()` implemented**
 - User message styling
 - New dependencies
 
@@ -60,8 +60,9 @@ Create a 3-zone panel renderer for agent text responses that matches the visual 
 - How long? (performance awareness)
 - What model? (capability awareness)
 
-### 3. Streaming: Keep Current Behavior
-**Rationale:** Panel only on finalization. NeXTSTEP principle: "When in doubt, don't." Adding panels during streaming adds complexity without clear user benefit.
+### 3. Streaming: ~~Keep Current Behavior~~ **SUPERSEDED**
+**Original Rationale:** Panel only on finalization. NeXTSTEP principle: "When in doubt, don't."
+**Update:** Streaming panels were implemented via `render_agent_streaming()` with live elapsed time and model display. Provides consistent visual framing throughout the response lifecycle.
 
 ## Milestones
 
