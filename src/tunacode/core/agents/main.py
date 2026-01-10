@@ -22,6 +22,7 @@ from tunacode.constants import UI_COLORS
 from tunacode.core.compaction import prune_old_tool_outputs
 from tunacode.core.state import StateManager
 from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
+from tunacode.core.agents.timeout_state import TimeoutPauseState
 from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
@@ -299,12 +300,20 @@ class RequestOrchestrator:
             debug_metrics=bool(settings.get("debug_metrics", False)),
         )
 
+        # Initialize timeout pause state for coordinating user interaction timeouts
+        self._timeout_pause_state = TimeoutPauseState()
+
         # Initialize managers
         self.empty_handler = EmptyResponseHandler(state_manager)
         self.iteration_manager = IterationManager(state_manager, self.config)
         self.react_manager = ReactSnapshotManager(
             state_manager, ReactTool(state_manager=state_manager), self.config
         )
+
+    @property
+    def timeout_pause_state(self) -> TimeoutPauseState:
+        """Expose timeout pause state for UI layer coordination."""
+        return self._timeout_pause_state
 
     def _init_request_context(self) -> RequestContext:
         """Initialize request context with ID and config."""
