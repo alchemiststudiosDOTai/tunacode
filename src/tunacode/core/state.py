@@ -49,6 +49,7 @@ class SessionState:
     tool_ignore: list[ToolName] = field(default_factory=list)
     tool_progress_callback: ToolProgressCallback | None = None
     yolo: bool = False
+    debug_mode: bool = False
     plan_mode: bool = False
     # Callback for present_plan tool to get user approval
     # Signature: async (plan_content: str) -> tuple[bool, str] (approved, feedback)

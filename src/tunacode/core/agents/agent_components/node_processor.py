@@ -8,6 +8,7 @@ from tunacode.constants import (
     ERROR_TOOL_CALL_ID_MISSING,
     UI_COLORS,
 )
+from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import StateError, UserAbortError
 from tunacode.types import AgentState, ToolArgs, ToolCallId
@@ -359,6 +360,8 @@ async def _process_tool_calls(
     """
     from tunacode.constants import READ_ONLY_TOOLS
 
+    logger = get_logger()
+
     # Track if we're processing tool calls
     is_processing_tools = False
 
@@ -414,15 +417,18 @@ async def _process_tool_calls(
     if research_agent_tasks and tool_callback:
         from .tool_executor import execute_tools_parallel
 
+        logger.debug(f"Phase 2: research agent ({len(research_agent_tasks)} calls)")
+
         if tool_start_callback:
             tool_start_callback("research")
 
         await execute_tools_parallel(research_agent_tasks, tool_callback)
-        # Note: tool_result_callback is called when we see tool-return parts in node.request
 
     # Phase 3: Execute read-only tools in ONE parallel batch
     if read_only_tasks and tool_callback:
         from .tool_executor import execute_tools_parallel
+
+        logger.debug(f"Phase 3: read-only batch ({len(read_only_tasks)} calls)")
 
         batch_id = getattr(state_manager.session, "batch_counter", 0) + 1
         state_manager.session.batch_counter = batch_id
@@ -433,9 +439,11 @@ async def _process_tool_calls(
             tool_start_callback(", ".join(names) + suffix)
 
         await execute_tools_parallel(read_only_tasks, tool_callback)
-        # Note: tool_result_callback is called when we see tool-return parts in node.request
 
     # Phase 4: Execute write/execute tools sequentially
+    if write_execute_tasks:
+        logger.debug(f"Phase 4: write/execute ({len(write_execute_tasks)} calls)")
+
     for part, node in write_execute_tasks:
         if tool_start_callback:
             tool_start_callback(part.tool_name)

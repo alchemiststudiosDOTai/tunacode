@@ -85,10 +85,16 @@ Custom Textual widgets:
 ### Commands (commands/)
 
 REPL command implementations:
-- **HelpCommand** - `/help` command
-- **ModelCommand** - `/model` command
-- **SessionCommand** - `/session` command
-- **ThemeCommand** - `/theme` command
+- **HelpCommand** - `/help` - Show available commands
+- **ClearCommand** - `/clear` - Clear conversation history
+- **YoloCommand** - `/yolo` - Toggle auto-confirm for tool executions
+- **DebugCommand** - `/debug` - Toggle debug logging to screen (logs to ~/.local/share/tunacode/logs/)
+- **ModelCommand** - `/model` - Open model picker or switch directly
+- **BranchCommand** - `/branch` - Create conversation branch
+- **PlanCommand** - `/plan` - Toggle plan mode
+- **ThemeCommand** - `/theme` - Switch UI theme
+- **ResumeCommand** - `/resume` - Resume previous session
+- **UpdateCommand** - `/update` - Check for and install updates
 
 ### Supporting Components
 

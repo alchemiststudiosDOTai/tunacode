@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 
 from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
+from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 
 
@@ -49,6 +50,9 @@ async def stream_model_request_node(
     """
     if not streaming_callback:
         return
+
+    logger = get_logger()
+    logger.debug("Stream started", iteration=iteration_index, request_id=request_id)
 
     # Gracefully handle streaming errors from LLM provider
     try:
@@ -262,8 +266,9 @@ async def stream_model_request_node(
                             state_manager.session._debug_events.append(final_msg)
                     except Exception:
                         pass
-    except Exception:
+    except Exception as e:
         # Reset node state to allow graceful degradation to non-streaming mode
+        logger.warning(f"Stream failed, falling back to non-streaming: {e}")
         try:
             if hasattr(node, "_did_stream"):
                 node._did_stream = False

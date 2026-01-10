@@ -3,6 +3,7 @@
 import asyncio
 import os
 import random
+import time
 from typing import Any
 
 from pydantic_ai import ModelRetry
@@ -12,6 +13,7 @@ from tunacode.constants import (
     TOOL_RETRY_BASE_DELAY,
     TOOL_RETRY_MAX_DELAY,
 )
+from tunacode.core.logging import get_logger
 from tunacode.exceptions import (
     ConfigurationError,
     FileOperationError,
@@ -60,20 +62,30 @@ async def execute_tools_parallel(
     Raises:
         Exception: Re-raises after all retry attempts exhausted
     """
+    logger = get_logger()
     max_parallel = int(os.environ.get("TUNACODE_MAX_PARALLEL", os.cpu_count() or 4))
 
     async def execute_with_retry(part, node):
+        tool_name = getattr(part, "tool_name", "unknown")
+        start = time.perf_counter()
+
         for attempt in range(1, TOOL_MAX_RETRIES + 1):
             try:
                 result = await callback(part, node)
-
+                duration_ms = (time.perf_counter() - start) * 1000
+                logger.tool(tool_name, "completed", duration_ms=duration_ms)
                 return result
             except NON_RETRYABLE_ERRORS:
+                duration_ms = (time.perf_counter() - start) * 1000
+                logger.tool(tool_name, "failed (non-retryable)", duration_ms=duration_ms)
                 raise
             except Exception:
                 if attempt == TOOL_MAX_RETRIES:
+                    ms = (time.perf_counter() - start) * 1000
+                    logger.tool(tool_name, f"failed ({attempt} attempts)", duration_ms=ms)
                     raise
                 backoff = _calculate_backoff(attempt)
+                logger.warning(f"{tool_name} retry {attempt}/{TOOL_MAX_RETRIES}")
                 await asyncio.sleep(backoff)
 
         raise AssertionError("unreachable")

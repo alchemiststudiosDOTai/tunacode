@@ -29,6 +29,7 @@ Each module file includes:
 - **[core-prompting.md](./core-prompting.md)** - System prompt composition (PromptingEngine, SectionLoader)
 - **[core-compaction.md](./core-compaction.md)** - Context window management (prune_old_tool_outputs)
 - **[core-limits.md](./core-limits.md)** - Tool output limits with cascading defaults (get_read_limit, is_local_mode)
+- **[core-logging.md](./core-logging.md)** - Unified structured logging (LogManager, LogRecord, FileHandler)
 
 ### UI Module
 - **[ui-overview.md](./ui-overview.md)** - Textual TUI interface (TextualReplApp, screens, renderers)
@@ -56,6 +57,9 @@ Each module file includes:
 - core-prompting.md
 - core-state.md
 
+**Logging & Debugging:**
+- core-logging.md
+
 **User Interface:**
 - ui-overview.md
 - constants.md
@@ -82,6 +86,7 @@ Each module file includes:
 src/tunacode/
 ├── core/
 │   ├── agents/ → core-agents.md
+│   ├── logging/ → core-logging.md
 │   ├── prompting/ → core-prompting.md
 │   ├── state.py → core-state.md
 │   ├── compaction.py → core-compaction.md

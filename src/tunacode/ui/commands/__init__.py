@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
 
+from tunacode.configuration.settings import ApplicationSettings
 from tunacode.ui.styles import STYLE_PRIMARY
 
 # Update command constants
@@ -89,18 +90,83 @@ class YoloCommand(Command):
         app.notify(f"YOLO mode: {status}")
 
 
+class DebugCommand(Command):
+    name = "debug"
+    description = "Toggle debug logging to screen"
+
+    async def execute(self, app: TextualReplApp, args: str) -> None:
+        from tunacode.core.logging import get_logger
+
+        session = app.state_manager.session
+        session.debug_mode = not session.debug_mode
+
+        logger = get_logger()
+        logger.set_debug_mode(session.debug_mode)
+
+        status = "ON" if session.debug_mode else "OFF"
+        app.notify(f"Debug mode: {status}")
+
+        if session.debug_mode:
+            app.rich_log.write(
+                "[dim]Debug logging enabled. "
+                "Logs also written to ~/.local/share/tunacode/logs/tunacode.log[/dim]"
+            )
+            logger.info("Debug mode enabled")
+
+
+def _validate_provider_api_key_with_notification(
+    model_string: str,
+    user_config: dict,
+    app: TextualReplApp,
+    show_config_path: bool = False,
+) -> bool:
+    """Validate API key for provider and notify user if missing.
+
+    Returns True if valid (or no provider in string), False otherwise.
+    """
+    from tunacode.configuration.models import validate_provider_api_key
+
+    if ":" not in model_string:
+        return True
+
+    provider_id = model_string.split(":")[0]
+    is_valid, env_var = validate_provider_api_key(provider_id, user_config)
+
+    if not is_valid:
+        app.notify(f"Missing API key: {env_var}", severity="error")
+        msg = f"[yellow]Set {env_var} in config for {provider_id}[/yellow]"
+        if show_config_path:
+            config_path = ApplicationSettings().paths.config_file
+            msg += f"\n[dim]Config: {config_path}[/dim]"
+        app.rich_log.write(msg)
+
+    return is_valid
+
+
 class ModelCommand(Command):
     name = "model"
     description = "Open model picker or switch directly"
     usage = "/model [provider:model-name]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        from tunacode.configuration.models import get_model_context_window, load_models_registry
+        from tunacode.configuration.models import (
+            get_model_context_window,
+            load_models_registry,
+        )
         from tunacode.utils.config.user_configuration import save_config
 
         if args:
             load_models_registry()
             model_name = args.strip()
+
+            if not _validate_provider_api_key_with_notification(
+                model_name,
+                app.state_manager.session.user_config,
+                app,
+                show_config_path=True,
+            ):
+                return
+
             app.state_manager.session.current_model = model_name
             app.state_manager.session.user_config["default_model"] = model_name
             app.state_manager.session.max_tokens = get_model_context_window(model_name)
@@ -116,13 +182,23 @@ class ModelCommand(Command):
             current_model = app.state_manager.session.current_model
 
             def on_model_selected(full_model: str | None) -> None:
-                if full_model is not None:
-                    app.state_manager.session.current_model = full_model
-                    app.state_manager.session.user_config["default_model"] = full_model
-                    app.state_manager.session.max_tokens = get_model_context_window(full_model)
-                    save_config(app.state_manager)
-                    app._update_resource_bar()
-                    app.notify(f"Model: {full_model}")
+                if full_model is None:
+                    return
+
+                if not _validate_provider_api_key_with_notification(
+                    full_model,
+                    app.state_manager.session.user_config,
+                    app,
+                    show_config_path=False,
+                ):
+                    return
+
+                app.state_manager.session.current_model = full_model
+                app.state_manager.session.user_config["default_model"] = full_model
+                app.state_manager.session.max_tokens = get_model_context_window(full_model)
+                save_config(app.state_manager)
+                app._update_resource_bar()
+                app.notify(f"Model: {full_model}")
 
             def on_provider_selected(provider_id: str | None) -> None:
                 if provider_id is not None:
@@ -446,6 +522,7 @@ COMMANDS: dict[str, Command] = {
     "help": HelpCommand(),
     "clear": ClearCommand(),
     "yolo": YoloCommand(),
+    "debug": DebugCommand(),
     "model": ModelCommand(),
     "branch": BranchCommand(),
     "plan": PlanCommand(),

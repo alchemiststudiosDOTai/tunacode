@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 from tunacode.constants import UI_COLORS
 from tunacode.core.compaction import prune_old_tool_outputs
+from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
 from tunacode.tools.react import ReactTool
@@ -82,6 +83,8 @@ class EmptyResponseHandler:
 
     async def prompt_action(self, message: str, reason: str, iteration: int) -> None:
         """Delegate to agent_components.handle_empty_response."""
+        logger = get_logger()
+        logger.warning(f"Empty response: {reason}", iteration=iteration)
 
         # Create a minimal state-like object for compatibility
         class StateProxy:
@@ -190,6 +193,7 @@ class ReactSnapshotManager:
         self, iteration: int, agent_run_ctx: Any, _show_debug: bool = False
     ) -> None:
         """Capture react snapshot and inject guidance."""
+        logger = get_logger()
         if not self.should_snapshot(iteration):
             return
 
@@ -263,8 +267,8 @@ class ReactSnapshotManager:
                     # Append synthetic system message so LLM receives react guidance next turn
                     ctx_messages.append(ModelRequest(parts=[system_part], kind="request"))
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"React snapshot failed: {e}")
 
 
 class RequestOrchestrator:
@@ -361,6 +365,9 @@ class RequestOrchestrator:
         self._reset_session_state()
         self._set_original_query_once(self.message)
 
+        logger = get_logger()
+        logger.info("Request started", request_id=ctx.request_id)
+
         # Acquire agent
         agent = ac.get_or_create_agent(self.model, self.state_manager)
 
@@ -379,6 +386,7 @@ class RequestOrchestrator:
             async with agent.iter(self.message, message_history=message_history) as agent_run:
                 i = 1
                 async for node in agent_run:
+                    logger.debug("Processing iteration", iteration=i, request_id=ctx.request_id)
                     self.iteration_manager.update_counters(i)
 
                     # Optional token streaming
@@ -433,6 +441,7 @@ class RequestOrchestrator:
 
                     # Early completion
                     if response_state.task_completed:
+                        logger.info("Task completed", iteration=i, request_id=ctx.request_id)
                         break
 
                     # Handle iteration limit

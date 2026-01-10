@@ -100,6 +100,22 @@ def get_provider_env_var(provider_id: str) -> str:
     return f"{provider_id.upper()}_API_KEY"
 
 
+def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool, str]:
+    """Check if API key exists for provider.
+
+    Args:
+        provider_id: The provider identifier (e.g., "openai", "anthropic")
+        user_config: User configuration dict containing env keys
+
+    Returns:
+        Tuple of (is_valid, env_var_name) - True if key exists and is non-empty
+    """
+    env_var = get_provider_env_var(provider_id)
+    env = user_config.get("env", {})
+    api_key = env.get(env_var, "")
+    return (bool(api_key and api_key.strip()), env_var)
+
+
 def get_provider_base_url(provider_id: str) -> str | None:
     """Return the API base URL for a provider.
 
