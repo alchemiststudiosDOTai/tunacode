@@ -90,6 +90,12 @@
     color: #404040;
 }
 
+.theme-nextstep .mode-active {
+    text-style: bold;
+    color: #4ec9b0;
+    background: #3a3a3a;
+}
+
 /* --- Loading Indicator --- */
 .theme-nextstep LoadingIndicator {
     background: #c8c8c8;

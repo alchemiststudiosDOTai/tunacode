@@ -31,3 +31,9 @@ StatusBar Static {
     padding: 0 1;
     color: $text-muted;
 }
+
+/* Mode indicator - visually distinct when shell/bash mode active */
+.mode-active {
+    text-style: bold;
+    color: #4ec9b0;
+}
