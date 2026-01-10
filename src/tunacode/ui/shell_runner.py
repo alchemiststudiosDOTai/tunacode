@@ -21,6 +21,19 @@ SHELL_COMMAND_USAGE_TEXT = "Usage: !<command>"
 SHELL_OUTPUT_ENCODING = "utf-8"
 SHELL_CANCEL_SIGNAL = signal.SIGINT
 
+# Output placeholders for empty streams
+SHELL_OUTPUT_EMPTY = "(no output)"
+SHELL_STDERR_EMPTY = "(no errors)"
+
+# Error handler defaults
+SHELL_ERROR_CMD_PLACEHOLDER = "(shell error)"
+SHELL_ERROR_EXIT_CODE = 1
+SHELL_ERROR_DURATION_MS = 0.0
+
+# Conversion factors
+MS_PER_SECOND = 1000
+DEFAULT_EXIT_CODE = 1
+
 
 class ShellRunnerHost(Protocol):
     def notify(self, message: str, severity: str = "information") -> None: ...
@@ -88,8 +101,8 @@ class ShellRunner:
         duration_ms: float,
     ) -> RenderableType:
         """Format shell output as 4-zone NeXTSTEP panel via BashRenderer."""
-        stdout_text = stdout if stdout else "(no output)"
-        stderr_text = stderr if stderr else "(no errors)"
+        stdout_text = stdout if stdout else SHELL_OUTPUT_EMPTY
+        stderr_text = stderr if stderr else SHELL_STDERR_EMPTY
 
         result_text = f"""Command: {cmd}
 Exit Code: {exit_code}
@@ -105,7 +118,7 @@ STDERR:
         panel = render_bash(args, result_text, duration_ms)
 
         if panel is None:
-            return Text(f"$ {cmd}\n{stdout}\n{stderr}")
+            return Text(f"$ {cmd}\n{stdout_text}\n{stderr_text}")
         return panel
 
     def _on_done(self, task: asyncio.Task[None]) -> None:
@@ -117,12 +130,12 @@ STDERR:
             # TODO(#225): preserve original command context instead of placeholder
             cwd = os.getcwd()
             panel = self._format_shell_panel(
-                cmd="(shell error)",
-                exit_code=1,
+                cmd=SHELL_ERROR_CMD_PLACEHOLDER,
+                exit_code=SHELL_ERROR_EXIT_CODE,
                 cwd=cwd,
                 stdout="",
                 stderr=str(exc),
-                duration_ms=0.0,
+                duration_ms=SHELL_ERROR_DURATION_MS,
             )
             self.host.write_shell_output(panel)
 
@@ -169,8 +182,8 @@ STDERR:
             self._process = None
             self.host.shell_status_last()
 
-        duration_ms = (time.perf_counter() - start_time) * 1000
-        exit_code = process.returncode if process.returncode is not None else 1
+        duration_ms = (time.perf_counter() - start_time) * MS_PER_SECOND
+        exit_code = process.returncode if process.returncode is not None else DEFAULT_EXIT_CODE
 
         stdout = (stdout_bytes or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()
         stderr = (stderr_bytes or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()

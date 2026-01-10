@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass, field
 
 import pytest
@@ -87,6 +88,10 @@ class TestShellRunnerNegativeBoundaries:
         assert "already running" in host.notifications[-1][0].lower()
         assert host.notifications[-1][1] == "warning"
 
-        # Cleanup: cancel the running task
+        # Cleanup: cancel the running task and wait for completion
         runner.cancel()
-        await asyncio.sleep(0.01)  # Let cancellation propagate
+        # Wait for the internal task to finish (it handles CancelledError internally)
+        task = runner._task
+        if task is not None:
+            with contextlib.suppress(asyncio.CancelledError, TimeoutError):
+                await asyncio.wait_for(task, timeout=2.0)
