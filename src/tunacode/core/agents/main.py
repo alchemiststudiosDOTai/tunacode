@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -41,6 +42,60 @@ __all__ = [
     "get_agent_tool",
     "check_query_satisfaction",
 ]
+
+
+async def wait_for_with_pause(
+    aw: Awaitable[AgentRun],
+    timeout: float,
+    pause_state: TimeoutPauseState,
+) -> AgentRun:
+    """Like asyncio.wait_for but pauses timeout when pause_state.is_paused.
+
+    When the UI layer is waiting for user input (tool confirmation, plan approval),
+    the timeout clock is paused and only resumes when the user responds.
+
+    Args:
+        aw: The awaitable to wait for.
+        timeout: Maximum time to wait (excluding paused time).
+        pause_state: The timeout pause state to check.
+
+    Returns:
+        The result of the awaitable.
+
+    Raises:
+        TimeoutError: If the timeout expires (excluding paused time).
+    """
+    if timeout is None:
+        return await aw
+
+    # Create a task so we can wait on it multiple times
+    task = asyncio.create_task(aw)
+    deadline = time.monotonic() + timeout
+
+    try:
+        while True:
+            if pause_state.is_paused:
+                # Extend deadline while paused, wait a bit
+                deadline = time.monotonic() + timeout
+                await asyncio.sleep(0.1)
+                continue
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+
+            try:
+                # Wait in small chunks to check pause state frequently
+                chunk = min(remaining, 0.5)
+                return await asyncio.wait_for(asyncio.shield(task), timeout=chunk)
+            except asyncio.TimeoutError:
+                if not pause_state.is_paused:
+                    raise
+                # Pause became true during wait, retry
+    except Exception:
+        # Cancel the task if we're raising an exception
+        task.cancel()
+        raise
 
 
 @dataclass
@@ -350,7 +405,11 @@ class RequestOrchestrator:
             self.state_manager.session.original_query = query
 
     async def run(self) -> AgentRun:
-        """Run the main request processing loop with optional global timeout."""
+        """Run the main request processing loop with optional global timeout.
+
+        Timeout excludes time spent waiting for user input (tool confirmations,
+        plan approvals) through the timeout_pause_state mechanism.
+        """
         from tunacode.core.agents.agent_components.agent_config import (
             _coerce_global_request_timeout,
         )
@@ -360,7 +419,7 @@ class RequestOrchestrator:
             return await self._run_impl()
 
         try:
-            return await asyncio.wait_for(self._run_impl(), timeout=timeout)
+            return await wait_for_with_pause(self._run_impl(), timeout, self._timeout_pause_state)
         except TimeoutError as e:
             raise GlobalRequestTimeoutError(timeout) from e
 
