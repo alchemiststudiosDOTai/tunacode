@@ -1,7 +1,6 @@
 """Agent configuration and creation utilities."""
 
 import asyncio
-import math
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
@@ -17,7 +16,7 @@ from pydantic_ai.settings import ModelSettings
 from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.models import load_models_registry
-from tunacode.constants import ENV_OPENAI_BASE_URL, SETTINGS_BASE_URL, UI_THINKING_MESSAGE
+from tunacode.constants import ENV_OPENAI_BASE_URL, SETTINGS_BASE_URL
 from tunacode.core.agents.delegation_tools import create_research_codebase_tool
 from tunacode.core.limits import get_max_tokens, is_local_mode
 from tunacode.core.prompting import (
@@ -43,49 +42,17 @@ from tunacode.tools.write_file import write_file
 from tunacode.types import ModelName, PydanticAgent
 from tunacode.utils.config.user_configuration import load_config
 
-# Module-level caches for system prompts
-_PROMPT_CACHE: dict[str, tuple[str, float]] = {}
+# Module-level cache for AGENTS.md context
 _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
 
 # Module-level cache for agents to persist across requests
 _AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: dict[ModelName, int] = {}
 
-REQUEST_DELAY_MESSAGE_PREFIX = "Respecting request delay"
 
-
-def _format_request_delay_message(seconds_remaining: float) -> str:
-    safe_remaining = max(0.0, seconds_remaining)
-    return f"{REQUEST_DELAY_MESSAGE_PREFIX}: {safe_remaining:.1f}s remaining"
-
-
-async def _publish_delay_message(message: str, state_manager: StateManager) -> None:
-    """Best-effort spinner update; UI failures must not block requests."""
-    streaming_panel = getattr(state_manager.session, "streaming_panel", None)
-    try:
-        if streaming_panel:
-            if message == UI_THINKING_MESSAGE:
-                await streaming_panel.clear_status_message()
-            else:
-                await streaming_panel.set_status_message(message)
-    except Exception:
-        pass
-
-
-async def _sleep_with_countdown(
-    total_delay: float, countdown_steps: int, state_manager: StateManager
-) -> None:
-    """Sleep while surfacing a countdown via the spinner."""
-    delay_per_step = total_delay / countdown_steps
-    remaining = total_delay
-    await _publish_delay_message(_format_request_delay_message(remaining), state_manager)
-
-    for _ in range(countdown_steps):
-        await asyncio.sleep(delay_per_step)
-        remaining = max(0.0, remaining - delay_per_step)
-        await _publish_delay_message(_format_request_delay_message(remaining), state_manager)
-
-    await _publish_delay_message(UI_THINKING_MESSAGE, state_manager)
+async def _sleep_with_delay(total_delay: float) -> None:
+    """Sleep for a fixed pre-request delay."""
+    await asyncio.sleep(total_delay)
 
 
 def _coerce_request_delay(state_manager: StateManager) -> float:
@@ -155,24 +122,21 @@ def _compute_agent_version(settings: dict[str, Any], request_delay: float) -> in
 
 
 def _build_request_hooks(
-    request_delay: float, state_manager: StateManager
+    request_delay: float,
 ) -> dict[str, list[Callable[[Request], Awaitable[None]]]]:
     """Return httpx event hooks enforcing a fixed pre-request delay."""
     if request_delay <= 0:
         # Reason: avoid overhead when no throttling requested
         return {}
 
-    countdown_steps = max(int(math.ceil(request_delay)), 1)
-
     async def _delay_before_request(_: Request) -> None:
-        await _sleep_with_countdown(request_delay, countdown_steps, state_manager)
+        await _sleep_with_delay(request_delay)
 
     return {"request": [_delay_before_request]}
 
 
 def clear_all_caches():
     """Clear all module-level caches. Useful for testing."""
-    _PROMPT_CACHE.clear()
     _TUNACODE_CACHE.clear()
     _AGENT_CACHE.clear()
     _AGENT_CACHE_VERSION.clear()
@@ -183,29 +147,6 @@ def get_agent_tool():
     from pydantic_ai import Tool
 
     return Agent, Tool
-
-
-def _read_prompt_from_path(prompt_path: Path) -> str:
-    """Return prompt content from disk, leveraging the cache when possible."""
-    cache_key = str(prompt_path)
-
-    try:
-        current_mtime = prompt_path.stat().st_mtime
-    except FileNotFoundError as error:
-        raise FileNotFoundError from error
-
-    if cache_key in _PROMPT_CACHE:
-        cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
-        if current_mtime == cached_mtime:
-            return cached_content
-
-    try:
-        content = prompt_path.read_text(encoding="utf-8").strip()
-    except FileNotFoundError as error:
-        raise FileNotFoundError from error
-
-    _PROMPT_CACHE[cache_key] = (content, current_mtime)
-    return content
 
 
 def load_system_prompt(base_path: Path, model: str | None = None) -> str:
@@ -461,7 +402,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             ),
             validate_response=lambda r: r.raise_for_status(),
         )
-        event_hooks = _build_request_hooks(request_delay, state_manager)
+        event_hooks = _build_request_hooks(request_delay)
         http_client = AsyncClient(transport=transport, event_hooks=event_hooks)
 
         # Create model instance with retry-enabled HTTP client

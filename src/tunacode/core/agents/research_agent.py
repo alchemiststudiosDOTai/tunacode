@@ -194,7 +194,7 @@ def create_research_agent(
         validate_response=lambda r: r.raise_for_status(),
     )
     request_delay = _coerce_request_delay(state_manager)
-    event_hooks = _build_request_hooks(request_delay, state_manager)
+    event_hooks = _build_request_hooks(request_delay)
     http_client = AsyncClient(transport=transport, event_hooks=event_hooks)
 
     model_instance = _create_model_with_retry(model, http_client, state_manager)

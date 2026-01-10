@@ -65,19 +65,19 @@ Several state classes manage agent behavior:
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/core/agents/agent_components/agent_config.py`
 
-Four module-level dictionaries serve as global in-memory caches:
+Three module-level dictionaries serve as global in-memory caches:
 
 ```python
-_PROMPT_CACHE: dict[str, tuple[str, float]] = {}
 _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
 _AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: dict[ModelName, int] = {}
 ```
 
-- **`_PROMPT_CACHE`:** Caches system prompts with modification time for freshness
 - **`_TUNACODE_CACHE`:** Caches `AGENTS.md` content with modification time
 - **`_AGENT_CACHE`:** Stores `PydanticAgent` instances across requests
 - **`_AGENT_CACHE_VERSION`:** Manages cache versioning for invalidation
+
+> **Note:** System prompts are now composed from section files via `SectionLoader` in `src/tunacode/core/prompting/loader.py`, which uses instance-level caching.
 
 ### 2.2 Models Registry Cache
 

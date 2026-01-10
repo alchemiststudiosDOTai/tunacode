@@ -206,7 +206,9 @@ def _normalize_tool_object(obj: object) -> ParsedToolCall | None:
     )
 
 
-PARSING_STRATEGIES: list[tuple[str, Callable[[str], list[ParsedToolCall]]]] = [
+ToolParsingStrategy = Callable[[str], list[ParsedToolCall] | None]
+
+PARSING_STRATEGIES: list[tuple[str, ToolParsingStrategy]] = [
     ("qwen2_xml", parse_qwen2_xml),
     ("hermes_style", parse_hermes_style),
     ("code_fence", parse_code_fence),
