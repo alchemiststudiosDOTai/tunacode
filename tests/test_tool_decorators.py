@@ -1,9 +1,12 @@
-"""Tests for tool decorators - error handling, and XML prompt loading.
+"""Tests for tool decorators - error handling, XML prompt loading, and signature preservation.
 
 Tests @base_tool and @file_tool decorator behavior in isolation.
 """
 
+import inspect
+
 import pytest
+from pydantic_ai import Tool
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.exceptions import FileOperationError, ToolExecutionError
@@ -217,3 +220,259 @@ class TestFileTool:
         assert result == f"{expected_diagnostics}\n\nok"
         mock_get.assert_awaited_once()
         mock_format.assert_called_once()
+
+
+class TestSignaturePreservation:
+    """Tests that decorators preserve function signatures for pydantic-ai schema generation.
+
+    pydantic-ai uses inspect.signature() to generate JSON schemas for tool parameters.
+    If wrappers don't preserve signatures, pydantic-ai gets wrong/empty schemas.
+    """
+
+    def test_base_tool_preserves_signature(self, mock_no_xml_prompt):
+        """@base_tool preserves the original function's signature."""
+
+        @base_tool
+        async def tool_with_params(
+            query: str,
+            limit: int = 10,
+            recursive: bool = True,
+        ) -> str:
+            return "ok"
+
+        sig = inspect.signature(tool_with_params)
+        params = list(sig.parameters.keys())
+
+        assert params == ["query", "limit", "recursive"]
+        assert sig.parameters["query"].annotation is str
+        assert sig.parameters["limit"].default == 10
+        assert sig.parameters["recursive"].default is True
+
+    def test_file_tool_preserves_signature(self, mock_no_xml_prompt):
+        """@file_tool preserves the original function's signature."""
+
+        @file_tool
+        async def read_with_options(
+            filepath: str,
+            offset: int = 0,
+            limit: int | None = None,
+        ) -> str:
+            return "content"
+
+        sig = inspect.signature(read_with_options)
+        params = list(sig.parameters.keys())
+
+        assert params == ["filepath", "offset", "limit"]
+        assert sig.parameters["filepath"].annotation is str
+        assert sig.parameters["offset"].default == 0
+
+    def test_file_tool_with_writes_preserves_signature(self, mock_no_xml_prompt):
+        """@file_tool(writes=True) preserves the original function's signature."""
+
+        @file_tool(writes=True)
+        async def write_with_options(
+            filepath: str,
+            content: str,
+            create_dirs: bool = False,
+        ) -> str:
+            return "written"
+
+        sig = inspect.signature(write_with_options)
+        params = list(sig.parameters.keys())
+
+        assert params == ["filepath", "content", "create_dirs"]
+        assert sig.parameters["content"].annotation is str
+        assert sig.parameters["create_dirs"].default is False
+
+    def test_pydantic_ai_can_create_tool_from_base_tool(self, mock_no_xml_prompt):
+        """pydantic-ai Tool() can introspect @base_tool decorated functions."""
+
+        @base_tool
+        async def search_tool(
+            pattern: str,
+            directory: str = ".",
+            max_results: int = 100,
+        ) -> str:
+            return "results"
+
+        # This will fail if signature is not preserved - pydantic-ai
+        # uses inspect.signature() internally for schema generation
+        tool = Tool(search_tool)
+
+        # Verify the tool was created with correct name
+        assert tool.name == "search_tool"
+
+    def test_pydantic_ai_can_create_tool_from_file_tool(self, mock_no_xml_prompt):
+        """pydantic-ai Tool() can introspect @file_tool decorated functions."""
+
+        @file_tool
+        async def read_tool(
+            filepath: str,
+            encoding: str = "utf-8",
+        ) -> str:
+            return "content"
+
+        tool = Tool(read_tool)
+        assert tool.name == "read_tool"
+
+
+class TestActualToolSignatures:
+    """Tests that actual production tools have correct signatures for pydantic-ai."""
+
+    def test_glob_tool_signature(self):
+        """glob tool has introspectable signature."""
+        from tunacode.tools.glob import glob
+
+        sig = inspect.signature(glob)
+        params = list(sig.parameters.keys())
+
+        assert "pattern" in params
+        assert "directory" in params
+        assert "recursive" in params
+
+    def test_read_file_tool_signature(self):
+        """read_file tool has introspectable signature."""
+        from tunacode.tools.read_file import read_file
+
+        sig = inspect.signature(read_file)
+        params = list(sig.parameters.keys())
+
+        assert "filepath" in params
+        assert "offset" in params
+        assert "limit" in params
+
+    def test_list_dir_tool_signature(self):
+        """list_dir tool has introspectable signature."""
+        from tunacode.tools.list_dir import list_dir
+
+        sig = inspect.signature(list_dir)
+        params = list(sig.parameters.keys())
+
+        assert "directory" in params
+        assert "max_files" in params
+
+    def test_grep_tool_signature(self):
+        """grep tool has introspectable signature."""
+        from tunacode.tools.grep import grep
+
+        sig = inspect.signature(grep)
+        params = list(sig.parameters.keys())
+
+        assert "pattern" in params
+        assert "directory" in params
+
+    def test_bash_tool_signature(self):
+        """bash tool has introspectable signature."""
+        from tunacode.tools.bash import bash
+
+        sig = inspect.signature(bash)
+        params = list(sig.parameters.keys())
+
+        assert "command" in params
+
+    def test_update_file_tool_signature(self):
+        """update_file tool has introspectable signature."""
+        from tunacode.tools.update_file import update_file
+
+        sig = inspect.signature(update_file)
+        params = list(sig.parameters.keys())
+
+        assert "filepath" in params
+        assert "old_text" in params
+        assert "new_text" in params
+
+    def test_write_file_tool_signature(self):
+        """write_file tool has introspectable signature."""
+        from tunacode.tools.write_file import write_file
+
+        sig = inspect.signature(write_file)
+        params = list(sig.parameters.keys())
+
+        assert "filepath" in params
+        assert "content" in params
+
+    def test_web_fetch_tool_signature(self):
+        """web_fetch tool has introspectable signature."""
+        from tunacode.tools.web_fetch import web_fetch
+
+        sig = inspect.signature(web_fetch)
+        params = list(sig.parameters.keys())
+
+        assert "url" in params
+
+    def test_all_tools_work_with_pydantic_ai_tool(self):
+        """All production tools can be wrapped by pydantic-ai Tool()."""
+        from tunacode.tools.bash import bash
+        from tunacode.tools.glob import glob
+        from tunacode.tools.grep import grep
+        from tunacode.tools.list_dir import list_dir
+        from tunacode.tools.read_file import read_file
+        from tunacode.tools.update_file import update_file
+        from tunacode.tools.web_fetch import web_fetch
+        from tunacode.tools.write_file import write_file
+
+        tools = [bash, glob, grep, list_dir, read_file, update_file, web_fetch, write_file]
+
+        for tool_func in tools:
+            # This raises if pydantic-ai can't introspect the signature
+            pydantic_tool = Tool(tool_func)
+            assert pydantic_tool.name == tool_func.__name__, (
+                f"Tool {tool_func.__name__} name mismatch"
+            )
+
+
+class TestDynamicToolSignatures:
+    """Tests for dynamically created tools (factories)."""
+
+    def test_research_agent_wrap_tool_preserves_signature(self):
+        """ProgressTracker.wrap_tool preserves signatures."""
+        from tunacode.core.agents.research_agent import ProgressTracker
+
+        async def original_tool(query: str, limit: int = 5) -> str:
+            return "result"
+
+        tracker = ProgressTracker(callback=None)
+        wrapped = tracker.wrap_tool(original_tool, "test_tool")
+
+        sig = inspect.signature(wrapped)
+        params = list(sig.parameters.keys())
+
+        assert params == ["query", "limit"]
+        assert sig.parameters["query"].annotation is str
+        assert sig.parameters["limit"].default == 5
+
+    def test_todo_tools_have_signatures(self):
+        """Todo factory tools have proper signatures."""
+        from unittest.mock import MagicMock
+
+        from tunacode.tools.todo import (
+            create_todoclear_tool,
+            create_todoread_tool,
+            create_todowrite_tool,
+        )
+
+        mock_state = MagicMock()
+        mock_state.get_todos.return_value = []
+
+        todowrite = create_todowrite_tool(mock_state)
+        todoread = create_todoread_tool(mock_state)
+        todoclear = create_todoclear_tool(mock_state)
+
+        # These should have introspectable signatures
+        assert "todos" in inspect.signature(todowrite).parameters
+        assert len(inspect.signature(todoread).parameters) == 0
+        assert len(inspect.signature(todoclear).parameters) == 0
+
+    def test_present_plan_tool_has_signature(self):
+        """present_plan factory tool has proper signature."""
+        from unittest.mock import MagicMock
+
+        from tunacode.tools.present_plan import create_present_plan_tool
+
+        mock_state = MagicMock()
+        mock_state.session.plan_mode = True
+
+        present_plan = create_present_plan_tool(mock_state)
+
+        sig = inspect.signature(present_plan)
+        assert "plan_content" in sig.parameters
