@@ -118,6 +118,34 @@ agent.iter() -> Provider HTTP Request
 - Forces action after unproductive_limit iterations
 - Requests clarification at max_iterations
 
+### Timeout Management
+
+#### timeout_state.py
+- **TimeoutPauseState** - Shared state for coordinating timeout pauses during user interaction
+- **timeout_paused()** - Async context manager that sets/clears pause flag
+- Uses asyncio.Event for thread-safe coordination
+
+#### main.py (wait_for_with_pause)
+- **wait_for_with_pause()** - Custom async wait that extends deadline while paused
+- Replaces asyncio.wait_for() in RequestOrchestrator.run()
+- Time spent waiting for user input (tool confirmations, plan approvals) does NOT count toward global timeout
+
+**Pause Flow:**
+```
+Agent run() → wait_for_with_pause(_run_impl(), timeout=90)
+  → Tool execution → request_tool_confirmation()
+    → UI sets pause_state.is_paused = True
+    → wait_for_with_pause() extends deadline
+    → User responds → UI clears pause_state.is_paused
+    → Normal timeout countdown resumes
+```
+
+**Key Points:**
+- Global timeout is paused during user interaction
+- Users can wait indefinitely before responding to confirmations
+- Timeout clock resumes when agent continues processing
+- Prevents GlobalRequestTimeoutError during long user think time
+
 ### ReAct Pattern Support
 
 #### ReactSnapshotManager

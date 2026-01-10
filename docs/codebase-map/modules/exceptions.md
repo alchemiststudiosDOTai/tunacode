@@ -98,9 +98,14 @@ Authorization failures:
 
 ### GlobalRequestTimeoutError
 Request timeout:
-- Overall request exceeded timeout
+- Overall request exceeded timeout (excluding user interaction time)
 - Agent iteration limit
 - Unproductive limit reached
+
+**Note:** Time spent waiting for user input (tool confirmations, plan approvals)
+does NOT count toward the global timeout. The timeout clock pauses during
+user interaction and resumes when the agent continues processing. See
+`TimeoutPauseState` and `wait_for_with_pause()` in `core/agents/main.py`.
 
 ## Error Handling Strategy
 

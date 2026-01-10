@@ -133,9 +133,17 @@ process_request() → streaming_callback() → streaming_output widget
 
 ### Tool Confirmation Flow
 ```
-Tool call → request_tool_confirmation() → _show_inline_confirmation()
+Tool call → request_tool_confirmation() → timeout_paused() context
+  → _show_inline_confirmation()
   → User input (1/2/3) → on_key() → Authorization decision → Tool execution
+  → timeout_paused() exit
 ```
+
+**Timeout Coordination:**
+- `request_tool_confirmation()` uses `async with timeout_pause_state.timeout_paused()`
+- This signals the agent's `wait_for_with_pause()` to extend the deadline
+- Users can wait indefinitely without triggering `GlobalRequestTimeoutError`
+- Timeout clock pauses during user interaction and resumes when agent continues processing
 
 ## NeXTSTEP Design Principles
 
