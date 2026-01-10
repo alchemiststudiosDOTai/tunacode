@@ -114,6 +114,7 @@ STDERR:
         except asyncio.CancelledError:
             return
         except Exception as exc:
+            # TODO(#225): preserve original command context instead of placeholder
             cwd = os.getcwd()
             panel = self._format_shell_panel(
                 cmd="(shell error)",
