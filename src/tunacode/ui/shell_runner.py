@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import signal
 import subprocess
+import time
 from dataclasses import dataclass
 from typing import Protocol
 
+from rich.console import RenderableType
 from rich.text import Text
+
+from tunacode.ui.renderers.tools.bash import render_bash
 
 SHELL_COMMAND_TIMEOUT_SECONDS: float = 30.0
 SHELL_COMMAND_CANCEL_GRACE_SECONDS: float = 0.5
@@ -20,7 +25,7 @@ SHELL_CANCEL_SIGNAL = signal.SIGINT
 class ShellRunnerHost(Protocol):
     def notify(self, message: str, severity: str = "information") -> None: ...
 
-    def write_shell_output(self, renderable: Text) -> None: ...
+    def write_shell_output(self, renderable: RenderableType) -> None: ...
 
     def shell_status_running(self) -> None: ...
 
@@ -73,13 +78,52 @@ class ShellRunner:
         assert self._task is not None
         self._task.cancel()
 
+    def _format_shell_panel(
+        self,
+        cmd: str,
+        exit_code: int,
+        cwd: str,
+        stdout: str,
+        stderr: str,
+        duration_ms: float,
+    ) -> RenderableType:
+        """Format shell output as 4-zone NeXTSTEP panel via BashRenderer."""
+        stdout_text = stdout if stdout else "(no output)"
+        stderr_text = stderr if stderr else "(no errors)"
+
+        result_text = f"""Command: {cmd}
+Exit Code: {exit_code}
+Working Directory: {cwd}
+
+STDOUT:
+{stdout_text}
+
+STDERR:
+{stderr_text}"""
+
+        args = {"timeout": int(SHELL_COMMAND_TIMEOUT_SECONDS)}
+        panel = render_bash(args, result_text, duration_ms)
+
+        if panel is None:
+            return Text(f"$ {cmd}\n{stdout}\n{stderr}")
+        return panel
+
     def _on_done(self, task: asyncio.Task[None]) -> None:
         try:
             task.result()
         except asyncio.CancelledError:
             return
         except Exception as exc:
-            self.host.write_shell_output(Text(f"Shell error: {exc}"))
+            cwd = os.getcwd()
+            panel = self._format_shell_panel(
+                cmd="(shell error)",
+                exit_code=1,
+                cwd=cwd,
+                stdout="",
+                stderr=str(exc),
+                duration_ms=0.0,
+            )
+            self.host.write_shell_output(panel)
 
     async def _wait_or_kill_process(self, process: asyncio.subprocess.Process) -> None:
         if process.returncode is not None:
@@ -95,16 +139,19 @@ class ShellRunner:
         self.host.shell_status_running()
         self.host.notify(f"Running: {cmd}")
 
+        cwd = os.getcwd()
+        start_time = time.perf_counter()
+
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stderr=asyncio.subprocess.PIPE,
             stdin=subprocess.DEVNULL,
         )
         self._process = process
 
         try:
-            stdout, _ = await asyncio.wait_for(
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
                 process.communicate(),
                 timeout=SHELL_COMMAND_TIMEOUT_SECONDS,
             )
@@ -121,9 +168,14 @@ class ShellRunner:
             self._process = None
             self.host.shell_status_last()
 
-        output = (stdout or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()
-        if output:
-            self.host.write_shell_output(Text(output))
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        exit_code = process.returncode if process.returncode is not None else 1
 
-        if process.returncode is not None and process.returncode != 0:
-            self.host.notify(f"Exit code: {process.returncode}", severity="warning")
+        stdout = (stdout_bytes or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()
+        stderr = (stderr_bytes or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()
+
+        panel = self._format_shell_panel(cmd, exit_code, cwd, stdout, stderr, duration_ms)
+        self.host.write_shell_output(panel)
+
+        if exit_code != 0:
+            self.host.notify(f"Exit code: {exit_code}", severity="warning")

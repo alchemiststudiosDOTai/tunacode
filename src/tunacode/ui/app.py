@@ -7,6 +7,7 @@ import os
 import time
 from datetime import UTC, datetime
 
+from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -481,8 +482,8 @@ class TextualReplApp(App[None]):
     def start_shell_command(self, raw_cmd: str) -> None:
         self.shell_runner.start(raw_cmd)
 
-    def write_shell_output(self, renderable: Text) -> None:
-        self.rich_log.write(renderable)
+    def write_shell_output(self, renderable: RenderableType) -> None:
+        self.rich_log.write(renderable, expand=True)
 
     def shell_status_running(self) -> None:
         self.status_bar.update_running_action("shell")
