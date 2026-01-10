@@ -360,11 +360,19 @@ class TextualReplApp(App[None]):
         future: asyncio.Future[ToolConfirmationResponse] = asyncio.Future()
         self.pending_confirmation = PendingConfirmationState(future=future, request=request)
         self._show_inline_confirmation(request)
-        return await future
+
+        # Pause timeout while waiting for user input
+        timeout_pause_state = getattr(self.state_manager.session, "timeout_pause_state", None)
+        if timeout_pause_state is not None:
+            async with timeout_pause_state.timeout_paused():
+                return await future
+        else:
+            return await future
 
     async def request_plan_approval(self, plan_content: str) -> tuple[bool, str]:
         """Request user approval for a plan. Returns (approved, feedback)."""
-        return await _request_plan_approval(plan_content, self, self.rich_log)
+        timeout_pause_state = getattr(self.state_manager.session, "timeout_pause_state", None)
+        return await _request_plan_approval(plan_content, self, self.rich_log, timeout_pause_state)
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         panel = tool_panel_smart(

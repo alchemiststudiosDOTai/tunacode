@@ -551,4 +551,6 @@ async def process_request(
         tool_result_callback,
         tool_start_callback,
     )
+    # Store timeout_pause_state in session for UI layer access
+    state_manager.session.timeout_pause_state = orchestrator.timeout_pause_state
     return await orchestrator.run()

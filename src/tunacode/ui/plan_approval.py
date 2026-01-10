@@ -7,7 +7,7 @@ Follows NeXTSTEP 4-zone layout pattern.
 from __future__ import annotations
 
 import asyncio
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from rich.console import Group
 from rich.markdown import Markdown
@@ -16,6 +16,9 @@ from rich.rule import Rule
 from rich.text import Text
 from textual import events
 from textual.widgets import RichLog
+
+if TYPE_CHECKING:
+    from tunacode.core.agents.timeout_state import TimeoutPauseState
 
 from tunacode.constants import EXIT_PLAN_MODE_SENTINEL
 from tunacode.ui.repl_support import PendingPlanApprovalState
@@ -114,6 +117,7 @@ async def request_plan_approval(
     plan_content: str,
     pending_state_holder: PlanApprovalHolder,
     rich_log: RichLog,
+    timeout_pause_state: "TimeoutPauseState | None" = None,
 ) -> tuple[bool, str]:
     """Request user approval for a plan.
 
@@ -121,6 +125,7 @@ async def request_plan_approval(
         plan_content: The plan markdown content to display.
         pending_state_holder: Object with pending_plan_approval attribute.
         rich_log: The RichLog widget for display.
+        timeout_pause_state: Optional timeout pause state for pausing during user input.
 
     Returns:
         Tuple of (approved, feedback).
@@ -141,4 +146,9 @@ async def request_plan_approval(
     panel = render_plan_approval_panel(plan_content)
     rich_log.write(panel, expand=True)
 
-    return await future
+    # Pause timeout while waiting for user input
+    if timeout_pause_state is not None:
+        async with timeout_pause_state.timeout_paused():
+            return await future
+    else:
+        return await future
