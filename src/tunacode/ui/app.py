@@ -179,7 +179,7 @@ class TextualReplApp(App[None]):
         """Initialize REPL components after setup."""
         self.set_focus(self.editor)
         self.run_worker(self._request_worker, exclusive=False)
-        self.run_worker(lambda: run_startup_index(self.rich_log), exclusive=False)
+        self.run_worker(run_startup_index(self.rich_log), exclusive=False)
         self._update_resource_bar()
         show_welcome(self.rich_log)
 
