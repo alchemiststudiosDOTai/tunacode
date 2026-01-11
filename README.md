@@ -1,5 +1,7 @@
 # tunacode-cli
 
+<img src="docs/images/logo.jpeg" alt="tunacode logo" width="200"/>
+
 [![PyPI version](https://badge.fury.io/py/tunacode-cli.svg)](https://badge.fury.io/py/tunacode-cli)
 [![Downloads](https://pepy.tech/badge/tunacode-cli)](https://pepy.tech/project/tunacode-cli)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)

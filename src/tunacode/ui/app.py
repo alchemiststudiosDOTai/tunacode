@@ -219,27 +219,53 @@ class TextualReplApp(App[None]):
 
             final_count = await loop.run_in_executor(None, do_expand)
             done_msg = Text()
-            done_msg.append(f"Code cache built: {final_count} files indexed ✓", style=STYLE_SUCCESS)
+            done_msg.append(f"⚙ Code cache built: {final_count} files indexed", style=STYLE_SUCCESS)
             self.rich_log.write(done_msg)
         else:
             msg = Text()
-            msg.append(f"Code cache built: {indexed} files indexed ✓", style=STYLE_SUCCESS)
+            msg.append(f"⚙ Code cache built: {indexed} files indexed", style=STYLE_SUCCESS)
             self.rich_log.write(msg)
 
     def _show_welcome(self) -> None:
         welcome = Text()
+        welcome.append("\n\n")
         welcome.append("Welcome to TunaCode\n", style=STYLE_HEADING)
-        welcome.append("AI coding assistant for your terminal.\n\n", style=STYLE_MUTED)
-        welcome.append("Commands:\n", style=STYLE_PRIMARY)
-        welcome.append("  /help    - Show all commands\n", style="")
-        welcome.append("  /clear   - Clear conversation\n", style="")
-        welcome.append("  /yolo    - Toggle auto-confirm\n", style="")
-        welcome.append("  /branch  - Create git branch\n", style="")
-        welcome.append("  /plan    - Toggle planning mode\n", style="")
-        welcome.append("  /model   - Switch model\n", style="")
-        welcome.append("  /theme   - Switch theme\n", style="")
-        welcome.append("  /resume  - Load saved session\n", style="")
-        welcome.append("  !<cmd>   - Run shell command\n", style="")
+        welcome.append("AI coding assistant in your terminal.\n", style=STYLE_MUTED)
+        welcome.append("\n\n")
+
+        # Group 1: Core navigation
+        welcome.append("   /help", style=STYLE_PRIMARY)
+        welcome.append("       - Show all commands\n\n")
+        welcome.append("   /clear", style=STYLE_PRIMARY)
+        welcome.append("      - Clear conversation\n\n")
+        welcome.append("   /resume", style=STYLE_PRIMARY)
+        welcome.append("     - Load saved session\n\n")
+
+        welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
+
+        # Group 2: Mode toggles
+        welcome.append("   /yolo", style=STYLE_PRIMARY)
+        welcome.append("       - Toggle auto-confirm\n\n")
+        welcome.append("   /plan", style=STYLE_PRIMARY)
+        welcome.append("       - Toggle planning mode\n\n")
+
+        welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
+
+        # Group 3: Switching
+        welcome.append("   /model", style=STYLE_PRIMARY)
+        welcome.append("      - Switch model\n\n")
+        welcome.append("   /theme", style=STYLE_PRIMARY)
+        welcome.append("      - Switch theme\n\n")
+
+        welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
+
+        # Group 4: Git/shell
+        welcome.append("   /branch", style=STYLE_PRIMARY)
+        welcome.append("     - Create git branch\n\n")
+        welcome.append("   !<cmd>", style=STYLE_PRIMARY)
+        welcome.append("      - Run shell commands\n")
+
+        welcome.append("\n\n")
         self.rich_log.write(welcome)
 
     async def _request_worker(self) -> None:
