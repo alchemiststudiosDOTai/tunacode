@@ -43,8 +43,7 @@ from tunacode.tools.write_file import write_file
 from tunacode.types import ModelName, PydanticAgent
 from tunacode.utils.config.user_configuration import load_config
 
-# Module-level caches for system prompts
-_PROMPT_CACHE: dict[str, tuple[str, float]] = {}
+# Module-level cache for AGENTS.md context
 _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
 
 # Module-level cache for agents to persist across requests
@@ -172,7 +171,6 @@ def _build_request_hooks(
 
 def clear_all_caches():
     """Clear all module-level caches. Useful for testing."""
-    _PROMPT_CACHE.clear()
     _TUNACODE_CACHE.clear()
     _AGENT_CACHE.clear()
     _AGENT_CACHE_VERSION.clear()
@@ -183,29 +181,6 @@ def get_agent_tool():
     from pydantic_ai import Tool
 
     return Agent, Tool
-
-
-def _read_prompt_from_path(prompt_path: Path) -> str:
-    """Return prompt content from disk, leveraging the cache when possible."""
-    cache_key = str(prompt_path)
-
-    try:
-        current_mtime = prompt_path.stat().st_mtime
-    except FileNotFoundError as error:
-        raise FileNotFoundError from error
-
-    if cache_key in _PROMPT_CACHE:
-        cached_content, cached_mtime = _PROMPT_CACHE[cache_key]
-        if current_mtime == cached_mtime:
-            return cached_content
-
-    try:
-        content = prompt_path.read_text(encoding="utf-8").strip()
-    except FileNotFoundError as error:
-        raise FileNotFoundError from error
-
-    _PROMPT_CACHE[cache_key] = (content, current_mtime)
-    return content
 
 
 def load_system_prompt(base_path: Path, model: str | None = None) -> str:
