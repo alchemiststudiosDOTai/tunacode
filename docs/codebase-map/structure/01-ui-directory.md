@@ -27,6 +27,7 @@ Implements the complete **Textual-based Terminal User Interface** for TunaCode, 
 ui/
 ├── app.py                  # Main Textual application class
 ├── main.py                 # Entry point and REPL orchestration
+├── logo_assets.py          # Pre-rendered ANSI logo loader
 ├── shell_runner.py         # TUI shell execution wrapper
 ├── repl_support.py         # REPL utilities and helpers
 ├── styles.py               # Style definitions and constants
@@ -42,6 +43,7 @@ ui/
 ├── renderers/              # Output formatting by tool type
 │   └── tools/              # Tool-specific renderers
 ├── headless/               # Non-interactive execution
+├── assets/                 # UI assets (pre-rendered ANSI art)
 └── styles/                 # CSS and theme files
 ```
 

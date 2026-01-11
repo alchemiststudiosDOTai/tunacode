@@ -103,7 +103,6 @@ class TextualReplApp(App[None]):
         self._stream_buffer: list[str] = []
         self.current_stream_text: str = ""
         self._current_request_task: asyncio.Task | None = None
-        self._loading_indicator_shown: bool = False
         self._last_display_update: float = 0.0
         self._request_start_time: float = 0.0
 
@@ -114,6 +113,7 @@ class TextualReplApp(App[None]):
         self.resource_bar: ResourceBar
         self.status_bar: StatusBar
         self.streaming_output: Static
+        self.loading_indicator: LoadingIndicator
 
     def compose(self) -> ComposeResult:
         self.resource_bar = ResourceBar()
@@ -243,7 +243,6 @@ class TextualReplApp(App[None]):
         self._streaming_cancelled = False
         self.query_one("#viewport").add_class(RICHLOG_CLASS_STREAMING)
 
-        self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
 
         self._request_start_time = time.monotonic()
@@ -285,7 +284,6 @@ class TextualReplApp(App[None]):
             self.rich_log.write(error_renderable)
         finally:
             self._current_request_task = None
-            self._loading_indicator_shown = False
             self.loading_indicator.remove_class("active")
             self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
             self.query_one("#viewport").remove_class(RICHLOG_CLASS_PAUSED)

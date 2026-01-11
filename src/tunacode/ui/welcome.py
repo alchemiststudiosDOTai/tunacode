@@ -2,72 +2,39 @@
 
 from __future__ import annotations
 
-import shutil
-import subprocess
-from pathlib import Path
-
 from rich.text import Text
 from textual.widgets import RichLog
 
+from tunacode.constants import APP_NAME, APP_VERSION
+from tunacode.ui.logo_assets import LOGO_WELCOME_FILENAME, read_logo_ansi
 from tunacode.ui.styles import (
-    STYLE_HEADING,
     STYLE_MUTED,
     STYLE_PRIMARY,
+    STYLE_WARNING,
 )
 
+WELCOME_TITLE_FORMAT = ">>> {name} v{version}"
 
-def generate_logo() -> Text | None:
-    """Generate logo using chafa if available."""
-    if not shutil.which("chafa"):
-        return None
 
-    # Find logo image - check package location first, then relative path
-    logo_paths = [
-        Path(__file__).parent.parent.parent.parent / "docs" / "images" / "logo.jpeg",
-        Path.cwd() / "docs" / "images" / "logo.jpeg",
-    ]
-
-    logo_path = None
-    for path in logo_paths:
-        if path.exists():
-            logo_path = path
-            break
-
-    if not logo_path:
-        return None
-
-    try:
-        result = subprocess.run(
-            [
-                "chafa",
-                "-f", "symbols",
-                "-c", "full",
-                "--size=24x12",
-                "--bg=#1a1a1a",
-                str(logo_path),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
-        if result.returncode == 0 and result.stdout:
-            return Text.from_ansi(result.stdout)
-    except (subprocess.TimeoutExpired, OSError):
-        pass
-
-    return None
+def generate_logo() -> Text:
+    """Load the pre-rendered logo as rich text."""
+    logo_ansi = read_logo_ansi(LOGO_WELCOME_FILENAME)
+    return Text.from_ansi(logo_ansi)
 
 
 def show_welcome(rich_log: RichLog) -> None:
     """Display welcome message with logo to the given RichLog."""
-    # Try to show logo
-    logo = generate_logo()
-    if logo:
+    try:
+        logo = generate_logo()
+    except FileNotFoundError as exc:
+        rich_log.write(Text(str(exc), style=STYLE_WARNING))
+    else:
         rich_log.write(logo)
 
+    welcome_title = WELCOME_TITLE_FORMAT.format(name=APP_NAME, version=APP_VERSION)
     welcome = Text()
     welcome.append("\n")
-    welcome.append("Welcome to TunaCode\n", style=STYLE_HEADING)
+    welcome.append(f"{welcome_title}\n", style=STYLE_PRIMARY)
     welcome.append("AI coding assistant in your terminal.\n\n", style=STYLE_MUTED)
 
     # Group 1: Core navigation

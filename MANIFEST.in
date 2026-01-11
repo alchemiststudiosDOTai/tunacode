@@ -8,6 +8,7 @@ include LICENSE
 include pyproject.toml
 include CLAUDE.md
 include AGENTS.md
+recursive-include src/tunacode/ui/assets *.ansi
 
 # Include test files (optional, but good for development)
 recursive-include tests *.py

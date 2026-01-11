@@ -36,6 +36,16 @@ Implements the terminal user interface using the Textual framework, following Ne
 - StatusBar - Current mode and status
 - LoadingIndicator - Async operation feedback
 
+### Welcome Banner (welcome.py)
+
+**generate_logo / show_welcome**
+- Loads the pre-rendered ANSI logo from `ui/assets/logo.ansi`
+- Renders the logo and onboarding commands in the RichLog
+
+#### Logo Assets (logo_assets.py)
+
+- Centralized loader for pre-rendered ANSI logos used by the UI
+
 ### Screen Management (screens/)
 
 Modal screens for specific workflows:

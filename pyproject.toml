@@ -171,6 +171,7 @@ disable_error_code = ["annotation-unchecked"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tunacode"]
+include = ["src/tunacode/ui/assets/*.ansi"]
 
 [tool.hatch.build]
 artifacts = [
