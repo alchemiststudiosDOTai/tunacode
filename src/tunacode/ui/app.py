@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import os
-import shutil
-import subprocess
 import time
 from datetime import UTC, datetime
-from pathlib import Path
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
@@ -57,13 +54,13 @@ from tunacode.ui.repl_support import (
 from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.styles import (
     STYLE_ERROR,
-    STYLE_HEADING,
     STYLE_MUTED,
     STYLE_PRIMARY,
     STYLE_SUBHEADING,
     STYLE_SUCCESS,
     STYLE_WARNING,
 )
+from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
     CommandAutoComplete,
     Editor,
@@ -185,7 +182,7 @@ class TextualReplApp(App[None]):
         self.run_worker(self._request_worker, exclusive=False)
         self.run_worker(self._startup_index_worker, exclusive=False)
         self._update_resource_bar()
-        self._show_welcome()
+        show_welcome(self.rich_log)
 
     async def _startup_index_worker(self) -> None:
         """Build startup index with dynamic sizing."""
@@ -228,88 +225,6 @@ class TextualReplApp(App[None]):
             msg = Text()
             msg.append(f"⚙ Code cache built: {indexed} files indexed", style=STYLE_SUCCESS)
             self.rich_log.write(msg)
-
-    def _generate_logo(self) -> Text | None:
-        """Generate logo using chafa if available."""
-        if not shutil.which("chafa"):
-            return None
-
-        # Find logo image - check package location first, then relative path
-        logo_paths = [
-            Path(__file__).parent.parent.parent.parent / "docs" / "images" / "logo.jpeg",
-            Path.cwd() / "docs" / "images" / "logo.jpeg",
-        ]
-
-        logo_path = None
-        for path in logo_paths:
-            if path.exists():
-                logo_path = path
-                break
-
-        if not logo_path:
-            return None
-
-        try:
-            result = subprocess.run(
-                [
-                    "chafa",
-                    "-f", "symbols",
-                    "-c", "full",
-                    "--size=24x12",
-                    "--bg=#1a1a1a",
-                    str(logo_path),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=2,
-            )
-            if result.returncode == 0 and result.stdout:
-                return Text.from_ansi(result.stdout)
-        except (subprocess.TimeoutExpired, OSError):
-            pass
-
-        return None
-
-    def _show_welcome(self) -> None:
-        # Try to show logo
-        logo = self._generate_logo()
-        if logo:
-            self.rich_log.write(logo)
-
-        welcome = Text()
-        welcome.append("\n")
-        welcome.append("Welcome to TunaCode\n", style=STYLE_HEADING)
-        welcome.append("AI coding assistant in your terminal.\n\n", style=STYLE_MUTED)
-
-        # Group 1: Core navigation
-        welcome.append("   /help", style=STYLE_PRIMARY)
-        welcome.append("       - Show all commands\n")
-        welcome.append("   /clear", style=STYLE_PRIMARY)
-        welcome.append("      - Clear conversation\n")
-        welcome.append("   /resume", style=STYLE_PRIMARY)
-        welcome.append("     - Load saved session\n\n")
-        welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
-
-        # Group 2: Mode toggles
-        welcome.append("   /yolo", style=STYLE_PRIMARY)
-        welcome.append("       - Toggle auto-confirm\n")
-        welcome.append("   /plan", style=STYLE_PRIMARY)
-        welcome.append("       - Toggle planning mode\n\n")
-        welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
-
-        # Group 3: Switching
-        welcome.append("   /model", style=STYLE_PRIMARY)
-        welcome.append("      - Switch model\n")
-        welcome.append("   /theme", style=STYLE_PRIMARY)
-        welcome.append("      - Switch theme\n\n")
-        welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
-
-        # Group 4: Git/shell
-        welcome.append("   /branch", style=STYLE_PRIMARY)
-        welcome.append("     - Create git branch\n")
-        welcome.append("   !<cmd>", style=STYLE_PRIMARY)
-        welcome.append("      - Run shell commands\n\n")
-        self.rich_log.write(welcome)
 
     async def _request_worker(self) -> None:
         while True:
