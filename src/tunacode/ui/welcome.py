@@ -14,6 +14,7 @@ from tunacode.ui.styles import (
 )
 
 WELCOME_TITLE_FORMAT = ">>> {name} v{version}"
+SECTION_DIVIDER = "   ──────────────────────────────────────────────\n\n"
 
 
 def generate_logo() -> Text:
@@ -44,21 +45,21 @@ def show_welcome(rich_log: RichLog) -> None:
     welcome.append("      - Clear conversation\n")
     welcome.append("   /resume", style=STYLE_PRIMARY)
     welcome.append("     - Load saved session\n\n")
-    welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
+    welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
 
     # Group 2: Mode toggles
     welcome.append("   /yolo", style=STYLE_PRIMARY)
     welcome.append("       - Toggle auto-confirm\n")
     welcome.append("   /plan", style=STYLE_PRIMARY)
     welcome.append("       - Toggle planning mode\n\n")
-    welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
+    welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
 
     # Group 3: Switching
     welcome.append("   /model", style=STYLE_PRIMARY)
     welcome.append("      - Switch model\n")
     welcome.append("   /theme", style=STYLE_PRIMARY)
     welcome.append("      - Switch theme\n\n")
-    welcome.append("   ──────────────────────────────────────────────\n\n", style=STYLE_MUTED)
+    welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
 
     # Group 4: Git/shell
     welcome.append("   /branch", style=STYLE_PRIMARY)
