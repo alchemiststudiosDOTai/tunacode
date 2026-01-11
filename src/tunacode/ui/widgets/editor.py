@@ -42,7 +42,7 @@ class Editor(Input):
     ]
 
     def __init__(self) -> None:
-        super().__init__(placeholder="we await...")
+        super().__init__(placeholder=">")
         self._placeholder_cleared: bool = False
         self._was_pasted: bool = False
         self._pasted_content: str = ""
