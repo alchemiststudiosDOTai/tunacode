@@ -177,6 +177,13 @@ class TextualReplApp(App[None]):
 
     def _start_repl(self) -> None:
         """Initialize REPL components after setup."""
+        from tunacode.core.logging import get_logger
+
+        # Initialize logging with TUI callback
+        logger = get_logger()
+        logger.set_state_manager(self.state_manager)
+        logger.set_tui_callback(lambda text: self.rich_log.write(text))
+
         self.set_focus(self.editor)
         self.run_worker(self._request_worker, exclusive=False)
         self.run_worker(self._startup_index_worker, exclusive=False)
