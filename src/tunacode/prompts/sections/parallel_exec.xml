@@ -8,14 +8,15 @@ Think step by step before executing:
 1. Identify which tools you need to call
 2. Classify them as read-only (parallelizable) or write/execute (sequential)
 3. Group all independent read-only tools together
-4. Execute the parallel batch in a single response
-5. You will be penalized for failing to parallelize
+4. Emit all read-only tool calls in ONE assistant response
+5. Do not interleave narration between tool calls
+6. You will be penalized for failing to parallelize
 
 ###Example###
 
 **PERFECT (3 tools in parallel = optimal performance):**
 ```
-# Single response with 3 parallel read-only calls:
+# Single assistant message with ONLY tool calls:
 read_file("main.py")
 read_file("config.py")
 grep("class.*Handler", "src/")
@@ -43,14 +44,17 @@ Penalty: None, but consider splitting into two batches of 3
 **WRONG - YOU WILL BE PENALIZED:**
 ```
 # Response 1:
+"Let me check main.py first"
 read_file("main.py")
 [wait for result]
 
 # Response 2:
+"Now I'll read config.py"
 read_file("config.py")
 [wait for result]
 
 # Response 3:
+"Now I'll grep"
 grep("class.*Handler", "src/")
 [wait for result]
 

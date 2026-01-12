@@ -21,25 +21,25 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "max_retries": 3,
         "max_iterations": 40,
         "request_delay": 0.0,
-        "global_request_timeout": 90.0,
+        "global_request_timeout": 120.0,
         "tool_ignore": [],
         "guide_file": GUIDE_FILE_NAME,
         "fallback_response": True,
-        "fallback_verbosity": "normal",  # Options: minimal, normal, detailed
+        "fallback_verbosity": "normal",
         "context_window_size": 200000,
-        "enable_streaming": True,  # Always enable streaming
-        "theme": "dracula",  # UI theme name
+        "enable_streaming": True,
+        "theme": "dracula",
         "ripgrep": {
-            "timeout": 10,  # Search timeout in seconds
-            "max_buffer_size": 1048576,  # 1MB max output buffer
-            "max_results": 100,  # Maximum results per search
-            "enable_metrics": False,  # Enable performance metrics collection
-            "debug": False,  # Enable debug logging for ripgrep operations
+            "timeout": 10,
+            "max_buffer_size": 1048576,
+            "max_results": 100,
+            "enable_metrics": False,
+            "debug": False,
         },
         "lsp": {
-            "enabled": True,  # Requires pyright: uv pip install pyright
-            "timeout": 5.0,  # Maximum seconds to wait for diagnostics
-            "max_diagnostics": 20,  # Maximum number of diagnostics to show
+            "enabled": True,
+            "timeout": 5.0,
+            "max_diagnostics": 20,
         },
     },
 }
