@@ -81,7 +81,9 @@ from tunacode.types.pydantic_ai import (
     MessagePart,
     ModelRequest,
     ModelResponse,
+    NormalizedUsage,
     PydanticAgent,
+    normalize_request_usage,
 )
 
 # State protocol
@@ -134,7 +136,9 @@ __all__ = [
     "MessagePart",
     "ModelRequest",
     "ModelResponse",
+    "NormalizedUsage",
     "PydanticAgent",
+    "normalize_request_usage",
     # Callbacks
     "AsyncFunc",
     "AsyncToolFunc",
