@@ -71,7 +71,22 @@ async def process_node(
     tool_result_callback: ToolResultCallback | None = None,
     tool_start_callback: ToolStartCallback | None = None,
 ) -> tuple[bool, str | None]:
-    """Process a single node from the agent response."""
+    """Process a single node from the agent response.
+
+    Args:
+        node: The agent response node to process.
+        tool_callback: Callback to execute tools.
+        state_manager: Session state manager.
+        _tool_buffer: Unused. Preserved for API compatibility.
+        _streaming_callback: Unused. Preserved for API compatibility.
+        response_state: State machine for response tracking.
+        tool_result_callback: Callback for tool result display.
+        tool_start_callback: Callback for tool start display.
+
+    Returns:
+        Tuple of (is_empty, reason) where is_empty indicates a problematic
+        response and reason is "empty" or "truncated".
+    """
     empty_response_detected = False
     has_non_empty_content = False
     appears_truncated = False

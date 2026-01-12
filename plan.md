@@ -1,6 +1,0 @@
-- Identify `Any` usages in `src/tunacode/core/agents/main.py` and dependent components
-- Look up pydantic-ai node and context types used in the agent run loop
-- Replace `Any` with concrete union/Protocol types for agent nodes and run context
-- Update `agent_run_ctx` message injection to use typed context accessors
-- Adjust helper functions (`_maybe_stream_node_tokens`, `_iteration_had_tool_use`) signatures
-- Run `ruff` and `uv run pytest`

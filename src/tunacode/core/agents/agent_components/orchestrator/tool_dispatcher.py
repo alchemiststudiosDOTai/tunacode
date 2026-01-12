@@ -1,5 +1,6 @@
 """Tool categorization and execution for agent responses."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -116,12 +117,15 @@ async def _extract_fallback_tool_calls(
     return results
 
 
+ToolResultCallback = Callable[..., None]
+
+
 async def dispatch_tools(
     parts: list[Any],
     node: Any,
     state_manager: StateManager,
     tool_callback: ToolCallback | None,
-    _tool_result_callback: Any | None,
+    _tool_result_callback: ToolResultCallback | None,
     tool_start_callback: ToolStartCallback | None,
     response_state: ResponseState | None,
 ) -> ToolDispatchResult:
