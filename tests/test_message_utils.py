@@ -43,7 +43,7 @@ class TestGetMessageContent:
 
     def test_object_with_content_string(self):
         """Object with string content attribute."""
-        
+
         class MockMessage:
             def __init__(self, content):
                 self.content = content
@@ -53,7 +53,7 @@ class TestGetMessageContent:
 
     def test_object_with_content_list(self):
         """Object with list content attribute."""
-        
+
         class MockMessage:
             def __init__(self, content):
                 self.content = content
@@ -64,7 +64,7 @@ class TestGetMessageContent:
 
     def test_object_with_simple_content_list(self):
         """Object with simple list content attribute."""
-        
+
         class MockMessage:
             def __init__(self, content):
                 self.content = content
@@ -74,7 +74,7 @@ class TestGetMessageContent:
 
     def test_object_with_parts_list(self):
         """Object with parts attribute."""
-        
+
         class MockMessage:
             def __init__(self, parts):
                 self.parts = parts
