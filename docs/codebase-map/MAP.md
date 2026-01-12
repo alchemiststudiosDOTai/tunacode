@@ -77,8 +77,7 @@ src/tunacode/
 │
 ├── cli/                    # Command-line interface
 │   ├── commands/          # Slash commands
-│   ├── repl_components/   # REPL building blocks
-│   └── textual_repl.tcss  # REPL styling
+│   └── repl_components/   # REPL building blocks
 │
 ├── indexing/               # Fast codebase indexing
 │   ├── code_index.py      # CodeIndex class

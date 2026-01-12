@@ -122,8 +122,7 @@ src/tunacode/
 │   ├── commands/
 │   │   ├── implementations/ # Command handlers
 │   │   └── slash/           # Slash command specs
-│   ├── repl_components/     # REPL building blocks
-│   └── textual_repl.tcss    # REPL styling
+│   └── repl_components/     # REPL building blocks
 │
 ├── indexing/                # Code search
 ├── lsp/                     # Language Server Protocol

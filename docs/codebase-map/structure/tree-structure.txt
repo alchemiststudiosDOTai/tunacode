@@ -132,7 +132,6 @@ src/tunacode/
 │   ├── repl_components/         # REPL building blocks
 │   │   └── (reusable parts)
 │   │
-│   └── textual_repl.tcss        # REPL styling
 │
 ├── 📚 Supporting Modules
 │

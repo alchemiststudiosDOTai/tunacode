@@ -27,9 +27,8 @@ cli/
 │   │   └── (command handlers)
 │   └── slash/               # Slash command definitions
 │       └── (slash command specs)
-├── repl_components/         # REPL building blocks
-│   └── (reusable parts)
-└── textual_repl.tcss        # REPL styling
+└── repl_components/         # REPL building blocks
+    └── (reusable parts)
 ```
 
 ## How
