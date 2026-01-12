@@ -302,6 +302,8 @@ PR #263: "chore: remove unused grep tool"
 
 Maintain a `.claude/` directory with:
 
+- Do not use `.claude/markdown`; the seven folders below are the source of truth.
+
 - **metadata/** — dependency graphs, file classifications, error pattern database
 - **code_index/** — function call graphs, type relationships, interface mappings
 - **debug_history/** — error-solution pairs indexed by component/error type

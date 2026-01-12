@@ -4,7 +4,7 @@ link: missing-cached-tokens-request-usage
 type: delta
 path: src/tunacode/core/agents/agent_components/orchestrator/usage_tracker.py
 depth: 0
-seams: [D]
+seams: [D] data
 ontological_relations:
   - relates_to: [[agent-orchestrator]]
   - affects: [[usage-tracking]]
