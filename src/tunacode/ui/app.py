@@ -18,7 +18,6 @@ from textual.containers import Container
 from textual.widgets import LoadingIndicator, RichLog, Static
 
 from tunacode.constants import (
-    APP_VERSION,
     RICHLOG_CLASS_PAUSED,
     RICHLOG_CLASS_STREAMING,
     build_nextstep_theme,
@@ -54,13 +53,13 @@ from tunacode.ui.repl_support import (
 from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.styles import (
     STYLE_ERROR,
-    STYLE_HEADING,
     STYLE_MUTED,
     STYLE_PRIMARY,
     STYLE_SUBHEADING,
     STYLE_SUCCESS,
     STYLE_WARNING,
 )
+from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
     CommandAutoComplete,
     Editor,
@@ -182,7 +181,7 @@ class TextualReplApp(App[None]):
         self.run_worker(self._request_worker, exclusive=False)
         self.run_worker(self._startup_index_worker, exclusive=False)
         self._update_resource_bar()
-        self._show_welcome()
+        show_welcome(self.rich_log)
 
     async def _startup_index_worker(self) -> None:
         """Build startup index with dynamic sizing."""
@@ -225,22 +224,6 @@ class TextualReplApp(App[None]):
             msg = Text()
             msg.append(f"Code cache built: {indexed} files indexed ✓", style=STYLE_SUCCESS)
             self.rich_log.write(msg)
-
-    def _show_welcome(self) -> None:
-        welcome = Text()
-        welcome.append(f"Welcome to TunaCode v{APP_VERSION}\n", style=STYLE_HEADING)
-        welcome.append("AI coding assistant for your terminal.\n\n", style=STYLE_MUTED)
-        welcome.append("Commands:\n", style=STYLE_PRIMARY)
-        welcome.append("  /help    - Show all commands\n", style="")
-        welcome.append("  /clear   - Clear conversation\n", style="")
-        welcome.append("  /yolo    - Toggle auto-confirm\n", style="")
-        welcome.append("  /branch  - Create git branch\n", style="")
-        welcome.append("  /plan    - Toggle planning mode\n", style="")
-        welcome.append("  /model   - Switch model\n", style="")
-        welcome.append("  /theme   - Switch theme\n", style="")
-        welcome.append("  /resume  - Load saved session\n", style="")
-        welcome.append("  !<cmd>   - Run shell command\n", style="")
-        self.rich_log.write(welcome)
 
     async def _request_worker(self) -> None:
         while True:
