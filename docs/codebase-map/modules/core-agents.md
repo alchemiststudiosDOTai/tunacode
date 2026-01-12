@@ -139,7 +139,7 @@ Full tool set with detailed descriptions:
 
 | Category | Tools |
 |----------|-------|
-| Read-Only | glob, grep, read_file, list_dir, web_fetch |
+| Read-Only | glob, grep, list_dir, read_file, react, web_fetch |
 | Write/Execute | bash, write_file, update_file |
 | Todo | todowrite, todoread, todoclear |
 | Delegation | research_codebase |
@@ -156,6 +156,7 @@ Minimal tool set for small context windows (8k-16k tokens):
 | write_file | "Write" | Full multi-paragraph description |
 | glob | "Find" | Full multi-paragraph description |
 | list_dir | "List" | Full multi-paragraph description |
+| react | "React" | Full multi-paragraph description |
 
 **Excluded in local mode:** grep, web_fetch, todo tools, research_codebase
 

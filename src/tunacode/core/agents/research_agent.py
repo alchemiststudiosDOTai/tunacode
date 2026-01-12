@@ -18,6 +18,7 @@ from tunacode.core.prompting import (
     resolve_prompt,
 )
 from tunacode.core.state import StateManager
+from tunacode.tools.decorators import file_tool
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
@@ -71,6 +72,7 @@ def _create_limited_read_file(max_files: int):
     logger = get_logger()
     call_count = {"count": 0}
 
+    @file_tool
     async def limited_read_file(file_path: str) -> str:
         """Read file with enforced limit on number of calls.
 

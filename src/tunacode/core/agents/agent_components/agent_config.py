@@ -35,6 +35,7 @@ from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
 from tunacode.tools.list_dir import list_dir
 from tunacode.tools.present_plan import create_present_plan_tool
+from tunacode.tools.react import create_react_tool
 from tunacode.tools.read_file import read_file
 from tunacode.tools.todo import create_todoclear_tool, create_todoread_tool, create_todowrite_tool
 from tunacode.tools.update_file import update_file
@@ -358,6 +359,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
         if is_local_mode():
             # Minimal tool set with short descriptions to save tokens
             strict = tool_strict_validation
+            react_tool = create_react_tool(state_manager)
             tools_list = [
                 Tool(bash, max_retries=max_retries, strict=strict, description="Shell"),
                 Tool(read_file, max_retries=max_retries, strict=strict, description="Read"),
@@ -365,15 +367,18 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 Tool(write_file, max_retries=max_retries, strict=strict, description="Write"),
                 Tool(glob, max_retries=max_retries, strict=strict, description="Find"),
                 Tool(list_dir, max_retries=max_retries, strict=strict, description="List"),
+                Tool(react_tool, max_retries=max_retries, strict=strict, description="React"),
             ]
         else:
             # Full tool set with detailed descriptions
+            react_tool = create_react_tool(state_manager)
             tools_list = [
                 Tool(bash, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(glob, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(grep, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(list_dir, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(read_file, max_retries=max_retries, strict=tool_strict_validation),
+                Tool(react_tool, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(update_file, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(web_fetch, max_retries=max_retries, strict=tool_strict_validation),
                 Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
