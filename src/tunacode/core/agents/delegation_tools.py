@@ -58,7 +58,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         # Get current model from session (same model as parent agent)
         model = state_manager.session.current_model
 
-        # Note: Research agent panel display is handled by node_processor.py
+        # Note: Research agent panel display is handled by orchestrator/orchestrator.py
         # which shows a purple panel with query details before execution
 
         # Get progress callback from session (set at request time by UI)

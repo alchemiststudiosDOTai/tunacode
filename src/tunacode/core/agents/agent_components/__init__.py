@@ -14,7 +14,7 @@ from .agent_helpers import (
     handle_empty_response,
 )
 from .message_handler import get_model_messages, patch_tool_messages
-from .node_processor import _process_node
+from .orchestrator import process_node
 from .response_state import ResponseState
 from .result_wrapper import AgentRunWithState, AgentRunWrapper, SimpleResult
 from .streaming import stream_model_request_node
@@ -26,7 +26,7 @@ __all__ = [
     "get_or_create_agent",
     "get_model_messages",
     "patch_tool_messages",
-    "_process_node",
+    "process_node",
     "ResponseState",
     "AgentRunWithState",
     "AgentRunWrapper",

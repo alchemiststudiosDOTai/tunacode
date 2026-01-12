@@ -7,12 +7,12 @@ from .agent_components import (
     ResponseState,
     SimpleResult,
     ToolBuffer,
-    _process_node,
     check_task_completion,
     execute_tools_parallel,
     get_model_messages,
     get_or_create_agent,
     patch_tool_messages,
+    process_node,
 )
 from .main import (
     check_query_satisfaction,
@@ -25,7 +25,7 @@ __all__ = [
     "get_or_create_agent",
     "get_model_messages",
     "patch_tool_messages",
-    "_process_node",
+    "process_node",
     "ResponseState",
     "SimpleResult",
     "AgentRunWrapper",

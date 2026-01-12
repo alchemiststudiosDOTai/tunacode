@@ -400,7 +400,7 @@ class RequestOrchestrator:
                     )
 
                     # Core node processing
-                    empty_response, empty_reason = await ac._process_node(  # noqa: SLF001
+                    empty_response, empty_reason = await ac.process_node(
                         node,
                         self.tool_callback,
                         self.state_manager,
