@@ -50,6 +50,7 @@ _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
 _AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: dict[ModelName, int] = {}
 
+
 async def _sleep_with_delay(total_delay: float) -> None:
     """Sleep for a fixed pre-request delay."""
     await asyncio.sleep(total_delay)
