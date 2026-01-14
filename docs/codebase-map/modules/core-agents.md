@@ -83,7 +83,7 @@ agent.iter() -> Provider HTTP Request
 - **_process_node()** - Core response processing loop
 - Extracts tool calls from structured and text responses
 - Handles empty/truncated response edge cases
-- Detects task completion markers (TUNACODE DONE:)
+- Detects submit tool calls for completion
 
 #### tool_executor.py
 - **execute_tools_parallel()** - Concurrent read-only tool execution
@@ -141,6 +141,7 @@ Full tool set with detailed descriptions:
 |----------|-------|
 | Read-Only | glob, grep, list_dir, read_file, react, web_fetch |
 | Write/Execute | bash, write_file, update_file |
+| Completion | submit |
 | Todo | todowrite, todoread, todoclear |
 | Delegation | research_codebase |
 
@@ -157,6 +158,7 @@ Minimal tool set for small context windows (8k-16k tokens):
 | glob | "Find" | Full multi-paragraph description |
 | list_dir | "List" | Full multi-paragraph description |
 | react | "React" | Full multi-paragraph description |
+| submit | "Submit" | Full multi-paragraph description |
 
 **Excluded in local mode:** grep, web_fetch, todo tools, research_codebase
 

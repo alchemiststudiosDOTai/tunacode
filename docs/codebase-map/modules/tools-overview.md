@@ -32,6 +32,7 @@ Specialized decorator for file system tools:
 **XML Prompt Files:**
 - `bash_prompt.xml` - Bash tool documentation
 - `read_file_prompt.xml` - Read file documentation
+- `submit_prompt.xml` - Submit tool documentation
 - etc.
 
 ## Authorization System (authorization/)
@@ -181,6 +182,11 @@ ReAct pattern support:
 - Manages agent scratchpad
 - Tracks thought process
 - Structured reasoning guidance
+
+### submit.py
+Completion signaling tool:
+- `submit` marks the task as complete for the orchestrator
+- Optional summary text for the final response
 
 ## Tool Utilities (tools_utils/)
 

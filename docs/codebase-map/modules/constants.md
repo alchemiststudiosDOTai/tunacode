@@ -105,7 +105,7 @@ Centralizes global constants, magic strings, UI text, error messages, and applic
 ### Magic Strings
 
 **Markers:**
-- **TASK_COMPLETE_MARKER** - "TUNACODE DONE:"
+- **ToolName.SUBMIT** - "submit" tool name used for completion signaling
 - **CONFIRMATION_PROMPT** - Confirmation marker
 - **STREAMING_START** - Stream start marker
 - **STREAMING_END** - Stream end marker
