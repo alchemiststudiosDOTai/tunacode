@@ -7,7 +7,13 @@ from pathlib import Path
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.tools.decorators import base_tool
-from tunacode.tools.ignore import IgnoreManager, get_ignore_manager
+from tunacode.tools.ignore import (
+    DEFAULT_IGNORE_PATTERNS,
+    IgnoreManager,
+    get_ignore_manager,
+)
+
+IGNORE_PATTERNS_COUNT = len(DEFAULT_IGNORE_PATTERNS)
 
 LIMIT = 100
 
