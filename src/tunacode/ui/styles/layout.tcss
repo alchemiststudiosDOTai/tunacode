@@ -62,17 +62,18 @@ LoadingIndicator.active {
 }
 
 /* ============================================
- * STREAMING OUTPUT - Live text display during generation
- * Inside viewport container; NeXTSTEP panel renders inside Static widget
+ * STREAMING OUTPUT - Fixed dock between viewport and editor
+ * Stays anchored while RichLog scrolls independently
  * ============================================ */
 #streaming-output {
     height: auto;
-    max-height: 40%;
+    max-height: 50%;
     display: none;
     background: $background;
-    padding: 0 2 0 0;
+    padding: 0 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
+    border-bottom: solid $border;
 }
 
 #streaming-output.active {

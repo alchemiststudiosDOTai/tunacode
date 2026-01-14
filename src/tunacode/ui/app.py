@@ -125,8 +125,8 @@ class TextualReplApp(App[None]):
         yield self.resource_bar
         with Container(id="viewport"):
             yield self.rich_log
-            yield self.streaming_output
             yield self.loading_indicator
+        yield self.streaming_output
         yield self.editor
         yield FileAutoComplete(self.editor)
         yield CommandAutoComplete(self.editor)
