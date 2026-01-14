@@ -7,7 +7,7 @@ import os
 import re
 from pathlib import Path
 
-from tunacode.utils.system.ignore_patterns import DEFAULT_EXCLUDE_DIRS
+from tunacode.tools.ignore import get_ignore_manager
 
 # Fast-Glob Prefilter Configuration
 MAX_GLOB = 5_000  # Hard cap - protects memory & tokens
@@ -32,6 +32,7 @@ class FileFilter:
         """
         matches: list[Path] = []
         stack = [root]
+        ignore_manager = get_ignore_manager(root)
 
         # Handle multiple extensions in include pattern like "*.{py,js,ts}"
         if "{" in include and "}" in include:
@@ -54,22 +55,30 @@ class FileFilter:
             try:
                 with os.scandir(current_dir) as entries:
                     for entry in entries:
-                        # Skip common irrelevant directories
+                        entry_path = Path(entry.path)
+
                         if entry.is_dir(follow_symlinks=False):
-                            if entry.name not in DEFAULT_EXCLUDE_DIRS:
-                                stack.append(Path(entry.path))
+                            is_ignored_dir = ignore_manager.should_ignore_dir(entry_path)
+                            if is_ignored_dir:
+                                continue
+                            stack.append(entry_path)
+                            continue
 
-                        # Check file matches
-                        elif entry.is_file(follow_symlinks=False):
-                            # Check against any include pattern
-                            matches_include = any(
-                                regex.match(entry.name) for regex in include_regexes
-                            )
+                        if not entry.is_file(follow_symlinks=False):
+                            continue
 
-                            if matches_include and (
-                                not exclude_rx or not exclude_rx.match(entry.name)
-                            ):
-                                matches.append(Path(entry.path))
+                        is_ignored_file = ignore_manager.should_ignore(entry_path)
+                        if is_ignored_file:
+                            continue
+
+                        # Check against any include pattern
+                        matches_include = any(regex.match(entry.name) for regex in include_regexes)
+
+                        excluded_match = exclude_rx.match(entry.name) if exclude_rx else None
+                        is_excluded = excluded_match is not None
+                        should_add_match = matches_include and not is_excluded
+                        if should_add_match:
+                            matches.append(entry_path)
 
             except (PermissionError, OSError):
                 continue  # Skip inaccessible directories

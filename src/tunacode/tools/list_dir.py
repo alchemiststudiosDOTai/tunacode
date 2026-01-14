@@ -7,11 +7,7 @@ from pathlib import Path
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.tools.decorators import base_tool
-from tunacode.utils.system.ignore_patterns import DEFAULT_IGNORE_PATTERNS, is_ignored
-
-IGNORE_PATTERNS = list(DEFAULT_IGNORE_PATTERNS)
-
-IGNORE_PATTERNS_COUNT = len(IGNORE_PATTERNS)
+from tunacode.tools.ignore import IgnoreManager, get_ignore_manager
 
 LIMIT = 100
 
@@ -20,40 +16,44 @@ def _collect_files(
     root: Path,
     max_files: int,
     show_hidden: bool,
-    ignore_patterns: list[str],
+    ignore_manager: IgnoreManager,
 ) -> list[str]:
     """Recursively collect files up to limit, respecting ignore patterns."""
     files: list[str] = []
     root_str = str(root)
 
-    for dirpath, dirnames, filenames in os.walk(root):
-        rel_dir = os.path.relpath(dirpath, root_str)
-        if rel_dir == ".":
-            rel_dir = ""
+    for dirpath, dirnames, filenames in os.walk(root_str):
+        dir_path = Path(dirpath)
 
-        # Filter directories in-place to prevent descending into ignored dirs
-        dirnames[:] = [
-            d
-            for d in dirnames
-            if (show_hidden or not d.startswith("."))
-            and not is_ignored(
-                os.path.join(rel_dir, d) if rel_dir else d,
-                d,
-                ignore_patterns,
-            )
-        ]
-        dirnames.sort()
+        filtered_dirs: list[str] = []
+        for name in dirnames:
+            is_hidden_dir = name.startswith(".")
+            should_skip_hidden_dir = is_hidden_dir and not show_hidden
+            if should_skip_hidden_dir:
+                continue
+            candidate_dir = dir_path / name
+            is_ignored_dir = ignore_manager.should_ignore_dir(candidate_dir)
+            if is_ignored_dir:
+                continue
+            filtered_dirs.append(name)
+
+        filtered_dirs.sort()
+        dirnames[:] = filtered_dirs
 
         # Collect files
         for filename in sorted(filenames):
-            if not show_hidden and filename.startswith("."):
+            is_hidden_file = filename.startswith(".")
+            should_skip_hidden_file = is_hidden_file and not show_hidden
+            if should_skip_hidden_file:
                 continue
 
-            rel_path = os.path.join(rel_dir, filename) if rel_dir else filename
-            if is_ignored(rel_path, filename, ignore_patterns):
+            file_path = dir_path / filename
+            is_ignored_file = ignore_manager.should_ignore(file_path)
+            if is_ignored_file:
                 continue
 
-            normalized_path = rel_path.replace(os.sep, "/")
+            rel_path = file_path.relative_to(root)
+            normalized_path = rel_path.as_posix()
             files.append(normalized_path)
             if len(files) >= max_files:
                 return files
@@ -146,14 +146,13 @@ async def list_dir(
     if not dir_path.is_dir():
         raise ModelRetry(f"Not a directory: {dir_path}. Provide a directory path.")
 
-    # Combine default and custom ignore patterns
-    ignore_patterns = list(IGNORE_PATTERNS)
+    ignore_manager = get_ignore_manager(dir_path)
     if ignore:
-        ignore_patterns.extend(ignore)
+        ignore_manager = ignore_manager.with_additional_patterns(ignore)
 
     # Collect files in background thread
     files = await asyncio.to_thread(
-        _collect_files, dir_path, max_files, show_hidden, ignore_patterns
+        _collect_files, dir_path, max_files, show_hidden, ignore_manager
     )
 
     if not files:

@@ -102,7 +102,7 @@ Fast file pattern matching:
 - .gitignore awareness
 - Sorted results
 - Integration with CodeIndex
-- Shared ignore directory list from `utils/system/ignore_patterns.py`
+- Shared ignore manager in `src/tunacode/tools/ignore.py`
 
 ### grep.py
 Advanced content search:
@@ -119,7 +119,7 @@ Advanced content search:
 - Context lines
 - Output modes: content, files-only, count, JSON
 - Broad pattern prevention
-- Shared ignore directory list for fast-glob prefiltering
+- Shared ignore manager for fast-glob prefiltering and `.gitignore` rules
 
 ### read_file.py
 Reads file contents safely:
@@ -155,7 +155,14 @@ Lists directory contents:
 - Ignore pattern support
 - Hidden file visibility
 - Output size limits
-- Shared ignore pattern list from `utils/system/ignore_patterns.py`
+- Shared ignore manager in `src/tunacode/tools/ignore.py`
+
+### ignore.py
+Shared ignore manager for discovery tools:
+- Loads default ignore patterns plus root `.gitignore`
+- Root-only `.gitignore` support (no nested ignore files)
+- Pathspec `gitwildmatch` matching for ignore rules
+- Provides `should_ignore`/`should_ignore_dir` helpers and cached manager instances
 
 ### web_fetch.py
 Fetches web content:

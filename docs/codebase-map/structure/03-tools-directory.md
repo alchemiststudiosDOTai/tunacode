@@ -18,6 +18,7 @@ Implements the **tool system** that gives the AI agent real-world capabilities:
 - **Shell Execution**: `bash.py` for command-line operations
 - **Search Tools**: `grep.py`, `glob.py` for code searching
 - **Directory Operations**: `list_dir.py` for filesystem navigation
+- **Ignore Management**: `ignore.py` for shared ignore rules
 - **Web Operations**: `web_fetch.py` for HTTP requests
 - **Reaction**: `react.py` for user response prompts
 - **Task Management**: `todo.py` for TODO list tracking
@@ -35,6 +36,7 @@ tools/
 ├── write_file.py           # File creation
 ├── update_file.py          # File editing via edits
 ├── list_dir.py             # Directory listing
+├── ignore.py               # Shared ignore rules
 ├── web_fetch.py            # HTTP requests
 ├── react.py                # User input prompts
 ├── todo.py                 # TODO list management

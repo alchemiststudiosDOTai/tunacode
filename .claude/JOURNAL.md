@@ -276,3 +276,84 @@ uv run ruff check src/tunacode/ui/  # Verify
 
 ### Philosophical Note:
 This bug was a perfect example of "the abstraction leaked". Panel.expand and RichLog.write(expand=) look like they should be the same thing, but they operate at different levels. Panel tells Rich what to do. RichLog tells Rich what size canvas to give it. The canvas size wins.
+
+---
+
+## 2026-01-14: Glob Tool Dead Code Cleanup (Branch: glob-improvements)
+
+### The Mission:
+Clean up glob tool based on research doc findings. Remove dead code, fix deprecations.
+
+### The Discovery: Semantically Dead Code
+
+Static analysis (Vulture) reported "no dead code" in glob.py. But manual review found:
+
+```python
+# Line 29: Global declared
+_gitignore_patterns: set[str] | None = None
+
+# Line 73-74: Function called
+if use_gitignore:
+    await _load_gitignore_patterns(root_path)
+
+# Lines 155-174: Function populates global
+async def _load_gitignore_patterns(root: Path) -> None:
+    global _gitignore_patterns
+    # ... reads .gitignore files, populates set
+```
+
+**The Problem:** `_gitignore_patterns` was NEVER READ. All 7 references were writes. The actual filtering used `DEFAULT_EXCLUDE_DIRS`. The `use_gitignore` parameter was a lie.
+
+### Why Vulture Missed It
+
+Vulture checks: "Is this symbol referenced?"
+It does NOT check: "Is the result consumed?"
+
+The function WAS called. The variable WAS assigned. But the data went nowhere.
+
+### Completed:
+
+**Commit 61384fe - Dead Code Removal:**
+- Removed `_gitignore_patterns` global
+- Removed `_load_gitignore_patterns()` function (21 lines)
+- Removed `use_gitignore` parameter from signature
+- Replaced 2x `asyncio.get_event_loop().run_in_executor()` with `asyncio.to_thread()`
+- Created QA card: `.claude/qa/semantically-dead-code.md`
+- Added lesson to CLAUDE.md Continuous Learning
+
+**Commit 745a56b - Asyncio Deprecation Fixes:**
+Fixed all remaining `get_event_loop()` calls in codebase:
+
+| File | Calls | Fix |
+|------|-------|-----|
+| `grep.py` | 2 | `get_running_loop().run_in_executor()` (custom executor) |
+| `startup.py` | 2 | `asyncio.to_thread()` |
+| `app.py` | 2 | `asyncio.to_thread()` |
+| `lsp/client.py` | 3 | `get_running_loop()` for create_future/time |
+
+### Key Insight: asyncio.to_thread() vs get_running_loop()
+
+- `asyncio.to_thread(func)` - For default executor (None), simpler API
+- `asyncio.get_running_loop().run_in_executor(exec, func)` - For custom executors
+
+### Prevention Rule
+
+When adding `load_X()` function:
+1. Grep for READS of X, not just references
+2. If a parameter "controls behavior", trace data flow to prove it changes output
+3. Question unused returns - if nothing reads it, why compute it?
+
+### Status:
+- Branch: `glob-improvements`
+- Tests: 304 passed
+- Ruff: clean
+- Zero `get_event_loop()` calls remain in src/
+- Ready to push
+
+### Next:
+Push branch, optionally create PR
+
+### References:
+- Research: `memory-bank/research/2026-01-14_12-27-29_glob-tool-bottlenecks.md`
+- QA Card: `.claude/qa/semantically-dead-code.md`
+- Skill used: `.claude/skills/dead-code-detector/` (Vulture - catches syntactic, not semantic)

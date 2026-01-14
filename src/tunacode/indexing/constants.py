@@ -1,41 +1,8 @@
 """Configuration constants for code indexing."""
 
-IGNORE_DIRS = {
-    ".git",
-    ".hg",
-    ".svn",
-    ".bzr",
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    "node_modules",
-    "bower_components",
-    ".venv",
-    "venv",
-    "env",
-    ".env",
-    "build",
-    "dist",
-    "_build",
-    "target",
-    ".idea",
-    ".vscode",
-    ".vs",
-    "htmlcov",
-    ".coverage",
-    ".tox",
-    ".eggs",
-    ".egg-info",
-    ".bundle",
-    "vendor",
-    ".terraform",
-    ".serverless",
-    ".next",
-    ".nuxt",
-    "coverage",
-    "tmp",
-    "temp",
-}
+from tunacode.tools.ignore import DEFAULT_EXCLUDE_DIRS
+
+IGNORE_DIRS = DEFAULT_EXCLUDE_DIRS
 
 QUICK_INDEX_THRESHOLD = 1000
 

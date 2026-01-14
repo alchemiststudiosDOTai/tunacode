@@ -25,13 +25,14 @@ Main indexing engine:
 
 **Features:**
 - In-memory file list caching
-- .gitignore-aware filtering
+- Default exclude directory filtering (shared with tools)
 - Fast pattern matching
 - Lazy indexing (indexes on demand)
 - Size-based thresholds
 
 ### constants.py
 Indexing configuration constants:
+- **IGNORE_DIRS** - Shared default exclude directories (from tools ignore manager)
 - **QUICK_INDEX_THRESHOLD** - Files below this count use full indexing
 - **INDEX_CACHE_SIZE** - Maximum cache size
 - **INDEX_UPDATE_DELAY** - Debouncing for index updates
@@ -47,7 +48,7 @@ Indexing configuration constants:
 - Source code files (based on extensions)
 - Configuration files
 - Documentation files
-- Respect .gitignore patterns
+- Respect shared exclude directory list
 
 **What to Skip:**
 - Binary files
