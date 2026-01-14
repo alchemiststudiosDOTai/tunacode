@@ -108,7 +108,7 @@ class ParallelGrep:
             include_pattern = include_files or "*"
             exclude_pattern = exclude_files
 
-            candidates = await asyncio.get_event_loop().run_in_executor(
+            candidates = await asyncio.get_running_loop().run_in_executor(
                 self._executor,
                 self._file_filter.fast_glob,
                 Path(directory),
@@ -413,7 +413,7 @@ class ParallelGrep:
         def search_file_sync():
             return self._pattern_matcher.search_file(file_path, pattern, regex_pattern, config)
 
-        return await asyncio.get_event_loop().run_in_executor(self._executor, search_file_sync)
+        return await asyncio.get_running_loop().run_in_executor(self._executor, search_file_sync)
 
 
 @base_tool

@@ -127,7 +127,7 @@ class LSPClient:
         request_id = self._request_id
 
         # Create a future to receive the response
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         future: asyncio.Future[dict[str, Any] | None] = loop.create_future()
         self._pending_requests[request_id] = future
 
@@ -310,8 +310,9 @@ class LSPClient:
         await self.open_file(path)
 
         # Wait for diagnostics
-        start = asyncio.get_event_loop().time()
-        while (asyncio.get_event_loop().time() - start) < timeout:
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        while (loop.time() - start) < timeout:
             if uri in self._diagnostics:
                 return self._diagnostics[uri]
             await asyncio.sleep(0.1)

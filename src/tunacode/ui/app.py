@@ -206,8 +206,7 @@ class TextualReplApp(App[None]):
                 count = index.build_priority_index()
                 return count, total, True
 
-        loop = asyncio.get_event_loop()
-        indexed, total, is_partial = await loop.run_in_executor(None, do_index)
+        indexed, total, is_partial = await asyncio.to_thread(do_index)
 
         if is_partial:
             msg = Text()
@@ -223,7 +222,7 @@ class TextualReplApp(App[None]):
                 index.expand_index()
                 return len(index._all_files)
 
-            final_count = await loop.run_in_executor(None, do_expand)
+            final_count = await asyncio.to_thread(do_expand)
             done_msg = Text()
             done_msg.append(f"Code cache built: {final_count} files indexed ✓", style=STYLE_SUCCESS)
             self.rich_log.write(done_msg)
