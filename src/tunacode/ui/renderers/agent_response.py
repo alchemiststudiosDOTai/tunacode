@@ -54,15 +54,20 @@ def _format_duration(duration_ms: float) -> str:
 
 
 def _format_model(model: str) -> str:
-    """Format model name, truncating provider prefix and long names."""
-    # Strip common provider prefixes for cleaner display
-    prefixes = ("anthropic/", "openai/", "google/", "mistral/")
-    for prefix in prefixes:
+    """Format model name, abbreviating provider prefix but keeping full model name."""
+    # TODO: UI smell - provider abbreviations hardcoded here, should be centralized
+    provider_abbrevs = {
+        "anthropic/": "ANTH/",
+        "openai/": "OA/",
+        "google/": "GOOG/",
+        "mistral/": "MIST/",
+        "openrouter/": "OR/",
+        "together/": "TOG/",
+        "groq/": "GROQ/",
+    }
+    for prefix, abbrev in provider_abbrevs.items():
         if model.startswith(prefix):
-            model = model[len(prefix) :]
-            break
-    if len(model) > 20:
-        return model[:17] + "..."
+            return abbrev + model[len(prefix) :]
     return model
 
 
@@ -108,11 +113,12 @@ def render_agent_streaming(
     viewport = Markdown(content) if content else Text("...", style="dim italic")
 
     # Status bar - streaming indicator
-    status_parts = ["streaming"]
-    if elapsed_ms > 0:
-        status_parts.append(_format_duration(elapsed_ms))
+    status_parts = []
     if model:
         status_parts.append(_format_model(model))
+    status_parts.append("streaming")
+    if elapsed_ms > 0:
+        status_parts.append(_format_duration(elapsed_ms))
 
     status = Text()
     status.append("  ·  ".join(status_parts), style=muted_color)
@@ -177,12 +183,12 @@ def render_agent_response(
 
     # Status bar
     status_parts = []
+    if model:
+        status_parts.append(_format_model(model))
     if tokens > 0:
         status_parts.append(_format_tokens(tokens))
     if duration_ms > 0:
         status_parts.append(_format_duration(duration_ms))
-    if model:
-        status_parts.append(_format_model(model))
 
     status = Text()
     status.append("  ·  ".join(status_parts) if status_parts else "", style=muted_color)
