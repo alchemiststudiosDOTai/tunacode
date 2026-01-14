@@ -330,6 +330,8 @@ Types: bug, smell, pattern, lesson, antipattern
 
 [2026-01-08] [lesson] **RichLog.write() has its own expand parameter!** When Panel(expand=True) doesn't expand in Textual, the fix is `rich_log.write(panel, expand=True)`. Panel.expand tells Rich what to do; RichLog.write(expand=) tells Rich what canvas size to use. Two different systems - canvas wins. See JOURNAL.md "The Great Panel Width Debugging Adventure".
 
+[2026-01-14] [antipattern] **Semantically dead code: loaded but never read.** Static analysis (Vulture) only catches syntactically dead code (never called). It misses code that IS called but whose result is never consumed. Example: `glob.py` had `_load_gitignore_patterns()` that populated a global, but nothing ever read that global. The `use_gitignore` parameter was a lie - it triggered work but had zero effect. **Prevention:** When adding a "load X" function, grep for reads of X before shipping. If a parameter controls behavior, trace the data flow to prove it actually changes output.
+
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go

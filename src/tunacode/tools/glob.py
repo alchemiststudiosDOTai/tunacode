@@ -25,10 +25,6 @@ class SortOrder(Enum):
     DEPTH = "depth"
 
 
-# Module-level cache for gitignore patterns
-_gitignore_patterns: set[str] | None = None
-
-
 @base_tool
 async def glob(
     pattern: str,
@@ -39,7 +35,6 @@ async def glob(
     max_results: int = MAX_RESULTS,
     sort_by: str = "modified",
     case_sensitive: bool = False,
-    use_gitignore: bool = True,
 ) -> str:
     """Find files matching glob patterns.
 
@@ -52,7 +47,6 @@ async def glob(
         max_results: Maximum number of results to return.
         sort_by: How to sort results (modified/size/alphabetical/depth).
         case_sensitive: Whether pattern matching is case-sensitive.
-        use_gitignore: Whether to respect .gitignore patterns.
 
     Returns:
         Formatted list of matching file paths.
@@ -69,9 +63,6 @@ async def glob(
 
     sort_order = _parse_sort_order(sort_by)
     patterns = _expand_brace_pattern(pattern)
-
-    if use_gitignore:
-        await _load_gitignore_patterns(root_path)
 
     # Try CodeIndex for faster lookup
     code_index = _get_code_index(directory)
@@ -150,28 +141,6 @@ def _expand_brace_pattern(pattern: str) -> list[str]:
             expanded.append(current)
 
     return expanded
-
-
-async def _load_gitignore_patterns(root: Path) -> None:
-    """Load .gitignore patterns from the repository."""
-    global _gitignore_patterns
-    if _gitignore_patterns is not None:
-        return
-
-    _gitignore_patterns = set()
-    ignore_files = [".gitignore", ".ignore", ".rgignore"]
-
-    for ignore_file in ignore_files:
-        ignore_path = root / ignore_file
-        if ignore_path.exists():
-            try:
-                with open(ignore_path, encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#"):
-                            _gitignore_patterns.add(line)
-            except Exception:
-                pass
 
 
 async def _glob_with_index(
@@ -292,7 +261,7 @@ async def _glob_filesystem(
 
         return matches[:max_results]
 
-    return await asyncio.get_event_loop().run_in_executor(None, search_sync)
+    return await asyncio.to_thread(search_sync)
 
 
 async def _sort_matches(matches: list[str], sort_by: SortOrder) -> list[str]:
@@ -309,7 +278,7 @@ async def _sort_matches(matches: list[str], sort_by: SortOrder) -> list[str]:
             return sorted(matches, key=lambda p: (p.count(os.sep), p))
         return sorted(matches)
 
-    return await asyncio.get_event_loop().run_in_executor(None, sort_sync)
+    return await asyncio.to_thread(sort_sync)
 
 
 def _format_output(pattern: str, matches: list[str], max_results: int, source: str) -> str:
