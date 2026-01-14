@@ -9,7 +9,7 @@ from tunacode.core.state import StateManager
 from tunacode.tools.submit import (
     SUBMIT_SUCCESS_MESSAGE,
     SUBMIT_SUMMARY_LABEL,
-    create_submit_tool,
+    submit,
 )
 
 
@@ -18,23 +18,15 @@ def state_manager() -> StateManager:
     return StateManager()
 
 
-@pytest.fixture(autouse=True)
-def no_xml_prompts(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("tunacode.tools.submit.load_prompt_from_xml", lambda _: None)
-
-
 class TestSubmitTool:
-    async def test_submit_returns_success_message(self, state_manager: StateManager) -> None:
-        submit = create_submit_tool(state_manager)
-
+    async def test_submit_returns_success_message(self) -> None:
         assert await submit() == SUBMIT_SUCCESS_MESSAGE
 
         summary = "Finished submit tool wiring"
         expected = f"{SUBMIT_SUCCESS_MESSAGE} {SUBMIT_SUMMARY_LABEL} {summary}"
         assert await submit(summary) == expected
 
-    def test_signature_preserved(self, state_manager: StateManager) -> None:
-        submit = create_submit_tool(state_manager)
+    def test_signature_preserved(self) -> None:
         sig = inspect.signature(submit)
         params = list(sig.parameters.keys())
         assert "summary" in params
