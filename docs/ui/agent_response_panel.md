@@ -18,7 +18,7 @@ Agent text responses are rendered in styled panels matching the NeXTSTEP tool pa
 │  code blocks, lists, and other markdown formatting.          │
 │                                                              │
 │  ──────────                                                  │
-│  1.2k  ·  2.3s  ·  claude-3.5-sonnet                        │
+│  ANTH/claude-3.5-sonnet  ·  1.2k  ·  2.3s                   │
 └──────────────────────────────────────── 9:06 PM ─────────────┘
 ```
 
@@ -27,7 +27,7 @@ Agent text responses are rendered in styled panels matching the NeXTSTEP tool pa
 1. **Title Bar**: "agent" label in accent color
 2. **Viewport**: Markdown-rendered content (full width)
 3. **Separator**: Horizontal line before status
-4. **Status Bar**: `tokens · duration · model`
+4. **Status Bar**: `model · tokens · duration`
 5. **Subtitle**: Timestamp (bottom border)
 
 ## Design Decisions
@@ -43,9 +43,9 @@ Model name moved from the top resource bar to the agent response status bar. Thi
 
 ### Status Bar Metrics
 Three metrics provide actionable feedback:
+- **Model**: Capability awareness (Provider abbreviated, e.g., `ANTH/`, `OA/`)
 - **Tokens**: Cost awareness
 - **Duration**: Performance awareness
-- **Model**: Capability awareness
 
 ## Implementation
 
@@ -70,11 +70,10 @@ Duration is tracked in `app.py:_process_request` using `time.monotonic()`:
 - Passed to renderer in milliseconds
 
 ### Model Name Formatting
-Provider prefixes are stripped for cleaner display:
-- `anthropic/claude-3.5-sonnet` → `claude-3.5-sonnet`
-- `openai/gpt-4o` → `gpt-4o`
-
-Long names (>20 chars) are truncated with `...`
+Provider prefixes are abbreviated for compact display:
+- `anthropic/claude-3.5-sonnet` → `ANTH/claude-3.5-sonnet`
+- `openai/gpt-4o` → `OA/gpt-4o`
+- `google/gemini-pro` → `GOOG/gemini-pro`
 
 ## Resize Behavior
 
