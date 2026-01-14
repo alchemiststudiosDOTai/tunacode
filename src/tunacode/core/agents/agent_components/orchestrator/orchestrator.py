@@ -9,11 +9,7 @@ from tunacode.types.callbacks import ToolCallback, ToolStartCallback
 
 from ..response_state import ResponseState
 from ..tool_buffer import ToolBuffer
-from .completion_detector import (
-    detect_completion,
-    detect_truncation,
-    has_premature_intention,
-)
+from ..truncation_checker import check_for_truncation
 from .message_recorder import record_model_response, record_request, record_thought
 from .tool_dispatcher import consume_tool_call_args, dispatch_tools, has_tool_calls
 from .usage_tracker import update_usage
@@ -25,7 +21,6 @@ CONTENT_JOINER = " "
 EMPTY_RESPONSE_REASON_EMPTY = "empty"
 EMPTY_RESPONSE_REASON_TRUNCATED = "truncated"
 
-EARLY_COMPLETION_ITERATION_LIMIT = 1
 TOOL_RESULT_STATUS_COMPLETED = "completed"
 
 ToolResultCallback = Callable[..., None]
@@ -128,28 +123,9 @@ async def process_node(
                     has_non_empty_content = True
                     content_parts.append(content)
 
-                completion_result = detect_completion(content, has_structured_tools)
-                if not completion_result.is_complete:
-                    continue
-
-                part.content = completion_result.cleaned_text
-                if completion_result.can_transition:
-                    combined_text = CONTENT_JOINER.join(content_parts)
-                    has_pending_intention = has_premature_intention(combined_text)
-                    iteration_count = session.iteration_count
-                    early_with_pending = (
-                        has_pending_intention
-                        and iteration_count <= EARLY_COMPLETION_ITERATION_LIMIT
-                    )
-                    if not early_with_pending:
-                        response_state.transition_to(AgentState.RESPONSE)
-                        response_state.set_completion_detected(True)
-                        response_state.has_user_response = True
-                break
-
             if content_parts:
                 combined_content = CONTENT_JOINER.join(content_parts).strip()
-                appears_truncated = detect_truncation(combined_content)
+                appears_truncated = check_for_truncation(combined_content)
 
             no_tools = not has_structured_tools
             empty_without_tools = not has_non_empty_content and no_tools

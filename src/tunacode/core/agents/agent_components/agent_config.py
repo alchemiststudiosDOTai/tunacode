@@ -37,6 +37,7 @@ from tunacode.tools.list_dir import list_dir
 from tunacode.tools.present_plan import create_present_plan_tool
 from tunacode.tools.react import create_react_tool
 from tunacode.tools.read_file import read_file
+from tunacode.tools.submit import create_submit_tool
 from tunacode.tools.todo import create_todoclear_tool, create_todoread_tool, create_todowrite_tool
 from tunacode.tools.update_file import update_file
 from tunacode.tools.web_fetch import web_fetch
@@ -360,6 +361,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             # Minimal tool set with short descriptions to save tokens
             strict = tool_strict_validation
             react_tool = create_react_tool(state_manager)
+            submit_tool = create_submit_tool(state_manager)
             tools_list = [
                 Tool(bash, max_retries=max_retries, strict=strict, description="Shell"),
                 Tool(read_file, max_retries=max_retries, strict=strict, description="Read"),
@@ -368,6 +370,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 Tool(glob, max_retries=max_retries, strict=strict, description="Find"),
                 Tool(list_dir, max_retries=max_retries, strict=strict, description="List"),
                 Tool(react_tool, max_retries=max_retries, strict=strict, description="React"),
+                Tool(submit_tool, max_retries=max_retries, strict=strict, description="Submit"),
             ]
         else:
             # Full tool set with detailed descriptions
@@ -402,6 +405,10 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             # Add present_plan tool for plan mode workflow
             present_plan = create_present_plan_tool(state_manager)
             tools_list.append(Tool(present_plan, max_retries=max_retries, strict=strict))
+
+            # Add submit tool for completion signaling
+            submit_tool = create_submit_tool(state_manager)
+            tools_list.append(Tool(submit_tool, max_retries=max_retries, strict=strict))
 
         # Configure HTTP client with retry logic at transport layer
         # This handles retries BEFORE node creation, avoiding pydantic-ai's

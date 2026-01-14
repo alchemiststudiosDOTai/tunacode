@@ -22,7 +22,7 @@ class SystemPromptSection(str, Enum):
     # GLOB->GREP->READ search pattern guidance
     SEARCH_PATTERN = "SEARCH_PATTERN"
 
-    # Task completion signaling (TUNACODE DONE:)
+    # Task completion signaling (submit tool)
     COMPLETION = "COMPLETION"
 
     # Parallel execution rules for read-only tools

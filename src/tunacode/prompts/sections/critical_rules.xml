@@ -18,9 +18,9 @@
    - Execute them as a single parallel batch
    - You will be penalized for making sequential calls when parallel execution is possible
 
-5. COMPLETION SIGNALING: When a task is COMPLETE, start your response with: TUNACODE DONE:
+5. COMPLETION SIGNALING: When a task is COMPLETE, call the submit tool.
    - Do this immediately when the task objective is achieved
-   - Do not mark DONE if you have queued tools in the same response
+   - Do not call submit if you have queued tools in the same response
 
 6. TRUNCATION HANDLING: If your response is cut off or truncated, you'll be prompted to continue - complete your action.
 

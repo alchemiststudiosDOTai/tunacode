@@ -70,6 +70,7 @@ class ToolName(str, Enum):
     RESEARCH_CODEBASE = "research_codebase"
     WEB_FETCH = "web_fetch"
     PRESENT_PLAN = "present_plan"
+    SUBMIT = "submit"
 
 
 READ_ONLY_TOOLS = [

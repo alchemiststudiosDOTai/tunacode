@@ -21,7 +21,7 @@ def format_no_progress(
         f"Current iteration: {current}/{max_iterations}\n"
         f"Task: {message[:200]}...\n\n"
         "You're describing actions but not executing them. You MUST:\n\n"
-        "1. If task is COMPLETE: Start response with TUNACODE DONE:\n"
+        "1. If task is COMPLETE: Call the submit tool with a brief summary.\n"
         "2. If task needs work: Execute a tool RIGHT NOW (grep, read_file, bash, etc.)\n"
         "3. If stuck: Explain the specific blocker\n\n"
         "NO MORE DESCRIPTIONS. Take ACTION or mark COMPLETE."
@@ -39,7 +39,7 @@ def format_clarification(original_query: str, iteration: int, tools_used: str) -
         "Progress so far:\n"
         f"- Iterations: {iteration}\n"
         f"- Tools used: {tools_used}\n\n"
-        "If the task is complete, I should respond with TUNACODE DONE:\n"
+        "If the task is complete, I should call the submit tool:\n"
         "Otherwise, please provide specific guidance on what to do next."
     )
 

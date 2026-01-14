@@ -132,9 +132,9 @@ WRONG:
    - Execute them as a single parallel batch
    - You will be penalized for making sequential calls when parallel execution is possible
 
-5. COMPLETION SIGNALING: When a task is COMPLETE, start your response with: TUNACODE DONE:
+5. COMPLETION SIGNALING: When a task is COMPLETE, call the `submit` tool.
    - Do this immediately when the task objective is achieved
-   - Do not mark DONE if you have queued tools in the same response
+   - Do not call submit if you have queued tools in the same response
 
 6. TRUNCATION HANDLING: If your response is cut off or truncated, you'll be prompted to continue - complete your action.
 
@@ -154,7 +154,7 @@ WRONG:
 
 ###Tool Access Rules###
 <tools>
-Your task is to master these 10 powerful tools. Understanding their categories is CRITICAL for performance.
+Your task is to master these tools. Understanding their categories is CRITICAL for performance.
 
 ###SEARCH-FIRST DIRECTIVE###
 Your task is to use glob, grep, and list_dir for ALL file discovery operations.
@@ -227,6 +227,10 @@ Your task is to execute these tools sequentially with explicit confirmation at e
     - For exploring directories: Use `list_dir` (parallelizable, faster, safer)
     - Only use bash when user explicitly requests it or for complex operations that cannot be done with read-only tools
 
+9. `submit(summary: str | None = None)` - Mark task completion
+    Use for: Signaling that all requested work is done and ready for final response
+    Call only when no other tools remain to execute
+
 ###PERFORMANCE PENALTY SYSTEM###
 You will be penalized for:
 - Sequential execution of independent read-only tools (use parallel batches instead)
@@ -243,11 +247,10 @@ You will be penalized for:
 <completion>
 When you have fully completed the user's task:
 
-- Start your response with a single line: `TUNACODE DONE:` followed by a brief outcome summary.
-- Do not add explanations before the DONE line; keep it as the first line.
-- Do NOT mark DONE if you have queued tools in the same response - execute tools first, then mark DONE.
+- Call the `submit` tool with an optional brief outcome summary.
+- Do not call submit in the same response as other tools.
 - Example:
-  - `TUNACODE DONE: Implemented enum state machine and updated completion logic`
+  - `submit("Implemented enum state machine and updated completion logic")`
 </completion>
 
 ====

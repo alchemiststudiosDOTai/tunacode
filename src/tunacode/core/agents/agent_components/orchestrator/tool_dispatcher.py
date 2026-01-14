@@ -4,7 +4,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
-from tunacode.constants import ERROR_TOOL_ARGS_MISSING, ERROR_TOOL_CALL_ID_MISSING, READ_ONLY_TOOLS
+from tunacode.constants import (
+    ERROR_TOOL_ARGS_MISSING,
+    ERROR_TOOL_CALL_ID_MISSING,
+    READ_ONLY_TOOLS,
+    ToolName,
+)
 from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import StateError, UserAbortError
@@ -16,6 +21,7 @@ from ..response_state import ResponseState
 PART_KIND_TEXT = "text"
 PART_KIND_TOOL_CALL = "tool-call"
 RESEARCH_TOOL_NAME = "research_codebase"
+SUBMIT_TOOL_NAME = ToolName.SUBMIT
 UNKNOWN_TOOL_NAME = "unknown"
 TOOL_BATCH_PREVIEW_COUNT = 3
 TEXT_PART_JOINER = "\n"
@@ -141,6 +147,7 @@ async def dispatch_tools(
     research_agent_tasks: list[tuple[Any, Any]] = []
     write_execute_tasks: list[tuple[Any, Any]] = []
     tool_call_records: list[tuple[Any, ToolArgs]] = []
+    submit_requested = False
 
     for part in parts:
         part_kind = getattr(part, "part_kind", None)
@@ -154,10 +161,13 @@ async def dispatch_tools(
         tool_args = await record_tool_call_args(part, state_manager)
         tool_call_records.append((part, tool_args))
 
+        tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+        if tool_name == SUBMIT_TOOL_NAME:
+            submit_requested = True
+
         if not tool_callback:
             continue
 
-        tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
         if tool_name == RESEARCH_TOOL_NAME:
             research_agent_tasks.append((part, node))
         elif tool_name in READ_ONLY_TOOLS:
@@ -178,6 +188,8 @@ async def dispatch_tools(
             for part, tool_args in fallback_tool_calls:
                 tool_call_records.append((part, tool_args))
                 tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+                if tool_name == SUBMIT_TOOL_NAME:
+                    submit_requested = True
                 if tool_name == RESEARCH_TOOL_NAME:
                     research_agent_tasks.append((part, node))
                 elif tool_name in READ_ONLY_TOOLS:
@@ -239,6 +251,9 @@ async def dispatch_tools(
         and response_state.can_transition_to(AgentState.RESPONSE)
     ):
         response_state.transition_to(AgentState.RESPONSE)
+
+    if submit_requested and response_state:
+        response_state.task_completed = True
 
     if response_state:
         result = getattr(node, "result", None)

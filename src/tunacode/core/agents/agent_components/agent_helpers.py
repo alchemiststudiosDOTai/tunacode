@@ -152,7 +152,7 @@ Attempt: {iteration}
 Please take one of these specific actions:
 
 1. **Search yielded no results?** → Try alternative search terms or broader patterns
-2. **Found what you need?** → Use TUNACODE DONE: to finalize
+2. **Found what you need?** → Call the submit tool to finalize
 3. **Encountering a blocker?** → Explain the specific issue preventing progress
 4. **Need more context?** → Use list_dir or expand your search scope
 

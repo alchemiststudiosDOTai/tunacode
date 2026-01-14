@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tool_prompt>
+    <description>
+Signal task completion. Call this tool only when all requested work is finished.
+Optionally provide a short summary of outcomes. Do not call submit in the same
+response as other tools.
+    </description>
+</tool_prompt>

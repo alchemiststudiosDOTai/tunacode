@@ -18,7 +18,6 @@ from .orchestrator import process_node
 from .response_state import ResponseState
 from .result_wrapper import AgentRunWithState, AgentRunWrapper, SimpleResult
 from .streaming import stream_model_request_node
-from .task_completion import check_task_completion
 from .tool_buffer import ToolBuffer
 from .tool_executor import execute_tools_parallel
 
@@ -31,7 +30,6 @@ __all__ = [
     "AgentRunWithState",
     "AgentRunWrapper",
     "SimpleResult",
-    "check_task_completion",
     "ToolBuffer",
     "execute_tools_parallel",
     "create_empty_response_message",

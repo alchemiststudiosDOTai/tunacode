@@ -30,6 +30,7 @@ class ApplicationSettings:
             ToolName.LIST_DIR,
             ToolName.READ_FILE,
             ToolName.RESEARCH_CODEBASE,
+            ToolName.SUBMIT,
             ToolName.UPDATE_FILE,
             ToolName.WRITE_FILE,
         ]

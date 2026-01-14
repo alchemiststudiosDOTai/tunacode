@@ -2,9 +2,8 @@
 <completion>
 When you have fully completed the user's task:
 
-- Start your response with a single line: `TUNACODE DONE:` followed by a brief outcome summary.
-- Do not add explanations before the DONE line; keep it as the first line.
-- Do NOT mark DONE if you have queued tools in the same response - execute tools first, then mark DONE.
+- Call the `submit` tool with an optional brief outcome summary.
+- Do not call submit in the same response as other tools.
 - Example:
-  - `TUNACODE DONE: Implemented enum state machine and updated completion logic`
+  - `submit("Implemented enum state machine and updated completion logic")`
 </completion>
