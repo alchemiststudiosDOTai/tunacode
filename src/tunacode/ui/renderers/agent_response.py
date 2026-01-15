@@ -54,8 +54,11 @@ def _format_duration(duration_ms: float) -> str:
 
 
 def _format_model(model: str) -> str:
-    """Format model name, abbreviating provider prefix but keeping full model name."""
-    # TODO: UI smell - provider abbreviations hardcoded here, should be centralized
+    """Format model name, abbreviating provider prefix but keeping full model name.
+
+    Precondition: model is a non-empty string
+    Postcondition: Returns formatted model name, truncated if >30 chars
+    """
     provider_abbrevs = {
         "anthropic/": "ANTH/",
         "openai/": "OA/",
@@ -67,7 +70,11 @@ def _format_model(model: str) -> str:
     }
     for prefix, abbrev in provider_abbrevs.items():
         if model.startswith(prefix):
-            return abbrev + model[len(prefix) :]
+            model = abbrev + model[len(prefix) :]
+            break
+    # Truncate absurdly long model names to prevent status bar overflow
+    if len(model) > 30:
+        return model[:27] + "..."
     return model
 
 
