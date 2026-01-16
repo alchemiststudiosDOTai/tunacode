@@ -10,7 +10,7 @@ from tunacode.types.callbacks import ToolCallback, ToolStartCallback
 from ..response_state import ResponseState
 from ..tool_buffer import ToolBuffer
 from ..truncation_checker import check_for_truncation
-from .message_recorder import record_model_response, record_request, record_thought
+from .message_recorder import record_thought
 from .tool_dispatcher import consume_tool_call_args, dispatch_tools, has_tool_calls
 from .usage_tracker import update_usage
 
@@ -92,7 +92,6 @@ async def process_node(
 
     request = getattr(node, "request", None)
     if request is not None:
-        record_request(session, request)
         _emit_tool_returns(request, state_manager, tool_result_callback)
 
     thought = getattr(node, "thought", None)
@@ -101,13 +100,11 @@ async def process_node(
 
     model_response = getattr(node, "model_response", None)
     if model_response is not None:
-        record_model_response(session, model_response)
         update_usage(
             session,
             getattr(model_response, "usage", None),
             session.current_model,
         )
-        session.update_token_count()
 
         response_parts = model_response.parts
         if response_state:

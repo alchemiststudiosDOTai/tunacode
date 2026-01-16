@@ -50,6 +50,7 @@ from tunacode.types.callbacks import (
     AsyncFunc,
     AsyncToolFunc,
     AsyncVoidFunc,
+    NoticeCallback,
     ToolCallback,
     ToolProgress,
     ToolProgressCallback,
@@ -148,6 +149,7 @@ __all__ = [
     "ToolProgress",
     "ToolProgressCallback",
     "ToolStartCallback",
+    "NoticeCallback",
     "UICallback",
     "UIInputCallback",
     # State

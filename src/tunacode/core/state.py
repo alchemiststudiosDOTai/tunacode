@@ -43,6 +43,7 @@ class SessionState:
     )  # Keep as dict[str, Any] for agent instances
     agent_versions: dict[str, int] = field(default_factory=dict)
     messages: MessageHistory = field(default_factory=list)
+    thoughts: list[str] = field(default_factory=list)
     # Keep session default in sync with configuration default
     current_model: ModelName = DEFAULT_USER_CONFIG["default_model"]
     spinner: Any | None = None
@@ -288,9 +289,7 @@ class StateManager:
                 result.append(item)
                 continue
 
-            if "thought" in item:
-                result.append(item)
-            elif item.get("kind") in ("request", "response"):
+            if item.get("kind") in ("request", "response"):
                 try:
                     result.append(msg_adapter.validate_python(item))
                 except Exception:
@@ -298,6 +297,22 @@ class StateManager:
             else:
                 result.append(item)
         return result
+
+    def _split_thought_messages(self, messages: list[Any]) -> tuple[list[str], list[Any]]:
+        """Separate thought entries from message history."""
+        thoughts: list[str] = []
+        cleaned_messages: list[Any] = []
+
+        for message in messages:
+            if isinstance(message, dict) and "thought" in message:
+                thought_value = message.get("thought")
+                if thought_value is not None:
+                    thoughts.append(str(thought_value))
+                continue
+
+            cleaned_messages.append(message)
+
+        return thoughts, cleaned_messages
 
     def save_session(self) -> bool:
         """Save current session to disk."""
@@ -321,6 +336,7 @@ class StateManager:
             "yolo": self._session.yolo,
             "react_scratchpad": self._session.react_scratchpad,
             "todos": self._session.todos,
+            "thoughts": self._session.thoughts,
             "messages": self._serialize_messages(),
         }
 
@@ -375,7 +391,13 @@ class StateManager:
             self._session.yolo = data.get("yolo", False)
             self._session.react_scratchpad = data.get("react_scratchpad", {"timeline": []})
             self._session.todos = data.get("todos", [])
-            self._session.messages = self._deserialize_messages(data.get("messages", []))
+            loaded_messages = self._deserialize_messages(data.get("messages", []))
+            stored_thoughts = data.get("thoughts") or []
+            extracted_thoughts, cleaned_messages = self._split_thought_messages(
+                loaded_messages
+            )
+            self._session.thoughts = [*stored_thoughts, *extracted_thoughts]
+            self._session.messages = cleaned_messages
 
             return True
         except json.JSONDecodeError:

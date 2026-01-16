@@ -5,15 +5,13 @@ from .agent_helpers import (
     create_empty_response_message,
     create_fallback_response,
     create_progress_summary,
-    create_user_message,
     format_fallback_output,
     get_recent_tools_context,
     get_tool_description,
     get_tool_summary,
-    get_user_prompt_part_class,
     handle_empty_response,
 )
-from .message_handler import get_model_messages, patch_tool_messages
+from .message_handler import get_model_messages
 from .orchestrator import process_node
 from .response_state import ResponseState
 from .result_wrapper import AgentRunWithState, AgentRunWrapper, SimpleResult
@@ -24,7 +22,6 @@ from .tool_executor import execute_tools_parallel
 __all__ = [
     "get_or_create_agent",
     "get_model_messages",
-    "patch_tool_messages",
     "process_node",
     "ResponseState",
     "AgentRunWithState",
@@ -35,12 +32,10 @@ __all__ = [
     "create_empty_response_message",
     "create_fallback_response",
     "create_progress_summary",
-    "create_user_message",
     "format_fallback_output",
     "get_recent_tools_context",
     "get_tool_description",
     "get_tool_summary",
-    "get_user_prompt_part_class",
     "handle_empty_response",
     "stream_model_request_node",
 ]

@@ -181,7 +181,7 @@ USER INPUT
 │ 6. TOOL EXECUTION (Tools Layer)                               │
 │    - Tool function executed (e.g., bash, grep)                │
 │    - Return value captured                                    │
-│    - Result added to message history                          │
+│    - Results recorded in the run message history              │
 └───────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -199,7 +199,7 @@ STATE UPDATE
     ▼
 ┌───────────────────────────────────────────────────────────────┐
 │ 8. STATE MANAGEMENT (Core Layer)                              │
-│    - Message history appended to SessionState                 │
+│    - SessionState messages synced from agent_run history       │
 │    - Token usage updated                                      │
 │    - Context window managed via compaction                    │
 └───────────────────────────────────────────────────────────────┘

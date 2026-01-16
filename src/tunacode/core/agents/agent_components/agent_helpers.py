@@ -2,54 +2,7 @@
 
 from typing import Any
 
-from tunacode.core.state import StateManager
 from tunacode.types import FallbackResponse
-
-
-class UserPromptPartFallback:
-    """Fallback class for UserPromptPart when pydantic_ai is not available."""
-
-    def __init__(self, content: str, part_kind: str):
-        self.content = content
-        self.part_kind = part_kind
-
-
-# Cache for UserPromptPart class
-_USER_PROMPT_PART_CLASS = None
-
-
-def get_user_prompt_part_class():
-    """Get UserPromptPart class with caching and fallback for test environment."""
-    global _USER_PROMPT_PART_CLASS
-
-    if _USER_PROMPT_PART_CLASS is not None:
-        return _USER_PROMPT_PART_CLASS
-
-    try:
-        import importlib
-
-        messages = importlib.import_module("pydantic_ai.messages")
-        _USER_PROMPT_PART_CLASS = getattr(messages, "UserPromptPart", None)
-
-        if _USER_PROMPT_PART_CLASS is None:
-            _USER_PROMPT_PART_CLASS = UserPromptPartFallback
-    except Exception:
-        _USER_PROMPT_PART_CLASS = UserPromptPartFallback
-
-    return _USER_PROMPT_PART_CLASS
-
-
-def create_user_message(content: str, state_manager: StateManager):
-    """Create a user message and add it to the session messages."""
-    from .message_handler import get_model_messages
-
-    model_request_cls = get_model_messages()[0]
-    UserPromptPart = get_user_prompt_part_class()
-    user_prompt_part = UserPromptPart(content=content, part_kind="user-prompt")
-    message = model_request_cls(parts=[user_prompt_part], kind="request")
-    state_manager.session.messages.append(message)
-    state_manager.session.update_token_count()
-    return message
 
 
 def get_tool_summary(tool_calls: list[dict[str, Any]]) -> dict[str, int]:
@@ -137,7 +90,6 @@ def create_empty_response_message(
     empty_reason: str,
     tool_calls: list[dict[str, Any]],
     iteration: int,
-    state_manager: StateManager,
 ) -> str:
     """Create a constructive message for handling empty responses."""
     tools_context = get_recent_tools_context(tool_calls)
@@ -260,16 +212,15 @@ async def handle_empty_response(
     reason: str,
     iter_index: int,
     state: Any,
-) -> None:
-    """Handle empty responses by creating a synthetic user message with retry guidance."""
+) -> str:
+    """Build a user-facing notice for empty responses."""
     force_action_content = create_empty_response_message(
         message,
         reason,
         getattr(state.sm.session, "tool_calls", []),
         iter_index,
-        state.sm,
     )
-    create_user_message(force_action_content, state.sm)
+    return force_action_content
 
 
 def format_fallback_output(fallback: FallbackResponse) -> str:

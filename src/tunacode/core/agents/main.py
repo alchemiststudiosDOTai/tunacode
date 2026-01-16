@@ -27,6 +27,7 @@ from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
     ModelName,
+    NoticeCallback,
     ToolCallback,
 )
 from tunacode.utils.ui import DotDict
@@ -66,8 +67,13 @@ class RequestContext:
 class EmptyResponseHandler:
     """Handles tracking and intervention for empty responses."""
 
-    def __init__(self, state_manager: StateManager) -> None:
+    def __init__(
+        self,
+        state_manager: StateManager,
+        notice_callback: NoticeCallback | None,
+    ) -> None:
         self.state_manager = state_manager
+        self.notice_callback = notice_callback
 
     def track(self, is_empty: bool) -> None:
         """Track empty response and increment counter if empty."""
@@ -93,7 +99,9 @@ class EmptyResponseHandler:
                 self.show_thoughts = bool(getattr(sm.session, "show_thoughts", False))
 
         state_proxy = StateProxy(self.state_manager)
-        await ac.handle_empty_response(message, reason, iteration, state_proxy)
+        notice = await ac.handle_empty_response(message, reason, iteration, state_proxy)
+        if self.notice_callback:
+            self.notice_callback(notice)
         # Clear after intervention
         self.state_manager.session.consecutive_empty_responses = 0
 
@@ -101,9 +109,15 @@ class EmptyResponseHandler:
 class IterationManager:
     """Manages iteration tracking, productivity monitoring, and limit handling."""
 
-    def __init__(self, state_manager: StateManager, config: AgentConfig) -> None:
+    def __init__(
+        self,
+        state_manager: StateManager,
+        config: AgentConfig,
+        notice_callback: NoticeCallback | None,
+    ) -> None:
         self.state_manager = state_manager
         self.config = config
+        self.notice_callback = notice_callback
         self.unproductive_iterations = 0
         self.last_productive_iteration = 0
 
@@ -131,7 +145,8 @@ class IterationManager:
                 getattr(self.state_manager.session, "tool_calls", [])
             )
             limit_message = format_iteration_limit(self.config.max_iterations, iteration, tools_str)
-            ac.create_user_message(limit_message, self.state_manager)
+            if self.notice_callback:
+                self.notice_callback(limit_message)
 
             response_state.awaiting_user_guidance = True
 
@@ -154,7 +169,8 @@ class IterationManager:
             iteration,
             self.config.max_iterations,
         )
-        ac.create_user_message(no_progress_message, self.state_manager)
+        if self.notice_callback:
+            self.notice_callback(no_progress_message)
 
         # Reset after nudge
         self.unproductive_iterations = 0
@@ -166,7 +182,8 @@ class IterationManager:
         )
         original_query = getattr(self.state_manager.session, "original_query", "your request")
         clarification_message = format_clarification(original_query, iteration, tools_used_str)
-        ac.create_user_message(clarification_message, self.state_manager)
+        if self.notice_callback:
+            self.notice_callback(clarification_message)
 
 
 class ReactSnapshotManager:
@@ -283,6 +300,7 @@ class RequestOrchestrator:
         streaming_callback: Callable[[str], Awaitable[None]] | None,
         tool_result_callback: Callable[..., None] | None = None,
         tool_start_callback: Callable[[str], None] | None = None,
+        notice_callback: NoticeCallback | None = None,
     ) -> None:
         self.message = message
         self.model = model
@@ -304,8 +322,8 @@ class RequestOrchestrator:
         )
 
         # Initialize managers
-        self.empty_handler = EmptyResponseHandler(state_manager)
-        self.iteration_manager = IterationManager(state_manager, self.config)
+        self.empty_handler = EmptyResponseHandler(state_manager, notice_callback)
+        self.iteration_manager = IterationManager(state_manager, self.config, notice_callback)
         self.react_manager = ReactSnapshotManager(
             state_manager, ReactTool(state_manager=state_manager), self.config
         )
@@ -344,6 +362,15 @@ class RequestOrchestrator:
         if not getattr(self.state_manager.session, "original_query", None):
             self.state_manager.session.original_query = query
 
+    def _persist_run_messages(self, agent_run: AgentRun, baseline_message_count: int) -> None:
+        """Persist authoritative run messages, preserving external additions."""
+        run_messages = list(agent_run.all_messages())
+        external_messages = self.state_manager.session.messages[baseline_message_count:]
+        merged_messages = [*run_messages, *external_messages]
+
+        self.state_manager.session.messages = merged_messages
+        self.state_manager.session.update_token_count()
+
     async def run(self) -> AgentRun:
         """Run the main request processing loop with optional global timeout."""
         from tunacode.core.agents.agent_components.agent_config import (
@@ -373,7 +400,8 @@ class RequestOrchestrator:
 
         # Prune old tool outputs directly in session (persisted)
         session_messages = self.state_manager.session.messages
-        _, tokens_reclaimed = prune_old_tool_outputs(session_messages, self.model)
+        _, _tokens_reclaimed = prune_old_tool_outputs(session_messages, self.model)
+        baseline_message_count = len(session_messages)
 
         # Prepare history snapshot (now pruned)
         message_history = list(session_messages)
@@ -456,6 +484,7 @@ class RequestOrchestrator:
                 )
 
                 # Return wrapper that carries response_state
+                self._persist_run_messages(agent_run, baseline_message_count)
                 return ac.AgentRunWithState(agent_run, response_state)
 
         except UserAbortError:
@@ -541,6 +570,7 @@ async def process_request(
     streaming_callback: Callable[[str], Awaitable[None]] | None = None,
     tool_result_callback: Callable[..., None] | None = None,
     tool_start_callback: Callable[[str], None] | None = None,
+    notice_callback: NoticeCallback | None = None,
 ) -> AgentRun:
     orchestrator = RequestOrchestrator(
         message,
@@ -550,5 +580,6 @@ async def process_request(
         streaming_callback,
         tool_result_callback,
         tool_start_callback,
+        notice_callback,
     )
     return await orchestrator.run()

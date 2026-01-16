@@ -30,6 +30,7 @@ class ToolProgress:
 ToolCallback = Callable[[Any, Any], Awaitable[None]]
 ToolStartCallback = Callable[[str], None]
 ToolProgressCallback = Callable[[ToolProgress], None]
+NoticeCallback = Callable[[str], None]
 
 # UI callbacks
 UICallback = Callable[[str], Awaitable[None]]
@@ -48,6 +49,7 @@ __all__ = [
     "ToolProgress",
     "ToolProgressCallback",
     "ToolStartCallback",
+    "NoticeCallback",
     "UICallback",
     "UIInputCallback",
 ]

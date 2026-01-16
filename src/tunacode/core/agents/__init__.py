@@ -10,7 +10,6 @@ from .agent_components import (
     execute_tools_parallel,
     get_model_messages,
     get_or_create_agent,
-    patch_tool_messages,
     process_node,
 )
 from .main import (
@@ -23,7 +22,6 @@ __all__ = [
     "process_request",
     "get_or_create_agent",
     "get_model_messages",
-    "patch_tool_messages",
     "process_node",
     "ResponseState",
     "SimpleResult",

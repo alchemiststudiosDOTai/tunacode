@@ -6,6 +6,7 @@ import asyncio
 import os
 import time
 from datetime import UTC, datetime
+from typing import Any
 
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -268,24 +269,13 @@ class TextualReplApp(App[None]):
                     streaming_callback=self.streaming_callback,
                     tool_result_callback=build_tool_result_callback(self),
                     tool_start_callback=build_tool_start_callback(self),
+                    notice_callback=self._show_system_notice,
                 )
             )
             await self._current_request_task
         except asyncio.CancelledError:
-            from tunacode.core.agents.agent_components import patch_tool_messages
-
-            patch_tool_messages(
-                "Operation cancelled by user",
-                state_manager=self.state_manager,
-            )
             self.notify("Cancelled")
         except Exception as e:
-            from tunacode.core.agents.agent_components import patch_tool_messages
-
-            patch_tool_messages(
-                f"Request failed: {type(e).__name__}",
-                state_manager=self.state_manager,
-            )
             error_renderable = render_exception(e)
             self.rich_log.write(error_renderable)
         finally:
@@ -366,6 +356,17 @@ class TextualReplApp(App[None]):
         )
         self.rich_log.write(panel, expand=True)
 
+    def _show_system_notice(self, notice: str) -> None:
+        notice_text = Text(notice, style=STYLE_WARNING)
+        self.rich_log.write(notice_text)
+
+    def _is_user_prompt_request(self, message: Any) -> bool:
+        parts = getattr(message, "parts", None)
+        if not parts:
+            return False
+
+        return any(getattr(part, "part_kind", None) == "user-prompt" for part in parts)
+
     def _replay_session_messages(self) -> None:
         """Render loaded session messages to RichLog."""
         from pydantic_ai.messages import ModelRequest, ModelResponse
@@ -373,14 +374,13 @@ class TextualReplApp(App[None]):
         from tunacode.utils.messaging.message_utils import get_message_content
 
         for msg in self.state_manager.session.messages:
-            if isinstance(msg, dict) and "thought" in msg:
-                continue  # Skip internal thoughts
-
             content = get_message_content(msg)
             if not content:
                 continue
 
             if isinstance(msg, ModelRequest):
+                if not self._is_user_prompt_request(msg):
+                    continue
                 user_block = Text()
                 user_block.append(f"| {content}\n", style=STYLE_PRIMARY)
                 user_block.append("| (restored)", style=f"dim {STYLE_PRIMARY}")

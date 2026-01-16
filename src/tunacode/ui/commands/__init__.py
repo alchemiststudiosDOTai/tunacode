@@ -242,34 +242,11 @@ class BranchCommand(Command):
             app.rich_log.write(f"Error: {e}")
 
 
-PLAN_MODE_INSTRUCTION = """You are now in READ-ONLY PLANNING MODE.
-
-BLOCKED TOOLS: write_file, update_file, bash - DO NOT attempt to use them.
-AVAILABLE TOOLS: read_file, grep, list_dir, glob, web_fetch, react, research_codebase,
-  todowrite, present_plan
-
-YOUR TASK:
-1. Use read-only tools to gather context about the codebase
-2. Understand the current implementation
-3. When ready, call present_plan with your detailed implementation plan
-
-PLAN FORMAT (use present_plan tool):
-- Objective summary
-- Files to modify with brief descriptions
-- Step-by-step approach
-- Risks and considerations
-- Acceptance criteria
-
-The user will review and approve/deny your plan."""
-
-
 class PlanCommand(Command):
     name = "plan"
     description = "Toggle read-only planning mode"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        from tunacode.core.agents.agent_components.agent_helpers import create_user_message
-
         session = app.state_manager.session
         session.plan_mode = not session.plan_mode
 
@@ -288,8 +265,6 @@ class PlanCommand(Command):
                 "Blocked: write_file, update_file, bash\n"
                 "Use read-only tools to gather context, then call present_plan."
             )
-            # Inject instruction message for the agent
-            create_user_message(PLAN_MODE_INSTRUCTION, app.state_manager)
         else:
             # Clear the callback
             session.plan_approval_callback = None
@@ -297,10 +272,6 @@ class PlanCommand(Command):
             # NeXTSTEP: Clear mode indicator
             app.status_bar.set_mode(None)
             app.notify("Plan mode OFF - all tools available")
-            create_user_message(
-                "Plan mode has been disabled. All tools are now available.",
-                app.state_manager,
-            )
 
 
 class ThemeCommand(Command):

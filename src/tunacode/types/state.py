@@ -17,6 +17,7 @@ class SessionStateProtocol(Protocol):
     current_model: str
     tool_progress_callback: "ToolProgressCallback | None"
     messages: list[Any]
+    thoughts: list[str]
     tool_calls: list[dict[str, Any]]
     tool_ignore: list[str]
     yolo: bool
