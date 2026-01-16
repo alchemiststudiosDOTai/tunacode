@@ -31,7 +31,6 @@ LOCAL_MAX_COMMAND_OUTPUT = 1500
 LOCAL_DEFAULT_READ_LIMIT = 200
 LOCAL_MAX_LINE_LENGTH = 500
 LOCAL_MAX_FILES_IN_DIR = 20
-MAX_TOTAL_DIR_SIZE = 2 * MB
 DEFAULT_CONTEXT_WINDOW = 200000
 
 MAX_CALLBACK_CONTENT = 50_000
@@ -42,7 +41,6 @@ MODEL_PICKER_UNFILTERED_LIMIT = 50
 
 TOOL_VIEWPORT_LINES = 8
 MIN_VIEWPORT_LINES = 3
-TOOL_PANEL_WIDTH = 50
 URL_DISPLAY_MAX_LENGTH = 50
 
 BOX_HORIZONTAL = "\u2500"  # ─
@@ -93,8 +91,6 @@ EXECUTE_TOOLS = [
     ToolName.BASH,
 ]
 
-COMMAND_PREFIX = "/"
-
 # Plan mode sentinel for exit without revision
 EXIT_PLAN_MODE_SENTINEL = "__EXIT_PLAN_MODE__"
 
@@ -133,37 +129,12 @@ NEXTSTEP_COLORS = {
     "error": "#1a1a1a",
 }
 
-UI_THINKING_MESSAGE = "[bold #00d7ff]Thinking...[/bold #00d7ff]"
-
-ERROR_PROVIDER_EMPTY = "Provider number cannot be empty"
-ERROR_INVALID_PROVIDER = "Invalid provider number"
-ERROR_FILE_NOT_FOUND = "Error: File not found at '{filepath}'."
 ERROR_FILE_TOO_LARGE = "Error: File '{filepath}' is too large (> 100KB)."
-ERROR_FILE_DECODE = "Error reading file '{filepath}': Could not decode using UTF-8."
-ERROR_FILE_DECODE_DETAILS = "It might be a binary file or use a different encoding. {error}"
-ERROR_COMMAND_NOT_FOUND = "Error: Command not found or failed to execute:"
-ERROR_COMMAND_EXECUTION = (
-    "Error: Command not found or failed to execute: {command}. Details: {error}"
-)
 ERROR_TOOL_CALL_ID_MISSING = "Tool return missing tool_call_id."
 ERROR_TOOL_ARGS_MISSING = "Tool args missing for tool_call_id '{tool_call_id}'."
-
-ERROR_DIR_TOO_LARGE = (
-    "Error: Directory '{path}' expansion aborted. Total size exceeds {limit_mb:.1f} MB limit."
-)
-ERROR_DIR_TOO_MANY_FILES = (
-    "Error: Directory '{path}' expansion aborted. Exceeds limit of {limit} files."
-)
-
-CMD_OUTPUT_NO_OUTPUT = "No output."
-CMD_OUTPUT_NO_ERRORS = "No errors."
-CMD_OUTPUT_FORMAT = "STDOUT:\n{output}\n\nSTDERR:\n{error}"
 CMD_OUTPUT_TRUNCATED = "\n...\n[truncated]\n...\n"
 
 
-MSG_UPDATE_AVAILABLE = "Update available: v{latest_version}"
-MSG_UPDATE_INSTRUCTION = "Exit, and run: [bold]pip install --upgrade tunacode-cli"
-MSG_VERSION_DISPLAY = "TunaCode CLI {version}"
 MSG_FILE_SIZE_LIMIT = " Please specify a smaller file or use other tools to process it."
 
 JSON_PARSE_MAX_RETRIES = 10
@@ -177,11 +148,8 @@ TOOL_RETRY_MAX_DELAY = 5.0
 
 THEME_NAME = "tunacode"
 
-RESOURCE_BAR_HEIGHT = 1
 RESOURCE_BAR_SEPARATOR = " - "
-RESOURCE_BAR_TOKEN_FORMAT = "{tokens}/{max_tokens}"  # nosec B105
 RESOURCE_BAR_COST_FORMAT = "${cost:.2f}"
-RESOURCE_BAR_SESSION_LABEL = "session"
 
 RICHLOG_CLASS_PAUSED = "paused"
 RICHLOG_CLASS_STREAMING = "streaming"

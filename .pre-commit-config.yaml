@@ -81,6 +81,13 @@ repos:
         exclude: ^(tests/|test_)
         stages: [pre-commit]
 
+      - id: unused-constants
+        name: Check for unused constants
+        entry: uv run python scripts/check-unused-constants.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       # Check for common security issues
       - id: security-check
         name: Security audit
