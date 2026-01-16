@@ -13,18 +13,13 @@ from typing import Any
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.constants import (
-    MAX_PANEL_LINE_WIDTH,
-    SYNTAX_LINE_NUMBER_PADDING,
-    SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
-)
+from tunacode.constants import SYNTAX_LINE_NUMBER_PADDING, SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_path_params,
     clamp_content_width,
     tool_renderer,
-    truncate_line,
 )
 from tunacode.ui.renderers.tools.syntax_utils import syntax_or_text
 
@@ -177,9 +172,7 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         for i, (_line_num, line_content) in enumerate(data.content_lines):
             if i >= max_display:
                 break
-            # Truncate long lines
-            truncated = truncate_line(line_content, max_width=code_width)
-            content_only.append(truncated)
+            content_only.append(line_content)
 
         # Pad to minimum height
         while len(content_only) < MIN_VIEWPORT_LINES:
@@ -230,8 +223,8 @@ _renderer = ReadFileRenderer(RendererConfig(tool_name="read_file"))
 def render_read_file(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render read_file with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

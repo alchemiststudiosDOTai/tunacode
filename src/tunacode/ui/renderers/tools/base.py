@@ -24,7 +24,6 @@ from rich.text import Text
 from tunacode.constants import (
     BOX_HORIZONTAL,
     HOOK_ARROW_PREFIX,
-    MAX_PANEL_LINE_WIDTH,
     MIN_TOOL_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
     SEPARATOR_WIDTH,
@@ -32,14 +31,15 @@ from tunacode.constants import (
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
+from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 
 
-def truncate_line(line: str, max_width: int = MAX_PANEL_LINE_WIDTH) -> str:
+def truncate_line(line: str, max_width: int) -> str:
     """Truncate a single line if too wide.
 
     Args:
         line: The line to truncate
-        max_width: Maximum allowed width (default: MAX_PANEL_LINE_WIDTH)
+        max_width: Maximum allowed width
 
     Returns:
         Original line if within limit, otherwise truncated with '...'
@@ -52,14 +52,15 @@ def truncate_line(line: str, max_width: int = MAX_PANEL_LINE_WIDTH) -> str:
 def truncate_content(
     content: str,
     max_lines: int = TOOL_VIEWPORT_LINES,
-    max_width: int = MAX_PANEL_LINE_WIDTH,
+    *,
+    max_width: int,
 ) -> tuple[str, int, int]:
     """Truncate content to viewport size.
 
     Args:
         content: Multi-line content string
         max_lines: Maximum number of lines to show
-        max_width: Maximum width per line
+        max_width: Maximum width per line (wrapping handled by Rich)
 
     Returns:
         Tuple of (truncated_content, lines_shown, total_lines)
@@ -68,10 +69,9 @@ def truncate_content(
     total = len(lines)
 
     if total <= max_lines:
-        truncated = [truncate_line(ln, max_width) for ln in lines]
-        return "\n".join(truncated), total, total
+        return "\n".join(lines), total, total
 
-    truncated = [truncate_line(ln, max_width) for ln in lines[:max_lines]]
+    truncated = lines[:max_lines]
     return "\n".join(truncated), max_lines, total
 
 
@@ -146,7 +146,7 @@ def tool_renderer(tool_name: str) -> Callable[[RenderFunc], RenderFunc]:
 
     Example:
         @tool_renderer("list_dir")
-        def render_list_dir(args, result, duration_ms):
+        def render_list_dir(args, result, duration_ms, max_line_width):
             ...
     """
 
@@ -422,8 +422,8 @@ class BaseToolRenderer(ABC, Generic[T]):
         self,
         args: dict[str, Any] | None,
         result: str,
-        duration_ms: float | None = None,
-        max_line_width: int = MAX_PANEL_LINE_WIDTH,
+        duration_ms: float | None,
+        max_line_width: int,
     ) -> RenderableType | None:
         """Render tool result using the 4-zone layout pattern.
 
@@ -468,11 +468,13 @@ class BaseToolRenderer(ABC, Generic[T]):
         border_color = self.get_border_color(data)
         status_text = self.get_status_text(data)
 
+        frame_width = tool_panel_frame_width(max_line_width)
+
         return Panel(
             content,
             title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
             subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
             border_style=Style(color=border_color),
             padding=(0, 1),
-            expand=True,
+            width=frame_width,
         )

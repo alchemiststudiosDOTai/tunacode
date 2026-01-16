@@ -9,6 +9,7 @@ from typing import Any
 
 from rich.console import Console
 
+from tunacode.constants import MIN_TOOL_PANEL_LINE_WIDTH, TOOL_PANEL_HORIZONTAL_INSET
 from tunacode.ui.renderers.panels import tool_panel_smart
 
 DEFAULT_WIDTH = 92
@@ -428,6 +429,8 @@ def print_scenarios(scenarios: Iterable[Scenario]) -> None:
 
 
 def render_scenarios(console: Console, scenarios: Iterable[Scenario]) -> None:
+    available_width = console.width - TOOL_PANEL_HORIZONTAL_INSET
+    max_line_width = max(MIN_TOOL_PANEL_LINE_WIDTH, available_width)
     for scenario in scenarios:
         console.rule(f"{scenario.name} - {scenario.description}")
         panel = tool_panel_smart(
@@ -436,6 +439,7 @@ def render_scenarios(console: Console, scenarios: Iterable[Scenario]) -> None:
             args=scenario.args,
             result=scenario.result,
             duration_ms=scenario.duration_ms,
+            max_line_width=max_line_width,
         )
         console.print(panel)
         console.print()

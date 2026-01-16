@@ -8,6 +8,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -349,20 +350,7 @@ class TextualReplApp(App[None]):
         return await _request_plan_approval(plan_content, self, self.rich_log)
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
-        width_candidates = [
-            self.rich_log.scrollable_content_region.width,
-            self.rich_log.content_region.width,
-            self.rich_log.size.width,
-            self.query_one("#viewport").size.width,
-            self.size.width,
-        ]
-        usable_widths = [width for width in width_candidates if width > 0]
-        if not usable_widths:
-            usable_widths = [MIN_TOOL_PANEL_LINE_WIDTH]
-
-        content_width = min(usable_widths)
-        available_width = content_width - TOOL_PANEL_HORIZONTAL_INSET
-        max_line_width = max(MIN_TOOL_PANEL_LINE_WIDTH, available_width)
+        max_line_width = self.tool_panel_max_width()
         panel = tool_panel_smart(
             name=message.tool_name,
             status=message.status,
@@ -372,6 +360,21 @@ class TextualReplApp(App[None]):
             max_line_width=max_line_width,
         )
         self.rich_log.write(panel, expand=True)
+
+    def tool_panel_max_width(self) -> int:
+        viewport = self.query_one("#viewport")
+        width_candidates = [
+            self.rich_log.content_region.width,
+            viewport.content_region.width,
+            self.rich_log.size.width,
+            viewport.size.width,
+            self.size.width,
+        ]
+        usable_widths = [width for width in width_candidates if width > 0]
+        content_width = max(usable_widths, default=MIN_TOOL_PANEL_LINE_WIDTH)
+        available_width = content_width - TOOL_PANEL_HORIZONTAL_INSET
+        max_line_width = max(MIN_TOOL_PANEL_LINE_WIDTH, available_width)
+        return max_line_width
 
     def _show_system_notice(self, notice: str) -> None:
         notice_text = Text(notice, style=STYLE_WARNING)
@@ -481,14 +484,11 @@ class TextualReplApp(App[None]):
 
         if self.editor.value or self.editor.has_paste_buffer:
             self.editor.clear_input()
-            return
-
-        return
 
     def start_shell_command(self, raw_cmd: str) -> None:
         self.shell_runner.start(raw_cmd)
 
-    def write_shell_output(self, renderable: Text) -> None:
+    def write_shell_output(self, renderable: RenderableType) -> None:
         self.rich_log.write(renderable)
 
     def shell_status_running(self) -> None:

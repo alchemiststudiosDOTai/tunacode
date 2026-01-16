@@ -89,9 +89,12 @@ Tool renderers clamp content widths against the viewport and account for prefixe
 and line-number gutters so panels stay within narrow terminal widths.
 
 **Width management details:**
-- `TextualReplApp.on_tool_result_display()` computes an available width from the
-  RichLog content/viewport and subtracts a fixed horizontal inset so panels
-  don't overflow borders and padding.
+- `TextualReplApp.on_tool_result_display()` computes an available content width
+  from the RichLog/viewport and subtracts a fixed horizontal inset so text
+  wraps safely inside the panel frame.
+- Tool renderers set an explicit panel frame width of
+  `max_line_width + TOOL_PANEL_HORIZONTAL_INSET` so the panel spans the full
+  terminal width instead of the narrower RichLog content region.
 - Tool renderers reserve space for prefixes (indentation, grep line-number
   gutters, bullets) before truncating content, so the full rendered line stays
   within the computed width.

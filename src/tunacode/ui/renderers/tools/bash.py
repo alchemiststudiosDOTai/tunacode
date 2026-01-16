@@ -12,7 +12,7 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES
+from tunacode.constants import MIN_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -247,8 +247,8 @@ _renderer = BashRenderer(RendererConfig(tool_name="bash"))
 def render_bash(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render bash with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

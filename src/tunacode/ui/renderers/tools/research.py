@@ -13,19 +13,12 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import (
-    MAX_PANEL_LINE_WIDTH,
-    MIN_VIEWPORT_LINES,
-    TOOL_VIEWPORT_LINES,
-    UI_COLORS,
-)
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES, UI_COLORS
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
-    clamp_content_width,
     tool_renderer,
-    truncate_line,
 )
 from tunacode.ui.renderers.tools.syntax_utils import syntax_or_text
 
@@ -178,9 +171,7 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
                 file_line = Text()
                 indent = "  "
                 file_line.append(indent, style="")
-                file_width = clamp_content_width(max_line_width, len(indent))
-                truncated_file = truncate_line(filepath, max_width=file_width)
-                file_line.append(truncated_file, style="cyan")
+                file_line.append(filepath, style="cyan")
                 viewport_parts.append(file_line)
                 lines_used += 1
 
@@ -207,9 +198,7 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
                 finding_line = Text()
                 prefix = f"  {i}. "
                 finding_line.append(prefix, style="dim")
-                finding_width = clamp_content_width(max_line_width, len(prefix))
-                truncated_finding = truncate_line(finding, max_width=finding_width)
-                finding_line.append(truncated_finding)
+                finding_line.append(finding)
                 viewport_parts.append(finding_line)
                 lines_used += 1
 
@@ -240,9 +229,7 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
                 file_text = Text()
                 indent = "  "
                 file_text.append(indent, style="")
-                file_width = clamp_content_width(max_line_width, len(indent))
-                truncated_path = truncate_line(filepath, max_width=file_width)
-                file_text.append(truncated_path, style="cyan dim")
+                file_text.append(filepath, style="cyan dim")
                 viewport_parts.append(file_text)
                 lines_used += 1
 
@@ -300,8 +287,8 @@ _renderer = ResearchRenderer(RendererConfig(tool_name="research_codebase"))
 def render_research_codebase(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render research_codebase with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

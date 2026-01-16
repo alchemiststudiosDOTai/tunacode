@@ -17,6 +17,11 @@ from tunacode.ui.renderers.tools.research import ResearchRenderer
 from tunacode.ui.renderers.tools.update_file import UpdateFileRenderer
 from tunacode.ui.renderers.tools.web_fetch import WebFetchRenderer
 
+TEST_MAX_WIDTH: int = 50
+TEST_TRUNCATE_WIDTH: int = 20
+TEST_LONG_LINE_LENGTH: int = 100
+TEST_MAX_LINES: int = 100
+
 
 def test_registry_contains_unified_renderers() -> None:
     """Verify unified renderers are registered."""
@@ -34,21 +39,25 @@ def test_registry_contains_unified_renderers() -> None:
 def test_truncate_line_short() -> None:
     """Short lines pass through unchanged."""
     line = "hello world"
-    assert truncate_line(line, max_width=50) == line
+    assert truncate_line(line, max_width=TEST_MAX_WIDTH) == line
 
 
 def test_truncate_line_long() -> None:
     """Long lines get truncated with ellipsis."""
-    line = "a" * 100
-    result = truncate_line(line, max_width=20)
-    assert len(result) == 20
+    line = "a" * TEST_LONG_LINE_LENGTH
+    result = truncate_line(line, max_width=TEST_TRUNCATE_WIDTH)
+    assert len(result) == TEST_TRUNCATE_WIDTH
     assert result.endswith("...")
 
 
 def test_truncate_content_returns_counts() -> None:
     """truncate_content returns (content, shown, total)."""
     content = "line1\nline2\nline3"
-    result, shown, total = truncate_content(content, max_lines=100)
+    result, shown, total = truncate_content(
+        content,
+        max_lines=TEST_MAX_LINES,
+        max_width=TEST_MAX_WIDTH,
+    )
     assert shown == 3
     assert total == 3
 

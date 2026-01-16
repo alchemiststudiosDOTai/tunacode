@@ -15,11 +15,14 @@ from tunacode.ui.shell_runner import (
     ShellRunnerHost,
 )
 
+DEFAULT_TOOL_PANEL_WIDTH: int = 80
+
 
 @dataclass
 class MockHost(ShellRunnerHost):
     """Captures ShellRunnerHost calls for test assertions."""
 
+    tool_width: int = DEFAULT_TOOL_PANEL_WIDTH
     notifications: list[tuple[str, str]] = field(default_factory=list)
     outputs: list[RenderableType] = field(default_factory=list)
     status_running_count: int = 0
@@ -36,6 +39,9 @@ class MockHost(ShellRunnerHost):
 
     def shell_status_last(self) -> None:
         self.status_last_count += 1
+
+    def tool_panel_max_width(self) -> int:
+        return self.tool_width
 
 
 class TestShellRunnerNegativeBoundaries:

@@ -12,14 +12,13 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.tools.list_dir import IGNORE_PATTERNS_COUNT
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
     tool_renderer,
-    truncate_line,
 )
 from tunacode.ui.renderers.tools.syntax_utils import get_lexer
 
@@ -178,9 +177,7 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
         for line in tree_lines:
             if lines_used >= max_display:
                 break
-
-            truncated = truncate_line(line, max_width=max_line_width)
-            styled_line = self._style_tree_line(truncated)
+            styled_line = self._style_tree_line(line)
             viewport_parts.append(styled_line)
             lines_used += 1
 
@@ -222,8 +219,8 @@ _renderer = ListDirRenderer(RendererConfig(tool_name="list_dir"))
 def render_list_dir(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render list_dir with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

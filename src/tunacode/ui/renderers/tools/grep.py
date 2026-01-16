@@ -12,14 +12,12 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
-    clamp_content_width,
     tool_renderer,
-    truncate_line,
 )
 
 
@@ -171,9 +169,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
                     indent = "  "
                     file_header = Text()
                     file_header.append(indent, style="")
-                    file_width = clamp_content_width(max_line_width, len(indent))
-                    truncated_file = truncate_line(current_file, max_width=file_width)
-                    file_header.append(truncated_file, style="cyan bold")
+                    file_header.append(current_file, style="cyan bold")
                     viewport_parts.append(file_header)
                     lines_used += 1
 
@@ -185,22 +181,13 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
             match_line = Text()
             match_line.append(prefix, style="dim")
 
-            # Truncate the full content
+            # Render full content and let Rich wrap at render width
             before = match["before"]
             match_text = match["match"]
             after = match["after"]
-            full_line = f"{before}{match_text}{after}"
-            content_width = clamp_content_width(max_line_width, len(prefix))
-            truncated = truncate_line(full_line, max_width=content_width)
-
-            # If truncated, we need to reconstruct with highlight
-            if truncated == full_line:
-                match_line.append(before, style="")
-                match_line.append(match_text, style="bold yellow reverse")
-                match_line.append(after, style="")
-            else:
-                # Simple truncation - show what we can
-                match_line.append(truncated, style="")
+            match_line.append(before, style="")
+            match_line.append(match_text, style="bold yellow reverse")
+            match_line.append(after, style="")
 
             viewport_parts.append(match_line)
             lines_used += 1
@@ -238,8 +225,8 @@ _renderer = GrepRenderer(RendererConfig(tool_name="grep"))
 def render_grep(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render grep with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

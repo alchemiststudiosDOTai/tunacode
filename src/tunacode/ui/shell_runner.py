@@ -13,7 +13,6 @@ from typing import Protocol
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH
 from tunacode.ui.renderers.tools.bash import render_bash
 
 SHELL_COMMAND_TIMEOUT_SECONDS: float = 30.0
@@ -44,6 +43,8 @@ class ShellRunnerHost(Protocol):
     def shell_status_running(self) -> None: ...
 
     def shell_status_last(self) -> None: ...
+
+    def tool_panel_max_width(self) -> int: ...
 
 
 @dataclass
@@ -100,6 +101,7 @@ class ShellRunner:
         stdout: str,
         stderr: str,
         duration_ms: float,
+        max_line_width: int,
     ) -> RenderableType:
         """Format shell output as 4-zone NeXTSTEP panel via BashRenderer."""
         stdout_text = stdout if stdout else SHELL_OUTPUT_EMPTY
@@ -116,7 +118,7 @@ STDERR:
 {stderr_text}"""
 
         args = {"timeout": int(SHELL_COMMAND_TIMEOUT_SECONDS)}
-        panel = render_bash(args, result_text, duration_ms, MAX_PANEL_LINE_WIDTH)
+        panel = render_bash(args, result_text, duration_ms, max_line_width)
 
         if panel is None:
             return Text(f"$ {cmd}\n{stdout_text}\n{stderr_text}")
@@ -130,6 +132,7 @@ STDERR:
         except Exception as exc:
             # TODO(#225): preserve original command context instead of placeholder
             cwd = os.getcwd()
+            max_line_width = self.host.tool_panel_max_width()
             panel = self._format_shell_panel(
                 cmd=SHELL_ERROR_CMD_PLACEHOLDER,
                 exit_code=SHELL_ERROR_EXIT_CODE,
@@ -137,6 +140,7 @@ STDERR:
                 stdout="",
                 stderr=str(exc),
                 duration_ms=SHELL_ERROR_DURATION_MS,
+                max_line_width=max_line_width,
             )
             self.host.write_shell_output(panel)
 
@@ -189,7 +193,16 @@ STDERR:
         stdout = (stdout_bytes or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()
         stderr = (stderr_bytes or b"").decode(SHELL_OUTPUT_ENCODING, errors="replace").rstrip()
 
-        panel = self._format_shell_panel(cmd, exit_code, cwd, stdout, stderr, duration_ms)
+        max_line_width = self.host.tool_panel_max_width()
+        panel = self._format_shell_panel(
+            cmd,
+            exit_code,
+            cwd,
+            stdout,
+            stderr,
+            duration_ms,
+            max_line_width,
+        )
         self.host.write_shell_output(panel)
 
         if exit_code != 0:

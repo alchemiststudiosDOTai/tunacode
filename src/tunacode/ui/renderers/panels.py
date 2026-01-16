@@ -15,12 +15,12 @@ from rich.table import Table
 from rich.text import Text
 
 from tunacode.constants import (
-    MAX_PANEL_LINE_WIDTH,
     MAX_PANEL_LINES,
     MAX_SEARCH_RESULTS_DISPLAY,
     TOOL_PANEL_WIDTH_DEBUG,
     UI_COLORS,
 )
+from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 
 
 class PanelType(str, Enum):
@@ -101,7 +101,7 @@ class RichPanelRenderer:
     @staticmethod
     def render_tool(
         data: ToolDisplayData,
-        max_line_width: int = MAX_PANEL_LINE_WIDTH,
+        max_line_width: int,
     ) -> RenderableType:
         status_map = {
             "running": (PanelType.TOOL, "..."),
@@ -156,13 +156,15 @@ class RichPanelRenderer:
             time_str = data.timestamp.strftime("%H:%M:%S")
             subtitle = f"[{styles['subtitle']}]{time_str}[/]"
 
+        frame_width = tool_panel_frame_width(max_line_width)
+
         return Panel(
             content,
             title=f"[{styles['title']}]{data.tool_name}[/] [{status_suffix}]",
             subtitle=subtitle,
             border_style=Style(color=styles["border"]),
             padding=(0, 1),
-            expand=True,
+            width=frame_width,
         )
 
     @staticmethod
@@ -376,7 +378,7 @@ class RichPanelRenderer:
         )
 
 
-def _truncate_value(value: Any, max_length: int = MAX_PANEL_LINE_WIDTH) -> str:
+def _truncate_value(value: Any, max_length: int) -> str:
     str_value = str(value)
     if len(str_value) <= max_length:
         return str_value
@@ -386,7 +388,8 @@ def _truncate_value(value: Any, max_length: int = MAX_PANEL_LINE_WIDTH) -> str:
 def _truncate_content(
     content: str,
     max_lines: int = MAX_PANEL_LINES,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    *,
+    max_line_width: int,
 ) -> tuple[str, int, int]:
     """
     Line-aware truncation preserving structure.
@@ -397,23 +400,9 @@ def _truncate_content(
     total = len(lines)
 
     if total <= max_lines:
-        # Still truncate individual long lines
-        truncated = []
-        for line in lines:
-            if len(line) > max_line_width:
-                truncated.append(line[:max_line_width] + "...")
-            else:
-                truncated.append(line)
-        return "\n".join(truncated), total, total
+        return "\n".join(lines), total, total
 
-    # Take first max_lines, truncate individual lines if too wide
-    truncated = []
-    for line in lines[:max_lines]:
-        if len(line) > max_line_width:
-            truncated.append(line[:max_line_width] + "...")
-        else:
-            truncated.append(line)
-
+    truncated = lines[:max_lines]
     return "\n".join(truncated), max_lines, total
 
 
@@ -437,8 +426,9 @@ def tool_panel(
     status: str,
     args: dict[str, Any] | None = None,
     result: str | None = None,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    *,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType:
     data = ToolDisplayData(
         tool_name=name,
@@ -490,8 +480,9 @@ def tool_panel_smart(
     status: str,
     args: dict[str, Any] | None = None,
     result: str | None = None,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    *,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType:
     """Route tool output to NeXTSTEP-style renderers.
 
@@ -533,7 +524,15 @@ def tool_panel_smart(
                 return panel
 
     # Fallback to generic panel for unsupported tools or failed renders
-    return tool_panel(name, status, args, result, duration_ms, max_line_width=max_line_width)
+    panel = tool_panel(
+        name,
+        status,
+        args,
+        result,
+        duration_ms=duration_ms,
+        max_line_width=max_line_width,
+    )
+    return panel
 
 
 def _try_parse_search_result(

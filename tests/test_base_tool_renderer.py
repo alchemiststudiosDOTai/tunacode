@@ -1,6 +1,6 @@
 """Tests for BaseToolRenderer helper functions and registry."""
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     RendererConfig,
     get_renderer,
@@ -11,6 +11,13 @@ from tunacode.ui.renderers.tools.base import (
     truncate_line,
 )
 
+TEST_MAX_LINE_WIDTH: int = 40
+TEST_LONG_LINE_EXTRA: int = 10
+TEST_MAX_LINES: int = 10
+TEST_TRUNCATE_LINES: int = 5
+TEST_TOTAL_LINES: int = 20
+TEST_LINE_OVERFLOW: int = 5
+
 
 class TestTruncateLine:
     """Tests for truncate_line()."""
@@ -18,32 +25,25 @@ class TestTruncateLine:
     def test_short_line_unchanged(self):
         """Lines under max_width are returned unchanged."""
         line = "short line"
-        result = truncate_line(line, max_width=50)
+        result = truncate_line(line, max_width=TEST_MAX_LINE_WIDTH)
         assert result == line
 
     def test_exact_length_unchanged(self):
         """Lines exactly at max_width are unchanged."""
-        line = "x" * 50
-        result = truncate_line(line, max_width=50)
+        line = "x" * TEST_MAX_LINE_WIDTH
+        result = truncate_line(line, max_width=TEST_MAX_LINE_WIDTH)
         assert result == line
 
     def test_long_line_truncated(self):
         """Lines over max_width are truncated with ellipsis."""
-        line = "x" * 60
-        result = truncate_line(line, max_width=50)
-        assert len(result) == 50
-        assert result.endswith("...")
-
-    def test_uses_default_max_width(self):
-        """Uses MAX_PANEL_LINE_WIDTH as default."""
-        line = "x" * (MAX_PANEL_LINE_WIDTH + 10)
-        result = truncate_line(line)
-        assert len(result) == MAX_PANEL_LINE_WIDTH
+        line = "x" * (TEST_MAX_LINE_WIDTH + TEST_LONG_LINE_EXTRA)
+        result = truncate_line(line, max_width=TEST_MAX_LINE_WIDTH)
+        assert len(result) == TEST_MAX_LINE_WIDTH
         assert result.endswith("...")
 
     def test_empty_line(self):
         """Empty lines are unchanged."""
-        assert truncate_line("") == ""
+        assert truncate_line("", max_width=TEST_MAX_LINE_WIDTH) == ""
 
 
 class TestTruncateContent:
@@ -52,38 +52,49 @@ class TestTruncateContent:
     def test_short_content_unchanged(self):
         """Content under limits is unchanged."""
         content = "line1\nline2\nline3"
-        result, shown, total = truncate_content(content, max_lines=10, max_width=100)
+        result, shown, total = truncate_content(
+            content,
+            max_lines=TEST_MAX_LINES,
+            max_width=TEST_MAX_LINE_WIDTH,
+        )
         assert result == content
         assert shown == 3
         assert total == 3
 
     def test_truncates_lines(self):
         """Content over max_lines is truncated."""
-        lines = [f"line{i}" for i in range(20)]
+        lines = [f"line{i}" for i in range(TEST_TOTAL_LINES)]
         content = "\n".join(lines)
-        result, shown, total = truncate_content(content, max_lines=5, max_width=100)
-        assert shown == 5
-        assert total == 20
-        assert result.count("\n") == 4  # 5 lines = 4 newlines
+        result, shown, total = truncate_content(
+            content,
+            max_lines=TEST_TRUNCATE_LINES,
+            max_width=TEST_MAX_LINE_WIDTH,
+        )
+        assert shown == TEST_TRUNCATE_LINES
+        assert total == TEST_TOTAL_LINES
+        assert result.count("\n") == TEST_TRUNCATE_LINES - 1
 
-    def test_truncates_width(self):
-        """Long lines are truncated."""
-        content = "x" * 100
-        result, shown, total = truncate_content(content, max_lines=10, max_width=50)
-        assert len(result) == 50
-        assert result.endswith("...")
+    def test_does_not_truncate_width(self):
+        """Long lines are preserved; Rich handles wrapping."""
+        content = "x" * (TEST_MAX_LINE_WIDTH + TEST_LONG_LINE_EXTRA)
+        result, shown, total = truncate_content(
+            content,
+            max_lines=TEST_MAX_LINES,
+            max_width=TEST_MAX_LINE_WIDTH,
+        )
+        assert result == content
 
-    def test_uses_defaults(self):
-        """Uses TOOL_VIEWPORT_LINES and MAX_PANEL_LINE_WIDTH as defaults."""
-        lines = [f"line{i}" for i in range(TOOL_VIEWPORT_LINES + 5)]
+    def test_uses_default_max_lines(self):
+        """Uses TOOL_VIEWPORT_LINES as default."""
+        lines = [f"line{i}" for i in range(TOOL_VIEWPORT_LINES + TEST_LINE_OVERFLOW)]
         content = "\n".join(lines)
-        result, shown, total = truncate_content(content)
+        result, shown, total = truncate_content(content, max_width=TEST_MAX_LINE_WIDTH)
         assert shown == TOOL_VIEWPORT_LINES
-        assert total == TOOL_VIEWPORT_LINES + 5
+        assert total == TOOL_VIEWPORT_LINES + TEST_LINE_OVERFLOW
 
     def test_empty_content(self):
         """Empty content returns empty result."""
-        result, shown, total = truncate_content("")
+        result, shown, total = truncate_content("", max_width=TEST_MAX_LINE_WIDTH)
         assert result == ""
         assert shown == 0  # splitlines on "" gives []
         assert total == 0

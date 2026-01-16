@@ -13,7 +13,6 @@ from rich.console import RenderableType
 from rich.text import Text
 
 from tunacode.constants import (
-    MAX_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
     SYNTAX_LINE_NUMBER_PADDING,
     SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
@@ -25,7 +24,6 @@ from tunacode.ui.renderers.tools.base import (
     build_hook_path_params,
     clamp_content_width,
     tool_renderer,
-    truncate_line,
 )
 from tunacode.ui.renderers.tools.syntax_utils import syntax_or_text
 
@@ -117,7 +115,7 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
         for i, line in enumerate(lines):
             if i >= max_display:
                 break
-            preview_lines.append(truncate_line(line, max_width=code_width))
+            preview_lines.append(line)
 
         # Pad to minimum height
         while len(preview_lines) < MIN_VIEWPORT_LINES:
@@ -163,8 +161,8 @@ _renderer = WriteFileRenderer(RendererConfig(tool_name="write_file"))
 def render_write_file(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render write_file with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

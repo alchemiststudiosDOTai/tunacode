@@ -183,12 +183,12 @@ class MyToolRenderer(BaseToolRenderer[MyToolData]):
     def build_params(self, data) -> Text | None:
         return None  # No params to display
 
-    def build_viewport(self, data) -> RenderableType:
-        content, _, _ = truncate_content(data.content)
+    def build_viewport(self, data, max_line_width: int) -> RenderableType:
+        content, _, _ = truncate_content(data.content, max_width=max_line_width)
         lines = pad_lines(content.split("\n"))
         return Text("\n".join(lines))
 
-    def build_status(self, data, duration_ms) -> Text:
+    def build_status(self, data, duration_ms, max_line_width: int) -> Text:
         items = []
         if duration_ms:
             items.append(f"{duration_ms:.0f}ms")
@@ -199,8 +199,8 @@ _renderer = MyToolRenderer(RendererConfig(tool_name="my_tool"))
 
 
 @tool_renderer("my_tool")
-def render_my_tool(args, result, duration_ms=None) -> RenderableType | None:
-    return _renderer.render(args, result, duration_ms)
+def render_my_tool(args, result, duration_ms, max_line_width) -> RenderableType | None:
+    return _renderer.render(args, result, duration_ms, max_line_width)
 ```
 
 ## Constants
@@ -210,11 +210,12 @@ Defined in `tunacode.constants`:
 | Constant | Value | Purpose |
 |----------|-------|---------|
 | `MAX_PANEL_LINES` | 20 | Max lines in generic panels |
-| `MAX_PANEL_LINE_WIDTH` | 50 | Max chars per line |
 | `TOOL_VIEWPORT_LINES` | 8 | Max lines in tool viewport |
 | `MIN_VIEWPORT_LINES` | 3 | Minimum viewport height |
-| `MIN_VIEWPORT_LINES` | 4 | Minimum viewport height (padding) |
-| `MAX_PANEL_LINE_WIDTH` | 60 | Max chars per line before truncation |
+| `MIN_TOOL_PANEL_LINE_WIDTH` | 4 | Minimum tool panel line width |
+| `TOOL_PANEL_HORIZONTAL_INSET` | 8 | Width reserved for borders/padding |
+
+Tool panel line width is derived from the available viewport width and passed into renderers.
 
 Defined in `base.py`:
 
@@ -258,6 +259,7 @@ When migrating a renderer, add it to `UNIFIED_RENDERERS` dict.
 When creating or modifying a renderer:
 
 - [ ] Inherits from `BaseToolRenderer`
+- [ ] Avoid horizontal pre-truncation; rely on Rich wrapping for width changes
 - [ ] Uses shared helpers (no local `_truncate_line`)
 - [ ] Registered with `@tool_renderer`
 - [ ] Added to `UNIFIED_RENDERERS` in test file

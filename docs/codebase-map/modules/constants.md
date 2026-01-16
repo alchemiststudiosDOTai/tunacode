@@ -52,9 +52,12 @@ Centralizes global constants, magic strings, UI text, error messages, and applic
 ### UI Constants
 
 **Panel Dimensions:**
-- **TOOL_PANEL_WIDTH** - Default width for tool panels
-- **RICHLOG_MAX_LINES** - Maximum lines in log
-- **TRUNCATION_THRESHOLD** - Content truncation point
+- **MAX_PANEL_LINES** - Maximum lines in generic panels
+- **MIN_TOOL_PANEL_LINE_WIDTH** - Minimum tool panel line width
+- **TOOL_PANEL_HORIZONTAL_INSET** - Width reserved for borders/padding
+- **TOOL_PANEL_WIDTH_DEBUG** - Show computed widths in tool panel status
+
+Tool panel line width is computed from available viewport width; there is no fixed max width cap.
 
 **File Path Indicators:**
 - **HOOK_ARROW** - Hook arrow used for file path params

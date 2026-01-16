@@ -14,11 +14,8 @@ from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
-from tunacode.constants import (
-    MAX_PANEL_LINE_WIDTH,
-    MIN_VIEWPORT_LINES,
-    TOOL_VIEWPORT_LINES,
-)
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -133,7 +130,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
 
     def build_viewport(self, data: UpdateFileData, max_line_width: int) -> RenderableType:
         """Zone 3: Diff viewport with syntax highlighting."""
-        # Truncate diff
+        # Limit diff to viewport lines
         truncated_diff, shown, total = self._truncate_diff(data.diff_content, max_line_width)
 
         # Pad viewport to minimum height
@@ -144,24 +141,16 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
 
         return Syntax(truncated_diff, "diff", theme="monokai", word_wrap=True)
 
-    def _truncate_line_width(self, line: str, max_line_width: int) -> str:
-        if len(line) <= max_line_width:
-            return line
-        return line[:max_line_width] + "..."
-
     def _truncate_diff(self, diff: str, max_line_width: int) -> tuple[str, int, int]:
         """Truncate diff content, return (truncated, shown, total)."""
         lines = diff.splitlines()
         total = len(lines)
         max_content = TOOL_VIEWPORT_LINES
-
-        capped_lines = [
-            self._truncate_line_width(line, max_line_width) for line in lines[:max_content]
-        ]
+        visible_lines = lines[:max_content]
 
         if total <= max_content:
-            return "\n".join(capped_lines), total, total
-        return "\n".join(capped_lines), max_content, total
+            return "\n".join(visible_lines), total, total
+        return "\n".join(visible_lines), max_content, total
 
     def build_status(
         self,
@@ -189,8 +178,8 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         self,
         args: dict[str, Any] | None,
         result: str,
-        duration_ms: float | None = None,
-        max_line_width: int = MAX_PANEL_LINE_WIDTH,
+        duration_ms: float | None,
+        max_line_width: int,
     ) -> RenderableType | None:
         """Render update_file with NeXTSTEP zoned layout plus optional diagnostics.
 
@@ -256,13 +245,15 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         border_color = self.get_border_color(data)
         status_text = self.get_status_text(data)
 
+        frame_width = tool_panel_frame_width(max_line_width)
+
         return Panel(
             content,
             title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
             subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
             border_style=Style(color=border_color),
             padding=(0, 1),
-            expand=True,
+            width=frame_width,
         )
 
 
@@ -274,8 +265,8 @@ _renderer = UpdateFileRenderer(RendererConfig(tool_name="update_file"))
 def render_update_file(
     args: dict[str, Any] | None,
     result: str,
-    duration_ms: float | None = None,
-    max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    duration_ms: float | None,
+    max_line_width: int,
 ) -> RenderableType | None:
     """Render update_file with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

@@ -3,12 +3,13 @@ from __future__ import annotations
 import difflib
 import os
 
-from tunacode.constants import MAX_CALLBACK_CONTENT, MAX_PANEL_LINE_WIDTH
+from tunacode.constants import MAX_CALLBACK_CONTENT, MAX_LINE_LENGTH
 from tunacode.tools.utils.text_match import replace
 from tunacode.types import ToolArgs, ToolConfirmationRequest, ToolName
 
-MAX_PREVIEW_LINES = 100
-TRUNCATION_NOTICE = "... [truncated for safety]"
+MAX_PREVIEW_LINES: int = 100
+MAX_PREVIEW_LINE_LENGTH: int = MAX_LINE_LENGTH
+TRUNCATION_NOTICE: str = "... [truncated for safety]"
 
 
 def _preview_lines(text: str) -> tuple[list[str], bool]:
@@ -44,11 +45,11 @@ def _preview_lines(text: str) -> tuple[list[str], bool]:
 
     bounded_lines: list[str] = []
     for line in lines:
-        if len(line) <= MAX_PANEL_LINE_WIDTH:
+        if len(line) <= MAX_PREVIEW_LINE_LENGTH:
             bounded_lines.append(line)
             continue
 
-        bounded_lines.append(line[:MAX_PANEL_LINE_WIDTH] + "...")
+        bounded_lines.append(line[:MAX_PREVIEW_LINE_LENGTH] + "...")
         truncated = True
 
     return bounded_lines, truncated
