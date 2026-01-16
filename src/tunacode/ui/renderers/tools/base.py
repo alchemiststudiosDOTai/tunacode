@@ -405,25 +405,12 @@ class BaseToolRenderer(ABC, Generic[T]):
         status = self.build_status(data, duration_ms)
         separator = self.build_separator()
 
-        content_parts: list[RenderableType] = [
-            header,
-            Text("\n"),
-        ]
+        content_parts: list[RenderableType] = [header]
 
         if params is not None:
-            content_parts.extend([params, Text("\n")])
+            content_parts.append(params)
 
-        content_parts.extend(
-            [
-                separator,
-                Text("\n"),
-                viewport,
-                Text("\n"),
-                separator,
-                Text("\n"),
-                status,
-            ]
-        )
+        content_parts.extend([separator, viewport, separator, status])
 
         content = Group(*content_parts)
 
