@@ -70,6 +70,9 @@ Specialized renderers for tool outputs:
   3. Primary Viewport - Main content
   4. Status/Metrics - Duration, counts, truncation notices
 
+Tool panels render Zone 2 with a hook-arrow prefix for the primary parameters.
+File-based tools show the path relative to the current working directory.
+
 #### tools/
 Specialized renderers for each tool:
 - **bash.py** - Command output with exit codes
@@ -84,6 +87,17 @@ Specialized renderers for each tool:
 
 Tool renderers clamp content widths against the viewport and account for prefixes
 and line-number gutters so panels stay within narrow terminal widths.
+
+**Width management details:**
+- `TextualReplApp.on_tool_result_display()` computes an available width from the
+  RichLog content/viewport and subtracts a fixed horizontal inset so panels
+  don't overflow borders and padding.
+- Tool renderers reserve space for prefixes (indentation, grep line-number
+  gutters, bullets) before truncating content, so the full rendered line stays
+  within the computed width.
+- Syntax-highlighted panels (`read_file`, `write_file`) pass an explicit
+  `code_width` to Rich `Syntax` to account for line-number gutters and avoid
+  overflow in small terminals.
 
 ### Widgets (widgets/)
 

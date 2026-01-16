@@ -56,6 +56,10 @@ Centralizes global constants, magic strings, UI text, error messages, and applic
 - **RICHLOG_MAX_LINES** - Maximum lines in log
 - **TRUNCATION_THRESHOLD** - Content truncation point
 
+**File Path Indicators:**
+- **HOOK_ARROW** - Hook arrow used for file path params
+- **HOOK_ARROW_PREFIX** - Arrow plus space prefix for Zone 2 file paths
+
 **CSS Classes:**
 - **RICHLOG_CLASS_PAUSED** - Styling for paused state
 - **RICHLOG_CLASS_STREAMING** - Styling for streaming state

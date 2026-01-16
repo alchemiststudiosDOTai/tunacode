@@ -21,6 +21,7 @@ from tunacode.constants import (
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_path_params,
     clamp_content_width,
     tool_renderer,
     truncate_line,
@@ -34,6 +35,7 @@ class ReadFileData:
 
     filepath: str
     filename: str
+    root_path: Path
     content_lines: list[tuple[int, str]]  # (line_number, content)
     total_lines: int
     offset: int
@@ -114,6 +116,7 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         args = args or {}
         filepath = args.get("filepath", "unknown")
         offset = args.get("offset", 0)
+        root_path = Path.cwd()
 
         # If total_lines not found in message, estimate from content
         if total_lines == 0:
@@ -122,6 +125,7 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         return ReadFileData(
             filepath=filepath,
             filename=Path(filepath).name,
+            root_path=root_path,
             content_lines=content_lines,
             total_lines=total_lines,
             offset=offset,
@@ -148,9 +152,7 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
 
     def build_params(self, data: ReadFileData, max_line_width: int) -> Text:
         """Zone 2: Full filepath."""
-        params = Text()
-        params.append("path:", style="dim")
-        params.append(f" {data.filepath}", style="dim bold")
+        params = build_hook_path_params(data.filepath, data.root_path)
         return params
 
     def build_viewport(self, data: ReadFileData, max_line_width: int) -> RenderableType:

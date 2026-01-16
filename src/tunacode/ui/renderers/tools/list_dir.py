@@ -17,6 +17,7 @@ from tunacode.tools.list_dir import IGNORE_PATTERNS_COUNT
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_params_prefix,
     tool_renderer,
     truncate_line,
 )
@@ -103,7 +104,7 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
     def build_params(self, data: ListDirData, max_line_width: int) -> Text:
         """Build parameter display line."""
         hidden_val = "on" if data.show_hidden else "off"
-        params = Text()
+        params = build_hook_params_prefix()
         params.append("hidden:", style="dim")
         params.append(f" {hidden_val}", style="dim bold")
         params.append("  max:", style="dim")

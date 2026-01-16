@@ -16,6 +16,7 @@ from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VI
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_params_prefix,
     clamp_content_width,
     tool_renderer,
     truncate_line,
@@ -134,7 +135,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
         """Zone 2: Parameters (strategy, case, regex, context)."""
         case_val = "yes" if data.case_sensitive else "no"
         regex_val = "yes" if data.use_regex else "no"
-        params = Text()
+        params = build_hook_params_prefix()
         params.append("strategy:", style="dim")
         params.append(f" {data.strategy}", style="dim bold")
         params.append("  case:", style="dim")

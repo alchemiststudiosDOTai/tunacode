@@ -22,6 +22,7 @@ from tunacode.constants import (
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_path_params,
     clamp_content_width,
     tool_renderer,
     truncate_line,
@@ -35,6 +36,7 @@ class WriteFileData:
 
     filepath: str
     filename: str
+    root_path: Path
     content: str
     line_count: int
     is_success: bool
@@ -65,11 +67,13 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
         if not filepath:
             return None
 
+        root_path = Path.cwd()
         line_count = len(content.splitlines()) if content else 0
 
         return WriteFileData(
             filepath=filepath,
             filename=Path(filepath).name,
+            root_path=root_path,
             content=content,
             line_count=line_count,
             is_success=is_success,
@@ -91,9 +95,7 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
 
     def build_params(self, data: WriteFileData, max_line_width: int) -> Text:
         """Zone 2: Full filepath."""
-        params = Text()
-        params.append("path:", style="dim")
-        params.append(f" {data.filepath}", style="dim bold")
+        params = build_hook_path_params(data.filepath, data.root_path)
         return params
 
     def build_viewport(self, data: WriteFileData, max_line_width: int) -> RenderableType:

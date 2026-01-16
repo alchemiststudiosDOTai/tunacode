@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
 from rich.console import Group, RenderableType
@@ -22,6 +23,7 @@ from rich.text import Text
 
 from tunacode.constants import (
     BOX_HORIZONTAL,
+    HOOK_ARROW_PREFIX,
     MAX_PANEL_LINE_WIDTH,
     MIN_TOOL_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
@@ -92,6 +94,35 @@ def pad_lines(lines: list[str], min_lines: int = MIN_VIEWPORT_LINES) -> list[str
 def clamp_content_width(max_line_width: int, reserved_width: int) -> int:
     """Clamp content width to avoid negative or zero widths after prefixes."""
     return max(MIN_TOOL_PANEL_LINE_WIDTH, max_line_width - reserved_width)
+
+
+def relative_path(filepath: str, root_path: Path) -> str:
+    """Return filepath relative to root_path when possible."""
+    path = Path(filepath)
+    if not path.is_absolute():
+        return path.as_posix()
+
+    try:
+        relative = path.relative_to(root_path)
+    except ValueError:
+        return path.as_posix()
+
+    return relative.as_posix()
+
+
+def build_hook_params_prefix() -> Text:
+    """Build Zone 2 params prefix for tool panels."""
+    params = Text()
+    params.append(HOOK_ARROW_PREFIX, style="dim")
+    return params
+
+
+def build_hook_path_params(filepath: str, root_path: Path) -> Text:
+    """Build Zone 2 params line for file-based tools."""
+    relative = relative_path(filepath, root_path)
+    params = build_hook_params_prefix()
+    params.append(relative, style="dim underline")
+    return params
 
 
 # Type alias for render functions

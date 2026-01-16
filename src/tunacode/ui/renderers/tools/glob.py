@@ -17,6 +17,7 @@ from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VI
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_params_prefix,
     tool_renderer,
 )
 from tunacode.ui.renderers.tools.syntax_utils import get_lexer
@@ -148,7 +149,7 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
         """Zone 2: Parameters (recursive, hidden, sort)."""
         recursive_val = "on" if data.recursive else "off"
         hidden_val = "on" if data.include_hidden else "off"
-        params = Text()
+        params = build_hook_params_prefix()
         params.append("recursive:", style="dim")
         params.append(f" {recursive_val}", style="dim bold")
         params.append("  hidden:", style="dim")

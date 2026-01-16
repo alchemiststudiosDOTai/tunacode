@@ -16,6 +16,7 @@ from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_params_prefix,
     tool_renderer,
     truncate_content,
     truncate_line,
@@ -120,7 +121,7 @@ class BashRenderer(BaseToolRenderer[BashData]):
 
     def build_params(self, data: BashData, max_line_width: int) -> Text | None:
         """Zone 2: Working directory and timeout."""
-        params = Text()
+        params = build_hook_params_prefix()
         params.append("cwd:", style="dim")
         params.append(f" {data.working_dir}", style="dim bold")
         params.append("  timeout:", style="dim")

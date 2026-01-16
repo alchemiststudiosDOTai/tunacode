@@ -22,6 +22,7 @@ from tunacode.constants import (
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_path_params,
     tool_renderer,
 )
 
@@ -32,6 +33,7 @@ class UpdateFileData:
 
     filepath: str
     filename: str
+    root_path: Path
     message: str
     diff_content: str
     additions: int
@@ -82,6 +84,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             filepath = args.get("filepath", "unknown")
         else:
             filepath = filepath_match.group(1).strip()
+        root_path = Path.cwd()
 
         # Count additions and deletions
         additions = 0
@@ -99,6 +102,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         return UpdateFileData(
             filepath=filepath,
             filename=Path(filepath).name,
+            root_path=root_path,
             message=message,
             diff_content=diff_content,
             additions=additions,
@@ -124,9 +128,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
 
     def build_params(self, data: UpdateFileData, max_line_width: int) -> Text:
         """Zone 2: Full filepath."""
-        params = Text()
-        params.append("path:", style="dim")
-        params.append(f" {data.filepath}", style="dim bold")
+        params = build_hook_path_params(data.filepath, data.root_path)
         return params
 
     def build_viewport(self, data: UpdateFileData, max_line_width: int) -> RenderableType:

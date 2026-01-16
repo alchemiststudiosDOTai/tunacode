@@ -22,6 +22,7 @@ from tunacode.constants import (
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_params_prefix,
     clamp_content_width,
     tool_renderer,
     truncate_line,
@@ -142,7 +143,7 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
         if len(data.directories) > max_directories_display:
             dirs_display += f" (+{len(data.directories) - max_directories_display})"
 
-        params = Text()
+        params = build_hook_params_prefix()
         params.append("dirs:", style="dim")
         params.append(f" {dirs_display}", style="dim bold")
         params.append("  max_files:", style="dim")

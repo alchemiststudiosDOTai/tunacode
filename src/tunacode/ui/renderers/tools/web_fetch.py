@@ -16,6 +16,7 @@ from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, URL_DIS
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    build_hook_params_prefix,
     tool_renderer,
     truncate_content,
 )
@@ -86,7 +87,7 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
 
     def build_params(self, data: WebFetchData, max_line_width: int) -> Text:
         """Zone 2: Full URL + parameters."""
-        params = Text()
+        params = build_hook_params_prefix()
         url_display = data.url
         if len(url_display) > URL_DISPLAY_MAX_LENGTH:
             url_display = url_display[: URL_DISPLAY_MAX_LENGTH - 3] + "..."
