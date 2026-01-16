@@ -95,6 +95,19 @@ content, shown, total = truncate_content(raw_output, max_lines=10)
 lines = pad_lines(content.split("\n"), min_lines=4)
 ```
 
+## Preview Script
+
+Use the preview script to render tool panels without running the full TUI:
+
+```bash
+uv run python scripts/preview_tool_panels.py --list
+uv run python scripts/preview_tool_panels.py --all --width 92
+uv run python scripts/preview_tool_panels.py --scenario grep-basic --scenario bash-error
+```
+
+The script uses `tool_panel_smart()` with canned outputs to exercise common scenarios
+(success, truncation, diagnostics, and error fallback).
+
 ## Registry Pattern
 
 Renderers self-register using the `@tool_renderer` decorator:
@@ -196,8 +209,10 @@ Defined in `tunacode.constants`:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `TOOL_PANEL_WIDTH` | 60 | Panel width in characters |
-| `TOOL_VIEWPORT_LINES` | 10 | Max lines before truncation |
+| `MAX_PANEL_LINES` | 20 | Max lines in generic panels |
+| `MAX_PANEL_LINE_WIDTH` | 50 | Max chars per line |
+| `TOOL_VIEWPORT_LINES` | 8 | Max lines in tool viewport |
+| `MIN_VIEWPORT_LINES` | 3 | Minimum viewport height |
 | `MIN_VIEWPORT_LINES` | 4 | Minimum viewport height (padding) |
 | `MAX_PANEL_LINE_WIDTH` | 60 | Max chars per line before truncation |
 
