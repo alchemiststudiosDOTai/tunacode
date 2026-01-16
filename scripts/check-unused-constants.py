@@ -4,8 +4,8 @@ from __future__ import annotations
 import ast
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 RG_BINARY = "rg"
 CONSTANTS_PATH = Path("src/tunacode/constants.py")
@@ -62,9 +62,7 @@ class ConstantUsageVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def load_used_in_constants_file(
-    module: ast.Module, constants: set[str]
-) -> set[str]:
+def load_used_in_constants_file(module: ast.Module, constants: set[str]) -> set[str]:
     visitor = ConstantUsageVisitor(constants)
     visitor.visit(module)
     return visitor.used

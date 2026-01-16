@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import argparse
 import textwrap
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from rich.console import Console
 
@@ -91,19 +92,10 @@ def build_grep_result() -> str:
     strategy_line = f"Strategy: smart | Candidates: {GREP_CANDIDATES} files | case: no"
     file_header = f"{FILE_ICON} src/tunacode/ui/renderers/tools/base.py:{GREP_LINE_ONE}"
 
-    match_one = (
-        f"{MATCH_MARKER} {GREP_LINE_ONE}│ "
-        f"return {MATCH_LANGLE}Panel{MATCH_RANGLE}("
-    )
-    match_two = (
-        f"{MATCH_MARKER} {GREP_LINE_TWO}│ "
-        f"title=f\"[{MATCH_LANGLE}border{MATCH_RANGLE}]\""
-    )
+    match_one = f"{MATCH_MARKER} {GREP_LINE_ONE}│ return {MATCH_LANGLE}Panel{MATCH_RANGLE}("
+    match_two = f'{MATCH_MARKER} {GREP_LINE_TWO}│ title=f"[{MATCH_LANGLE}border{MATCH_RANGLE}]"'
     second_file = f"{FILE_ICON} src/tunacode/ui/renderers/panels.py:{GREP_LINE_THREE}"
-    match_three = (
-        f"{MATCH_MARKER} {GREP_LINE_THREE}│ "
-        f"def tool_{MATCH_LANGLE}panel{MATCH_RANGLE}("
-    )
+    match_three = f"{MATCH_MARKER} {GREP_LINE_THREE}│ def tool_{MATCH_LANGLE}panel{MATCH_RANGLE}("
 
     result_lines = [
         header,
@@ -182,7 +174,7 @@ def build_update_file_result(with_diagnostics: bool) -> str:
 
 
 def build_bash_result(exit_code: int) -> str:
-    command = "rg -n \"tool_panel_smart\" src"
+    command = 'rg -n "tool_panel_smart" src'
     header = (
         "Command: {command}\n"
         "Exit Code: {exit_code}\n"
@@ -254,10 +246,15 @@ def build_scenarios() -> list[Scenario]:
         "use_regex": False,
         "context_lines": DEFAULT_CONTEXT_LINES,
     }
-    glob_args = {"pattern": "**/*.py", "recursive": True, "include_hidden": False, "sort_by": "modified"}
+    glob_args = {
+        "pattern": "**/*.py",
+        "recursive": True,
+        "include_hidden": False,
+        "sort_by": "modified",
+    }
     read_file_args = {"filepath": "src/tunacode/ui/renderers/panels.py", "offset": READ_FILE_OFFSET}
     update_file_args = {"filepath": "src/tunacode/ui/renderers/tools/base.py"}
-    bash_args = {"command": "rg -n \"tool_panel_smart\" src", "timeout": DEFAULT_TIMEOUT_SECONDS}
+    bash_args = {"command": 'rg -n "tool_panel_smart" src', "timeout": DEFAULT_TIMEOUT_SECONDS}
     web_fetch_args = {
         "url": "https://example.com/docs/tool-panel",
         "timeout": WEB_FETCH_TIMEOUT_SECONDS,
