@@ -82,6 +82,9 @@ Specialized renderers for each tool:
 - **research.py** - Research agent results
 - **diagnostics.py** - LSP error display
 
+Tool renderers clamp content widths against the viewport and account for prefixes
+and line-number gutters so panels stay within narrow terminal widths.
+
 ### Widgets (widgets/)
 
 Custom Textual widgets:

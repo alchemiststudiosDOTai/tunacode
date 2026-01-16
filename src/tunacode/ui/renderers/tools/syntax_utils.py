@@ -139,6 +139,7 @@ def syntax_or_text(
     line_numbers: bool = False,
     word_wrap: bool = True,
     start_line: int = 1,
+    code_width: int | None = None,
 ) -> RenderableType:
     """Return Syntax if lexer known, else plain Text.
 
@@ -168,6 +169,7 @@ def syntax_or_text(
             word_wrap=word_wrap,
             line_numbers=line_numbers,
             start_line=start_line,
+            code_width=code_width,
         )
 
     # Fall back to plain text

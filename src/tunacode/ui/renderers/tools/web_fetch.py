@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.constants import MIN_VIEWPORT_LINES, URL_DISPLAY_MAX_LENGTH
+from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, URL_DISPLAY_MAX_LENGTH
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -72,14 +72,19 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
             timeout=timeout,
         )
 
-    def build_header(self, data: WebFetchData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: WebFetchData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Domain + content summary."""
         header = Text()
         header.append(data.domain or "web", style="bold")
         header.append(f"   {data.content_lines} lines", style="dim")
         return header
 
-    def build_params(self, data: WebFetchData) -> Text:
+    def build_params(self, data: WebFetchData, max_line_width: int) -> Text:
         """Zone 2: Full URL + parameters."""
         params = Text()
         url_display = data.url
@@ -124,12 +129,15 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
         # Content-based detection
         return detect_code_lexer(content)
 
-    def build_viewport(self, data: WebFetchData) -> RenderableType:
+    def build_viewport(self, data: WebFetchData, max_line_width: int) -> RenderableType:
         """Zone 3: Content viewport with smart highlighting."""
         if not data.content:
             return Text("(no content)", style="dim italic")
 
-        truncated_content, shown, total = truncate_content(data.content)
+        truncated_content, shown, total = truncate_content(
+            data.content,
+            max_width=max_line_width,
+        )
 
         # Detect if content is code/structured data
         lexer = self._detect_content_type(data.url, data.content)
@@ -144,7 +152,12 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
 
         return Text("\n".join(content_lines))
 
-    def build_status(self, data: WebFetchData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: WebFetchData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with truncation info and timing."""
 
         status_items: list[str] = []
@@ -152,7 +165,7 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
         if data.is_truncated:
             status_items.append("(content truncated)")
 
-        _, shown, total = truncate_content(data.content)
+        _, shown, total = truncate_content(data.content, max_width=max_line_width)
         if shown < total:
             status_items.append(f"[{shown}/{total} lines]")
 
@@ -171,6 +184,7 @@ def render_web_fetch(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render web_fetch with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

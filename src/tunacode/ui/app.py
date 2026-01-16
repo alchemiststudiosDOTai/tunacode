@@ -19,8 +19,10 @@ from textual.containers import Container
 from textual.widgets import LoadingIndicator, RichLog, Static
 
 from tunacode.constants import (
+    MIN_TOOL_PANEL_LINE_WIDTH,
     RICHLOG_CLASS_PAUSED,
     RICHLOG_CLASS_STREAMING,
+    TOOL_PANEL_HORIZONTAL_INSET,
     build_nextstep_theme,
     build_tunacode_theme,
 )
@@ -347,12 +349,27 @@ class TextualReplApp(App[None]):
         return await _request_plan_approval(plan_content, self, self.rich_log)
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
+        width_candidates = [
+            self.rich_log.scrollable_content_region.width,
+            self.rich_log.content_region.width,
+            self.rich_log.size.width,
+            self.query_one("#viewport").size.width,
+            self.size.width,
+        ]
+        usable_widths = [width for width in width_candidates if width > 0]
+        if not usable_widths:
+            usable_widths = [MIN_TOOL_PANEL_LINE_WIDTH]
+
+        content_width = min(usable_widths)
+        available_width = content_width - TOOL_PANEL_HORIZONTAL_INSET
+        max_line_width = max(MIN_TOOL_PANEL_LINE_WIDTH, available_width)
         panel = tool_panel_smart(
             name=message.tool_name,
             status=message.status,
             args=message.args,
             result=message.result,
             duration_ms=message.duration_ms,
+            max_line_width=max_line_width,
         )
         self.rich_log.write(panel, expand=True)
 

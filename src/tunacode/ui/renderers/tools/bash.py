@@ -12,7 +12,7 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MIN_VIEWPORT_LINES
+from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -97,11 +97,16 @@ class BashRenderer(BaseToolRenderer[BashData]):
             timeout=timeout,
         )
 
-    def build_header(self, data: BashData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: BashData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Command + exit status indicator."""
         header = Text()
 
-        cmd_display = truncate_line(data.command, max_width=50)
+        cmd_display = truncate_line(data.command, max_width=max_line_width)
         header.append(f"$ {cmd_display}", style="bold")
 
         if data.exit_code == 0:
@@ -113,7 +118,7 @@ class BashRenderer(BaseToolRenderer[BashData]):
 
         return header
 
-    def build_params(self, data: BashData) -> Text | None:
+    def build_params(self, data: BashData, max_line_width: int) -> Text | None:
         """Zone 2: Working directory and timeout."""
         params = Text()
         params.append("cwd:", style="dim")
@@ -145,12 +150,12 @@ class BashRenderer(BaseToolRenderer[BashData]):
         # Try content-based detection
         return detect_code_lexer(output)
 
-    def build_viewport(self, data: BashData) -> RenderableType:
+    def build_viewport(self, data: BashData, max_line_width: int) -> RenderableType:
         """Zone 3: stdout/stderr output with smart highlighting."""
         viewport_parts: list[RenderableType] = []
 
         if data.stdout:
-            truncated_stdout, _, _ = truncate_content(data.stdout)
+            truncated_stdout, _, _ = truncate_content(data.stdout, max_width=max_line_width)
 
             # Try to detect if output is code
             lexer = self._detect_output_type(data.command, data.stdout)
@@ -175,7 +180,7 @@ class BashRenderer(BaseToolRenderer[BashData]):
             stderr_header.append("stderr:", style="dim bold red")
             viewport_parts.append(stderr_header)
 
-            truncated_stderr, _, _ = truncate_content(data.stderr)
+            truncated_stderr, _, _ = truncate_content(data.stderr, max_width=max_line_width)
             stderr_text = Text(truncated_stderr, style="red")
             viewport_parts.append(stderr_text)
 
@@ -196,7 +201,12 @@ class BashRenderer(BaseToolRenderer[BashData]):
 
         return Group(*viewport_parts)
 
-    def build_status(self, data: BashData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: BashData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Truncation info, line counts, duration."""
         status_items: list[str] = []
 
@@ -237,6 +247,7 @@ def render_bash(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render bash with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

@@ -13,9 +13,15 @@ from typing import Any
 from rich.console import RenderableType
 from rich.text import Text
 
+from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
+    SYNTAX_LINE_NUMBER_PADDING,
+    SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
+)
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    clamp_content_width,
     tool_renderer,
     truncate_line,
 )
@@ -123,7 +129,12 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
             end_message=end_message,
         )
 
-    def build_header(self, data: ReadFileData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: ReadFileData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Filename + line range."""
         header = Text()
         header.append(data.filename, style="bold")
@@ -135,14 +146,14 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
 
         return header
 
-    def build_params(self, data: ReadFileData) -> Text:
+    def build_params(self, data: ReadFileData, max_line_width: int) -> Text:
         """Zone 2: Full filepath."""
         params = Text()
         params.append("path:", style="dim")
         params.append(f" {data.filepath}", style="dim bold")
         return params
 
-    def build_viewport(self, data: ReadFileData) -> RenderableType:
+    def build_viewport(self, data: ReadFileData, max_line_width: int) -> RenderableType:
         """Zone 3: Syntax-highlighted content viewport."""
         from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
@@ -150,6 +161,14 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
             return Text("(empty file)", style="dim italic")
 
         max_display = TOOL_VIEWPORT_LINES
+        start_line = data.content_lines[0][0] if data.content_lines else 1
+        end_index = min(len(data.content_lines), max_display) - 1
+        end_line = data.content_lines[end_index][0] if end_index >= 0 else start_line
+        line_number_digits = len(str(end_line))
+        line_number_gutter = (
+            line_number_digits + SYNTAX_LINE_NUMBER_PADDING + SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH
+        )
+        code_width = clamp_content_width(max_line_width, line_number_gutter)
 
         # Extract just the content without line numbers for syntax highlighting
         content_only: list[str] = []
@@ -157,7 +176,7 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
             if i >= max_display:
                 break
             # Truncate long lines
-            truncated = truncate_line(line_content, max_width=80)
+            truncated = truncate_line(line_content, max_width=code_width)
             content_only.append(truncated)
 
         # Pad to minimum height
@@ -165,17 +184,21 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
             content_only.append("")
 
         code_content = "\n".join(content_only)
-        start_line = data.content_lines[0][0] if data.content_lines else 1
-
         # Use syntax highlighting with line numbers
         return syntax_or_text(
             code_content,
             filepath=data.filepath,
             line_numbers=True,
             start_line=start_line,
+            code_width=code_width,
         )
 
-    def build_status(self, data: ReadFileData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: ReadFileData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with continuation info and timing."""
         from tunacode.constants import TOOL_VIEWPORT_LINES
 
@@ -206,6 +229,7 @@ def render_read_file(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render read_file with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

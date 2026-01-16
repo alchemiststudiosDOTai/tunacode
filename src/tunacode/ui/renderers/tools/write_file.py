@@ -12,10 +12,17 @@ from typing import Any
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
+    MIN_VIEWPORT_LINES,
+    SYNTAX_LINE_NUMBER_PADDING,
+    SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
+    TOOL_VIEWPORT_LINES,
+)
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    clamp_content_width,
     tool_renderer,
     truncate_line,
 )
@@ -68,7 +75,12 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
             is_success=is_success,
         )
 
-    def build_header(self, data: WriteFileData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: WriteFileData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Filename + line count."""
         header = Text()
         header.append(data.filename, style="bold green")
@@ -77,14 +89,14 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
         header.append(f"  {data.line_count} lines", style="dim")
         return header
 
-    def build_params(self, data: WriteFileData) -> Text:
+    def build_params(self, data: WriteFileData, max_line_width: int) -> Text:
         """Zone 2: Full filepath."""
         params = Text()
         params.append("path:", style="dim")
         params.append(f" {data.filepath}", style="dim bold")
         return params
 
-    def build_viewport(self, data: WriteFileData) -> RenderableType:
+    def build_viewport(self, data: WriteFileData, max_line_width: int) -> RenderableType:
         """Zone 3: Syntax-highlighted content preview."""
         if not data.content:
             return Text("(empty file)", style="dim italic")
@@ -92,12 +104,18 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
         # Truncate content for viewport
         lines = data.content.splitlines()
         max_display = TOOL_VIEWPORT_LINES
+        end_line = min(len(lines), max_display)
+        line_number_digits = len(str(end_line))
+        line_number_gutter = (
+            line_number_digits + SYNTAX_LINE_NUMBER_PADDING + SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH
+        )
+        code_width = clamp_content_width(max_line_width, line_number_gutter)
 
         preview_lines: list[str] = []
         for i, line in enumerate(lines):
             if i >= max_display:
                 break
-            preview_lines.append(truncate_line(line, max_width=80))
+            preview_lines.append(truncate_line(line, max_width=code_width))
 
         # Pad to minimum height
         while len(preview_lines) < MIN_VIEWPORT_LINES:
@@ -109,9 +127,15 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
             preview_content,
             filepath=data.filepath,
             line_numbers=True,
+            code_width=code_width,
         )
 
-    def build_status(self, data: WriteFileData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: WriteFileData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with truncation info and timing."""
         status_items: list[str] = []
 
@@ -138,6 +162,7 @@ def render_write_file(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render write_file with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

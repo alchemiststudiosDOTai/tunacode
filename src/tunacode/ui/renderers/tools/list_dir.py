@@ -12,7 +12,7 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.tools.list_dir import IGNORE_PATTERNS_COUNT
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -88,14 +88,19 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
             ignore_count=ignore_count,
         )
 
-    def build_header(self, data: ListDirData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: ListDirData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Build header with directory path and counts."""
         header = Text()
         header.append(data.directory, style="bold")
         header.append(f"   {data.file_count} files  {data.dir_count} dirs", style="dim")
         return header
 
-    def build_params(self, data: ListDirData) -> Text:
+    def build_params(self, data: ListDirData, max_line_width: int) -> Text:
         """Build parameter display line."""
         hidden_val = "on" if data.show_hidden else "off"
         params = Text()
@@ -157,7 +162,7 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
 
         return styled
 
-    def build_viewport(self, data: ListDirData) -> RenderableType:
+    def build_viewport(self, data: ListDirData, max_line_width: int) -> RenderableType:
         """Build styled tree content viewport."""
         # Skip first line (dirname already in header)
         tree_lines = data.tree_content.splitlines()[1:]
@@ -173,7 +178,7 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
             if lines_used >= max_display:
                 break
 
-            truncated = truncate_line(line, max_width=60)
+            truncated = truncate_line(line, max_width=max_line_width)
             styled_line = self._style_tree_line(truncated)
             viewport_parts.append(styled_line)
             lines_used += 1
@@ -189,7 +194,12 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
 
         return Group(*viewport_parts)
 
-    def build_status(self, data: ListDirData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: ListDirData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Build status line with truncation info and timing."""
         status_items: list[str] = []
 
@@ -212,6 +222,7 @@ def render_list_dir(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render list_dir with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

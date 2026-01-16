@@ -12,10 +12,11 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import MAX_PANEL_LINE_WIDTH, MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    clamp_content_width,
     tool_renderer,
     truncate_line,
 )
@@ -116,7 +117,12 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
             context_lines=args.get("context_lines", 2),
         )
 
-    def build_header(self, data: GrepData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: GrepData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Pattern + match count."""
         header = Text()
         header.append(f'"{data.pattern}"', style="bold")
@@ -124,7 +130,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
         header.append(f"   {data.total_matches} {match_word}", style="dim")
         return header
 
-    def build_params(self, data: GrepData) -> Text:
+    def build_params(self, data: GrepData, max_line_width: int) -> Text:
         """Zone 2: Parameters (strategy, case, regex, context)."""
         case_val = "yes" if data.case_sensitive else "no"
         regex_val = "yes" if data.use_regex else "no"
@@ -139,7 +145,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
         params.append(f" {data.context_lines}", style="dim bold")
         return params
 
-    def build_viewport(self, data: GrepData) -> RenderableType:
+    def build_viewport(self, data: GrepData, max_line_width: int) -> RenderableType:
         """Zone 3: Matches viewport with styled file paths and highlighted matches."""
         if not data.matches:
             return Text("(no matches)", style="dim italic")
@@ -161,9 +167,12 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
 
                 current_file = match["file"]
                 if lines_used < max_lines:
+                    indent = "  "
                     file_header = Text()
-                    file_header.append("  ", style="")
-                    file_header.append(current_file, style="cyan bold")
+                    file_header.append(indent, style="")
+                    file_width = clamp_content_width(max_line_width, len(indent))
+                    truncated_file = truncate_line(current_file, max_width=file_width)
+                    file_header.append(truncated_file, style="cyan bold")
                     viewport_parts.append(file_header)
                     lines_used += 1
 
@@ -171,16 +180,17 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
                 break
 
             # Match line with highlighted match text
+            prefix = f"    {match['line']:>4}│ "
             match_line = Text()
-            match_line.append(f"    {match['line']:>4}", style="dim")
-            match_line.append("│ ", style="dim")
+            match_line.append(prefix, style="dim")
 
             # Truncate the full content
             before = match["before"]
             match_text = match["match"]
             after = match["after"]
             full_line = f"{before}{match_text}{after}"
-            truncated = truncate_line(full_line, max_width=60)
+            content_width = clamp_content_width(max_line_width, len(prefix))
+            truncated = truncate_line(full_line, max_width=content_width)
 
             # If truncated, we need to reconstruct with highlight
             if truncated == full_line:
@@ -201,7 +211,12 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
 
         return Group(*viewport_parts)
 
-    def build_status(self, data: GrepData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: GrepData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with truncation info and timing."""
         status_items: list[str] = []
         if data.is_truncated:
@@ -223,6 +238,7 @@ def render_grep(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render grep with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

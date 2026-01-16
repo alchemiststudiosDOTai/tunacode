@@ -23,8 +23,10 @@ from rich.text import Text
 from tunacode.constants import (
     BOX_HORIZONTAL,
     MAX_PANEL_LINE_WIDTH,
+    MIN_TOOL_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
     SEPARATOR_WIDTH,
+    TOOL_PANEL_WIDTH_DEBUG,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
@@ -87,9 +89,14 @@ def pad_lines(lines: list[str], min_lines: int = MIN_VIEWPORT_LINES) -> list[str
     return result
 
 
+def clamp_content_width(max_line_width: int, reserved_width: int) -> int:
+    """Clamp content width to avoid negative or zero widths after prefixes."""
+    return max(MIN_TOOL_PANEL_LINE_WIDTH, max_line_width - reserved_width)
+
+
 # Type alias for render functions
 RenderFunc = Callable[
-    [dict[str, Any] | None, str, float | None],
+    [dict[str, Any] | None, str, float | None, int],
     RenderableType | None,
 ]
 
@@ -172,46 +179,50 @@ class ToolRendererProtocol(Protocol[T]):
         """
         ...
 
-    def build_header(self, data: T, duration_ms: float | None) -> Text:
+    def build_header(self, data: T, duration_ms: float | None, max_line_width: int) -> Text:
         """Build Zone 1: header with tool name and status info.
 
         Args:
             data: Parsed tool result data
             duration_ms: Execution duration in milliseconds
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Text object for the header zone
         """
         ...
 
-    def build_params(self, data: T) -> Text | None:
+    def build_params(self, data: T, max_line_width: int) -> Text | None:
         """Build Zone 2: parameter key-value display.
 
         Args:
             data: Parsed tool result data
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Text object for params zone, or None if no params
         """
         ...
 
-    def build_viewport(self, data: T) -> RenderableType:
+    def build_viewport(self, data: T, max_line_width: int) -> RenderableType:
         """Build Zone 3: main content viewport.
 
         Args:
             data: Parsed tool result data
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich renderable for the viewport zone
         """
         ...
 
-    def build_status(self, data: T, duration_ms: float | None) -> Text:
+    def build_status(self, data: T, duration_ms: float | None, max_line_width: int) -> Text:
         """Build Zone 4: status line with truncation info and timing.
 
         Args:
             data: Parsed tool result data
             duration_ms: Execution duration in milliseconds
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Text object for the status zone
@@ -273,12 +284,13 @@ class BaseToolRenderer(ABC, Generic[T]):
         ...
 
     @abstractmethod
-    def build_header(self, data: T, duration_ms: float | None) -> Text:
+    def build_header(self, data: T, duration_ms: float | None, max_line_width: int) -> Text:
         """Build Zone 1: header with tool name and status info.
 
         Args:
             data: Parsed tool result data
             duration_ms: Execution duration in milliseconds
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Text object for the header zone
@@ -286,11 +298,12 @@ class BaseToolRenderer(ABC, Generic[T]):
         ...
 
     @abstractmethod
-    def build_params(self, data: T) -> Text | None:
+    def build_params(self, data: T, max_line_width: int) -> Text | None:
         """Build Zone 2: parameter key-value display.
 
         Args:
             data: Parsed tool result data
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Text object for params zone, or None if no params
@@ -298,11 +311,12 @@ class BaseToolRenderer(ABC, Generic[T]):
         ...
 
     @abstractmethod
-    def build_viewport(self, data: T) -> RenderableType:
+    def build_viewport(self, data: T, max_line_width: int) -> RenderableType:
         """Build Zone 3: main content viewport.
 
         Args:
             data: Parsed tool result data
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich renderable for the viewport zone
@@ -310,12 +324,13 @@ class BaseToolRenderer(ABC, Generic[T]):
         ...
 
     @abstractmethod
-    def build_status(self, data: T, duration_ms: float | None) -> Text:
+    def build_status(self, data: T, duration_ms: float | None, max_line_width: int) -> Text:
         """Build Zone 4: status line with truncation info and timing.
 
         Args:
             data: Parsed tool result data
             duration_ms: Execution duration in milliseconds
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Text object for the status zone
@@ -377,6 +392,7 @@ class BaseToolRenderer(ABC, Generic[T]):
         args: dict[str, Any] | None,
         result: str,
         duration_ms: float | None = None,
+        max_line_width: int = MAX_PANEL_LINE_WIDTH,
     ) -> RenderableType | None:
         """Render tool result using the 4-zone layout pattern.
 
@@ -390,6 +406,7 @@ class BaseToolRenderer(ABC, Generic[T]):
             args: Tool arguments passed to the tool
             result: Raw result string from tool execution
             duration_ms: Execution duration in milliseconds
+            max_line_width: Maximum line width for truncation
 
         Returns:
             Rich Panel containing the rendered output, or None if parsing fails
@@ -399,10 +416,12 @@ class BaseToolRenderer(ABC, Generic[T]):
             return None
 
         # Build zones
-        header = self.build_header(data, duration_ms)
-        params = self.build_params(data)
-        viewport = self.build_viewport(data)
-        status = self.build_status(data, duration_ms)
+        header = self.build_header(data, duration_ms, max_line_width)
+        params = self.build_params(data, max_line_width)
+        viewport = self.build_viewport(data, max_line_width)
+        status = self.build_status(data, duration_ms, max_line_width)
+        if TOOL_PANEL_WIDTH_DEBUG:
+            status.append(f"  width: {max_line_width}", style="dim")
         separator = self.build_separator()
 
         content_parts: list[RenderableType] = [header]

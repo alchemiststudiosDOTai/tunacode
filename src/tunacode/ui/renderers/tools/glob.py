@@ -107,25 +107,36 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
             sort_by=args.get("sort_by", "modified"),
         )
 
-    def _truncate_path(self, path: str) -> str:
+    def _truncate_path(self, path: str, max_line_width: int) -> str:
         """Truncate a path if too wide, keeping filename visible."""
-        if len(path) <= MAX_PANEL_LINE_WIDTH:
+        if len(path) <= max_line_width:
             return path
 
+        ellipsis = "..."
+        ellipsis_len = len(ellipsis)
         p = Path(path)
         filename = p.name
-        max_dir_len = MAX_PANEL_LINE_WIDTH - len(filename) - 4  # ".../"
+        path_separator = "/"
+        separator_len = len(path_separator)
+        max_dir_len = max_line_width - len(filename) - ellipsis_len - separator_len
 
         if max_dir_len <= 0:
-            return "..." + filename[-(MAX_PANEL_LINE_WIDTH - 3) :]
+            filename_width = max_line_width - ellipsis_len
+            return ellipsis + filename[-filename_width:]
 
         dir_part = str(p.parent)
         if len(dir_part) > max_dir_len:
-            dir_part = "..." + dir_part[-(max_dir_len - 3) :]
+            dir_width = max_dir_len - ellipsis_len
+            dir_part = ellipsis + dir_part[-dir_width:]
 
-        return f"{dir_part}/{filename}"
+        return f"{dir_part}{path_separator}{filename}"
 
-    def build_header(self, data: GlobData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: GlobData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Pattern + file count."""
         header = Text()
         header.append(f'"{data.pattern}"', style="bold")
@@ -133,7 +144,7 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
         header.append(f"   {data.file_count} {file_word}", style="dim")
         return header
 
-    def build_params(self, data: GlobData) -> Text:
+    def build_params(self, data: GlobData, max_line_width: int) -> Text:
         """Zone 2: Parameters (recursive, hidden, sort)."""
         recursive_val = "on" if data.recursive else "off"
         hidden_val = "on" if data.include_hidden else "off"
@@ -167,7 +178,7 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
 
         return ""
 
-    def build_viewport(self, data: GlobData) -> RenderableType:
+    def build_viewport(self, data: GlobData, max_line_width: int) -> RenderableType:
         """Zone 3: Styled file list viewport."""
         if not data.files:
             return Text("(no files)", style="dim italic")
@@ -180,17 +191,23 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
             if lines_used >= max_display:
                 break
 
-            truncated = self._truncate_path(filepath)
+            truncated = self._truncate_path(filepath, max_line_width)
             path = Path(filepath)
             style = self._get_file_style(filepath)
 
             line = Text()
             # Show directory in dim, filename in color
             if "/" in truncated:
+                ellipsis = "..."
+                ellipsis_len = len(ellipsis)
                 dir_part = str(path.parent)
-                if len(dir_part) > 30:
-                    dir_part = "..." + dir_part[-27:]
-                line.append(dir_part + "/", style="dim")
+                path_separator = "/"
+                separator_len = len(path_separator)
+                dir_width = max_line_width - len(path.name) - ellipsis_len - separator_len
+                truncate_width = dir_width - ellipsis_len
+                if truncate_width > 0 and len(dir_part) > dir_width:
+                    dir_part = ellipsis + dir_part[-truncate_width:]
+                line.append(dir_part + path_separator, style="dim")
                 line.append(path.name, style=style or "bold")
             else:
                 line.append(truncated, style=style or "bold")
@@ -205,7 +222,12 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
 
         return Group(*viewport_parts)
 
-    def build_status(self, data: GlobData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: GlobData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with source, truncation info, timing."""
         from tunacode.constants import TOOL_VIEWPORT_LINES
 
@@ -236,6 +258,7 @@ def render_glob(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render glob with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

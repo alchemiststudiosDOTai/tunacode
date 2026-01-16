@@ -14,6 +14,7 @@ from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import (
+    MAX_PANEL_LINE_WIDTH,
     MIN_VIEWPORT_LINES,
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
@@ -21,6 +22,7 @@ from tunacode.constants import (
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    clamp_content_width,
     tool_renderer,
     truncate_line,
 )
@@ -116,7 +118,12 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
             error_message=error_message,
         )
 
-    def build_header(self, data: ResearchData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: ResearchData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Query summary."""
         header = Text()
         header.append("Query: ", style="dim")
@@ -128,7 +135,7 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
         header.append(f'"{query_display}"', style="bold")
         return header
 
-    def build_params(self, data: ResearchData) -> Text:
+    def build_params(self, data: ResearchData, max_line_width: int) -> Text:
         """Zone 2: Parameters (directories, max_files)."""
         max_directories_display = 3
         dirs_display = ", ".join(data.directories[:max_directories_display])
@@ -142,7 +149,7 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
         params.append(f" {data.max_files}", style="dim bold")
         return params
 
-    def build_viewport(self, data: ResearchData) -> RenderableType:
+    def build_viewport(self, data: ResearchData, max_line_width: int) -> RenderableType:
         """Zone 3: Multi-section viewport (files, findings, code examples)."""
         viewport_parts: list[RenderableType] = []
         lines_used = 0
@@ -168,8 +175,11 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
                 if lines_used >= max_viewport_lines:
                     break
                 file_line = Text()
-                file_line.append("  ", style="")
-                file_line.append(truncate_line(filepath, max_width=50), style="cyan")
+                indent = "  "
+                file_line.append(indent, style="")
+                file_width = clamp_content_width(max_line_width, len(indent))
+                truncated_file = truncate_line(filepath, max_width=file_width)
+                file_line.append(truncated_file, style="cyan")
                 viewport_parts.append(file_line)
                 lines_used += 1
 
@@ -194,8 +204,11 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
                 if lines_used >= max_viewport_lines:
                     break
                 finding_line = Text()
-                finding_line.append(f"  {i}. ", style="dim")
-                finding_line.append(truncate_line(finding, max_width=55))
+                prefix = f"  {i}. "
+                finding_line.append(prefix, style="dim")
+                finding_width = clamp_content_width(max_line_width, len(prefix))
+                truncated_finding = truncate_line(finding, max_width=finding_width)
+                finding_line.append(truncated_finding)
                 viewport_parts.append(finding_line)
                 lines_used += 1
 
@@ -224,8 +237,11 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
 
             if filepath:
                 file_text = Text()
-                file_text.append("  ", style="")
-                file_text.append(truncate_line(filepath, max_width=50), style="cyan dim")
+                indent = "  "
+                file_text.append(indent, style="")
+                file_width = clamp_content_width(max_line_width, len(indent))
+                truncated_path = truncate_line(filepath, max_width=file_width)
+                file_text.append(truncated_path, style="cyan dim")
                 viewport_parts.append(file_text)
                 lines_used += 1
 
@@ -247,7 +263,12 @@ class ResearchRenderer(BaseToolRenderer[ResearchData]):
             return Text("(no findings)", style="dim italic")
         return Group(*viewport_parts)
 
-    def build_status(self, data: ResearchData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: ResearchData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with file count, findings count, timing."""
         status_items: list[str] = []
         status_items.append(f"files: {len(data.relevant_files)}")
@@ -279,6 +300,7 @@ def render_research_codebase(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render research_codebase with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

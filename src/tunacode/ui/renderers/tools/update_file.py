@@ -107,7 +107,12 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             diagnostics_block=diagnostics_block,
         )
 
-    def build_header(self, data: UpdateFileData, duration_ms: float | None) -> Text:
+    def build_header(
+        self,
+        data: UpdateFileData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 1: Filename + change stats."""
         header = Text()
         header.append(data.filename, style="bold")
@@ -117,17 +122,17 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         header.append(f"-{data.deletions}", style="red")
         return header
 
-    def build_params(self, data: UpdateFileData) -> Text:
+    def build_params(self, data: UpdateFileData, max_line_width: int) -> Text:
         """Zone 2: Full filepath."""
         params = Text()
         params.append("path:", style="dim")
         params.append(f" {data.filepath}", style="dim bold")
         return params
 
-    def build_viewport(self, data: UpdateFileData) -> RenderableType:
+    def build_viewport(self, data: UpdateFileData, max_line_width: int) -> RenderableType:
         """Zone 3: Diff viewport with syntax highlighting."""
         # Truncate diff
-        truncated_diff, shown, total = self._truncate_diff(data.diff_content)
+        truncated_diff, shown, total = self._truncate_diff(data.diff_content, max_line_width)
 
         # Pad viewport to minimum height
         diff_lines = truncated_diff.split("\n")
@@ -142,12 +147,11 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             return line
         return line[:max_line_width] + "..."
 
-    def _truncate_diff(self, diff: str) -> tuple[str, int, int]:
+    def _truncate_diff(self, diff: str, max_line_width: int) -> tuple[str, int, int]:
         """Truncate diff content, return (truncated, shown, total)."""
         lines = diff.splitlines()
         total = len(lines)
         max_content = TOOL_VIEWPORT_LINES
-        max_line_width = MAX_PANEL_LINE_WIDTH
 
         capped_lines = [
             self._truncate_line_width(line, max_line_width) for line in lines[:max_content]
@@ -157,7 +161,12 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             return "\n".join(capped_lines), total, total
         return "\n".join(capped_lines), max_content, total
 
-    def build_status(self, data: UpdateFileData, duration_ms: float | None) -> Text:
+    def build_status(
+        self,
+        data: UpdateFileData,
+        duration_ms: float | None,
+        max_line_width: int,
+    ) -> Text:
         """Zone 4: Status with hunks, truncation info, timing."""
 
         status_items: list[str] = []
@@ -165,7 +174,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         hunk_word = "hunk" if data.hunks == 1 else "hunks"
         status_items.append(f"{data.hunks} {hunk_word}")
 
-        _, shown, total = self._truncate_diff(data.diff_content)
+        _, shown, total = self._truncate_diff(data.diff_content, max_line_width)
         if shown < total:
             status_items.append(f"[{shown}/{total} lines]")
 
@@ -179,6 +188,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         args: dict[str, Any] | None,
         result: str,
         duration_ms: float | None = None,
+        max_line_width: int = MAX_PANEL_LINE_WIDTH,
     ) -> RenderableType | None:
         """Render update_file with NeXTSTEP zoned layout plus optional diagnostics.
 
@@ -194,10 +204,10 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             return None
 
         # Build zones
-        header = self.build_header(data, duration_ms)
-        params = self.build_params(data)
-        viewport = self.build_viewport(data)
-        status = self.build_status(data, duration_ms)
+        header = self.build_header(data, duration_ms, max_line_width)
+        params = self.build_params(data, max_line_width)
+        viewport = self.build_viewport(data, max_line_width)
+        status = self.build_status(data, duration_ms, max_line_width)
         separator = self.build_separator()
 
         content_parts: list[RenderableType] = [
@@ -263,6 +273,7 @@ def render_update_file(
     args: dict[str, Any] | None,
     result: str,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType | None:
     """Render update_file with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return _renderer.render(args, result, duration_ms, max_line_width)

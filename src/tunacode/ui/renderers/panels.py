@@ -18,6 +18,7 @@ from tunacode.constants import (
     MAX_PANEL_LINE_WIDTH,
     MAX_PANEL_LINES,
     MAX_SEARCH_RESULTS_DISPLAY,
+    TOOL_PANEL_WIDTH_DEBUG,
     UI_COLORS,
 )
 
@@ -98,7 +99,10 @@ class SearchResultData:
 
 class RichPanelRenderer:
     @staticmethod
-    def render_tool(data: ToolDisplayData) -> RenderableType:
+    def render_tool(
+        data: ToolDisplayData,
+        max_line_width: int = MAX_PANEL_LINE_WIDTH,
+    ) -> RenderableType:
         status_map = {
             "running": (PanelType.TOOL, "..."),
             "completed": (PanelType.SUCCESS, "done"),
@@ -111,16 +115,20 @@ class RichPanelRenderer:
         footer_parts: list[str] = []
 
         if data.arguments:
+            value_max_length = max_line_width
             args_table = Table.grid(padding=(0, 1))
             args_table.add_column(style="dim")
             args_table.add_column()
             for key, value in data.arguments.items():
-                display_value = _truncate_value(value, max_length=60)
+                display_value = _truncate_value(value, max_length=value_max_length)
                 args_table.add_row(f"{key}:", display_value)
             content_parts.append(args_table)
 
         if data.result:
-            truncated_result, shown, total = _truncate_content(data.result)
+            truncated_result, shown, total = _truncate_content(
+                data.result,
+                max_line_width=max_line_width,
+            )
             result_text = Text()
             result_text.append("\n")
             result_text.append(truncated_result)
@@ -132,6 +140,9 @@ class RichPanelRenderer:
 
         if data.duration_ms is not None:
             footer_parts.append(f"{data.duration_ms:.0f}ms")
+
+        if TOOL_PANEL_WIDTH_DEBUG:
+            footer_parts.append(f"width: {max_line_width}")
 
         # Build footer from parts
         if footer_parts:
@@ -365,7 +376,7 @@ class RichPanelRenderer:
         )
 
 
-def _truncate_value(value: Any, max_length: int = 50) -> str:
+def _truncate_value(value: Any, max_length: int = MAX_PANEL_LINE_WIDTH) -> str:
     str_value = str(value)
     if len(str_value) <= max_length:
         return str_value
@@ -427,6 +438,7 @@ def tool_panel(
     args: dict[str, Any] | None = None,
     result: str | None = None,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType:
     data = ToolDisplayData(
         tool_name=name,
@@ -436,7 +448,7 @@ def tool_panel(
         duration_ms=duration_ms,
         timestamp=datetime.now(),
     )
-    return RichPanelRenderer.render_tool(data)
+    return RichPanelRenderer.render_tool(data, max_line_width=max_line_width)
 
 
 def error_panel(
@@ -479,6 +491,7 @@ def tool_panel_smart(
     args: dict[str, Any] | None = None,
     result: str | None = None,
     duration_ms: float | None = None,
+    max_line_width: int = MAX_PANEL_LINE_WIDTH,
 ) -> RenderableType:
     """Route tool output to NeXTSTEP-style renderers.
 
@@ -515,12 +528,12 @@ def tool_panel_smart(
 
         renderer = renderer_map.get(name.lower())
         if renderer:
-            panel = renderer(args, result, duration_ms)
+            panel = renderer(args, result, duration_ms, max_line_width)
             if panel:
                 return panel
 
     # Fallback to generic panel for unsupported tools or failed renders
-    return tool_panel(name, status, args, result, duration_ms)
+    return tool_panel(name, status, args, result, duration_ms, max_line_width=max_line_width)
 
 
 def _try_parse_search_result(
