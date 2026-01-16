@@ -1,24 +1,42 @@
+"""Tests for slim update_file renderer."""
+
 from __future__ import annotations
 
-from tunacode.constants import MAX_PANEL_LINE_WIDTH
-from tunacode.ui.renderers.tools.update_file import _renderer
-
-EXTRA_CHAR_COUNT: int = 1
-FILLER_CHAR: str = "a"
-SINGLE_LINE_COUNT: int = 1
-LINE_TRUNCATION_SUFFIX: str = "..."
+from tunacode.ui.renderers.tools.update_file import (
+    build_diff_viewport,
+    parse_update_file_result,
+)
 
 
-def test_truncate_diff_caps_line_width() -> None:
-    overlong_length: int = MAX_PANEL_LINE_WIDTH + EXTRA_CHAR_COUNT
-    overlong_line: str = FILLER_CHAR * overlong_length
-    diff_content: str = overlong_line
+def test_parse_update_file_result_extracts_stats() -> None:
+    """Parse result extracts additions and deletions."""
+    result = """File 'src/test.py' updated successfully.
 
-    truncated, shown, total = _renderer._truncate_diff(diff_content)
+--- a/src/test.py
++++ b/src/test.py
+@@ -10,3 +10,5 @@
+ context line
+-removed line
++added line 1
++added line 2
+"""
+    data = parse_update_file_result(None, result)
+    assert data is not None
+    assert data.additions == 2
+    assert data.deletions == 1
+    assert data.filepath == "src/test.py"
 
-    expected_line_prefix: str = FILLER_CHAR * MAX_PANEL_LINE_WIDTH
-    expected_line: str = f"{expected_line_prefix}{LINE_TRUNCATION_SUFFIX}"
 
-    assert truncated == expected_line
-    assert shown == SINGLE_LINE_COUNT
-    assert total == SINGLE_LINE_COUNT
+def test_build_diff_viewport_with_colors() -> None:
+    """Diff viewport returns proper line structure."""
+    diff = """--- a/file.py
++++ b/file.py
+@@ -1,3 +1,4 @@
+ context
+-removed
++added
++new
+"""
+    viewport, shown, total = build_diff_viewport(diff, max_lines=10)
+    assert shown > 0
+    assert total > 0

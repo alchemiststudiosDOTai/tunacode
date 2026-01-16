@@ -1,28 +1,36 @@
-"""NeXTSTEP-style panel renderer for update_file tool output."""
+"""Slim NeXTSTEP-style panel renderer for update_file tool output.
+
+Dream mockup style:
+─ update_file ──────────────────────────────────── +3 -2
+  ↳ tools/web_fetch.py
+
+136 try:
+137     head_response = await client.head(validated_url)
+138 - if content_length and int(content_length) > MAX_SIZE:    ██ RED BG
+139 + max_content_size = config.max_content_size_bytes         ██ GREEN BG
+"""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.style import Style
-from rich.syntax import Syntax
 from rich.text import Text
 
 from tunacode.constants import (
     MAX_PANEL_LINE_WIDTH,
-    MIN_VIEWPORT_LINES,
+    SLIM_PANEL_WIDTH,
     TOOL_VIEWPORT_LINES,
 )
-from tunacode.ui.renderers.tools.base import (
-    BaseToolRenderer,
-    RendererConfig,
-    tool_renderer,
+from tunacode.ui.renderers.tools.base import tool_renderer
+from tunacode.ui.renderers.tools.slim_base import (
+    STYLE_ADDED,
+    STYLE_REMOVED,
+    slim_footer,
+    slim_panel,
+    styled_line,
 )
 
 
@@ -40,222 +48,150 @@ class UpdateFileData:
     diagnostics_block: str | None = None
 
 
-class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
-    """Renderer for update_file tool output with optional diagnostics zone."""
+def parse_update_file_result(
+    args: dict[str, Any] | None, result: str
+) -> UpdateFileData | None:
+    """Extract structured data from update_file output.
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> UpdateFileData | None:
-        """Extract structured data from update_file output.
+    Expected format:
+        File 'path/to/file.py' updated successfully.
 
-        Expected format:
-            File 'path/to/file.py' updated successfully.
+        --- a/path/to/file.py
+        +++ b/path/to/file.py
+        @@ -10,5 +10,7 @@
+        ...diff content...
 
-            --- a/path/to/file.py
-            +++ b/path/to/file.py
-            @@ -10,5 +10,7 @@
-            ...diff content...
+        <file_diagnostics>
+        Error (line 10): type mismatch
+        </file_diagnostics>
+    """
+    if not result:
+        return None
 
-            <file_diagnostics>
-            Error (line 10): type mismatch
-            </file_diagnostics>
-        """
-        if not result:
-            return None
+    # Extract diagnostics block before parsing diff
+    from tunacode.ui.renderers.tools.diagnostics import extract_diagnostics_from_result
 
-        # Extract diagnostics block before parsing diff
-        from tunacode.ui.renderers.tools.diagnostics import extract_diagnostics_from_result
+    result_clean, diagnostics_block = extract_diagnostics_from_result(result)
 
-        result_clean, diagnostics_block = extract_diagnostics_from_result(result)
+    # Split message from diff
+    if "\n--- a/" not in result_clean:
+        return None
 
-        # Split message from diff
-        if "\n--- a/" not in result_clean:
-            return None
+    parts = result_clean.split("\n--- a/", 1)
+    message = parts[0].strip()
+    diff_content = "--- a/" + parts[1]
 
-        parts = result_clean.split("\n--- a/", 1)
-        message = parts[0].strip()
-        diff_content = "--- a/" + parts[1]
+    # Extract filepath from diff header
+    filepath_match = re.search(r"--- a/(.+)", diff_content)
+    if not filepath_match:
+        args = args or {}
+        filepath = args.get("filepath", "unknown")
+    else:
+        filepath = filepath_match.group(1).strip()
 
-        # Extract filepath from diff header
-        filepath_match = re.search(r"--- a/(.+)", diff_content)
-        if not filepath_match:
-            # Try from args
-            args = args or {}
-            filepath = args.get("filepath", "unknown")
+    # Count additions and deletions
+    additions = 0
+    deletions = 0
+    hunks = 0
+
+    for line in diff_content.splitlines():
+        if line.startswith("+") and not line.startswith("+++"):
+            additions += 1
+        elif line.startswith("-") and not line.startswith("---"):
+            deletions += 1
+        elif line.startswith("@@"):
+            hunks += 1
+
+    # Extract just filename from path
+    filename = filepath.split("/")[-1] if "/" in filepath else filepath
+
+    return UpdateFileData(
+        filepath=filepath,
+        filename=filename,
+        message=message,
+        diff_content=diff_content,
+        additions=additions,
+        deletions=deletions,
+        hunks=hunks,
+        diagnostics_block=diagnostics_block,
+    )
+
+
+def build_diff_viewport(
+    diff_content: str,
+    max_lines: int = TOOL_VIEWPORT_LINES,
+    max_width: int = MAX_PANEL_LINE_WIDTH,
+) -> tuple[RenderableType, int, int]:
+    """Build diff viewport with full-line background colors.
+
+    Args:
+        diff_content: Raw diff string
+        max_lines: Maximum lines to show
+        max_width: Maximum line width
+
+    Returns:
+        Tuple of (renderable, lines_shown, total_lines)
+    """
+    lines = diff_content.splitlines()
+
+    # Skip header lines (---, +++, @@)
+    content_lines: list[tuple[str, str, int | None]] = []
+    current_line_num = 0
+
+    for line in lines:
+        if line.startswith("---") or line.startswith("+++"):
+            continue
+        if line.startswith("@@"):
+            # Parse line number from hunk header: @@ -10,5 +10,7 @@
+            match = re.search(r"\+(\d+)", line)
+            if match:
+                current_line_num = int(match.group(1))
+            continue
+
+        # Determine line type and number
+        if line.startswith("+"):
+            line_type = "added"
+            display_num = current_line_num
+            current_line_num += 1
+        elif line.startswith("-"):
+            line_type = "removed"
+            display_num = current_line_num
+            # Don't increment for removed lines
         else:
-            filepath = filepath_match.group(1).strip()
+            line_type = "context"
+            display_num = current_line_num
+            current_line_num += 1
 
-        # Count additions and deletions
-        additions = 0
-        deletions = 0
-        hunks = 0
+        content_lines.append((line, line_type, display_num))
 
-        for line in diff_content.splitlines():
-            if line.startswith("+") and not line.startswith("+++"):
-                additions += 1
-            elif line.startswith("-") and not line.startswith("---"):
-                deletions += 1
-            elif line.startswith("@@"):
-                hunks += 1
+    total = len(content_lines)
+    shown = min(total, max_lines)
+    display_lines = content_lines[:shown]
 
-        return UpdateFileData(
-            filepath=filepath,
-            filename=Path(filepath).name,
-            message=message,
-            diff_content=diff_content,
-            additions=additions,
-            deletions=deletions,
-            hunks=hunks,
-            diagnostics_block=diagnostics_block,
-        )
+    # Build viewport
+    viewport_parts: list[RenderableType] = []
 
-    def build_header(self, data: UpdateFileData, duration_ms: float | None) -> Text:
-        """Zone 1: Filename + change stats."""
-        header = Text()
-        header.append(data.filename, style="bold")
-        header.append("   ", style="")
-        header.append(f"+{data.additions}", style="green")
-        header.append(" ", style="")
-        header.append(f"-{data.deletions}", style="red")
-        return header
+    for line_content, line_type, line_num in display_lines:
+        # Format: "139 - old code" or "139 + new code"
+        prefix = f"{line_num:3d} " if line_num else "    "
 
-    def build_params(self, data: UpdateFileData) -> Text:
-        """Zone 2: Full filepath."""
-        params = Text()
-        params.append("path:", style="dim")
-        params.append(f" {data.filepath}", style="dim bold")
-        return params
+        # Truncate if too long
+        display_content = line_content
+        if len(display_content) > max_width - 4:
+            display_content = display_content[: max_width - 7] + "..."
 
-    def build_viewport(self, data: UpdateFileData) -> RenderableType:
-        """Zone 3: Diff viewport with syntax highlighting."""
-        # Truncate diff
-        truncated_diff, shown, total = self._truncate_diff(data.diff_content)
+        full_line = f"{prefix}{display_content}"
 
-        # Pad viewport to minimum height
-        diff_lines = truncated_diff.split("\n")
-        while len(diff_lines) < MIN_VIEWPORT_LINES:
-            diff_lines.append("")
-        truncated_diff = "\n".join(diff_lines)
-
-        return Syntax(truncated_diff, "diff", theme="monokai", word_wrap=True)
-
-    def _truncate_line_width(self, line: str, max_line_width: int) -> str:
-        if len(line) <= max_line_width:
-            return line
-        return line[:max_line_width] + "..."
-
-    def _truncate_diff(self, diff: str) -> tuple[str, int, int]:
-        """Truncate diff content, return (truncated, shown, total)."""
-        lines = diff.splitlines()
-        total = len(lines)
-        max_content = TOOL_VIEWPORT_LINES
-        max_line_width = MAX_PANEL_LINE_WIDTH
-
-        capped_lines = [
-            self._truncate_line_width(line, max_line_width) for line in lines[:max_content]
-        ]
-
-        if total <= max_content:
-            return "\n".join(capped_lines), total, total
-        return "\n".join(capped_lines), max_content, total
-
-    def build_status(self, data: UpdateFileData, duration_ms: float | None) -> Text:
-        """Zone 4: Status with hunks, truncation info, timing."""
-
-        status_items: list[str] = []
-
-        hunk_word = "hunk" if data.hunks == 1 else "hunks"
-        status_items.append(f"{data.hunks} {hunk_word}")
-
-        _, shown, total = self._truncate_diff(data.diff_content)
-        if shown < total:
-            status_items.append(f"[{shown}/{total} lines]")
-
-        if duration_ms is not None:
-            status_items.append(f"{duration_ms:.0f}ms")
-
-        return Text("  ".join(status_items), style="dim") if status_items else Text("")
-
-    def render(
-        self,
-        args: dict[str, Any] | None,
-        result: str,
-        duration_ms: float | None = None,
-    ) -> RenderableType | None:
-        """Render update_file with NeXTSTEP zoned layout plus optional diagnostics.
-
-        Zones:
-        - Zone 1: Header (filename + change stats)
-        - Zone 2: Params (filepath)
-        - Zone 3: Viewport (syntax-highlighted diff)
-        - Zone 4: Status (hunks, truncation info, timing)
-        - Zone 5: Diagnostics (if present)
-        """
-        data = self.parse_result(args, result)
-        if data is None:
-            return None
-
-        # Build zones
-        header = self.build_header(data, duration_ms)
-        params = self.build_params(data)
-        viewport = self.build_viewport(data)
-        status = self.build_status(data, duration_ms)
-        separator = self.build_separator()
-
-        content_parts: list[RenderableType] = [
-            header,
-            Text("\n"),
-        ]
-
-        if params is not None:
-            content_parts.extend([params, Text("\n")])
-
-        content_parts.extend(
-            [
-                separator,
-                Text("\n"),
-                viewport,
-                Text("\n"),
-                separator,
-                Text("\n"),
-                status,
-            ]
-        )
-
-        # Add diagnostics zone if present
-        if data.diagnostics_block:
-            from tunacode.ui.renderers.tools.diagnostics import (
-                parse_diagnostics_block,
-                render_diagnostics_inline,
+        if line_type == "added":
+            viewport_parts.append(styled_line(full_line, STYLE_ADDED, SLIM_PANEL_WIDTH))
+        elif line_type == "removed":
+            viewport_parts.append(
+                styled_line(full_line, STYLE_REMOVED, SLIM_PANEL_WIDTH)
             )
+        else:
+            viewport_parts.append(Text(full_line))
 
-            diag_data = parse_diagnostics_block(data.diagnostics_block)
-            if diag_data and diag_data.items:
-                content_parts.extend(
-                    [
-                        Text("\n"),
-                        separator,
-                        Text("\n"),
-                        render_diagnostics_inline(diag_data),
-                    ]
-                )
-
-        content = Group(*content_parts)
-
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        border_color = self.get_border_color(data)
-        status_text = self.get_status_text(data)
-
-        return Panel(
-            content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
-            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
-            border_style=Style(color=border_color),
-            padding=(0, 1),
-            expand=True,
-        )
-
-
-# Module-level renderer instance
-_renderer = UpdateFileRenderer(RendererConfig(tool_name="update_file"))
+    return Group(*viewport_parts), shown, total
 
 
 @tool_renderer("update_file")
@@ -264,5 +200,48 @@ def render_update_file(
     result: str,
     duration_ms: float | None = None,
 ) -> RenderableType | None:
-    """Render update_file with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    """Render update_file with slim NeXTSTEP panel style.
+
+    Dream mockup format:
+    ─ update_file ──────────────────────────────── +3 -2
+      ↳ tools/web_fetch.py
+
+    139 - if content_length > MAX_SIZE:                     ██ RED
+    139 + max_content_size = config.max_size                ██ GREEN
+    140 + if content_length > max_content_size:             ██ GREEN
+    """
+    data = parse_update_file_result(args, result)
+    if data is None:
+        return None
+
+    # Build stats string
+    stats = f"+{data.additions} -{data.deletions}"
+
+    # Build diff viewport with full-line backgrounds
+    viewport, shown, total = build_diff_viewport(data.diff_content)
+
+    # Add diagnostics if present
+    content_parts: list[RenderableType] = [viewport]
+    if data.diagnostics_block:
+        from tunacode.ui.renderers.tools.diagnostics import (
+            parse_diagnostics_block,
+            render_diagnostics_slim,
+        )
+
+        diag_data = parse_diagnostics_block(data.diagnostics_block)
+        if diag_data and diag_data.items:
+            content_parts.append(Text(""))
+            content_parts.append(render_diagnostics_slim(diag_data))
+
+    content = Group(*content_parts) if len(content_parts) > 1 else viewport
+
+    # Build footer if truncated
+    footer = slim_footer(shown, total)
+
+    return slim_panel(
+        name="update_file",
+        content=content,
+        stats=stats,
+        subtitle=data.filepath,
+        footer=footer if str(footer) else None,
+    )

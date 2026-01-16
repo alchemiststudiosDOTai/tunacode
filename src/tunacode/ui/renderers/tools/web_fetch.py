@@ -1,6 +1,13 @@
-"""NeXTSTEP-style panel renderer for web_fetch tool output.
+"""Slim NeXTSTEP-style panel renderer for web_fetch tool output.
 
-Displays fetched web content with smart syntax highlighting based on URL or content.
+Dream mockup style:
+─ web_fetch ────────────────────────────── 200 OK
+  ↳ https://api.example.com/v1/users
+
+{
+  "users": [
+    {"id": 1, "name": "Alice"},
+    ...
 """
 
 from __future__ import annotations
@@ -13,12 +20,8 @@ from rich.console import RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, URL_DISPLAY_MAX_LENGTH
-from tunacode.ui.renderers.tools.base import (
-    BaseToolRenderer,
-    RendererConfig,
-    tool_renderer,
-    truncate_content,
-)
+from tunacode.ui.renderers.tools.base import tool_renderer, truncate_content
+from tunacode.ui.renderers.tools.slim_base import slim_footer, slim_panel
 from tunacode.ui.renderers.tools.syntax_utils import detect_code_lexer, syntax_or_text
 
 
@@ -34,136 +37,66 @@ class WebFetchData:
     timeout: int
 
 
-class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
-    """Renderer for web_fetch tool output."""
+def parse_web_fetch_result(
+    args: dict[str, Any] | None, result: str
+) -> WebFetchData | None:
+    """Extract structured data from web_fetch output."""
+    if not result:
+        return None
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> WebFetchData | None:
-        """Extract structured data from web_fetch output.
+    args = args or {}
+    url = args.get("url", "")
+    timeout = args.get("timeout", 60)
 
-        The result is simply the text content from the fetched page.
-        """
-        if not result:
-            return None
+    domain = ""
+    if url:
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc or parsed.hostname or ""
+        except Exception:
+            domain = url[:30]
 
-        args = args or {}
-        url = args.get("url", "")
-        timeout = args.get("timeout", 60)
+    is_truncated = "[Content truncated due to size]" in result
+    content_lines = len(result.splitlines())
 
-        # Extract domain from URL
-        domain = ""
-        if url:
-            try:
-                parsed = urlparse(url)
-                domain = parsed.netloc or parsed.hostname or ""
-            except Exception:
-                domain = url[:30]
-
-        # Check for truncation
-        is_truncated = "[Content truncated due to size]" in result
-
-        content_lines = len(result.splitlines())
-
-        return WebFetchData(
-            url=url,
-            domain=domain,
-            content=result,
-            content_lines=content_lines,
-            is_truncated=is_truncated,
-            timeout=timeout,
-        )
-
-    def build_header(self, data: WebFetchData, duration_ms: float | None) -> Text:
-        """Zone 1: Domain + content summary."""
-        header = Text()
-        header.append(data.domain or "web", style="bold")
-        header.append(f"   {data.content_lines} lines", style="dim")
-        return header
-
-    def build_params(self, data: WebFetchData) -> Text:
-        """Zone 2: Full URL + parameters."""
-        params = Text()
-        url_display = data.url
-        if len(url_display) > URL_DISPLAY_MAX_LENGTH:
-            url_display = url_display[: URL_DISPLAY_MAX_LENGTH - 3] + "..."
-        params.append("url:", style="dim")
-        params.append(f" {url_display}", style="dim bold")
-        params.append("\n", style="")
-        params.append("timeout:", style="dim")
-        params.append(f" {data.timeout}s", style="dim bold")
-        return params
-
-    def _detect_content_type(self, url: str, content: str) -> str | None:
-        """Detect content type from URL or content."""
-        url_lower = url.lower()
-
-        # URL-based detection
-        is_json_url = ".json" in url_lower or "/api/" in url_lower
-        if is_json_url and content.strip().startswith(("{", "[")):
-            return "json"
-
-        is_xml_url = ".xml" in url_lower or "rss" in url_lower or "atom" in url_lower
-        if is_xml_url and content.strip().startswith("<"):
-            return "xml"
-
-        if ".yaml" in url_lower or ".yml" in url_lower:
-            return "yaml"
-
-        if "raw.githubusercontent.com" in url_lower:
-            # Try to detect from path
-            if ".py" in url_lower:
-                return "python"
-            if ".js" in url_lower:
-                return "javascript"
-            if ".ts" in url_lower:
-                return "typescript"
-            if ".rs" in url_lower:
-                return "rust"
-            if ".go" in url_lower:
-                return "go"
-
-        # Content-based detection
-        return detect_code_lexer(content)
-
-    def build_viewport(self, data: WebFetchData) -> RenderableType:
-        """Zone 3: Content viewport with smart highlighting."""
-        if not data.content:
-            return Text("(no content)", style="dim italic")
-
-        truncated_content, shown, total = truncate_content(data.content)
-
-        # Detect if content is code/structured data
-        lexer = self._detect_content_type(data.url, data.content)
-
-        if lexer:
-            return syntax_or_text(truncated_content, lexer=lexer)
-
-        # Pad viewport for plain text
-        content_lines = truncated_content.split("\n")
-        while len(content_lines) < MIN_VIEWPORT_LINES:
-            content_lines.append("")
-
-        return Text("\n".join(content_lines))
-
-    def build_status(self, data: WebFetchData, duration_ms: float | None) -> Text:
-        """Zone 4: Status with truncation info and timing."""
-
-        status_items: list[str] = []
-
-        if data.is_truncated:
-            status_items.append("(content truncated)")
-
-        _, shown, total = truncate_content(data.content)
-        if shown < total:
-            status_items.append(f"[{shown}/{total} lines]")
-
-        if duration_ms is not None:
-            status_items.append(f"{duration_ms:.0f}ms")
-
-        return Text("  ".join(status_items), style="dim") if status_items else Text("")
+    return WebFetchData(
+        url=url,
+        domain=domain,
+        content=result,
+        content_lines=content_lines,
+        is_truncated=is_truncated,
+        timeout=timeout,
+    )
 
 
-# Module-level renderer instance
-_renderer = WebFetchRenderer(RendererConfig(tool_name="web_fetch"))
+def _detect_content_type(url: str, content: str) -> str | None:
+    """Detect content type from URL or content."""
+    url_lower = url.lower()
+
+    is_json_url = ".json" in url_lower or "/api/" in url_lower
+    if is_json_url and content.strip().startswith(("{", "[")):
+        return "json"
+
+    is_xml_url = ".xml" in url_lower or "rss" in url_lower or "atom" in url_lower
+    if is_xml_url and content.strip().startswith("<"):
+        return "xml"
+
+    if ".yaml" in url_lower or ".yml" in url_lower:
+        return "yaml"
+
+    if "raw.githubusercontent.com" in url_lower:
+        if ".py" in url_lower:
+            return "python"
+        if ".js" in url_lower:
+            return "javascript"
+        if ".ts" in url_lower:
+            return "typescript"
+        if ".rs" in url_lower:
+            return "rust"
+        if ".go" in url_lower:
+            return "go"
+
+    return detect_code_lexer(content)
 
 
 @tool_renderer("web_fetch")
@@ -172,5 +105,53 @@ def render_web_fetch(
     result: str,
     duration_ms: float | None = None,
 ) -> RenderableType | None:
-    """Render web_fetch with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    """Render web_fetch with slim NeXTSTEP panel style.
+
+    Dream mockup format:
+    ─ web_fetch ─────────────────────────── 200 OK
+      ↳ https://api.example.com/v1/users
+
+    {
+      "users": [...]
+    }
+    """
+    data = parse_web_fetch_result(args, result)
+    if data is None:
+        return None
+
+    # Build stats
+    stats = f"{data.content_lines} lines"
+
+    # Subtitle: URL (truncated if needed)
+    url_display = data.url
+    if len(url_display) > URL_DISPLAY_MAX_LENGTH:
+        url_display = url_display[: URL_DISPLAY_MAX_LENGTH - 3] + "..."
+
+    # Build viewport
+    if not data.content:
+        viewport = Text("(no content)", style="dim italic")
+    else:
+        truncated_content, shown, total = truncate_content(data.content)
+
+        lexer = _detect_content_type(data.url, data.content)
+
+        if lexer:
+            viewport = syntax_or_text(truncated_content, lexer=lexer)
+        else:
+            content_lines = truncated_content.split("\n")
+            while len(content_lines) < MIN_VIEWPORT_LINES:
+                content_lines.append("")
+
+            viewport = Text("\n".join(content_lines))
+
+    # Footer
+    _, shown, total = truncate_content(data.content)
+    footer = slim_footer(shown, total)
+
+    return slim_panel(
+        name="web_fetch",
+        content=viewport,
+        stats=stats,
+        subtitle=url_display,
+        footer=footer if str(footer) else None,
+    )

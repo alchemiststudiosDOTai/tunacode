@@ -3,19 +3,10 @@
 from __future__ import annotations
 
 from tunacode.ui.renderers.tools.base import (
-    BaseToolRenderer,
     list_renderers,
     truncate_content,
     truncate_line,
 )
-from tunacode.ui.renderers.tools.bash import BashRenderer
-from tunacode.ui.renderers.tools.glob import GlobRenderer
-from tunacode.ui.renderers.tools.grep import GrepRenderer
-from tunacode.ui.renderers.tools.list_dir import ListDirRenderer
-from tunacode.ui.renderers.tools.read_file import ReadFileRenderer
-from tunacode.ui.renderers.tools.research import ResearchRenderer
-from tunacode.ui.renderers.tools.update_file import UpdateFileRenderer
-from tunacode.ui.renderers.tools.web_fetch import WebFetchRenderer
 
 
 def test_registry_contains_unified_renderers() -> None:
@@ -53,27 +44,19 @@ def test_truncate_content_returns_counts() -> None:
     assert total == 3
 
 
-# All renderers that MUST use BaseToolRenderer
-UNIFIED_RENDERERS = {
-    "list_dir": ListDirRenderer,
-    "bash": BashRenderer,
-    "read_file": ReadFileRenderer,
-    "glob": GlobRenderer,
-    "grep": GrepRenderer,
-    "update_file": UpdateFileRenderer,
-    "web_fetch": WebFetchRenderer,
-    "research_codebase": ResearchRenderer,
-}
-
-
-def test_unified_renderers_use_base() -> None:
-    """All unified renderers must inherit from BaseToolRenderer."""
-    for name, cls in UNIFIED_RENDERERS.items():
-        assert issubclass(cls, BaseToolRenderer), f"{name} must use BaseToolRenderer"
-
-
 def test_unified_renderers_are_registered() -> None:
     """All unified renderers must be in the registry."""
     registered = list_renderers()
-    for name in UNIFIED_RENDERERS:
+    expected_renderers = [
+        "list_dir",
+        "bash",
+        "read_file",
+        "glob",
+        "grep",
+        "update_file",
+        "web_fetch",
+        "research_codebase",
+        "write_file",
+    ]
+    for name in expected_renderers:
         assert name in registered, f"{name} not registered"

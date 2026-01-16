@@ -1,6 +1,12 @@
-"""NeXTSTEP-style panel renderer for write_file tool output.
+"""Slim NeXTSTEP-style panel renderer for write_file tool output.
 
-Displays newly created file with syntax-highlighted preview.
+Dream mockup style:
+─ write_file ─────────────────────────── 25 lines
+  ↳ src/tunacode/ui/new_module.py
+
+  1 from __future__ import annotations
+  2 import asyncio
+  3 ...
 """
 
 from __future__ import annotations
@@ -13,12 +19,8 @@ from rich.console import RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
-from tunacode.ui.renderers.tools.base import (
-    BaseToolRenderer,
-    RendererConfig,
-    tool_renderer,
-    truncate_line,
-)
+from tunacode.ui.renderers.tools.base import tool_renderer, truncate_line
+from tunacode.ui.renderers.tools.slim_base import slim_footer, slim_panel
 from tunacode.ui.renderers.tools.syntax_utils import syntax_or_text
 
 
@@ -33,63 +35,62 @@ class WriteFileData:
     is_success: bool
 
 
-class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
-    """Renderer for write_file tool output with syntax-highlighted preview."""
+def parse_write_file_result(
+    args: dict[str, Any] | None, result: str
+) -> WriteFileData | None:
+    """Extract structured data from write_file output."""
+    if not result:
+        return None
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> WriteFileData | None:
-        """Extract structured data from write_file output.
+    args = args or {}
+    filepath = args.get("filepath", "")
+    content = args.get("content", "")
 
-        Expected format:
-            Successfully wrote to new file: /path/to/file.py
-        """
-        if not result:
-            return None
+    is_success = "Successfully wrote" in result
 
-        args = args or {}
-        filepath = args.get("filepath", "")
-        content = args.get("content", "")
+    if not filepath and "Successfully wrote to new file:" in result:
+        filepath = result.split("Successfully wrote to new file:")[-1].strip()
 
-        is_success = "Successfully wrote" in result
+    if not filepath:
+        return None
 
-        # Try to get filepath from result if not in args
-        if not filepath and "Successfully wrote to new file:" in result:
-            filepath = result.split("Successfully wrote to new file:")[-1].strip()
+    line_count = len(content.splitlines()) if content else 0
 
-        if not filepath:
-            return None
+    return WriteFileData(
+        filepath=filepath,
+        filename=Path(filepath).name,
+        content=content,
+        line_count=line_count,
+        is_success=is_success,
+    )
 
-        line_count = len(content.splitlines()) if content else 0
 
-        return WriteFileData(
-            filepath=filepath,
-            filename=Path(filepath).name,
-            content=content,
-            line_count=line_count,
-            is_success=is_success,
-        )
+@tool_renderer("write_file")
+def render_write_file(
+    args: dict[str, Any] | None,
+    result: str,
+    duration_ms: float | None = None,
+) -> RenderableType | None:
+    """Render write_file with slim NeXTSTEP panel style.
 
-    def build_header(self, data: WriteFileData, duration_ms: float | None) -> Text:
-        """Zone 1: Filename + line count."""
-        header = Text()
-        header.append(data.filename, style="bold green")
-        header.append("   ", style="")
-        header.append("NEW", style="green bold")
-        header.append(f"  {data.line_count} lines", style="dim")
-        return header
+    Dream mockup format:
+    ─ write_file ─────────────────────── 25 lines NEW
+      ↳ src/tunacode/ui/new_module.py
 
-    def build_params(self, data: WriteFileData) -> Text:
-        """Zone 2: Full filepath."""
-        params = Text()
-        params.append("path:", style="dim")
-        params.append(f" {data.filepath}", style="dim bold")
-        return params
+      1 from __future__ import annotations
+      2 import asyncio
+    """
+    data = parse_write_file_result(args, result)
+    if data is None:
+        return None
 
-    def build_viewport(self, data: WriteFileData) -> RenderableType:
-        """Zone 3: Syntax-highlighted content preview."""
-        if not data.content:
-            return Text("(empty file)", style="dim italic")
+    # Build stats with NEW indicator
+    stats = f"{data.line_count} lines NEW"
 
-        # Truncate content for viewport
+    # Build viewport with syntax highlighting
+    if not data.content:
+        viewport = Text("(empty file)", style="dim italic")
+    else:
         lines = data.content.splitlines()
         max_display = TOOL_VIEWPORT_LINES
 
@@ -99,45 +100,25 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
                 break
             preview_lines.append(truncate_line(line, max_width=80))
 
-        # Pad to minimum height
         while len(preview_lines) < MIN_VIEWPORT_LINES:
             preview_lines.append("")
 
         preview_content = "\n".join(preview_lines)
 
-        return syntax_or_text(
+        viewport = syntax_or_text(
             preview_content,
             filepath=data.filepath,
             line_numbers=True,
         )
 
-    def build_status(self, data: WriteFileData, duration_ms: float | None) -> Text:
-        """Zone 4: Status with truncation info and timing."""
-        status_items: list[str] = []
+    # Footer
+    shown = min(data.line_count, TOOL_VIEWPORT_LINES)
+    footer = slim_footer(shown, data.line_count)
 
-        shown = min(data.line_count, TOOL_VIEWPORT_LINES)
-        if shown < data.line_count:
-            status_items.append(f"[{shown}/{data.line_count} lines]")
-
-        if duration_ms is not None:
-            status_items.append(f"{duration_ms:.0f}ms")
-
-        return Text("  ".join(status_items), style="dim") if status_items else Text("")
-
-    def get_border_color(self, data: WriteFileData) -> str:
-        """Green for success."""
-        return self.config.success_color
-
-
-# Module-level renderer instance
-_renderer = WriteFileRenderer(RendererConfig(tool_name="write_file"))
-
-
-@tool_renderer("write_file")
-def render_write_file(
-    args: dict[str, Any] | None,
-    result: str,
-    duration_ms: float | None = None,
-) -> RenderableType | None:
-    """Render write_file with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return slim_panel(
+        name="write_file",
+        content=viewport,
+        stats=stats,
+        subtitle=data.filepath,
+        footer=footer if str(footer) else None,
+    )

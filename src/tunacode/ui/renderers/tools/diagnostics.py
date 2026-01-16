@@ -167,6 +167,62 @@ def render_diagnostics_inline(data: DiagnosticsData) -> RenderableType:
     return Group(*content_parts)
 
 
+def render_diagnostics_slim(data: DiagnosticsData) -> RenderableType:
+    """Render diagnostics with slim NeXTSTEP style and full-line backgrounds.
+
+    Dream mockup format:
+    ─ LSP ────────────────────────── ⊘ 2 errors □ ⓘ 2 warnings ─
+
+    L160: Undefined name `MAX_CONTENT_SIZE`                  ██ RED BG
+    L163: Undefined name `MAX_CONTENT_SIZE`                  ██ RED BG
+    L6: Import block is un-sorted                            ██ OLIVE BG
+    """
+    from tunacode.constants import SLIM_PANEL_WIDTH
+    from tunacode.ui.renderers.tools.slim_base import (
+        STYLE_ERROR,
+        STYLE_WARNING,
+        slim_panel,
+        styled_line,
+    )
+
+    content_parts: list[RenderableType] = []
+
+    # Build stats for header
+    stats_parts = []
+    if data.error_count > 0:
+        suffix = "s" if data.error_count > 1 else ""
+        stats_parts.append(f"⊘ {data.error_count} error{suffix}")
+    if data.warning_count > 0:
+        suffix = "s" if data.warning_count > 1 else ""
+        stats_parts.append(f"ⓘ {data.warning_count} warning{suffix}")
+    stats = " · ".join(stats_parts)
+
+    # Diagnostic lines with full-line backgrounds
+    for idx, item in enumerate(data.items):
+        if idx >= MAX_DIAGNOSTICS_DISPLAY:
+            remaining = len(data.items) - idx
+            content_parts.append(Text(f"  +{remaining} more...", style="dim italic"))
+            break
+
+        # Format: L160: message
+        line_content = f"L{item.line}: {truncate_diagnostic_message(item.message)}"
+
+        if item.severity == "error":
+            content_parts.append(styled_line(line_content, STYLE_ERROR, SLIM_PANEL_WIDTH))
+        elif item.severity == "warning":
+            content_parts.append(styled_line(line_content, STYLE_WARNING, SLIM_PANEL_WIDTH))
+        else:
+            content_parts.append(Text(line_content))
+
+    content = Group(*content_parts) if content_parts else Text("(no diagnostics)")
+
+    return slim_panel(
+        name="LSP",
+        content=content,
+        stats=stats,
+    )
+
+
 def extract_diagnostics_from_result(result: str) -> tuple[str, str | None]:
     """Extract and remove diagnostics block from tool result.
 

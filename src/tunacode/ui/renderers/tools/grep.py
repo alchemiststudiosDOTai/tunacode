@@ -1,6 +1,11 @@
-"""NeXTSTEP-style panel renderer for grep tool output.
+"""Slim NeXTSTEP-style panel renderer for grep tool output.
 
-Displays search results with syntax highlighting based on matched file types.
+Dream mockup style:
+- grep ----- 15 matches - 8 files
+  > pattern: "BaseToolRenderer"
+
+  src/tunacode/ui/renderers/tools/base.py
+    244| class BaseToolRenderer(ABC, Generic[T]):
 """
 
 from __future__ import annotations
@@ -13,12 +18,8 @@ from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
-from tunacode.ui.renderers.tools.base import (
-    BaseToolRenderer,
-    RendererConfig,
-    tool_renderer,
-    truncate_line,
-)
+from tunacode.ui.renderers.tools.base import tool_renderer, truncate_line
+from tunacode.ui.renderers.tools.slim_base import slim_footer, slim_panel
 
 
 @dataclass
@@ -31,119 +32,123 @@ class GrepData:
     candidates: int
     matches: list[dict[str, Any]]
     is_truncated: bool
-    case_sensitive: bool
-    use_regex: bool
-    context_lines: int
 
 
-class GrepRenderer(BaseToolRenderer[GrepData]):
-    """Renderer for grep tool output."""
+def parse_grep_result(args: dict[str, Any] | None, result: str) -> GrepData | None:
+    """Extract structured data from grep output."""
+    if not result:
+        return None
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> GrepData | None:
-        """Extract structured data from grep output.
+    lines = result.strip().splitlines()
+    if not lines:
+        return None
 
-        Expected format:
-            Found N matches for pattern: <pattern>
-            Strategy: <strategy> | Candidates: <N> files | ...
-            <matches>
-        """
-        if not result or "Found" not in result:
-            return None
+    # Try to find pattern and match count from various formats
+    total_matches = 0
+    pattern = ""
 
-        lines = result.strip().splitlines()
-        if len(lines) < 2:
-            return None
-
-        # Parse header: "Found N match(es) for pattern: <pattern>"
-        header_match = re.match(r"Found (\d+) match(?:es)? for pattern: (.+)", lines[0])
-        if not header_match:
-            return None
-
+    # Format 1: "Found X match(es) for pattern: Y"
+    header_match = re.match(r"Found (\d+) match(?:es)? for pattern: (.+)", lines[0])
+    if header_match:
         total_matches = int(header_match.group(1))
         pattern = header_match.group(2).strip()
+    else:
+        # Format 2: "No matches found for pattern: Y"
+        no_match = re.match(r"No matches found for pattern: (.+)", lines[0])
+        if no_match:
+            total_matches = 0
+            pattern = no_match.group(1).strip()
+        else:
+            return None
 
-        # Parse strategy line
-        strategy = "smart"
-        candidates = 0
-        if len(lines) > 1 and lines[1].startswith("Strategy:"):
-            strat_match = re.match(r"Strategy: (\w+) \| Candidates: (\d+)", lines[1])
+    strategy = "smart"
+    candidates = 0
+    for line in lines[1:4]:  # Check first few lines for strategy
+        if line.startswith("Strategy:"):
+            # Format 1: "Strategy: X | Candidates: Y"
+            strat_match = re.match(r"Strategy: (\w+) \| Candidates: (\d+)", line)
             if strat_match:
                 strategy = strat_match.group(1)
                 candidates = int(strat_match.group(2))
+            else:
+                # Format 2: "Strategy: X (was Y), Files: N/M"
+                strat_re = r"Strategy: (\w+)(?: \(was \w+\))?, Files: (\d+)/(\d+)"
+                strat_match2 = re.match(strat_re, line)
+                if strat_match2:
+                    strategy = strat_match2.group(1)
+                    candidates = int(strat_match2.group(2))
+            break
 
-        # Parse matches
-        matches: list[dict[str, Any]] = []
-        current_file: str | None = None
-        file_pattern = re.compile(r"\U0001f4c1 (.+?):(\d+)")
-        match_pattern = re.compile(r"\u25b6\s*(\d+)\u2502\s*(.*?)\u27e8(.+?)\u27e9(.*)")
+    matches: list[dict[str, Any]] = []
+    current_file: str | None = None
+    file_pattern = re.compile(r"\U0001f4c1 (.+?):(\d+)")
+    match_pattern = re.compile(r"\u25b6\s*(\d+)\u2502\s*(.*?)\u27e8(.+?)\u27e9(.*)")
 
-        for line in lines:
-            file_match = file_pattern.search(line)
-            if file_match:
-                current_file = file_match.group(1)
-                continue
+    for line in lines:
+        file_match = file_pattern.search(line)
+        if file_match:
+            current_file = file_match.group(1)
+            continue
 
-            match_line = match_pattern.search(line)
-            if match_line and current_file:
-                line_num = int(match_line.group(1))
-                before = match_line.group(2)
-                match_text = match_line.group(3)
-                after = match_line.group(4)
+        match_line = match_pattern.search(line)
+        if match_line and current_file:
+            line_num = int(match_line.group(1))
+            before = match_line.group(2)
+            match_text = match_line.group(3)
+            after = match_line.group(4)
 
-                matches.append(
-                    {
-                        "file": current_file,
-                        "line": line_num,
-                        "before": before,
-                        "match": match_text,
-                        "after": after,
-                    }
-                )
+            matches.append(
+                {
+                    "file": current_file,
+                    "line": line_num,
+                    "before": before,
+                    "match": match_text,
+                    "after": after,
+                }
+            )
 
-        if not matches and total_matches == 0:
-            return None
+    return GrepData(
+        pattern=pattern,
+        total_matches=total_matches,
+        strategy=strategy,
+        candidates=candidates,
+        matches=matches,
+        is_truncated=len(matches) < total_matches,
+    )
 
-        args = args or {}
-        return GrepData(
-            pattern=pattern,
-            total_matches=total_matches,
-            strategy=strategy,
-            candidates=candidates,
-            matches=matches,
-            is_truncated=len(matches) < total_matches,
-            case_sensitive=args.get("case_sensitive", False),
-            use_regex=args.get("use_regex", False),
-            context_lines=args.get("context_lines", 2),
-        )
 
-    def build_header(self, data: GrepData, duration_ms: float | None) -> Text:
-        """Zone 1: Pattern + match count."""
-        header = Text()
-        header.append(f'"{data.pattern}"', style="bold")
-        match_word = "match" if data.total_matches == 1 else "matches"
-        header.append(f"   {data.total_matches} {match_word}", style="dim")
-        return header
+@tool_renderer("grep")
+def render_grep(
+    args: dict[str, Any] | None,
+    result: str,
+    duration_ms: float | None = None,
+) -> RenderableType | None:
+    """Render grep with slim NeXTSTEP panel style.
 
-    def build_params(self, data: GrepData) -> Text:
-        """Zone 2: Parameters (strategy, case, regex, context)."""
-        case_val = "yes" if data.case_sensitive else "no"
-        regex_val = "yes" if data.use_regex else "no"
-        params = Text()
-        params.append("strategy:", style="dim")
-        params.append(f" {data.strategy}", style="dim bold")
-        params.append("  case:", style="dim")
-        params.append(f" {case_val}", style="dim bold")
-        params.append("  regex:", style="dim")
-        params.append(f" {regex_val}", style="dim bold")
-        params.append("  context:", style="dim")
-        params.append(f" {data.context_lines}", style="dim bold")
-        return params
+    Dream mockup format:
+    ─ grep ─────────────────────── 15 matches · 8 files
+      ↳ pattern: "BaseToolRenderer"
 
-    def build_viewport(self, data: GrepData) -> RenderableType:
-        """Zone 3: Matches viewport with styled file paths and highlighted matches."""
-        if not data.matches:
-            return Text("(no matches)", style="dim italic")
+      src/tunacode/ui/renderers/tools/base.py
+        244│ class BaseToolRenderer(ABC, Generic[T]):
+    """
+    data = parse_grep_result(args, result)
+    if data is None:
+        return None
 
+    # Build stats
+    match_word = "match" if data.total_matches == 1 else "matches"
+    stats = f"{data.total_matches} {match_word}"
+    if data.candidates > 0:
+        stats += f" · {data.candidates} files"
+
+    # Subtitle text
+    subtitle_text = f'pattern: "{data.pattern}"'
+
+    # Build viewport
+    if not data.matches:
+        viewport = Text("(no matches)", style="dim italic")
+    else:
         viewport_parts: list[RenderableType] = []
         current_file: str | None = None
         lines_used = 0
@@ -153,7 +158,6 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
             if lines_used >= max_lines:
                 break
 
-            # File header when switching files
             if match["file"] != current_file:
                 if current_file is not None and lines_used < max_lines:
                     viewport_parts.append(Text(""))
@@ -170,59 +174,39 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
             if lines_used >= max_lines:
                 break
 
-            # Match line with highlighted match text
             match_line = Text()
             match_line.append(f"    {match['line']:>4}", style="dim")
             match_line.append("│ ", style="dim")
 
-            # Truncate the full content
             before = match["before"]
             match_text = match["match"]
             after = match["after"]
             full_line = f"{before}{match_text}{after}"
             truncated = truncate_line(full_line, max_width=60)
 
-            # If truncated, we need to reconstruct with highlight
             if truncated == full_line:
                 match_line.append(before, style="")
                 match_line.append(match_text, style="bold yellow reverse")
                 match_line.append(after, style="")
             else:
-                # Simple truncation - show what we can
                 match_line.append(truncated, style="")
 
             viewport_parts.append(match_line)
             lines_used += 1
 
-        # Pad to minimum height
         while lines_used < MIN_VIEWPORT_LINES:
             viewport_parts.append(Text(""))
             lines_used += 1
 
-        return Group(*viewport_parts)
+        viewport = Group(*viewport_parts)
 
-    def build_status(self, data: GrepData, duration_ms: float | None) -> Text:
-        """Zone 4: Status with truncation info and timing."""
-        status_items: list[str] = []
-        if data.is_truncated:
-            status_items.append(f"[{len(data.matches)}/{data.total_matches} shown]")
-        if data.candidates > 0:
-            status_items.append(f"{data.candidates} files searched")
-        if duration_ms is not None:
-            status_items.append(f"{duration_ms:.0f}ms")
+    # Footer
+    footer = slim_footer(len(data.matches), data.total_matches)
 
-        return Text("  ".join(status_items), style="dim") if status_items else Text("")
-
-
-# Module-level renderer instance
-_renderer = GrepRenderer(RendererConfig(tool_name="grep"))
-
-
-@tool_renderer("grep")
-def render_grep(
-    args: dict[str, Any] | None,
-    result: str,
-    duration_ms: float | None = None,
-) -> RenderableType | None:
-    """Render grep with NeXTSTEP zoned layout."""
-    return _renderer.render(args, result, duration_ms)
+    return slim_panel(
+        name="grep",
+        content=viewport,
+        stats=stats,
+        subtitle=subtitle_text,
+        footer=footer if str(footer) else None,
+    )

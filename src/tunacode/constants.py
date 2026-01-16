@@ -48,6 +48,16 @@ URL_DISPLAY_MAX_LENGTH = 50
 BOX_HORIZONTAL = "\u2500"  # ─
 SEPARATOR_WIDTH = 10
 
+# Slim panel constants (NeXTSTEP dream mockup style)
+SLIM_PANEL_WIDTH = 70  # Default panel width
+SLIM_BG_CONTENT = "#272822"  # Dark bg for content area (monokai-like)
+SLIM_BG_REMOVED = "#4a2020"  # Dark red for removed lines / errors
+SLIM_BG_ADDED = "#204a20"  # Dark green for added lines / success
+SLIM_BG_ERROR = "#4a2020"  # Dark red (same as removed)
+SLIM_BG_WARNING = "#4a4a20"  # Dark olive for warnings
+SLIM_SUBTITLE_STYLE = "cyan underline"  # ↳ filepath style
+SLIM_BORDER_COLOR = "cyan"  # Thin frame border color
+
 AUTOCOMPLETE_MAX_DEPTH = 3
 AUTOCOMPLETE_RESULT_LIMIT = 50
 

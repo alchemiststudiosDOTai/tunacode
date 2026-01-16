@@ -27,6 +27,16 @@ from tunacode.ui.renderers.tools.grep import render_grep
 from tunacode.ui.renderers.tools.list_dir import render_list_dir
 from tunacode.ui.renderers.tools.read_file import render_read_file
 from tunacode.ui.renderers.tools.research import render_research_codebase
+from tunacode.ui.renderers.tools.slim_base import (
+    STYLE_ADDED,
+    STYLE_ERROR,
+    STYLE_REMOVED,
+    STYLE_WARNING,
+    slim_footer,
+    slim_panel,
+    slim_subtitle,
+    styled_line,
+)
 from tunacode.ui.renderers.tools.syntax_utils import (
     EXTENSION_LEXERS,
     SYNTAX_THEME,
@@ -50,6 +60,15 @@ __all__ = [
     "pad_lines",
     "truncate_content",
     "truncate_line",
+    # Slim panel utilities
+    "STYLE_ADDED",
+    "STYLE_ERROR",
+    "STYLE_REMOVED",
+    "STYLE_WARNING",
+    "slim_footer",
+    "slim_panel",
+    "slim_subtitle",
+    "styled_line",
     # Syntax utilities
     "EXTENSION_LEXERS",
     "SYNTAX_THEME",
