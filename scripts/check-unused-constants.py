@@ -106,7 +106,20 @@ def find_unused_constants(constants: list[str], used_in_file: set[str]) -> list[
     return unused
 
 
+def is_rg_available() -> bool:
+    """Check if ripgrep (rg) is available on PATH."""
+    try:
+        subprocess.run([RG_BINARY, "--version"], capture_output=True, check=False)
+        return True
+    except FileNotFoundError:
+        return False
+
+
 def main() -> int:
+    if not is_rg_available():
+        print(f"Skipping unused constants check: {RG_BINARY} not found on PATH")
+        return 0
+
     if not CONSTANTS_PATH.exists():
         raise FileNotFoundError(f"Missing constants file: {CONSTANTS_PATH}")
 

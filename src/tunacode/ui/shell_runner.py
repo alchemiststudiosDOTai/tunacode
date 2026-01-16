@@ -13,6 +13,7 @@ from typing import Protocol
 from rich.console import RenderableType
 from rich.text import Text
 
+from tunacode.constants import MAX_PANEL_LINE_WIDTH
 from tunacode.ui.renderers.tools.bash import render_bash
 
 SHELL_COMMAND_TIMEOUT_SECONDS: float = 30.0
@@ -115,7 +116,7 @@ STDERR:
 {stderr_text}"""
 
         args = {"timeout": int(SHELL_COMMAND_TIMEOUT_SECONDS)}
-        panel = render_bash(args, result_text, duration_ms)
+        panel = render_bash(args, result_text, duration_ms, MAX_PANEL_LINE_WIDTH)
 
         if panel is None:
             return Text(f"$ {cmd}\n{stdout_text}\n{stderr_text}")

@@ -14,7 +14,7 @@ def test_truncate_diff_caps_line_width() -> None:
     overlong_line: str = FILLER_CHAR * overlong_length
     diff_content: str = overlong_line
 
-    truncated, shown, total = _renderer._truncate_diff(diff_content)
+    truncated, shown, total = _renderer._truncate_diff(diff_content, MAX_PANEL_LINE_WIDTH)
 
     expected_line_prefix: str = FILLER_CHAR * MAX_PANEL_LINE_WIDTH
     expected_line: str = f"{expected_line_prefix}{LINE_TRUNCATION_SUFFIX}"
