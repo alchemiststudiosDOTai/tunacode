@@ -416,8 +416,8 @@ class ResumeCommand(Command):
 
 class UpdateCommand(Command):
     name = "update"
-    description = "Check for or install updates"
-    usage = "/update [check|install]"
+    description = "Update tunacode to latest version"
+    usage = "/update [check]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
         import asyncio
@@ -427,7 +427,7 @@ class UpdateCommand(Command):
         from tunacode.utils.system.paths import check_for_updates
 
         parts = args.split(maxsplit=1) if args else []
-        subcommand = parts[0].lower() if parts else "check"
+        subcommand = parts[0].lower() if parts else "install"
 
         if subcommand == "check":
             app.notify("Checking for updates...")
@@ -437,7 +437,7 @@ class UpdateCommand(Command):
                 app.rich_log.write(f"Current version: {APP_VERSION}")
                 app.rich_log.write(f"Latest version:  {latest_version}")
                 app.notify(f"Update available: {latest_version}")
-                app.rich_log.write("Run /update install to upgrade")
+                app.rich_log.write("Run /update to upgrade")
             else:
                 app.notify(f"Already on latest version ({APP_VERSION})")
 
@@ -486,7 +486,7 @@ class UpdateCommand(Command):
 
         else:
             app.notify(f"Unknown subcommand: {subcommand}", severity="warning")
-            app.notify("Usage: /update [check|install]")
+            app.notify("Usage: /update [check]")
 
 
 COMMANDS: dict[str, Command] = {
