@@ -30,6 +30,10 @@ Provides shared utility functions across configuration, messaging, parsing, secu
 - Message formatting
 - Message type detection
 
+**message_order.py**
+- Message order validation for request/response sequences
+- Enforces conversation invariants during checks
+
 **token_counter.py**
 - **estimate_tokens()** - Token counting for messages
 - Supports multiple models (Claude, GPT, etc.)

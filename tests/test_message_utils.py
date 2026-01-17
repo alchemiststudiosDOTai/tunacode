@@ -90,3 +90,73 @@ class TestGetMessageContent:
     def test_none_message(self):
         """None message returns empty string."""
         assert get_message_content(None) == ""
+
+
+# =============================================================================
+# Negative / Boundary / Fuzzy Tests
+# =============================================================================
+
+
+class TestGetMessageContentNegative:
+    """Negative tests: inputs that should gracefully fail."""
+
+    def test_dict_without_content_parts_or_thought(self):
+        """Dict missing all extractable keys returns empty string."""
+        message = {"role": "user", "timestamp": 123}
+        assert get_message_content(message) == ""
+
+    def test_object_without_content_or_parts(self):
+        """Object missing content/parts attributes returns empty string."""
+
+        class EmptyMessage:
+            def __init__(self):
+                self.role = "assistant"
+                self.timestamp = 456
+
+        assert get_message_content(EmptyMessage()) == ""
+
+
+class TestGetMessageContentBoundary:
+    """Boundary tests: edge cases at limits."""
+
+    def test_dict_content_is_none(self):
+        """Dict with content=None returns 'None' (str conversion)."""
+        message = {"content": None}
+        assert get_message_content(message) == "None"
+
+    def test_dict_content_is_empty_list(self):
+        """Dict with empty content list returns empty string."""
+        message = {"content": []}
+        assert get_message_content(message) == ""
+
+
+class TestGetMessageContentFuzzy:
+    """Fuzzy tests: malformed or unusual inputs."""
+
+    def test_nested_content_objects(self):
+        """Content list containing objects with their own content."""
+
+        class NestedPart:
+            def __init__(self, content: str):
+                self.content = content
+
+        message = {"content": [NestedPart("Hello"), NestedPart("World")]}
+        assert get_message_content(message) == "Hello World"
+
+    def test_mixed_types_in_content_list(self):
+        """Content list with mixed types (str, int, dict, object)."""
+
+        class Part:
+            def __init__(self, content: str):
+                self.content = content
+
+        message = {
+            "content": [
+                "text",
+                42,  # int -> falls through to ""
+                {"content": "nested"},
+                Part("obj"),
+            ]
+        }
+        # "text" + "" (int) + "nested" + "obj"
+        assert get_message_content(message) == "text  nested obj"

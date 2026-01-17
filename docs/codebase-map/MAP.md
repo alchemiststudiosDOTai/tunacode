@@ -412,6 +412,7 @@ Located in `/Users/tuna/Desktop/tunacode/tests/`:
 ### Architecture Documents
 - **[architecture/architecture.md](./architecture/architecture.md)** - System design, patterns, data flow
 - **[architecture/conversation-turns.md](./architecture/conversation-turns.md)** - Conversation turn flow from user input to response
+- **[architecture/messaging-seams.md](./architecture/messaging-seams.md)** - Messaging seams, invariants, and test decomposition
 
 ### Module Documents
 - **[modules/](./modules/)** - Detailed module documentation
