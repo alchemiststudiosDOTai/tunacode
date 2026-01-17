@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from tunacode.constants import (
     ERROR_TOOL_ARGS_MISSING,
@@ -56,7 +56,7 @@ async def normalize_tool_args(raw_args: Any) -> ToolArgs:
     from tunacode.utils.parsing.command_parser import parse_args
 
     parsed_args = await parse_args(raw_args)
-    return cast(ToolArgs, parsed_args)
+    return parsed_args
 
 
 async def record_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
@@ -286,6 +286,9 @@ async def dispatch_tools(
     for part, task_node in write_execute_tasks:
         if tool_start_callback:
             tool_start_callback(getattr(part, "tool_name", UNKNOWN_TOOL_NAME))
+
+        if tool_callback is None:
+            continue
 
         try:
             await tool_callback(part, task_node)
