@@ -15,7 +15,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from tunacode.utils.parsing.json_utils import split_concatenated_json
@@ -34,6 +34,41 @@ class ParsedToolCall:
     tool_name: str
     args: dict[str, Any]
     tool_call_id: str
+
+
+@dataclass
+class ParseDiagnostics:
+    """Diagnostic information about tool call parsing attempts.
+
+    Attributes:
+        text_preview: First 200 chars of input text
+        text_length: Total length of input text
+        detected_indicators: Which tool call indicators were found
+        strategies_tried: List of (strategy_name, failure_reason) tuples
+        success: Whether any strategy succeeded
+        success_strategy: Name of successful strategy (if any)
+    """
+
+    text_preview: str = ""
+    text_length: int = 0
+    detected_indicators: list[str] = field(default_factory=list)
+    strategies_tried: list[tuple[str, str]] = field(default_factory=list)
+    success: bool = False
+    success_strategy: str | None = None
+
+    def format_for_debug(self) -> str:
+        """Format diagnostics for debug output."""
+        lines = [
+            f"[TOOL_PARSE] text_len={self.text_length} preview={repr(self.text_preview[:100])}",
+            f"[TOOL_PARSE] indicators_found={self.detected_indicators}",
+        ]
+        for strategy, reason in self.strategies_tried:
+            lines.append(f"[TOOL_PARSE] strategy={strategy} result={reason}")
+        if self.success:
+            lines.append(f"[TOOL_PARSE] SUCCESS via {self.success_strategy}")
+        else:
+            lines.append("[TOOL_PARSE] FAILED: no strategy matched")
+        return "\n".join(lines)
 
 
 def _generate_tool_call_id() -> str:
@@ -206,15 +241,29 @@ def _normalize_tool_object(obj: object) -> ParsedToolCall | None:
     )
 
 
-PARSING_STRATEGIES: list[tuple[str, Callable[[str], list[ParsedToolCall]]]] = [
+PARSING_STRATEGIES: list[tuple[str, Callable[[str], list[ParsedToolCall] | None]]] = [
     ("qwen2_xml", parse_qwen2_xml),
     ("hermes_style", parse_hermes_style),
     ("code_fence", parse_code_fence),
     ("raw_json", parse_raw_json),
 ]
 
+# Indicators used to detect potential tool calls
+TOOL_CALL_INDICATORS = [
+    "<tool_call>",
+    "</tool_call>",
+    "<function=",
+    "</function>",
+    "</arg_value>",  # Non-standard format some models use
+    '"name":',
+    '"tool":',
+    "```json",
+]
 
-def parse_tool_calls_from_text(text: str) -> list[ParsedToolCall]:
+
+def parse_tool_calls_from_text(
+    text: str, *, collect_diagnostics: bool = False
+) -> list[ParsedToolCall] | tuple[list[ParsedToolCall], ParseDiagnostics]:
     """Parse tool calls from text using multi-strategy fallback.
 
     Tries each parsing strategy in order until one succeeds.
@@ -222,22 +271,55 @@ def parse_tool_calls_from_text(text: str) -> list[ParsedToolCall]:
 
     Args:
         text: Raw text potentially containing embedded tool calls
+        collect_diagnostics: If True, return (results, diagnostics) tuple
 
     Returns:
         List of ParsedToolCall objects. Empty list if no tool calls found.
+        If collect_diagnostics=True, returns (results, ParseDiagnostics).
 
     Note:
         Does NOT raise on failure - returns empty list per fail-fast-but-graceful design.
         The caller should decide how to handle empty results.
     """
+    diagnostics = ParseDiagnostics() if collect_diagnostics else None
+
     if not text or not text.strip():
+        if diagnostics:
+            diagnostics.text_length = 0
+            diagnostics.text_preview = ""
+            diagnostics.strategies_tried.append(("pre-check", "empty_text"))
+            return [], diagnostics
         return []
 
-    for _strategy_name, strategy_func in PARSING_STRATEGIES:
-        result = strategy_func(text)
-        if result:
-            return result
+    if diagnostics:
+        diagnostics.text_length = len(text)
+        diagnostics.text_preview = text[:200]
+        # Check which indicators are present
+        text_lower = text.lower()
+        for ind in TOOL_CALL_INDICATORS:
+            if ind.lower() in text_lower:
+                diagnostics.detected_indicators.append(ind)
 
+    for strategy_name, strategy_func in PARSING_STRATEGIES:
+        try:
+            result = strategy_func(text)
+            if result:
+                if diagnostics:
+                    diagnostics.strategies_tried.append(
+                        (strategy_name, f"matched {len(result)} calls")
+                    )
+                    diagnostics.success = True
+                    diagnostics.success_strategy = strategy_name
+                    return result, diagnostics
+                return result
+            if diagnostics:
+                diagnostics.strategies_tried.append((strategy_name, "no_match"))
+        except Exception as e:
+            if diagnostics:
+                diagnostics.strategies_tried.append((strategy_name, f"error: {e}"))
+
+    if diagnostics:
+        return [], diagnostics
     return []
 
 

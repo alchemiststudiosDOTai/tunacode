@@ -28,13 +28,19 @@ from tunacode.types import (
     AgentRun,
     ModelName,
     NoticeCallback,
+    ToolArgs,
     ToolCallback,
+    ToolCallId,
 )
 from tunacode.utils.ui import DotDict
 
 from . import agent_components as ac
 
 colors = DotDict(UI_COLORS)
+
+PART_KIND_TOOL_CALL: str = "tool-call"
+TOOL_CALLS_ATTR: str = "tool_calls"
+TOOL_CALL_ID_ATTR: str = "tool_call_id"
 
 __all__ = [
     "process_request",
@@ -401,6 +407,13 @@ class RequestOrchestrator:
                 return ac.AgentRunWithState(agent_run, response_state)
 
         except UserAbortError:
+            # Clean up dangling tool calls to prevent API errors on next request
+            cleanup_applied = _remove_dangling_tool_calls(
+                self.state_manager.session.messages,
+                self.state_manager.session.tool_call_args_by_id,
+            )
+            if cleanup_applied:
+                self.state_manager.session.update_token_count()
             raise
 
 
@@ -442,6 +455,57 @@ async def _finalize_buffered_tasks(
 
     # Execute
     await ac.execute_tools_parallel(buffered_tasks, tool_callback)
+
+
+def _message_has_tool_calls(message: Any) -> bool:
+    """Return True if message is a model response containing tool calls."""
+    tool_calls = getattr(message, TOOL_CALLS_ATTR, None)
+    if tool_calls is None:
+        return False
+    return bool(tool_calls)
+
+
+def _collect_tool_call_ids(message: Any) -> list[ToolCallId]:
+    """Collect tool_call_id values from tool-call parts in a message."""
+    parts = getattr(message, "parts", None)
+    if not parts:
+        return []
+
+    tool_call_ids: list[ToolCallId] = []
+    for part in parts:
+        part_kind = getattr(part, "part_kind", None)
+        if part_kind != PART_KIND_TOOL_CALL:
+            continue
+        tool_call_id = getattr(part, TOOL_CALL_ID_ATTR, None)
+        if tool_call_id is None:
+            continue
+        tool_call_ids.append(tool_call_id)
+    return tool_call_ids
+
+
+def _remove_dangling_tool_calls(
+    messages: list[Any],
+    tool_call_args_by_id: dict[ToolCallId, ToolArgs],
+) -> bool:
+    """Trim trailing tool-call responses and clear cached args."""
+    if not messages:
+        return False
+
+    removed_any = False
+    while messages:
+        last_message = messages[-1]
+        has_tool_calls = _message_has_tool_calls(last_message)
+        if not has_tool_calls:
+            break
+
+        removed_any = True
+        tool_call_ids = _collect_tool_call_ids(last_message)
+        messages.pop()
+
+        for tool_call_id in tool_call_ids:
+            tool_call_args_by_id.pop(tool_call_id, None)
+
+    return removed_any
 
 
 def get_agent_tool() -> tuple[type[Agent], type[Tool]]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from dataclasses import fields
 from typing import TYPE_CHECKING, Any
 
 from tunacode.core.logging.handlers import FileHandler, Handler, TUIHandler
@@ -11,6 +12,11 @@ from tunacode.core.logging.records import LogRecord
 
 if TYPE_CHECKING:
     from tunacode.core.state import StateManager
+
+LOG_RECORD_EXTRA_FIELD: str = "extra"
+LOG_RECORD_TOOL_NAME_FIELD: str = "tool_name"
+LOG_RECORD_FIELD_NAMES: set[str] = {field.name for field in fields(LogRecord)}
+LOG_RECORD_INLINE_FIELDS: set[str] = LOG_RECORD_FIELD_NAMES - {LOG_RECORD_EXTRA_FIELD}
 
 
 class LogManager:
@@ -80,26 +86,61 @@ class LogManager:
             for handler in self._handlers:
                 handler.emit(record)
 
+    def _build_record(self, level: LogLevel, message: str, **kwargs: Any) -> LogRecord:
+        record_kwargs, extra = _split_log_kwargs(kwargs)
+        record_kwargs[LOG_RECORD_EXTRA_FIELD] = extra
+        return LogRecord(level=level, message=message, **record_kwargs)
+
     # Convenience methods
     def debug(self, message: str, **kwargs: Any) -> None:
-        self.log(LogRecord(level=LogLevel.DEBUG, message=message, **kwargs))
+        self.log(self._build_record(LogLevel.DEBUG, message, **kwargs))
 
     def info(self, message: str, **kwargs: Any) -> None:
-        self.log(LogRecord(level=LogLevel.INFO, message=message, **kwargs))
+        self.log(self._build_record(LogLevel.INFO, message, **kwargs))
 
     def warning(self, message: str, **kwargs: Any) -> None:
-        self.log(LogRecord(level=LogLevel.WARNING, message=message, **kwargs))
+        self.log(self._build_record(LogLevel.WARNING, message, **kwargs))
 
     def error(self, message: str, **kwargs: Any) -> None:
-        self.log(LogRecord(level=LogLevel.ERROR, message=message, **kwargs))
+        self.log(self._build_record(LogLevel.ERROR, message, **kwargs))
 
     def thought(self, message: str, **kwargs: Any) -> None:
-        self.log(LogRecord(level=LogLevel.THOUGHT, message=message, **kwargs))
+        self.log(self._build_record(LogLevel.THOUGHT, message, **kwargs))
 
     def tool(self, tool_name: str, message: str, **kwargs: Any) -> None:
-        self.log(LogRecord(level=LogLevel.TOOL, message=message, tool_name=tool_name, **kwargs))
+        tool_kwargs = {LOG_RECORD_TOOL_NAME_FIELD: tool_name, **kwargs}
+        self.log(self._build_record(LogLevel.TOOL, message, **tool_kwargs))
 
 
 def get_logger() -> LogManager:
     """Get the global LogManager instance."""
     return LogManager.get_instance()
+
+
+def _split_log_kwargs(kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Split kwargs into LogRecord fields and extra context."""
+    if not kwargs:
+        return {}, {}
+
+    raw_extra = kwargs.get(LOG_RECORD_EXTRA_FIELD)
+    extra = _normalize_extra(raw_extra)
+
+    record_kwargs: dict[str, Any] = {}
+    for key, value in kwargs.items():
+        if key == LOG_RECORD_EXTRA_FIELD:
+            continue
+        if key in LOG_RECORD_INLINE_FIELDS:
+            record_kwargs[key] = value
+            continue
+        extra[key] = value
+
+    return record_kwargs, extra
+
+
+def _normalize_extra(raw_extra: Any) -> dict[str, Any]:
+    """Normalize user-provided extra payload."""
+    if raw_extra is None:
+        return {}
+    if isinstance(raw_extra, dict):
+        return dict(raw_extra)
+    raise TypeError(f"{LOG_RECORD_EXTRA_FIELD} must be a dict, got {type(raw_extra).__name__}")

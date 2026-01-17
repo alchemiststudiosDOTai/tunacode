@@ -30,6 +30,18 @@ TOOL_NAME_SUFFIX = "..."
 
 TOOL_START_RESEARCH_LABEL = "research"
 
+# Characters that should never appear in valid tool names
+INVALID_TOOL_NAME_CHARS = frozenset("<>(){}[]\"'`")
+
+
+def _is_suspicious_tool_name(tool_name: str) -> bool:
+    """Check if a tool name looks malformed (contains special chars)."""
+    if not tool_name:
+        return True
+    if len(tool_name) > 50:  # Tool names shouldn't be this long
+        return True
+    return any(c in INVALID_TOOL_NAME_CHARS for c in tool_name)
+
 
 @dataclass(frozen=True, slots=True)
 class ToolDispatchResult:
@@ -86,6 +98,8 @@ async def _extract_fallback_tool_calls(
         parse_tool_calls_from_text,
     )
 
+    logger = get_logger()
+
     text_segments: list[str] = []
     for part in parts:
         part_kind = getattr(part, "part_kind", None)
@@ -99,11 +113,39 @@ async def _extract_fallback_tool_calls(
         return []
 
     text_content = TEXT_PART_JOINER.join(text_segments)
-    if not has_potential_tool_call(text_content):
+    has_potential = has_potential_tool_call(text_content)
+
+    # Always collect diagnostics when debug_mode is enabled
+    debug_mode = getattr(state_manager.session, "debug_mode", False)
+
+    if not has_potential:
+        if debug_mode:
+            logger.debug(
+                "Fallback parse skipped: no tool call indicators",
+                text_preview=text_content[:100],
+            )
         return []
 
-    parsed_calls = parse_tool_calls_from_text(text_content)
+    # Parse with diagnostics when debug mode is on
+    if debug_mode:
+        result = parse_tool_calls_from_text(text_content, collect_diagnostics=True)
+        # When collect_diagnostics=True, return is (list, ParseDiagnostics)
+        assert isinstance(result, tuple), "Expected tuple with diagnostics"
+        parsed_calls, diagnostics = result
+        # Log the diagnostics
+        logger.debug(diagnostics.format_for_debug())
+    else:
+        result = parse_tool_calls_from_text(text_content)
+        # When collect_diagnostics=False, return is list[ParsedToolCall]
+        assert isinstance(result, list), "Expected list without diagnostics"
+        parsed_calls = result
+
     if not parsed_calls:
+        if debug_mode:
+            logger.debug(
+                "Fallback parse: indicators found but no valid tool calls extracted",
+                text_len=len(text_content),
+            )
         return []
 
     if response_state and response_state.can_transition_to(AgentState.TOOL_EXECUTION):
@@ -149,6 +191,8 @@ async def dispatch_tools(
     tool_call_records: list[tuple[Any, ToolArgs]] = []
     submit_requested = False
 
+    debug_mode = getattr(state_manager.session, "debug_mode", False)
+
     for part in parts:
         part_kind = getattr(part, "part_kind", None)
         if part_kind != PART_KIND_TOOL_CALL:
@@ -162,6 +206,21 @@ async def dispatch_tools(
         tool_call_records.append((part, tool_args))
 
         tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+
+        # Log suspicious tool names (likely model format issues)
+        if debug_mode and _is_suspicious_tool_name(tool_name):
+            logger.debug(
+                "[TOOL_DISPATCH] SUSPICIOUS tool_name detected",
+                tool_name_preview=tool_name[:100] if tool_name else None,
+                tool_name_len=len(tool_name) if tool_name else 0,
+                raw_args_preview=str(getattr(part, "args", {}))[:100],
+            )
+        elif debug_mode:
+            logger.debug(
+                f"[TOOL_DISPATCH] Native tool call: {tool_name}",
+                args_keys=list(tool_args.keys()) if tool_args else [],
+            )
+
         if tool_name == SUBMIT_TOOL_NAME:
             submit_requested = True
 
