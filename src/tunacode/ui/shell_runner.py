@@ -33,6 +33,10 @@ SHELL_ERROR_CMD_PLACEHOLDER = "(shell error)"
 MS_PER_SECOND = 1000
 DEFAULT_EXIT_CODE = 1
 
+# Standard Unix exit codes
+EXIT_CODE_TIMEOUT = 124
+EXIT_CODE_SPAWN_FAILED = 126
+
 
 class ShellErrorType(str, Enum):
     """Classification of shell execution errors."""
@@ -43,9 +47,9 @@ class ShellErrorType(str, Enum):
 
 
 SHELL_EXIT_CODES: dict[ShellErrorType, int] = {
-    ShellErrorType.TIMEOUT: 124,  # Standard timeout exit code
-    ShellErrorType.SPAWN_FAILED: 126,  # Command cannot execute
-    ShellErrorType.UNKNOWN: 1,
+    ShellErrorType.TIMEOUT: EXIT_CODE_TIMEOUT,
+    ShellErrorType.SPAWN_FAILED: EXIT_CODE_SPAWN_FAILED,
+    ShellErrorType.UNKNOWN: DEFAULT_EXIT_CODE,
 }
 
 
@@ -58,7 +62,6 @@ class ShellRunContext:
     start_time: float
 
     def elapsed_ms(self) -> float:
-        """Return elapsed time in milliseconds since start."""
         return (time.perf_counter() - self.start_time) * MS_PER_SECOND
 
 
@@ -163,7 +166,6 @@ STDERR:
             self._run_context = None
 
     def _classify_error(self, exc: Exception) -> ShellErrorType:
-        """Classify exception into an error type for appropriate exit code."""
         if isinstance(exc, TimeoutError):
             return ShellErrorType.TIMEOUT
         if isinstance(exc, OSError):
@@ -171,7 +173,6 @@ STDERR:
         return ShellErrorType.UNKNOWN
 
     def _handle_error(self, exc: Exception) -> None:
-        """Render error panel with preserved context."""
         ctx = self._run_context
         error_type = self._classify_error(exc)
         exit_code = SHELL_EXIT_CODES[error_type]
