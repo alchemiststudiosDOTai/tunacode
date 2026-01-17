@@ -7,7 +7,8 @@ import os
 import signal
 import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
 from typing import Protocol
 
 from rich.console import RenderableType
@@ -27,12 +28,41 @@ SHELL_STDERR_EMPTY = "(no errors)"
 
 # Error handler defaults
 SHELL_ERROR_CMD_PLACEHOLDER = "(shell error)"
-SHELL_ERROR_EXIT_CODE = 1
-SHELL_ERROR_DURATION_MS = 0.0
 
 # Conversion factors
 MS_PER_SECOND = 1000
 DEFAULT_EXIT_CODE = 1
+
+# Standard Unix exit codes
+EXIT_CODE_TIMEOUT = 124
+EXIT_CODE_SPAWN_FAILED = 126
+
+
+class ShellErrorType(str, Enum):
+    """Classification of shell execution errors."""
+
+    TIMEOUT = "timeout"
+    SPAWN_FAILED = "spawn_failed"
+    UNKNOWN = "unknown"
+
+
+SHELL_EXIT_CODES: dict[ShellErrorType, int] = {
+    ShellErrorType.TIMEOUT: EXIT_CODE_TIMEOUT,
+    ShellErrorType.SPAWN_FAILED: EXIT_CODE_SPAWN_FAILED,
+    ShellErrorType.UNKNOWN: DEFAULT_EXIT_CODE,
+}
+
+
+@dataclass
+class ShellRunContext:
+    """Context preserved for exception handlers."""
+
+    cmd: str
+    cwd: str
+    start_time: float
+
+    def elapsed_ms(self) -> float:
+        return (time.perf_counter() - self.start_time) * MS_PER_SECOND
 
 
 class ShellRunnerHost(Protocol):
@@ -51,8 +81,9 @@ class ShellRunnerHost(Protocol):
 class ShellRunner:
     host: ShellRunnerHost
 
-    _task: asyncio.Task[None] | None = None
-    _process: asyncio.subprocess.Process | None = None
+    _task: asyncio.Task[None] | None = field(default=None, init=False)
+    _process: asyncio.subprocess.Process | None = field(default=None, init=False)
+    _run_context: ShellRunContext | None = field(default=None, init=False)
 
     def is_running(self) -> bool:
         return self._task is not None and not self._task.done()
@@ -130,19 +161,45 @@ STDERR:
         except asyncio.CancelledError:
             return
         except Exception as exc:
-            # TODO(#225): preserve original command context instead of placeholder
+            self._handle_error(exc)
+        finally:
+            self._run_context = None
+
+    def _classify_error(self, exc: Exception) -> ShellErrorType:
+        if isinstance(exc, TimeoutError):
+            return ShellErrorType.TIMEOUT
+        if isinstance(exc, OSError):
+            return ShellErrorType.SPAWN_FAILED
+        return ShellErrorType.UNKNOWN
+
+    def _handle_error(self, exc: Exception) -> None:
+        ctx = self._run_context
+        error_type = self._classify_error(exc)
+        exit_code = SHELL_EXIT_CODES[error_type]
+
+        if ctx is not None:
+            cmd = ctx.cmd
+            cwd = ctx.cwd
+            duration_ms = ctx.elapsed_ms()
+        else:
+            cmd = SHELL_ERROR_CMD_PLACEHOLDER
             cwd = os.getcwd()
-            max_line_width = self.host.tool_panel_max_width()
-            panel = self._format_shell_panel(
-                cmd=SHELL_ERROR_CMD_PLACEHOLDER,
-                exit_code=SHELL_ERROR_EXIT_CODE,
-                cwd=cwd,
-                stdout="",
-                stderr=str(exc),
-                duration_ms=SHELL_ERROR_DURATION_MS,
-                max_line_width=max_line_width,
-            )
-            self.host.write_shell_output(panel)
+            duration_ms = 0.0
+
+        stderr = f"{error_type.value}: {exc}"
+
+        max_line_width = self.host.tool_panel_max_width()
+        panel = self._format_shell_panel(
+            cmd=cmd,
+            exit_code=exit_code,
+            cwd=cwd,
+            stdout="",
+            stderr=stderr,
+            duration_ms=duration_ms,
+            max_line_width=max_line_width,
+        )
+        self.host.write_shell_output(panel)
+        self.host.notify(f"Shell error: {error_type.value}", severity="error")
 
     async def _wait_or_kill_process(self, process: asyncio.subprocess.Process) -> None:
         if process.returncode is not None:
@@ -155,11 +212,13 @@ STDERR:
             await process.wait()
 
     async def _run(self, cmd: str) -> None:
-        self.host.shell_status_running()
-        self.host.notify(f"Running: {cmd}")
-
+        # Capture context BEFORE any async I/O for exception handlers
         cwd = os.getcwd()
         start_time = time.perf_counter()
+        self._run_context = ShellRunContext(cmd=cmd, cwd=cwd, start_time=start_time)
+
+        self.host.shell_status_running()
+        self.host.notify(f"Running: {cmd}")
 
         process = await asyncio.create_subprocess_shell(
             cmd,
@@ -177,8 +236,7 @@ STDERR:
         except TimeoutError:
             process.kill()
             await process.wait()
-            self.host.notify("Command timed out", severity="error")
-            return
+            raise  # Let _on_done handle uniformly
         except asyncio.CancelledError:
             await self._wait_or_kill_process(process)
             self.host.notify("Shell command cancelled", severity="warning")
