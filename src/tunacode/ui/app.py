@@ -29,8 +29,6 @@ from tunacode.constants import (
 )
 from tunacode.core.agents.main import process_request
 from tunacode.core.state import StateManager
-from tunacode.indexing import CodeIndex
-from tunacode.indexing.constants import QUICK_INDEX_THRESHOLD
 from tunacode.types import (
     ModelName,
     ToolConfirmationRequest,
@@ -55,6 +53,7 @@ from tunacode.ui.repl_support import (
     format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
+from tunacode.ui.startup import run_startup_index
 from tunacode.ui.styles import (
     STYLE_ERROR,
     STYLE_MUTED,
@@ -190,50 +189,9 @@ class TextualReplApp(App[None]):
 
         self.set_focus(self.editor)
         self.run_worker(self._request_worker, exclusive=False)
-        self.run_worker(self._startup_index_worker, exclusive=False)
+        self.run_worker(lambda: run_startup_index(self.rich_log), exclusive=False)
         self._update_resource_bar()
         show_welcome(self.rich_log)
-
-    async def _startup_index_worker(self) -> None:
-        """Build startup index with dynamic sizing."""
-        import asyncio
-
-        def do_index() -> tuple[int, int | None, bool]:
-            """Returns (indexed_count, total_or_none, is_partial)."""
-            index = CodeIndex.get_instance()
-            total = index.quick_count()
-
-            if total < QUICK_INDEX_THRESHOLD:
-                index.build_index()
-                return len(index._all_files), None, False
-            else:
-                count = index.build_priority_index()
-                return count, total, True
-
-        indexed, total, is_partial = await asyncio.to_thread(do_index)
-
-        if is_partial:
-            msg = Text()
-            msg.append(
-                f"Code cache: {indexed}/{total} files indexed, expanding...",
-                style=STYLE_MUTED,
-            )
-            self.rich_log.write(msg)
-
-            # Expand in background
-            def do_expand() -> int:
-                index = CodeIndex.get_instance()
-                index.expand_index()
-                return len(index._all_files)
-
-            final_count = await asyncio.to_thread(do_expand)
-            done_msg = Text()
-            done_msg.append(f"Code cache built: {final_count} files indexed ✓", style=STYLE_SUCCESS)
-            self.rich_log.write(done_msg)
-        else:
-            msg = Text()
-            msg.append(f"Code cache built: {indexed} files indexed ✓", style=STYLE_SUCCESS)
-            self.rich_log.write(msg)
 
     async def _request_worker(self) -> None:
         while True:
