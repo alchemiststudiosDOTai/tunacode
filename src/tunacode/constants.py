@@ -86,6 +86,7 @@ READ_ONLY_TOOLS = [
     ToolName.RESEARCH_CODEBASE,
     ToolName.WEB_FETCH,
     ToolName.PRESENT_PLAN,
+    ToolName.SUBMIT,
 ]
 
 WRITE_TOOLS = [
