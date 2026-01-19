@@ -96,14 +96,12 @@ This document covers the **supporting modules** that enable core TunaCode functi
 - **`config/`**: Configuration parsing and validation
 - **`messaging/`**: Message formatting and display
 - **`parsing/`**: Text parsing and tokenization
-- **`security/`**: Security utilities (redaction, validation)
 - **`system/`**: System operations (paths, processes)
 - **`ui/`**: UI-specific utilities
 
 **Utilities**:
 - Path manipulation helpers
 - String formatting and truncation
-- Secure credential handling
 - Process spawning and monitoring
 - Color and formatting helpers
 

@@ -99,7 +99,6 @@ src/tunacode/
 │   ├── config/            # User configuration loading
 │   ├── messaging/         # Token counting, message utils
 │   ├── parsing/           # JSON, command parsing
-│   ├── security/          # Command validation
 │   ├── system/            # Gitignore, paths
 │   └── ui/                # File filtering
 │
@@ -137,7 +136,7 @@ src/tunacode/
 |--------|---------|-------------|-------|
 | **configuration/** | Settings & models | load_user_config, ModelRegistry, get_pricing | M |
 | **types/** | Type definitions | UserConfig, MessageHistory, ModelName, ToolCallback | M |
-| **utils/** | Shared utilities | estimate_tokens, parse_json, validate_command | M |
+| **utils/** | Shared utilities | estimate_tokens, parse_json | M |
 | **indexing/** | Fast codebase indexing | CodeIndex, index_files, search_files | M |
 | **lsp/** | Language Server Protocol | LSPClient, get_diagnostics | M |
 | **templates/** | Template management | TemplateLoader | M |

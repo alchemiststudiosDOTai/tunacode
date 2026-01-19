@@ -132,7 +132,6 @@ src/tunacode/
 │   ├── config/
 │   ├── messaging/
 │   ├── parsing/
-│   ├── security/
 │   ├── system/
 │   └── ui/
 ├── tutorial/                # Interactive tutorials

@@ -384,7 +384,6 @@ Level 1 (Utilities):
 │   ├── config
 │   ├── messaging
 │   ├── parsing
-│   ├── security
 │   └── system
 ├── templates
 ├── lsp

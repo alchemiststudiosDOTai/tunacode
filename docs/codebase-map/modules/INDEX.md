@@ -40,7 +40,7 @@ Each module file includes:
 ### Supporting Modules
 - **[configuration.md](./configuration.md)** - User settings and model registry (load_user_config, ModelRegistry)
 - **[types.md](./types.md)** - Type definitions and protocols (UserConfig, MessageHistory, ToolCallback)
-- **[utils.md](./utils.md)** - Shared utilities (estimate_tokens, parse_json, validate_command)
+- **[utils.md](./utils.md)** - Shared utilities (estimate_tokens, parse_json)
 - **[indexing.md](./indexing.md)** - Fast codebase indexing (CodeIndex)
 - **[lsp.md](./lsp.md)** - Language Server Protocol client (LSPClient, get_diagnostics)
 - **[templates.md](./templates.md)** - Template management system (TemplateLoader)

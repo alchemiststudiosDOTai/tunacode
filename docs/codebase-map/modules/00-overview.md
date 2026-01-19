@@ -22,7 +22,7 @@ The TunaCode CLI is organized into focused modules with clear responsibilities:
 ### Supporting Modules
 - **configuration/** - User settings, model registry, and pricing
 - **types/** - Type definitions and protocols
-- **utils/** - Shared utilities (parsing, messaging, security)
+- **utils/** - Shared utilities (parsing, messaging)
 - **indexing/** - Fast codebase indexing
 - **lsp/** - Language Server Protocol client
 - **templates/** - Template management system

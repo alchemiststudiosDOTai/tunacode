@@ -4,14 +4,14 @@ path: src/tunacode/utils
 type: directory
 depth: 1
 description: Shared utility functions and helpers
-exports: [estimate_tokens, parse_json, validate_command]
+exports: [estimate_tokens, parse_json]
 seams: [M]
 ---
 
 # Utils Module
 
 ## Purpose
-Provides shared utility functions across configuration, messaging, parsing, security, and system operations.
+Provides shared utility functions across configuration, messaging, parsing, and system operations.
 
 ## Key Components
 
@@ -56,19 +56,6 @@ Provides shared utility functions across configuration, messaging, parsing, secu
 - Retry logic with exponential backoff
 - Max retry configuration
 - Error handling
-
-### Security (utils/security/)
-
-**command.py**
-- **validate_command()** - Command safety checks
-- Destructive pattern detection
-- Command sanitization
-
-**Security checks:**
-- Blocks `rm -rf /`
-- Blocks `chmod -R 777`
-- Blocks other destructive commands
-- Whitelist-based safe commands
 
 ### System (utils/system/)
 
@@ -116,11 +103,6 @@ Provides shared utility functions across configuration, messaging, parsing, secu
 - Tool call parsing
 - Retry logic
 
-### Security Utilities
-- Command validation
-- Destructive pattern detection
-- Input sanitization
-
 ### System Utilities
 - Gitignore integration
 - Path manipulation
@@ -134,7 +116,7 @@ Provides shared utility functions across configuration, messaging, parsing, secu
 ## Integration Points
 
 - **core/agents/** - Token counting, message parsing
-- **tools/** - Command validation, JSON parsing
+- **tools/** - JSON parsing
 - **ui/** - File filtering, path handling
 - **configuration/** - Config loading
 
@@ -142,7 +124,6 @@ Provides shared utility functions across configuration, messaging, parsing, secu
 
 **Modification Points:**
 - Add new parsing utilities
-- Extend security validation
 - Create new system helpers
 - Add UI formatting functions
 

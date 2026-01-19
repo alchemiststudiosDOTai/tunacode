@@ -156,33 +156,3 @@ def safe_json_parse(
         raise json.JSONDecodeError(f"Expected dict, got {type(result)}", json_string, 0)
 
     return result
-
-
-def merge_json_objects(objects: list[dict[str, Any]], strategy: str = "first") -> dict[str, Any]:
-    """
-    Merge multiple JSON objects using different strategies.
-
-    Args:
-        objects: List of JSON objects to merge
-        strategy: Merge strategy ("first", "last", "combine")
-
-    Returns:
-        Single merged JSON object
-    """
-    if not objects:
-        return {}
-
-    if len(objects) == 1:
-        return objects[0]
-
-    if strategy == "first":
-        return objects[0]
-    if strategy == "last":
-        return objects[-1]
-    if strategy == "combine":
-        result: dict[str, Any] = {}
-        for obj in objects:
-            result.update(obj)
-        return result
-
-    raise ValueError(f"Unknown merge strategy: {strategy}")

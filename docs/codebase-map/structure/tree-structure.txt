@@ -152,7 +152,6 @@ src/tunacode/
 │   │   ├── config/              # Config parsing
 │   │   ├── messaging/           # Message formatting
 │   │   ├── parsing/             # Text parsing
-│   │   ├── security/            # Security utils
 │   │   ├── system/              # System operations
 │   │   └── ui/                  # UI utilities
 │   │
