@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/renderers/tools/write_file.py
+# hypothesis_version: 6.150.2
+
+['(empty file)', 'NEW', 'Successfully wrote', 'bold green', 'content', 'dim', 'dim italic', 'filepath', 'green bold', 'write_file']

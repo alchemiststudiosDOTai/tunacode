@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/plan_approval.py
+# hypothesis_version: 6.150.2
+
+[' Approve    ', ' Exit', ' Feedback    ', '1', '2', '3', 'Output: ', 'PLAN.md', 'Plan Mode', 'Plan approved', 'Plan mode exited', '[1]', '[2]', '[3]']

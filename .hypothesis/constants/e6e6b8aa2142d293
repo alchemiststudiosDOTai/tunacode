@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/lsp/__init__.py
+# hypothesis_version: 6.150.2
+
+[5.0, '.git', '</file_diagnostics>', '<file_diagnostics>', 'Cargo.toml', 'Pipfile', 'error', 'format_diagnostics', 'get_diagnostics', 'go.mod', 'package.json', 'pyproject.toml', 'requirements.txt', 'setup.cfg', 'setup.py', 'warning']

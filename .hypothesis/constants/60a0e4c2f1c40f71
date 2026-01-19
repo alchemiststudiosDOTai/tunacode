@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/ignore.py
+# hypothesis_version: 6.150.2
+
+[0.0, '.gitignore', '/', 'DEFAULT_EXCLUDE_DIRS', 'IgnoreManager', 'get_ignore_manager', 'gitwildmatch', 'utf-8']

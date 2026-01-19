@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/types/dataclasses.py
+# hypothesis_version: 6.150.2
+
+['AgentState', 'CommandContext', 'CostBreakdown', 'FallbackResponse', 'ModelConfig', 'ModelPricing', 'ModelRegistry', 'ResponseState', 'StateManagerProtocol', 'TokenUsage', 'assistant', 'response', 'tool_execution', 'user_input']

@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/grep_components/file_filter.py
+# hypothesis_version: 6.150.2
+
+[500, 5000, ',', '{', '}']

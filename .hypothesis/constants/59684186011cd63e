@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/decorators.py
+# hypothesis_version: 6.150.2
+
+[1.0, 5.0, 'P', 'R', 'access', 'decode', 'enabled', 'lsp', 'max_diagnostics', 'read/write', 'settings', 'timeout']

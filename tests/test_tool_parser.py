@@ -3,9 +3,13 @@
 Tests parsing of non-standard tool calling formats from models like Qwen2.5-Coder.
 """
 
+import json
+
 import pytest
 
+import tunacode.utils.parsing.tool_parser as tool_parser
 from tunacode.utils.parsing.tool_parser import (
+    ParseDiagnostics,
     ParsedToolCall,
     _normalize_tool_object,
     has_potential_tool_call,
@@ -15,6 +19,26 @@ from tunacode.utils.parsing.tool_parser import (
     parse_raw_json,
     parse_tool_calls_from_text,
 )
+
+TOOL_NAME = "read_file"
+INVALID_JSON_ARGS = "{invalid}"
+INVALID_TOOL_OBJECT = {"name": TOOL_NAME, "arguments": INVALID_JSON_ARGS}
+INVALID_LIST_ARGS = ["nope"]
+INVALID_LIST_OBJECT = {"name": TOOL_NAME, "arguments": INVALID_LIST_ARGS}
+TOOL_CALL_ARGS = {"filepath": "main.py"}
+TOOL_CALL_TEXT = json.dumps({"name": TOOL_NAME, "arguments": TOOL_CALL_ARGS})
+TOOL_CALL_WRAPPED = f"<tool_call>{TOOL_CALL_TEXT}</tool_call>"
+HERMES_INVALID_TEXT = f"<function={TOOL_NAME}>{INVALID_JSON_ARGS}</function>"
+DIAGNOSTIC_STRATEGY_NAME = "example"
+DIAGNOSTIC_FAILURE_REASON = "failed"
+DIAGNOSTIC_ERROR_MESSAGE = "boom"
+EXPECTED_INDICATOR = "<tool_call>"
+SUCCESS_LABEL = "SUCCESS"
+FAILED_LABEL = "FAILED"
+ERROR_LABEL = "error"
+PRE_CHECK_LABEL = "pre-check"
+EMPTY_TEXT_REASON = "empty_text"
+EMPTY_TEXT = " "
 
 
 class TestQwen2XmlParsing:
@@ -304,3 +328,110 @@ class TestParsedToolCallDataclass:
         # Slots means no __dict__
         with pytest.raises(AttributeError):
             _ = call.__dict__
+
+
+class TestParseDiagnostics:
+    """Tests for ParseDiagnostics formatting and branches."""
+
+    def test_format_for_debug_success_includes_success_label(self):
+        """format_for_debug includes success line when parsing succeeds."""
+        diagnostics = ParseDiagnostics(
+            text_preview=TOOL_CALL_WRAPPED,
+            text_length=len(TOOL_CALL_WRAPPED),
+            detected_indicators=[EXPECTED_INDICATOR],
+            strategies_tried=[(DIAGNOSTIC_STRATEGY_NAME, DIAGNOSTIC_FAILURE_REASON)],
+            success=True,
+            success_strategy=DIAGNOSTIC_STRATEGY_NAME,
+        )
+
+        formatted = diagnostics.format_for_debug()
+
+        assert SUCCESS_LABEL in formatted
+        assert DIAGNOSTIC_STRATEGY_NAME in formatted
+
+    def test_format_for_debug_failure_includes_failed_label(self):
+        """format_for_debug includes failure line when parsing fails."""
+        diagnostics = ParseDiagnostics(
+            text_preview=TOOL_CALL_WRAPPED,
+            text_length=len(TOOL_CALL_WRAPPED),
+            detected_indicators=[EXPECTED_INDICATOR],
+            strategies_tried=[(DIAGNOSTIC_STRATEGY_NAME, DIAGNOSTIC_FAILURE_REASON)],
+            success=False,
+            success_strategy=None,
+        )
+
+        formatted = diagnostics.format_for_debug()
+
+        assert FAILED_LABEL in formatted
+
+
+class TestHermesErrorHandling:
+    """Tests Hermes parser error paths."""
+
+    def test_invalid_json_is_skipped(self):
+        """Invalid JSON inside Hermes tags is skipped."""
+        result = parse_hermes_style(HERMES_INVALID_TEXT)
+
+        assert result is None
+
+
+class TestNormalizeToolObjectEdgeCases:
+    """Tests for argument normalization branches."""
+
+    def test_invalid_string_args_return_empty_dict(self):
+        """Invalid JSON argument strings normalize to empty dict."""
+        parsed = _normalize_tool_object(INVALID_TOOL_OBJECT)
+
+        assert parsed is not None
+        assert parsed.args == {}
+
+    def test_non_string_args_return_empty_dict(self):
+        """Non-string, non-dict arguments normalize to empty dict."""
+        parsed = _normalize_tool_object(INVALID_LIST_OBJECT)
+
+        assert parsed is not None
+        assert parsed.args == {}
+
+
+class TestParseToolCallsWithDiagnostics:
+    """Tests diagnostics paths for parse_tool_calls_from_text."""
+
+    def test_empty_text_returns_diagnostics(self):
+        """Empty text with diagnostics returns pre-check entry."""
+        results, diagnostics = parse_tool_calls_from_text(EMPTY_TEXT, collect_diagnostics=True)
+
+        assert results == []
+        assert diagnostics.strategies_tried == [(PRE_CHECK_LABEL, EMPTY_TEXT_REASON)]
+
+    def test_successful_parse_records_diagnostics(self):
+        """Successful parse sets diagnostics success fields."""
+        results, diagnostics = parse_tool_calls_from_text(
+            TOOL_CALL_WRAPPED, collect_diagnostics=True
+        )
+
+        assert results
+        assert diagnostics.success is True
+        assert diagnostics.success_strategy is not None
+        assert diagnostics.detected_indicators
+
+    def test_strategy_errors_reported_in_diagnostics(self, monkeypatch: pytest.MonkeyPatch):
+        """Errors in strategies are recorded and diagnostics returned."""
+
+        def _boom(_: str) -> list[ParsedToolCall] | None:
+            raise ValueError(DIAGNOSTIC_ERROR_MESSAGE)
+
+        monkeypatch.setattr(
+            tool_parser,
+            "PARSING_STRATEGIES",
+            [(DIAGNOSTIC_STRATEGY_NAME, _boom)],
+        )
+
+        results, diagnostics = parse_tool_calls_from_text(
+            TOOL_CALL_WRAPPED, collect_diagnostics=True
+        )
+
+        assert results == []
+        assert isinstance(diagnostics, ParseDiagnostics)  # type: ignore[union-attr]
+        assert diagnostics.success is False  # type: ignore[union-attr]
+        assert diagnostics.strategies_tried  # type: ignore[union-attr]
+        assert ERROR_LABEL in diagnostics.strategies_tried[0][1]  # type: ignore[union-attr]

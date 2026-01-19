@@ -22,6 +22,14 @@ from tunacode.exceptions import (
     ValidationError,
 )
 
+MAX_PARALLEL_ENV = "TUNACODE_MAX_PARALLEL"
+SINGLE_PARALLEL_LIMIT = 1
+ZERO_RETRIES = 0
+TOOL_NAME = "test_tool"
+NON_RETRYABLE_MESSAGE = "abort"
+ASSERTION_MESSAGE = "unreachable"
+CALLBACK_RESULT = "unused"
+
 
 class TestCalculateBackoff:
     """Tests for backoff calculation."""
@@ -86,7 +94,7 @@ class TestExecuteToolsParallel:
     def mock_part(self):
         """Create a mock tool call part."""
         part = MagicMock()
-        part.tool_name = "test_tool"
+        part.tool_name = TOOL_NAME
         return part
 
     @pytest.fixture
@@ -220,6 +228,29 @@ class TestExecuteToolsParallel:
         tool_calls = [(p, mock_node) for p in parts]
 
         with pytest.raises(RuntimeError, match="always fails"):
+            await execute_tools_parallel(tool_calls, callback)
+
+    async def test_batch_error_raises_first_exception(self, mock_node, monkeypatch):
+        """Batch execution raises when a batch result is an exception."""
+        monkeypatch.setenv(MAX_PARALLEL_ENV, str(SINGLE_PARALLEL_LIMIT))
+        parts = [MagicMock(tool_name=f"{TOOL_NAME}_{i}") for i in range(2)]
+        tool_calls = [(part, mock_node) for part in parts]
+        callback = AsyncMock(side_effect=ValidationError(NON_RETRYABLE_MESSAGE))
+
+        with pytest.raises(ValidationError, match=NON_RETRYABLE_MESSAGE):
+            await execute_tools_parallel(tool_calls, callback)
+
+    async def test_zero_retries_hits_unreachable_assertion(self, mock_node, monkeypatch):
+        """Zero retries forces the unreachable assertion path."""
+        monkeypatch.setattr(
+            "tunacode.core.agents.agent_components.tool_executor.TOOL_MAX_RETRIES",
+            ZERO_RETRIES,
+        )
+        monkeypatch.setenv(MAX_PARALLEL_ENV, str(SINGLE_PARALLEL_LIMIT))
+        tool_calls = [(MagicMock(tool_name=TOOL_NAME), mock_node)]
+        callback = AsyncMock(return_value=CALLBACK_RESULT)
+
+        with pytest.raises(AssertionError, match=ASSERTION_MESSAGE):
             await execute_tools_parallel(tool_calls, callback)
 
     async def test_generic_exception_is_retried(self, mock_part, mock_node):

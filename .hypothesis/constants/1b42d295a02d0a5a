@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/authorization/context.py
+# hypothesis_version: 6.150.2
+
+['active_template', 'tool_handler']

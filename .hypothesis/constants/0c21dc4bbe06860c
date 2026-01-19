@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/repl_support.py
+# hypothesis_version: 6.150.2
+
+['</file_diagnostics>', '<file_diagnostics>', 'completed', 'filepath', 'fold', 'update_file', 'write_file', '│ ']

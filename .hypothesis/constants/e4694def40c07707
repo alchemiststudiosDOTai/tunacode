@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/agents/agent_components/orchestrator/orchestrator.py
+# hypothesis_version: 6.150.2
+
+['completed', 'content', 'empty', 'model_response', 'part_kind', 'parts', 'request', 'thought', 'tool-return', 'tool_name', 'truncated', 'unknown', 'usage']

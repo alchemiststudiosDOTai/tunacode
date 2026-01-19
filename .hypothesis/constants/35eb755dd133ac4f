@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/compaction.py
+# hypothesis_version: 6.150.2
+
+[500, 2000, 20000, 40000, 'content', 'part_kind', 'parts', 'role', 'tool-return', 'user', 'user-prompt']

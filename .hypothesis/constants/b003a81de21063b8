@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/indexing/constants.py
+# hypothesis_version: 6.150.2
+
+[1000, '.bash', '.c', '.cc', '.containerfile', '.cpp', '.cs', '.css', '.cxx', '.dockerfile', '.env.example', '.gitignore', '.go', '.graphql', '.h', '.hpp', '.html', '.java', '.js', '.json', '.jsx', '.kt', '.md', '.php', '.py', '.rb', '.rs', '.rst', '.sass', '.scala', '.scss', '.sh', '.sql', '.swift', '.toml', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml', '.zsh', 'app', 'core', 'internal', 'lib', 'packages', 'src']

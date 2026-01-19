@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/glob.py
+# hypothesis_version: 6.150.2
+
+[5000, '**', '**/', ',', '.', '.*', '/', '__STARSTAR__', 'alphabetical', 'depth', 'file', 'files', 'filesystem', 'index', 'modified', 'size', '{', '}']

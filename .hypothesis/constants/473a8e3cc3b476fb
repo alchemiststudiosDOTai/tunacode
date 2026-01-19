@@ -1,0 +1,4 @@
+# file: /root/tunacode/.venv/bin/pytest
+# hypothesis_version: 6.150.2
+
+['-script.pyw', '.exe', '__main__']

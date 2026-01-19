@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/list_dir.py
+# hypothesis_version: 6.150.2
+
+[100, ' (truncated)', '.', '/', '│   ', '└── ', '├── ']

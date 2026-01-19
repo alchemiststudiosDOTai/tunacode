@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/renderers/tools/read_file.py
+# hypothesis_version: 6.150.2
+
+['(End of file', '(File has more', '(empty file)', '(more available)', '<file>', '^(\\d+)\\|\\s?(.*)', 'beyond line (\\d+)', 'bold', 'dim', 'dim italic', 'filepath', 'offset', 'read_file', 'total (\\d+) lines', 'unknown']

@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/authorization/types.py
+# hypothesis_version: 6.150.2
+
+['allow', 'confirm', 'deny']

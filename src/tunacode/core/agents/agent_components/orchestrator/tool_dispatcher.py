@@ -287,9 +287,6 @@ async def dispatch_tools(
         if tool_start_callback:
             tool_start_callback(getattr(part, "tool_name", UNKNOWN_TOOL_NAME))
 
-        if tool_callback is None:
-            continue
-
         try:
             await tool_callback(part, task_node)
         except UserAbortError:

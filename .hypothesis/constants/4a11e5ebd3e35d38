@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/configuration/defaults.py
+# hypothesis_version: 6.150.2
+
+[0.0, 5.0, 120.0, 100, 200000, 1048576, 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'context_window_size', 'debug', 'default_model', 'dracula', 'enable_metrics', 'enable_streaming', 'enabled', 'env', 'fallback_response', 'fallback_verbosity', 'guide_file', 'lsp', 'max_buffer_size', 'max_diagnostics', 'max_iterations', 'max_results', 'max_retries', 'normal', 'request_delay', 'ripgrep', 'settings', 'theme', 'timeout', 'tool_ignore']

@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/exceptions.py
+# hypothesis_version: 6.150.2
+
+[100, '  - ', '  {index}. ', 'Agent error: ', 'More help', 'Recovery commands', 'Suggested fix', 'Valid examples', 'Validation failed: ', 'grep', 'tunacode --help', 'tunacode --setup']

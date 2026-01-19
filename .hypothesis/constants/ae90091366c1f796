@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/renderers/agent_response.py
+# hypothesis_version: 6.150.2
+
+[0.0, 1000, '  ·  ', '%I:%M %p', '...', '0', 'ANTH/', 'GOOG/', 'GROQ/', 'MIST/', 'OA/', 'OR/', 'TOG/', 'accent', 'anthropic/', 'dim', 'dim italic', 'google/', 'groq/', 'mistral/', 'muted', 'openai/', 'openrouter/', 'primary', 'streaming', 'together/']

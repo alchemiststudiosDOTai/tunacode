@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/bash.py
+# hypothesis_version: 6.150.2
+
+[1.0, 5.0, 300, '&', '&&\\s*rm\\s+', '(no errors)', '(no output)', ':\\(\\)\\{.*\\}\\;', ';', ';\\s*rm\\s+', '>\\s*/dev/sd[a-z]', 'STDERR:', 'STDOUT:', '\\$[^({a-zA-Z_]', '\\$\\([^)]*rm[^)]*\\)', '\\$\\{?\\w+\\}?', '`', '`[^`]*rm[^`]*`', 'dd if=', 'dd\\s+.*of=/dev/', 'fdisk', 'mkfs', 'mkfs\\.', 'replace', 'rm -r', 'rm -rf', 'rm /', 'rm\\s+-rf\\s+/', 'sudo\\s+rm', 'utf-8', '{', '}']

@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/utils/system/ignore_patterns.py
+# hypothesis_version: 6.150.2
+
+['*', '*.cover', '*.egg-info/', '*.pyc', '*.pyd', '*.pyo', '*.swo', '*.swp', '.DS_Store', '.bundle/', '.bzr/', '.cache/', '.coverage', '.eggs/', '.env/', '.git', '.hg/', '.idea/', '.mypy_cache/', '.next/', '.nuxt/', '.pytest_cache/', '.ruff_cache/', '.serverless/', '.svn/', '.terraform/', '.tox/', '.venv/', '.vs/', '.vscode/', '.zig-cache/', '/', '?', 'Thumbs.db', '[', '__pycache__/', '_build/', 'bin/', 'bower_components/', 'build/', 'cache/', 'coverage.xml', 'coverage/', 'dist/', 'env/', 'htmlcov/', 'logs/', 'node_modules/', 'obj/', 'target/', 'temp/', 'tmp/', 'vendor/', 'venv/', 'zig-out/']

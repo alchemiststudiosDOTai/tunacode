@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/prompting/prompting_engine.py
+# hypothesis_version: 6.150.2
+
+['CWD', 'DATE', 'OS', '\\{\\{(.+?)\\}\\}']

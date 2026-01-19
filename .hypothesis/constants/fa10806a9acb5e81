@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/utils/ripgrep.py
+# hypothesis_version: 6.150.2
+
+[0.0, '**/*', '--files', '--multiline-dotall', '--version', '-A', '-B', '-U', '-g', '-i', '-m', '.', '13.0.0', 'aarch64', 'amd64', 'arm64', 'arm64-darwin', 'arm64-linux', 'darwin', 'ignore', 'linux', 'r', 'rg', 'rg.exe', 'ripgrep', 'utf-8', 'vendor', 'windows', 'x64-darwin', 'x64-linux', 'x64-win32', 'x86_64']

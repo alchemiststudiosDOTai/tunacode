@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/lsp/client.py
+# hypothesis_version: 6.150.2
+
+[0.1, 0.5, 2.0, 5.0, '2.0', ':', 'Content-Length:', 'ascii', 'capabilities', 'character', 'diagnostics', 'error', 'exit', 'hint', 'id', 'info', 'initialize', 'initialized', 'jsonrpc', 'languageId', 'line', 'message', 'method', 'params', 'plaintext', 'processId', 'publishDiagnostics', 'range', 'relatedInformation', 'result', 'rootUri', 'severity', 'shutdown', 'source', 'start', 'text', 'textDocument', 'textDocument/didOpen', 'uri', 'utf-8', 'version', 'warning']

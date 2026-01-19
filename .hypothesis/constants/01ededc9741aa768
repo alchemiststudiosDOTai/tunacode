@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/prompting/__init__.py
+# hypothesis_version: 6.150.2
+
+['LOCAL_TEMPLATE', 'MAIN_TEMPLATE', 'PromptingEngine', 'RESEARCH_TEMPLATE', 'SectionLoader', 'SystemPromptSection', 'TEMPLATE_OVERRIDES', 'compose_prompt', 'get_prompting_engine', 'resolve_prompt']

@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/prompting/sections.py
+# hypothesis_version: 6.150.2
+
+['ADVANCED_PATTERNS', 'AGENT_ROLE', 'COMPLETION', 'CONSTRAINTS', 'CRITICAL_RULES', 'EXAMPLES', 'OUTPUT_FORMAT', 'OUTPUT_STYLE', 'PARALLEL_EXEC', 'SEARCH_PATTERN', 'SYSTEM_INFO', 'TOOL_USE', 'USER_INSTRUCTIONS']

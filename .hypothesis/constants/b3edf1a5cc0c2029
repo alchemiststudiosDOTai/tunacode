@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/agents/main.py
+# hypothesis_version: 6.150.2
+
+['?', 'Processing iteration', 'Request started', 'Review grep results', 'Task completed', 'args', 'batch_counter', 'continue', 'debug_metrics', 'file_path', 'filepath', 'get_agent_tool', 'grep', 'max_iterations', 'messages', 'next_action', 'original_query', 'output', 'part_kind', 'parts', 'pattern', 'process_request', 'react_forced_calls', 'read_file', 'request', 'result', 'settings', 'show_thoughts', 'system-prompt', 'think', 'thoughts', 'timeline', 'tool', 'tool-call', 'tool_call_id', 'tool_calls', 'user_config']

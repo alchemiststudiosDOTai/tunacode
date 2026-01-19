@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/renderers/tools/list_dir.py
+# hypothesis_version: 6.150.2
+
+[100, '  ignore:', '  max:', '(empty directory)', '(truncated)', '.', '/', 'bash', 'bold', 'bold cyan', 'bright_blue', 'cyan', 'dim', 'dim bold', 'dim italic', 'green', 'hidden:', 'ignore', 'javascript', 'json', 'jsx', 'list_dir', 'magenta', 'markdown', 'max_files', 'off', 'on', 'python', 'rst', 'show_hidden', 'toml', 'tsx', 'typescript', 'yaml', 'yellow', 'zsh', '├└│─ ']

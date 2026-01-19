@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/logo_assets.py
+# hypothesis_version: 6.150.2
+
+['assets', 'logo.ansi', 'tunacode.ui', 'utf-8']

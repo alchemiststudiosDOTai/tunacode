@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/renderers/tools/glob.py
+# hypothesis_version: 6.150.2
+
+['  hidden:', '  sort:', '(no files)', '(truncated', '.', './', '.spec.js', '.spec.ts', '.test.js', '.test.py', '.test.ts', '/', 'No files found', '[source:', 'bash', 'bold', 'bright_blue', 'bright_green', 'cyan', 'dim', 'dim bold', 'dim italic', 'file', 'files', 'filesystem', 'glob', 'green', 'include_hidden', 'index', 'indexed', 'javascript', 'json', 'jsx', 'magenta', 'markdown', 'modified', 'off', 'on', 'python', 'recursive', 'recursive:', 'rst', 'scanned', 'sort_by', 'toml', 'tsx', 'typescript', 'yaml', 'yellow', 'zsh']

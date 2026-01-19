@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/ui/renderers/errors.py
+# hypothesis_version: 6.150.2
+
+[200, 'AgentError', 'ConfigurationError', 'Details', 'Field', 'FileOperationError', 'Fix: ', 'GitOperationError', 'Model', 'Operation', 'Operation Cancelled', 'Path', 'Recovery commands:', 'Retry the operation', 'Server', 'SetupValidationError', 'Something Went Wrong', 'StateError', 'Step', 'Suggested fix: ', 'Tool', 'ToolExecutionError', 'UserAbortError', 'Validation', 'Validation Error', 'ValidationError', 'error', 'info', 'model', 'operation', 'path', 'recovery_commands', 'server_name', 'step', 'suggested_fix', 'tool_name', 'validation_type', 'warning']

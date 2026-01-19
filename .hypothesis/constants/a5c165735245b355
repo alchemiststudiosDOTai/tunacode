@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/tools/web_fetch.py
+# hypothesis_version: 6.150.2
+
+[100, 120, 403, 404, 429, 500, 1000, 1024, '0.0.0.0', '127.0.0.1', '::1', '<html', 'URL cannot be empty.', 'User-Agent', '^0\\.', '^10\\.', '^127\\.', '^169\\.254\\.', '^192\\.168\\.', '^::1$', '^fc00:', '^fd00:', '^fe80:', 'content-length', 'content-type', 'http', 'https', 'latin-1', 'local', 'localhost', 'replace', 'text/html', 'utf-8']

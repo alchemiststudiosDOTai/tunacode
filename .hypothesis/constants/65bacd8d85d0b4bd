@@ -1,0 +1,4 @@
+# file: /root/tunacode/src/tunacode/core/agents/research_agent.py
+# hypothesis_version: 6.150.2
+
+['__annotations__', 'count', 'glob', 'grep', 'list_dir', 'max_retries', 'prompts', 'read_file', 'research', 'sections', 'settings']
