@@ -18,6 +18,7 @@ from tunacode.core.logging import (
     TUIHandler,
     get_logger,
 )
+from tunacode.core.state import StateManager
 
 
 @pytest.fixture(autouse=True)
@@ -83,6 +84,16 @@ class TestHandlerRegistration:
 
         tui_handlers = [h for h in logger._handlers if isinstance(h, TUIHandler)]
         assert tui_handlers[0]._enabled is False
+
+
+class TestLogManagerProperties:
+    """Tests for LogManager properties."""
+
+    def test_log_path_matches_file_handler(self):
+        """log_path returns the FileHandler's path."""
+        logger = get_logger()
+        file_handlers = [h for h in logger._handlers if isinstance(h, FileHandler)]
+        assert logger.log_path == file_handlers[0].log_path
 
 
 class TestLogRecord:
@@ -226,6 +237,23 @@ class TestConvenienceMethods:
             assert call_args.tool_name == "bash"
             assert call_args.message == "completed"
             assert call_args.duration_ms == 100.0
+
+    def test_lifecycle_gated_by_debug_mode(self):
+        """lifecycle() only logs when debug_mode=True."""
+        logger = get_logger()
+        state_manager = StateManager()
+        logger.set_state_manager(state_manager)
+
+        with patch.object(logger, "log") as mock_log:
+            logger.lifecycle("test message")
+            mock_log.assert_not_called()
+
+        state_manager.session.debug_mode = True
+        with patch.object(logger, "log") as mock_log:
+            logger.lifecycle("test message")
+            call_args = mock_log.call_args[0][0]
+            assert call_args.level == LogLevel.DEBUG
+            assert call_args.message.startswith("[LIFECYCLE]")
 
 
 class TestTUIHandler:

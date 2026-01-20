@@ -110,6 +110,9 @@ class DebugCommand(Command):
         if session.debug_mode:
             log_path_display = str(log_path)
             debug_message = f"Debug mode enabled. Log file: {log_path_display}"
+            app.rich_log.write(
+                f"[dim]Debug logging enabled. Logs also written to {log_path_display}[/dim]"
+            )
             logger.info(debug_message)
             logger.info("Lifecycle logging enabled")
 
