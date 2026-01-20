@@ -52,12 +52,9 @@ async def stream_model_request_node(
         return
 
     logger = get_logger()
-    logger.debug("Stream started", iteration=iteration_index, request_id=request_id)
-    logger.lifecycle(
-        f"Streaming start (iteration={iteration_index})",
-        request_id=request_id,
-        iteration=iteration_index,
-    )
+    import time
+
+    stream_start = time.perf_counter()
 
     # Gracefully handle streaming errors from LLM provider
     try:
@@ -271,19 +268,11 @@ async def stream_model_request_node(
                             state_manager.session._debug_events.append(final_msg)
                     except Exception:
                         pass
-            logger.lifecycle(
-                f"Streaming complete (events={debug_event_count})",
-                request_id=request_id,
-                iteration=iteration_index,
-            )
+            stream_elapsed_ms = (time.perf_counter() - stream_start) * 1000
+            logger.lifecycle(f"Stream: {debug_event_count} events, {stream_elapsed_ms:.0f}ms")
     except Exception as e:
         # Reset node state to allow graceful degradation to non-streaming mode
         logger.warning(f"Stream failed, falling back to non-streaming: {e}")
-        logger.lifecycle(
-            f"Streaming failed ({type(e).__name__})",
-            request_id=request_id,
-            iteration=iteration_index,
-        )
         try:
             if hasattr(node, "_did_stream"):
                 node._did_stream = False

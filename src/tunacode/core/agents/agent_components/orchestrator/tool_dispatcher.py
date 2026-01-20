@@ -189,11 +189,12 @@ async def dispatch_tools(
     research_agent_tasks: list[tuple[Any, Any]] = []
     write_execute_tasks: list[tuple[Any, Any]] = []
     tool_call_records: list[tuple[Any, ToolArgs]] = []
-    submit_requested = False
 
     debug_mode = getattr(state_manager.session, "debug_mode", False)
 
-    logger.lifecycle("Tool dispatch start")
+    import time
+
+    dispatch_start = time.perf_counter()
 
     for part in parts:
         part_kind = getattr(part, "part_kind", None)
@@ -223,9 +224,6 @@ async def dispatch_tools(
                 args_keys=list(tool_args.keys()) if tool_args else [],
             )
 
-        if tool_name == SUBMIT_TOOL_NAME:
-            submit_requested = True
-
         if not tool_callback:
             continue
 
@@ -250,8 +248,6 @@ async def dispatch_tools(
             for part, tool_args in fallback_tool_calls:
                 tool_call_records.append((part, tool_args))
                 tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
-                if tool_name == SUBMIT_TOOL_NAME:
-                    submit_requested = True
                 if tool_name == RESEARCH_TOOL_NAME:
                     research_agent_tasks.append((part, node))
                 elif tool_name in READ_ONLY_TOOLS:
@@ -326,21 +322,23 @@ async def dispatch_tools(
         if result_output:
             response_state.has_user_response = True
 
+    dispatch_elapsed_ms = (time.perf_counter() - dispatch_start) * 1000
     total_tools = len(tool_call_records)
-    read_only_count = len(read_only_tasks)
-    research_count = len(research_agent_tasks)
-    write_execute_count = len(write_execute_tasks)
+
     if total_tools:
-        summary_message = (
-            "Tool dispatch summary "
-            f"(total={total_tools}, read_only={read_only_count}, "
-            f"research={research_count}, write_execute={write_execute_count}, "
-            f"fallback={used_fallback}, submit={submit_requested})"
-        )
+        # Build tool name list for visibility
+        tool_names = [
+            getattr(part, "tool_name", UNKNOWN_TOOL_NAME) for part, _ in tool_call_records
+        ]
+        tool_names_str = ", ".join(tool_names[:5])
+        if len(tool_names) > 5:
+            tool_names_str += f" (+{len(tool_names) - 5} more)"
+
         logger.lifecycle(
-            summary_message,
-            request_id=state_manager.session.request_id,
+            f"Tools: [{tool_names_str}] ({total_tools} total, {dispatch_elapsed_ms:.0f}ms)"
         )
+    else:
+        logger.lifecycle("No tool calls this iteration")
 
     return ToolDispatchResult(
         has_tool_calls=is_processing_tools,

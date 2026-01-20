@@ -3,6 +3,7 @@
 from typing import Any
 
 from tunacode.configuration.pricing import calculate_cost, get_model_pricing
+from tunacode.core.logging import get_logger
 from tunacode.core.state import SessionState
 from tunacode.types.pydantic_ai import normalize_request_usage
 
@@ -16,6 +17,7 @@ SESSION_USAGE_KEY_COST = "cost"
 
 def update_usage(session: SessionState, usage: Any | None, model_name: str) -> None:
     """Update session usage tracking from model response usage."""
+    logger = get_logger()
     normalized_usage = normalize_request_usage(usage)
     if normalized_usage is None:
         return
@@ -30,6 +32,7 @@ def update_usage(session: SessionState, usage: Any | None, model_name: str) -> N
     pricing = get_model_pricing(model_name)
     if pricing is None:
         session.last_call_usage[SESSION_USAGE_KEY_COST] = DEFAULT_COST
+        cost = DEFAULT_COST
     else:
         non_cached_input = max(
             MIN_TOKEN_COUNT,
@@ -46,3 +49,9 @@ def update_usage(session: SessionState, usage: Any | None, model_name: str) -> N
 
     session.session_total_usage[SESSION_USAGE_KEY_PROMPT_TOKENS] += prompt_tokens
     session.session_total_usage[SESSION_USAGE_KEY_COMPLETION_TOKENS] += completion_tokens
+
+    # Debug logging for token counts
+    logger.lifecycle(
+        f"Tokens: in={prompt_tokens} out={completion_tokens} "
+        f"cached={cached_tokens} cost=${cost:.4f}"
+    )

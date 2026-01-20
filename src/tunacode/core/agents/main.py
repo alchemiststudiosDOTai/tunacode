@@ -367,9 +367,10 @@ class RequestOrchestrator:
                 agent_run = run_handle
                 i = 1
                 async for node in run_handle:
-                    iteration_message = f"Iteration start (iteration={i})"
-                    logger.lifecycle(iteration_message, request_id=request_id, iteration=i)
-                    logger.debug("Processing iteration", iteration=i, request_id=request_id)
+                    import time
+
+                    iter_start = time.perf_counter()
+                    logger.lifecycle(f"--- Iteration {i} ---")
                     self.iteration_manager.update_counters(i)
 
                     # Optional token streaming
@@ -393,8 +394,8 @@ class RequestOrchestrator:
                         self.tool_result_callback,
                         self.tool_start_callback,
                     )
-                    completion_message = f"Iteration processed (iteration={i})"
-                    logger.lifecycle(completion_message, request_id=request_id, iteration=i)
+                    iter_elapsed_ms = (time.perf_counter() - iter_start) * 1000
+                    logger.lifecycle(f"Iteration {i} complete ({iter_elapsed_ms:.0f}ms)")
 
                     # Handle empty response
                     self.empty_handler.track(empty_response)
@@ -413,9 +414,7 @@ class RequestOrchestrator:
 
                     # Early completion
                     if response_state.task_completed:
-                        logger.info("Task completed", iteration=i, request_id=request_id)
-                        completion_notice = f"Task completed (iteration={i})"
-                        logger.lifecycle(completion_notice, request_id=request_id, iteration=i)
+                        logger.lifecycle(f"Task completed at iteration {i}")
                         break
 
                     i += 1

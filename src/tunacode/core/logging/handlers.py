@@ -142,9 +142,16 @@ class TUIHandler(Handler):
         self._write_callback(text)
 
     def _format_record(self, record: LogRecord) -> "RenderableType":
-        """Format record as Rich Text with styling."""
+        """Format record as Rich Text with styling based on content type."""
         from rich.text import Text
 
+        msg = record.message
+
+        # Detect lifecycle log type from message content and apply colors
+        if msg.startswith("[LIFECYCLE]"):
+            return self._format_lifecycle_record(msg[11:].strip())
+
+        # Standard level-based styling
         style_map = {
             LogLevel.DEBUG: "dim",
             LogLevel.INFO: "",
@@ -167,4 +174,63 @@ class TUIHandler(Handler):
         if record.duration_ms:
             text.append(f" [{record.duration_ms:.0f}ms]", style="dim")
 
+        return text
+
+    def _format_lifecycle_record(self, msg: str) -> "RenderableType":
+        """Format lifecycle logs with semantic colors."""
+        from rich.text import Text
+
+        text = Text()
+
+        # Iteration header - bold white
+        if msg.startswith("--- Iteration"):
+            text.append(msg, style="bold white")
+            return text
+
+        # Tokens - cyan for metrics
+        if msg.startswith("Tokens:"):
+            text.append("Tokens: ", style="cyan bold")
+            text.append(msg[7:], style="cyan")
+            return text
+
+        # Tools - green for tool activity
+        if msg.startswith("Tools:"):
+            text.append("Tools: ", style="green bold")
+            text.append(msg[6:], style="green")
+            return text
+
+        if msg.startswith("No tool calls"):
+            text.append(msg, style="dim")
+            return text
+
+        # Stream - blue for streaming info
+        if msg.startswith("Stream:"):
+            text.append("Stream: ", style="blue bold")
+            text.append(msg[7:], style="blue")
+            return text
+
+        # Response - yellow for model output
+        if msg.startswith("Response:"):
+            text.append("Response: ", style="yellow bold")
+            text.append(msg[9:], style="yellow")
+            return text
+
+        # Thought - magenta/italic for thinking
+        if msg.startswith("Thought:"):
+            text.append("Thought: ", style="magenta bold")
+            text.append(msg[8:], style="magenta italic")
+            return text
+
+        # Iteration complete - dim
+        if msg.startswith("Iteration") and "complete" in msg:
+            text.append(msg, style="dim")
+            return text
+
+        # Task completed - bright green
+        if msg.startswith("Task completed"):
+            text.append(msg, style="green bold")
+            return text
+
+        # Fallback - dim for other lifecycle logs
+        text.append(msg, style="dim")
         return text
