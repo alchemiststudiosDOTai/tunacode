@@ -256,18 +256,12 @@ async def dispatch_tools(
                     write_execute_tasks.append((part, node))
 
     if research_agent_tasks and tool_callback:
-        logger.debug(f"Phase 2: research agent ({len(research_agent_tasks)} calls)")
-        logger.lifecycle(f"Dispatch research tools (count={len(research_agent_tasks)})")
-
         if tool_start_callback:
             tool_start_callback(TOOL_START_RESEARCH_LABEL)
 
         await execute_tools_parallel(research_agent_tasks, tool_callback)
 
     if read_only_tasks and tool_callback:
-        logger.debug(f"Phase 3: read-only batch ({len(read_only_tasks)} calls)")
-        logger.lifecycle(f"Dispatch read-only tools (count={len(read_only_tasks)})")
-
         batch_id = state_manager.session.batch_counter + 1
         state_manager.session.batch_counter = batch_id
 
@@ -280,10 +274,6 @@ async def dispatch_tools(
             tool_start_callback(TOOL_NAME_JOINER.join(preview_names) + suffix)
 
         await execute_tools_parallel(read_only_tasks, tool_callback)
-
-    if write_execute_tasks:
-        logger.debug(f"Phase 4: write/execute ({len(write_execute_tasks)} calls)")
-        logger.lifecycle(f"Dispatch write/execute tools (count={len(write_execute_tasks)})")
 
     for part, task_node in write_execute_tasks:
         if tool_start_callback:
