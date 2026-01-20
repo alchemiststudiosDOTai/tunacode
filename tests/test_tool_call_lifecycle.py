@@ -619,7 +619,8 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
         except (UserAbortError, asyncio.CancelledError):
             cleanup_applied = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
-    Related: PR #246 (UserAbortError), memory-bank/research/2026-01-19_14-30-00_dangling_tool_calls_timeout_gap.md
+    Related: PR #246 (UserAbortError)
+    See: memory-bank/research/2026-01-19_14-30-00_dangling_tool_calls_timeout_gap.md
     """
     # Arrange: Simulate state mid-tool-execution when CancelledError fires
     tool_call = ToolCallPart(
@@ -627,9 +628,7 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
     )
     dangling_message = MockMessage(tool_calls=[tool_call], parts=[tool_call])
     messages: list[Any] = [dangling_message]
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {
-        tool_call.tool_call_id: tool_call.args
-    }
+    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {tool_call.tool_call_id: tool_call.args}
 
     # Act: Simulate the cleanup that happens in except (UserAbortError, CancelledError) block
     # This is exactly what main.py:409-416 does
