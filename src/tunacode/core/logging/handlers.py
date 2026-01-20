@@ -61,6 +61,10 @@ class FileHandler(Handler):
     def _ensure_log_dir(self) -> None:
         self._log_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
 
+    @property
+    def log_path(self) -> Path:
+        return self._log_path
+
     def _rotate_if_needed(self) -> None:
         """Rotate log file if it exceeds max size."""
         if not self._log_path.exists():

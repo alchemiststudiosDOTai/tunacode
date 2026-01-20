@@ -193,6 +193,8 @@ async def dispatch_tools(
 
     debug_mode = getattr(state_manager.session, "debug_mode", False)
 
+    logger.lifecycle("Tool dispatch start")
+
     for part in parts:
         part_kind = getattr(part, "part_kind", None)
         if part_kind != PART_KIND_TOOL_CALL:
@@ -244,6 +246,7 @@ async def dispatch_tools(
         if fallback_tool_calls:
             used_fallback = True
             is_processing_tools = True
+            logger.lifecycle(f"Fallback tool parsing used (count={len(fallback_tool_calls)})")
             for part, tool_args in fallback_tool_calls:
                 tool_call_records.append((part, tool_args))
                 tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
@@ -258,6 +261,7 @@ async def dispatch_tools(
 
     if research_agent_tasks and tool_callback:
         logger.debug(f"Phase 2: research agent ({len(research_agent_tasks)} calls)")
+        logger.lifecycle(f"Dispatch research tools (count={len(research_agent_tasks)})")
 
         if tool_start_callback:
             tool_start_callback(TOOL_START_RESEARCH_LABEL)
@@ -266,6 +270,7 @@ async def dispatch_tools(
 
     if read_only_tasks and tool_callback:
         logger.debug(f"Phase 3: read-only batch ({len(read_only_tasks)} calls)")
+        logger.lifecycle(f"Dispatch read-only tools (count={len(read_only_tasks)})")
 
         batch_id = state_manager.session.batch_counter + 1
         state_manager.session.batch_counter = batch_id
@@ -282,6 +287,7 @@ async def dispatch_tools(
 
     if write_execute_tasks:
         logger.debug(f"Phase 4: write/execute ({len(write_execute_tasks)} calls)")
+        logger.lifecycle(f"Dispatch write/execute tools (count={len(write_execute_tasks)})")
 
     for part, task_node in write_execute_tasks:
         if tool_start_callback:
@@ -319,6 +325,22 @@ async def dispatch_tools(
         result_output = getattr(result, "output", None)
         if result_output:
             response_state.has_user_response = True
+
+    total_tools = len(tool_call_records)
+    read_only_count = len(read_only_tasks)
+    research_count = len(research_agent_tasks)
+    write_execute_count = len(write_execute_tasks)
+    if total_tools:
+        summary_message = (
+            "Tool dispatch summary "
+            f"(total={total_tools}, read_only={read_only_count}, "
+            f"research={research_count}, write_execute={write_execute_count}, "
+            f"fallback={used_fallback}, submit={submit_requested})"
+        )
+        logger.lifecycle(
+            summary_message,
+            request_id=state_manager.session.request_id,
+        )
 
     return ToolDispatchResult(
         has_tool_calls=is_processing_tools,

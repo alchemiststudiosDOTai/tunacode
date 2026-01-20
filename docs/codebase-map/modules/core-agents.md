@@ -65,6 +65,7 @@ agent.iter() -> Provider HTTP Request
 - Iterates through agent responses until completion
 - Handles tool execution and result aggregation
 - Tracks iteration counters during the run
+- Emits lifecycle debug logs when `SessionState.debug_mode` is enabled
 
 ### Agent Components
 
@@ -89,6 +90,7 @@ agent.iter() -> Provider HTTP Request
 - **execute_tools_parallel()** - Concurrent read-only tool execution
 - Implements exponential backoff retry logic
 - Batches tools for efficiency
+- Emits lifecycle debug logs for tool execution phases when debug mode is enabled
 
 #### tool_buffer.py
 - **ToolBuffer** - Collects and batches read-only tool calls

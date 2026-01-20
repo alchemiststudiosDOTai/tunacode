@@ -51,8 +51,9 @@ Singleton manager routing records to handlers:
 - **set_debug_mode(bool)** - Toggle TUI output
 - **set_tui_callback(fn)** - Inject TUI write function
 - **log(record)** - Route to all handlers
+- **log_path** - File log path (active FileHandler target)
 
-Convenience methods: `debug()`, `info()`, `warning()`, `error()`, `thought()`, `tool()`
+Convenience methods: `debug()`, `info()`, `warning()`, `error()`, `thought()`, `tool()`, `lifecycle()`
 
 ### Handlers
 
@@ -74,6 +75,7 @@ logger = get_logger()
 logger.info("Request started", request_id="abc123")
 logger.tool("bash", "completed", duration_ms=150.5)
 logger.debug("Processing iteration", iteration=i, request_id=ctx.request_id)
+logger.lifecycle("Phase 5: dispatching tools", request_id=ctx.request_id, iteration=i)
 ```
 
 ## Log File Format

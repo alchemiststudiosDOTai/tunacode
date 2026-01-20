@@ -3,6 +3,7 @@
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.types import AgentState
 from tunacode.types.callbacks import ToolCallback, ToolStartCallback
@@ -44,7 +45,9 @@ def _emit_tool_returns(
         if part_kind != PART_KIND_TOOL_RETURN:
             continue
 
+        logger = get_logger()
         tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+        logger.lifecycle(f"Tool return received (tool={tool_name})")
         tool_args = consume_tool_call_args(part, state_manager)
         content = getattr(part, "content", None)
         result_str = str(content) if content is not None else None
@@ -86,20 +89,25 @@ async def process_node(
     has_non_empty_content = False
     appears_truncated = False
     session = state_manager.session
+    logger = get_logger()
 
     if response_state and response_state.can_transition_to(AgentState.ASSISTANT):
         response_state.transition_to(AgentState.ASSISTANT)
+        logger.lifecycle("Phase 1: assistant state entered")
 
     request = getattr(node, "request", None)
     if request is not None:
+        logger.lifecycle("Phase 2: emitting tool returns")
         _emit_tool_returns(request, state_manager, tool_result_callback)
 
     thought = getattr(node, "thought", None)
     if thought:
+        logger.lifecycle("Phase 3: recording thought")
         record_thought(session, thought)
 
     model_response = getattr(node, "model_response", None)
     if model_response is not None:
+        logger.lifecycle("Phase 4: updating usage")
         update_usage(
             session,
             getattr(model_response, "usage", None),
@@ -130,6 +138,7 @@ async def process_node(
             if empty_without_tools or truncated_without_tools:
                 empty_response_detected = True
 
+        logger.lifecycle("Phase 5: dispatching tools")
         await dispatch_tools(
             response_parts,
             node,
@@ -139,6 +148,7 @@ async def process_node(
             tool_start_callback,
             response_state,
         )
+        logger.lifecycle("Phase 6: tool dispatch complete")
 
     if (
         response_state
@@ -146,6 +156,7 @@ async def process_node(
         and not response_state.is_completed()
     ):
         response_state.transition_to(AgentState.RESPONSE)
+        logger.lifecycle("Phase 7: response state entered")
 
     if empty_response_detected:
         reason = (

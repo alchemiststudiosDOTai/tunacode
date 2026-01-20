@@ -82,6 +82,7 @@ class AgentStateMachine:
             old_state = self._state
             self._state = new_state
             logger.debug(f"State: {old_state.value} → {new_state.value}")
+            logger.lifecycle(f"State transition {old_state.value} -> {new_state.value}")
 
     def can_transition_to(self, target_state: "AgentState") -> bool:
         """Check if a transition to the target state is allowed."""

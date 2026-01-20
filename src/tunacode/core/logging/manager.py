@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import fields
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from tunacode.core.logging.handlers import FileHandler, Handler, TUIHandler
@@ -17,6 +18,7 @@ LOG_RECORD_EXTRA_FIELD: str = "extra"
 LOG_RECORD_TOOL_NAME_FIELD: str = "tool_name"
 LOG_RECORD_FIELD_NAMES: set[str] = {field.name for field in fields(LogRecord)}
 LOG_RECORD_INLINE_FIELDS: set[str] = LOG_RECORD_FIELD_NAMES - {LOG_RECORD_EXTRA_FIELD}
+LIFECYCLE_PREFIX: str = "[LIFECYCLE]"
 
 
 class LogManager:
@@ -74,6 +76,11 @@ class LogManager:
             self._tui_handler.disable()
 
     @property
+    def log_path(self) -> Path:
+        """Return the active file log path."""
+        return self._file_handler.log_path
+
+    @property
     def debug_mode(self) -> bool:
         """Check current debug mode state."""
         if self._state_manager is None:
@@ -110,6 +117,13 @@ class LogManager:
     def tool(self, tool_name: str, message: str, **kwargs: Any) -> None:
         tool_kwargs = {LOG_RECORD_TOOL_NAME_FIELD: tool_name, **kwargs}
         self.log(self._build_record(LogLevel.TOOL, message, **tool_kwargs))
+
+    def lifecycle(self, message: str, **kwargs: Any) -> None:
+        """Emit lifecycle debug logs only when debug_mode is enabled."""
+        if not self.debug_mode:
+            return
+        lifecycle_message = f"{LIFECYCLE_PREFIX} {message}"
+        self.log(self._build_record(LogLevel.DEBUG, lifecycle_message, **kwargs))
 
 
 def get_logger() -> LogManager:

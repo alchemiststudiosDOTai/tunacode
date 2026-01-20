@@ -102,16 +102,16 @@ class DebugCommand(Command):
 
         logger = get_logger()
         logger.set_debug_mode(session.debug_mode)
+        log_path = logger.log_path
 
         status = "ON" if session.debug_mode else "OFF"
         app.notify(f"Debug mode: {status}")
 
         if session.debug_mode:
-            app.rich_log.write(
-                "[dim]Debug logging enabled. "
-                "Logs also written to ~/.local/share/tunacode/logs/tunacode.log[/dim]"
-            )
-            logger.info("Debug mode enabled")
+            log_path_display = str(log_path)
+            debug_message = f"Debug mode enabled. Log file: {log_path_display}"
+            logger.info(debug_message)
+            logger.info("Lifecycle logging enabled")
 
 
 def _validate_provider_api_key_with_notification(

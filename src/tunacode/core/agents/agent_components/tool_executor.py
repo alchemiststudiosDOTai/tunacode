@@ -64,10 +64,15 @@ async def execute_tools_parallel(
     """
     logger = get_logger()
     max_parallel = int(os.environ.get("TUNACODE_MAX_PARALLEL", os.cpu_count() or 4))
+    tool_count = len(tool_calls)
+    parallel_message = f"Tool execution start (count={tool_count}, max_parallel={max_parallel})"
+    logger.lifecycle(parallel_message)
 
     async def execute_with_retry(part, node):
         tool_name = getattr(part, "tool_name", "unknown")
         start = time.perf_counter()
+        start_message = f"Tool start (tool={tool_name})"
+        logger.lifecycle(start_message)
 
         for attempt in range(1, TOOL_MAX_RETRIES + 1):
             try:
@@ -102,6 +107,7 @@ async def execute_tools_parallel(
             for result in batch_results:
                 if isinstance(result, Exception):
                     raise result
+        logger.lifecycle(f"Tool execution complete (count={tool_count})")
         return results
     else:
         tasks = [execute_with_retry(part, node) for part, node in tool_calls]
@@ -110,4 +116,5 @@ async def execute_tools_parallel(
         for result in results:
             if isinstance(result, Exception):
                 raise result
+        logger.lifecycle(f"Tool execution complete (count={tool_count})")
         return results
