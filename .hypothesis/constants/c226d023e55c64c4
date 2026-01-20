@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/app.py
-# hypothesis_version: 6.150.2
-
-[0.0, 100.0, 1000, 200000, '\nPreview changes:\n', ' No', ' Yes  ', ' Yes + Skip  ', '#viewport', '%I:%M %p', '...', '0', '1', '2', '3', 'Approved', 'Cancel', 'Cancelled', 'No model selected', 'PLAN', 'Pause/Resume Stream', 'Rejected', 'Streaming paused...', 'Streaming resumed...', 'TunaCode', '[1]', '[2]', '[3]', 'accent', 'active', 'agent:', 'bold', 'cancel_stream', 'completion_tokens', 'cost', 'ctrl+p', 'diff', 'dracula', 'escape', 'monokai', 'openai/gpt-4o', 'part_kind', 'parts', 'settings', 'shell', 'shell_runner', 'streaming-output', 'styles/layout.tcss', 'styles/modals.tcss', 'styles/panels.tcss', 'styles/widgets.tcss', 'theme', 'toggle_pause', 'user-prompt', 'viewport', '| (restored)']

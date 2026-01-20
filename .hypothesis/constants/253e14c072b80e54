@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/renderers/tools/web_fetch.py
-# hypothesis_version: 6.150.2
-
-['(content truncated)', '(no content)', '...', '.go', '.js', '.json', '.py', '.rs', '.ts', '.xml', '.yaml', '.yml', '/api/', '<', '[', 'atom', 'bold', 'dim', 'dim bold', 'dim italic', 'go', 'javascript', 'json', 'python', 'rss', 'rust', 'timeout', 'timeout:', 'typescript', 'url', 'url:', 'web', 'web_fetch', 'xml', 'yaml', '{']

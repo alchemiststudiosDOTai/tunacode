@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/core/agents/agent_components/agent_helpers.py
-# hypothesis_version: 6.150.2
-
-['\nWhat happened:', '...', 'Finding files', 'Listing directory', 'No tools used yet', 'Reading file', 'Researching codebase', 'Searching files', 'args', 'bash', 'command', 'detailed', 'directory', 'empty', 'file_path', 'filepath', 'glob', 'grep', 'include_files', 'list_dir', 'normal', 'part_kind', 'parts', 'pattern', 'query', 'read_file', 'research_codebase', 'tool', 'tool-call', 'tool_calls', 'tool_name', 'unknown', 'update_file', 'write_file']

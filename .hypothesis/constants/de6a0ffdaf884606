@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/widgets/editor.py
-# hypothesis_version: 6.150.2
-
-[400, '!', '! ', '1', '2', '3', '>', 'Submit', 'backspace', 'bash mode', 'bash-mode', 'enter', 'fold', 'has_paste_buffer', 'input--cursor', 'input--placeholder', 'input--selection', 'input--suggestion', 'left', 'pending_confirmation', 'submit']

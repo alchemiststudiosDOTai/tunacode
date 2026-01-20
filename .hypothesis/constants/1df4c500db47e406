@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/renderers/tools/update_file.py
-# hypothesis_version: 6.150.2
-
-['\n--- a/', '%H:%M:%S', '+', '+++', '-', '---', '--- a/', '--- a/(.+)', '@@', 'bold', 'diff', 'dim', 'filepath', 'green', 'hunk', 'hunks', 'monokai', 'red', 'unknown', 'update_file']

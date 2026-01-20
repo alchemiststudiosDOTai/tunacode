@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/utils/system/__init__.py
-# hypothesis_version: 6.150.2
-
-['check_for_updates', 'cleanup_session', 'get_cwd', 'get_device_id', 'get_session_dir', 'get_tunacode_home', 'list_cwd']

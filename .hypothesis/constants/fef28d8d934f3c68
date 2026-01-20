@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/renderers/tools/bash.py
-# hypothesis_version: 6.150.2
-
-['  timeout:', '(no errors)', '(no output)', '(truncated)', '--format', '--json', '-j ', '.', ':', 'Command: (.+)', 'Exit Code: (\\d+)', 'STDERR:\\n(.*?)(?:\\Z)', '[', '[truncated]', 'bash', 'bold', 'curl ', 'cwd:', 'diff', 'dim', 'dim bold', 'dim bold red', 'dim italic', 'done', 'git diff', 'git log', 'green bold', 'http', 'json', 'ok', 'pytest', 'python', 'red', 'red bold', 'stderr:', 'stdout', 'timeout', 'uv run python', '{', '| jq']

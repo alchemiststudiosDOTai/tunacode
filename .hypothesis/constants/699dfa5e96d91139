@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/commands/__init__.py
-# hypothesis_version: 6.150.2
-
-[120, '!', '!<cmd>', '--upgrade', '-b', '/', '/branch <name>', '/theme [name]', '/update [check]', ':', 'Command', 'Commands', 'Debug mode enabled', 'Description', 'Exit TunaCode', 'OFF', 'ON', 'PLAN', 'Run shell command', 'Session loaded', 'Session not found', 'Update cancelled', 'Update failed', 'branch', 'check', 'checkout', 'clear', 'debug', 'default_model', 'delete', 'error', 'exit', 'git', 'green', 'help', 'install', 'list', 'load', 'model', 'pip', 'plan', 'resume', 'session_id', 'settings', 'theme', 'tunacode-cli', 'update', 'uv', 'warning', 'yolo']

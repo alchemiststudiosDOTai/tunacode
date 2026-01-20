@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/utils/system/paths.py
-# hypothesis_version: 6.150.2
-
-[448, ', ', '--show-toplevel', '.local', 'Available versions:', 'XDG_DATA_HOME', 'git', 'index', 'pip', 'rev-parse', 'sessions', 'share', 'tunacode', 'tunacode-cli', 'versions']

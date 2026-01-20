@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/configuration/pricing.py
-# hypothesis_version: 6.150.2
-
-[0.0, 1000000, 'cache_read', 'cost', 'input', 'models', 'output']

@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/core/limits.py
-# hypothesis_version: 6.150.2
-
-[1000, 'local_max_tokens', 'local_mode', 'max_command_output', 'max_files_in_dir', 'max_line_length', 'max_tokens', 'read_limit', 'settings']

@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/renderers/search.py
-# hypothesis_version: 6.150.2
-
-['\n\nSuggestions:\n', '(truncated', '...', './', '/', 'Found', 'Found ', 'No results found', 'T', '[source:', 'bold', 'class', 'cls', 'const', 'constant', 'content', 'dim', 'file', 'fn', 'function', 'line_number', 'method', 'mtd', 'primary', 'relevance', 'snippet', 'title', 'var', 'variable', 'warning', '📁 (.+?):(\\d+)']

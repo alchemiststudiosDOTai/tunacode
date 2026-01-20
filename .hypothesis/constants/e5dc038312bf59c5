@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/core/state.py
-# hypothesis_version: 6.150.2
-
-[0.0, 448, 'ToolHandler', 'completion_tokens', 'cost', 'created_at', 'current_model', 'default_model', 'file_path', 'json', 'kind', 'last_modified', 'message_count', 'messages', 'project_id', 'prompt_tokens', 'react_scratchpad', 'request', 'response', 'session_id', 'session_total_usage', 'settings', 'thought', 'thoughts', 'timeline', 'todos', 'tool_ignore', 'total_tokens', 'version', 'w', 'working_directory', 'yolo']

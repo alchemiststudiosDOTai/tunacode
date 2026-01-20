@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/tools/grep_components/pattern_matcher.py
-# hypothesis_version: 6.150.2
-
-[0.0, 0.1, 0.2, 0.3, 0.5, 1.0, '"""', '#', "'''", '.c', '.cpp', '.java', '.js', '.py', '.ts', '/*', '//', 'data', 'end', 'ignore', 'line_number', 'lines', 'match', 'path', 'r', 'start', 'submatches', 'text', 'type', 'utf-8']

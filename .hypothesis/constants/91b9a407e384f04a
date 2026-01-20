@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/types/base.py
-# hypothesis_version: 6.150.2
-
-['AgentConfig', 'AgentName', 'CommandArgs', 'CommandResult', 'ConfigFile', 'ConfigPath', 'CostAmount', 'DeviceId', 'DiffHunk', 'DiffLine', 'EnvConfig', 'ErrorContext', 'ErrorMessage', 'FileContent', 'FileDiff', 'FileEncoding', 'FilePath', 'FileSize', 'InputSessions', 'LineNumber', 'ModelName', 'OriginalError', 'SessionId', 'TokenCount', 'ToolArgs', 'ToolCallId', 'ToolName', 'ToolResult', 'UpdateOperation', 'UserConfig', 'ValidationResult', 'Validator']

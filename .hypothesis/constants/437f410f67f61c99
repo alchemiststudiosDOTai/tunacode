@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/widgets/resource_bar.py
-# hypothesis_version: 6.150.2
-
-[0.0, 12.5, 37.5, 62.5, 87.5, 100.0, 100, 200000, '---', 'LSP: no server', 'Loading...', 'app', 'enabled', 'gopls', 'lsp', 'pylsp', 'pyright', 'pyright-langserver', 'ruff', 'rust-analyzer', 'session', 'settings', 'state_manager', 'test.py', 'tsserver', 'user_config', '○', '●', '◑', '◔', '◕']

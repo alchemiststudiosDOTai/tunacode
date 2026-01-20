@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/lsp/servers.py
-# hypothesis_version: 6.150.2
-
-['--stdio', '.go', '.js', '.jsx', '.py', '.pyi', '.rs', '.ts', '.tsx', 'go', 'gopls', 'javascript', 'javascriptreact', 'python', 'ruff', 'rust', 'rust-analyzer', 'server', 'typescript', 'typescriptreact']

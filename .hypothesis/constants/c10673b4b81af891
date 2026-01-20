@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/indexing/code_index.py
-# hypothesis_version: 6.150.2
-
-[b'#!', 5.0, 1024, '(', '.', '.py', ':', 'CodeIndex', 'class ', 'def ', 'dockerfile', 'from', 'from ', 'ignore', 'import', 'import ', 'jenkinsfile', 'makefile', 'rakefile', 'rb', 'utf-8']

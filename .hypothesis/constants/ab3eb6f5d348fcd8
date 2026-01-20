@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/renderers/tools/research.py
-# hypothesis_version: 6.150.2
-
-[500, '  max_files:', '(no findings)', ', ', '.', '...', 'Code', 'Error: ', 'Files', 'Findings', 'No results', 'Query: ', 'Unknown error', 'accent', 'bold', 'bold cyan', 'bold green', 'bold red', 'bold yellow', 'code', 'code_examples', 'cyan', 'cyan dim', 'dim', 'dim bold', 'dim italic', 'directories', 'dirs:', 'done', 'error', 'error_message', 'file', 'key_findings', 'max_files', 'query', 'recommendations', 'red', 'relevant_files', 'research_codebase']

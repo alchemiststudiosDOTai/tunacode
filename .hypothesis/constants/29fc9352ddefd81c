@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/tools/grep_components/result_formatter.py
-# hypothesis_version: 6.150.2
-
-['content', 'count', 'file', 'files_with_matches', 'json', 'line']

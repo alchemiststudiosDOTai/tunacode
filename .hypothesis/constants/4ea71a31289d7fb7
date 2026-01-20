@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/core/agents/agent_components/agent_config.py
-# hypothesis_version: 6.150.2
-
-[0.0, 60.0, 90.0, ':', 'AGENTS.md', 'Edit', 'Find', 'List', 'React', 'Read', 'Shell', 'Submit', 'Write', 'anthropic', 'api', 'claude', 'env', 'gpt', 'guide_file', 'local_prompt.md', 'max_retries', 'o1', 'o3', 'openai', 'prompting', 'prompts', 'request', 'request_delay', 'sections', 'settings', 'utf-8']

@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/tools/todo.py
-# hypothesis_version: 6.150.2
-
-['No todos in list.', 'Todo list cleared.', '[ ]', '[>]', '[x]', 'activeForm', 'completed', 'content', 'in_progress', 'pending', 'status', 'todoclear', 'todoread', 'todowrite']

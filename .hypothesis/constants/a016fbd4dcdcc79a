@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/renderers/panels.py
-# hypothesis_version: 6.150.2
-
-['\n\nFix: ', '\n\nRecovery:\n', ' • ', '%H:%M:%S', '...', 'Query: ', 'accent', 'bash', 'bold', 'border', 'completed', 'content', 'diff', 'dim', 'dim italic', 'done', 'error', 'fail', 'failed', 'file', 'filesystem', 'glob', 'grep', 'index', 'info', 'list_dir', 'monokai', 'muted', 'name', 'pattern', 'primary', 'query', 'read_file', 'relevance', 'research_codebase', 'running', 'score', 'search', 'snippet', 'subtitle', 'success', 'text', 'title', 'tool', 'update_file', 'warning', 'web_fetch']

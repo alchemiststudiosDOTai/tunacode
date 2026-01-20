@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/core/agents/agent_components/streaming.py
-# hypothesis_version: 6.150.2
-
-[100, 'Stream started', '_did_stream', 'content', 'content_delta', 'delta', 'final', 'message', 'output', 'part', 'part_kind', 'parts', 'response', 'result', 'text']

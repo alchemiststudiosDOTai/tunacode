@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/tools/react.py
-# hypothesis_version: 6.150.2
-
-['Recorded observation', 'Recorded think step', 'clear', 'get', 'next_action', 'observe', 'react', 'result', 'think', 'thoughts', 'timeline', 'type']

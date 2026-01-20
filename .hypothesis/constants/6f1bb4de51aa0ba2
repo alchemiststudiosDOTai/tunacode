@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/ui/widgets/__init__.py
-# hypothesis_version: 6.150.2
-
-['CommandAutoComplete', 'Editor', 'FileAutoComplete', 'ResourceBar', 'StatusBar', 'ToolResultDisplay']

@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/utils/parsing/tool_parser.py
-# hypothesis_version: 6.150.2
-
-[200, '"name":', '"tool":', '</arg_value>', '</function>', '</tool_call>', '<function=', '<tool_call>', '```json', 'args', 'arguments', 'code_fence', 'empty_text', 'function', 'hermes_style', 'name', 'no_match', 'parameters', 'pre-check', 'qwen2_xml', 'raw_json', 'tool']

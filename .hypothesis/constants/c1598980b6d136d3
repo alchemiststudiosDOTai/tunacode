@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py
-# hypothesis_version: 6.150.2
-
-[100, ', ', '...', '<>(){}[]"\'`', 'args', 'content', 'debug_mode', 'output', 'part_kind', 'research', 'research_codebase', 'result', 'text', 'timestamp', 'tool', 'tool-call', 'tool_call_id', 'tool_name', 'unknown']

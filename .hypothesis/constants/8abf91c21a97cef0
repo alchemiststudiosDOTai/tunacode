@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/tools/grep.py
-# hypothesis_version: 6.150.2
-
-[1.0, 100, 1000, 1048576, '*', '.', ':', 'Found', 'content', 'debug', 'enable_metrics', 'grep', 'hybrid', 'list', 'max_buffer_size', 'max_results', 'python', 'ripgrep', 'settings', 'smart', 'string', 'timeout']

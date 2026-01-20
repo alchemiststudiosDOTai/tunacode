@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/tools/grep_components/__init__.py
-# hypothesis_version: 6.150.2
-
-['FileFilter', 'PatternMatcher', 'SearchConfig', 'SearchResult']

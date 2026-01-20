@@ -1,4 +1,0 @@
-# file: /root/tunacode/src/tunacode/utils/parsing/__init__.py
-# hypothesis_version: 6.150.2
-
-['ParsedToolCall', 'parse_args']
