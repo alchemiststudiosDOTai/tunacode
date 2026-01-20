@@ -78,17 +78,25 @@ async def execute_tools_parallel(
                 duration_ms = (time.perf_counter() - start) * 1000
                 logger.tool(tool_name, "completed", duration_ms=duration_ms)
                 return result
-            except NON_RETRYABLE_ERRORS:
+            except NON_RETRYABLE_ERRORS as e:
                 duration_ms = (time.perf_counter() - start) * 1000
+                err_type = type(e).__name__
                 logger.tool(tool_name, "failed (non-retryable)", duration_ms=duration_ms)
+                logger.lifecycle(f"Error: {tool_name} failed - {err_type}: {e}")
                 raise
-            except Exception:
+            except Exception as e:
                 if attempt == TOOL_MAX_RETRIES:
                     ms = (time.perf_counter() - start) * 1000
+                    err_type = type(e).__name__
                     logger.tool(tool_name, f"failed ({attempt} attempts)", duration_ms=ms)
+                    logger.lifecycle(
+                        f"Error: {tool_name} failed after {attempt} retries - {err_type}: {e}"
+                    )
                     raise
                 backoff = _calculate_backoff(attempt)
-                logger.warning(f"{tool_name} retry {attempt}/{TOOL_MAX_RETRIES}")
+                logger.lifecycle(
+                    f"Retry: {tool_name} attempt {attempt}/{TOOL_MAX_RETRIES} ({type(e).__name__})"
+                )
                 await asyncio.sleep(backoff)
 
         raise AssertionError("unreachable")

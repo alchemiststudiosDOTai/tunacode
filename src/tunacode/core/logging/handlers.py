@@ -231,6 +231,23 @@ class TUIHandler(Handler):
             text.append(msg, style="green bold")
             return text
 
+        # Errors - red bold
+        if msg.startswith("Error:"):
+            text.append("Error: ", style="red bold")
+            text.append(msg[6:], style="red")
+            return text
+
+        # Retries - yellow/orange warning
+        if msg.startswith("Retry:"):
+            text.append("Retry: ", style="yellow bold")
+            text.append(msg[6:], style="yellow")
+            return text
+
+        # Fallback parsing - dim yellow (indicates potential issue)
+        if msg.startswith("Fallback"):
+            text.append(msg, style="yellow dim")
+            return text
+
         # Fallback - dim for other lifecycle logs
         text.append(msg, style="dim")
         return text
