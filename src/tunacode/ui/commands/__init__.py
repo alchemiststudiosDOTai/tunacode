@@ -454,38 +454,43 @@ class UpdateCommand(Command):
                 app.notify(f"Already on latest version ({APP_VERSION})")
                 return
 
-            confirmed = await app.push_screen_wait(UpdateConfirmScreen(APP_VERSION, latest_version))
+            def on_update_confirmed(confirmed: bool | None) -> None:
+                """Handle user's response to update confirmation."""
+                if not confirmed:
+                    app.notify("Update cancelled")
+                    return
 
-            if not confirmed:
-                app.notify("Update cancelled")
-                return
+                pkg_cmd_result = _get_package_manager_command(PACKAGE_NAME)
+                if not pkg_cmd_result:
+                    app.notify("No package manager found (uv or pip)", severity="error")
+                    return
 
-            pkg_cmd_result = _get_package_manager_command(PACKAGE_NAME)
-            if not pkg_cmd_result:
-                app.notify("No package manager found (uv or pip)", severity="error")
-                return
+                cmd, pkg_mgr = pkg_cmd_result
+                app.notify(f"Installing with {pkg_mgr}...")
 
-            cmd, pkg_mgr = pkg_cmd_result
-            app.notify(f"Installing with {pkg_mgr}...")
+                async def install_update() -> None:
+                    try:
+                        result = await asyncio.to_thread(
+                            subprocess.run,
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=UPDATE_INSTALL_TIMEOUT_SECONDS,
+                        )
 
-            try:
-                result = await asyncio.to_thread(
-                    subprocess.run,
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=UPDATE_INSTALL_TIMEOUT_SECONDS,
-                )
+                        if result.returncode == 0:
+                            app.notify(f"Updated to {latest_version}!")
+                            app.rich_log.write("Restart tunacode to use the new version")
+                        else:
+                            app.notify("Update failed", severity="error")
+                            if result.stderr:
+                                app.rich_log.write(result.stderr.strip())
+                    except Exception as e:
+                        app.rich_log.write(f"Error: {e}")
 
-                if result.returncode == 0:
-                    app.notify(f"Updated to {latest_version}!")
-                    app.rich_log.write("Restart tunacode to use the new version")
-                else:
-                    app.notify("Update failed", severity="error")
-                    if result.stderr:
-                        app.rich_log.write(result.stderr.strip())
-            except Exception as e:
-                app.rich_log.write(f"Error: {e}")
+                app.run_worker(install_update(), exclusive=False)
+
+            app.push_screen(UpdateConfirmScreen(APP_VERSION, latest_version), on_update_confirmed)
 
         else:
             app.notify(f"Unknown subcommand: {subcommand}", severity="warning")
