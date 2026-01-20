@@ -349,11 +349,13 @@ class RequestOrchestrator:
         # Per-request trackers
         tool_buffer = ac.ToolBuffer()
         response_state = ac.ResponseState()
+        agent_run: AgentRun | None = None
 
         try:
-            async with agent.iter(self.message, message_history=message_history) as agent_run:
+            async with agent.iter(self.message, message_history=message_history) as run_handle:
+                agent_run = run_handle
                 i = 1
-                async for node in agent_run:
+                async for node in run_handle:
                     iteration_message = f"Iteration start (iteration={i})"
                     logger.lifecycle(iteration_message, request_id=request_id, iteration=i)
                     logger.debug("Processing iteration", iteration=i, request_id=request_id)
@@ -396,7 +398,7 @@ class RequestOrchestrator:
                     show_thoughts = bool(
                         getattr(self.state_manager.session, "show_thoughts", False)
                     )
-                    await self.react_manager.capture_snapshot(i, agent_run.ctx, show_thoughts)
+                    await self.react_manager.capture_snapshot(i, run_handle.ctx, show_thoughts)
 
                     # Early completion
                     if response_state.task_completed:
@@ -414,12 +416,17 @@ class RequestOrchestrator:
                 )
 
                 # Return wrapper that carries response_state
-                self._persist_run_messages(agent_run, baseline_message_count)
+                self._persist_run_messages(run_handle, baseline_message_count)
                 logger.lifecycle("Run messages persisted", request_id=request_id)
                 logger.lifecycle("Request complete", request_id=request_id)
-                return ac.AgentRunWithState(agent_run, response_state)
+                return ac.AgentRunWithState(run_handle, response_state)
 
         except (UserAbortError, asyncio.CancelledError):
+            if agent_run is not None:
+                self._persist_run_messages(agent_run, baseline_message_count)
+                logger.lifecycle(
+                    "Run messages persisted after abort", request_id=request_id
+                )
             # Clean up dangling tool calls to prevent API errors on next request
             cleanup_applied = _remove_dangling_tool_calls(
                 self.state_manager.session.messages,

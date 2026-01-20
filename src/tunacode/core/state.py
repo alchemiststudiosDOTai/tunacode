@@ -8,7 +8,6 @@ CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 
 import json
 import uuid
-from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -264,14 +263,22 @@ class StateManager:
         except ImportError:
             msg_adapter = None
 
-        result = []
+        serialized_messages: list[dict] = []
         for msg in self._session.messages:
             if isinstance(msg, dict):
-                result.append(msg)
-            elif msg_adapter is not None:
-                with suppress(TypeError, ValueError, AttributeError):
-                    result.append(msg_adapter.dump_python(msg, mode="json"))
-        return result
+                serialized_messages.append(msg)
+                continue
+
+            if msg_adapter is None:
+                message_type = type(msg).__name__
+                raise TypeError(
+                    "Cannot serialize non-dict message without pydantic adapter: "
+                    f"{message_type}"
+                )
+
+            serialized_message = msg_adapter.dump_python(msg, mode="json")
+            serialized_messages.append(serialized_message)
+        return serialized_messages
 
     def _deserialize_messages(self, data: list[dict]) -> list:
         """Deserialize JSON dicts back to message objects."""

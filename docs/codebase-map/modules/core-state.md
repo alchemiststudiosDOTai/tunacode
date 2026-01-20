@@ -35,6 +35,12 @@ Singleton class with global instance access:
 - **save_session()** - Persist session to disk
 - **load_session()** - Restore session from disk
 
+## Persistence Contract
+
+- Messages must be dicts or pydantic-ai `ModelMessage` instances; serialization
+  raises on unsupported types to prevent silent data loss.
+- `save_session()` stamps `last_modified` and writes JSON to the session store.
+
 ## State Transitions
 
 ```

@@ -196,9 +196,10 @@ Messages use pydantic-ai's standard types from `types/pydantic_ai.py`:
 - System prompt content (shorter in local mode)
 - Tool schemas (fewer in local mode)
 
-Message history persistence happens after a run finishes. `RequestOrchestrator`
-syncs `SessionState.messages` from `agent_run.all_messages()` to capture tool
-returns and other run output in the authoritative order.
+Message history persistence happens after a run finishes or aborts.
+`RequestOrchestrator` syncs `SessionState.messages` from
+`agent_run.all_messages()` on normal completion and on abort/cancel so partial
+conversations are not lost, while preserving authoritative tool ordering.
 
 ## Integration Points
 
