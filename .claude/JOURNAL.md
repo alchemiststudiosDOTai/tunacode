@@ -43,6 +43,54 @@ The `Network OUT:` log confirmed requests ARE being sent. The hang was at the pr
 
 ---
 
+## 2026-01-21: Resume Module Refactor (Branch: resume-qa)
+
+### Task
+Extract session resume logic from `main.py` into dedicated `resume/` module per plan doc.
+
+### Completed
+- Created `src/tunacode/core/agents/resume/` module:
+  - `__init__.py` - Public API (9 exports)
+  - `sanitize.py` - 7 cleanup functions + debug logging (672 lines)
+  - `prune.py` - Tool output pruning from compaction.py (179 lines)
+  - `summary.py` - Rolling summary generation (NEW, 203 lines)
+  - `filter.py` - filterCompacted equivalent (NEW, 61 lines)
+- Reduced main.py from ~1312 to ~740 lines
+- Deleted `src/tunacode/core/compaction.py`
+- Updated test imports
+- All 377 tests passing
+
+### Key Commits
+- `0f197d3` - rollback point
+- `4f300e3` - refactor: extract session resume logic into dedicated resume/ module
+
+### What Happens on Resume Now
+1. Cleanup loop: dangling tool calls -> empty responses -> consecutive requests
+2. Trailing request check (drop if sending new message)
+3. Prune old tool outputs (>40k tokens)
+4. Sanitize for pydantic-ai (strip system prompts, clear run_id)
+5. Continue with cleaned history
+
+### Follow-up Issue
+#271 - Integrate rolling summary compaction into request loop
+- Wire `should_compact()` trigger
+- Use `filter_compacted()` on resume
+- Add tests for new summary/filter functions
+
+### Architecture
+```
+src/tunacode/core/agents/
+├── resume/
+│   ├── __init__.py      # Public API
+│   ├── sanitize.py      # Cleanup functions
+│   ├── prune.py         # Tool output pruning
+│   ├── summary.py       # Rolling summaries (not yet wired)
+│   └── filter.py        # History truncation (not yet wired)
+└── main.py              # Imports from resume/
+```
+
+---
+
 ## 2026-01-07: Renderer Unification
 
 Unifying the 8 tool renderers in `src/tunacode/ui/renderers/tools/` to eliminate duplication via a shared base class and registry pattern.
