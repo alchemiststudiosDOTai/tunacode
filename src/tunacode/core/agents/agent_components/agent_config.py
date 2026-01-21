@@ -461,28 +461,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
             ),
             validate_response=lambda r: r.raise_for_status(),
         )
-        
-        # Add logging hooks
-        async def log_request(request):
-            logger.debug(f"Network OUT: {request.method} {request.url}")
-
-        async def log_response(response):
-            method = response.request.method
-            url = response.url
-            status = response.status_code
-            logger.debug(f"Network IN: {method} {url} -> {status}")
-            if status >= 400:
-                logger.debug(f"Error Body: {response.text[:500]}")
 
         event_hooks = _build_request_hooks(request_delay)
-        # Append request logging hook
-        if "request" not in event_hooks:
-            event_hooks["request"] = []
-        event_hooks["request"].append(log_request)
-        # Append response logging hook
-        if "response" not in event_hooks:
-            event_hooks["response"] = []
-        event_hooks["response"].append(log_response)
 
         # Set HTTP timeout: connect=10s, read=60s, write=30s, pool=5s
         # This prevents hanging forever if provider doesn't respond
