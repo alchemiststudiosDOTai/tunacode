@@ -24,6 +24,10 @@ EMPTY_RESPONSE_REASON_TRUNCATED = "truncated"
 
 TOOL_RESULT_STATUS_COMPLETED = "completed"
 
+# Preview length limits for debug logging
+THOUGHT_PREVIEW_LENGTH = 80
+RESPONSE_PREVIEW_LENGTH = 100
+
 ToolResultCallback = Callable[..., None]
 StreamingCallback = Callable[[str], Awaitable[None]]
 
@@ -102,8 +106,8 @@ async def process_node(
     if thought:
         record_thought(session, thought)
         # Log thought preview
-        thought_preview = thought[:80].replace("\n", "\\n")
-        if len(thought) > 80:
+        thought_preview = thought[:THOUGHT_PREVIEW_LENGTH].replace("\n", "\\n")
+        if len(thought) > THOUGHT_PREVIEW_LENGTH:
             thought_preview += "..."
         logger.lifecycle(f"Thought: {thought_preview}")
 
@@ -134,7 +138,7 @@ async def process_node(
                 appears_truncated = check_for_truncation(combined_content)
 
                 # Log response preview for debug visibility
-                preview_len = min(100, len(combined_content))
+                preview_len = min(RESPONSE_PREVIEW_LENGTH, len(combined_content))
                 preview = combined_content[:preview_len]
                 if len(combined_content) > preview_len:
                     preview += "..."

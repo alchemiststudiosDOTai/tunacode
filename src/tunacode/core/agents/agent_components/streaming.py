@@ -7,6 +7,7 @@ and streams deltas to the provided callback while being resilient to errors.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Awaitable, Callable
 
 from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
@@ -52,8 +53,6 @@ async def stream_model_request_node(
         return
 
     logger = get_logger()
-    import time
-
     stream_start = time.perf_counter()
 
     # Gracefully handle streaming errors from LLM provider
@@ -273,6 +272,7 @@ async def stream_model_request_node(
     except Exception as e:
         # Reset node state to allow graceful degradation to non-streaming mode
         logger.warning(f"Stream failed, falling back to non-streaming: {e}")
+        logger.lifecycle(f"Stream failed: {type(e).__name__}")
         try:
             if hasattr(node, "_did_stream"):
                 node._did_stream = False

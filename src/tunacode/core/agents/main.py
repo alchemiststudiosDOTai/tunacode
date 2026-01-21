@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -365,8 +366,6 @@ class RequestOrchestrator:
                 agent_run = run_handle
                 i = 1
                 async for node in run_handle:
-                    import time
-
                     iter_start = time.perf_counter()
                     logger.lifecycle(f"--- Iteration {i} ---")
                     self.iteration_manager.update_counters(i)

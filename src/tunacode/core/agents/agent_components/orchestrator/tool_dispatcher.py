@@ -1,5 +1,6 @@
 """Tool categorization and execution for agent responses."""
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -8,7 +9,6 @@ from tunacode.constants import (
     ERROR_TOOL_ARGS_MISSING,
     ERROR_TOOL_CALL_ID_MISSING,
     READ_ONLY_TOOLS,
-    ToolName,
 )
 from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
@@ -21,7 +21,6 @@ from ..response_state import ResponseState
 PART_KIND_TEXT = "text"
 PART_KIND_TOOL_CALL = "tool-call"
 RESEARCH_TOOL_NAME = "research_codebase"
-SUBMIT_TOOL_NAME = ToolName.SUBMIT
 UNKNOWN_TOOL_NAME = "unknown"
 TOOL_BATCH_PREVIEW_COUNT = 3
 TEXT_PART_JOINER = "\n"
@@ -29,6 +28,9 @@ TOOL_NAME_JOINER = ", "
 TOOL_NAME_SUFFIX = "..."
 
 TOOL_START_RESEARCH_LABEL = "research"
+
+# Maximum tool names to display in lifecycle logs before truncating
+TOOL_NAMES_DISPLAY_LIMIT = 5
 
 # Characters that should never appear in valid tool names
 INVALID_TOOL_NAME_CHARS = frozenset("<>(){}[]\"'`")
@@ -192,8 +194,6 @@ async def dispatch_tools(
 
     debug_mode = getattr(state_manager.session, "debug_mode", False)
 
-    import time
-
     dispatch_start = time.perf_counter()
 
     for part in parts:
@@ -320,9 +320,9 @@ async def dispatch_tools(
         tool_names = [
             getattr(part, "tool_name", UNKNOWN_TOOL_NAME) for part, _ in tool_call_records
         ]
-        tool_names_str = ", ".join(tool_names[:5])
-        if len(tool_names) > 5:
-            tool_names_str += f" (+{len(tool_names) - 5} more)"
+        tool_names_str = ", ".join(tool_names[:TOOL_NAMES_DISPLAY_LIMIT])
+        if len(tool_names) > TOOL_NAMES_DISPLAY_LIMIT:
+            tool_names_str += f" (+{len(tool_names) - TOOL_NAMES_DISPLAY_LIMIT} more)"
 
         logger.lifecycle(
             f"Tools: [{tool_names_str}] ({total_tools} total, {dispatch_elapsed_ms:.0f}ms)"

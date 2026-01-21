@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic_ai.messages import ToolCallPart
 
+from tunacode.constants import ToolName
 from tunacode.core.agents.agent_components.orchestrator import tool_dispatcher
 from tunacode.core.agents.agent_components.response_state import ResponseState
 from tunacode.core.state import StateManager
@@ -43,7 +44,7 @@ RESULT_LABEL = "result"
 RESEARCH_LABEL = tool_dispatcher.TOOL_START_RESEARCH_LABEL
 EXPECTED_JOINER = tool_dispatcher.TOOL_NAME_JOINER
 EXPECTED_SUFFIX = tool_dispatcher.TOOL_NAME_SUFFIX
-SUBMIT_TOOL_NAME = tool_dispatcher.SUBMIT_TOOL_NAME.value
+SUBMIT_TOOL_NAME = ToolName.SUBMIT.value
 
 READ_ONLY_TOOL_SEQUENCE = [
     NORMAL_TOOL_NAME,
