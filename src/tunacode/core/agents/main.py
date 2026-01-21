@@ -11,7 +11,7 @@ import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent
@@ -224,6 +224,11 @@ class ReactSnapshotManager:
             # CRITICAL: Inject into agent_run.ctx.messages so next LLM call sees guidance
             if agent_run_ctx is not None:
                 ctx_messages = getattr(agent_run_ctx, "messages", None)
+                if ctx_messages is None:
+                    state = getattr(agent_run_ctx, "state", None)
+                    if state and hasattr(state, "message_history"):
+                        ctx_messages = state.message_history
+                    
                 if isinstance(ctx_messages, list):
                     ModelRequest, _, SystemPromptPart = ac.get_model_messages()
                     system_part = SystemPromptPart(
@@ -361,25 +366,64 @@ class RequestOrchestrator:
             logger.lifecycle(f"History pruned ({tokens_reclaimed} tokens reclaimed)")
 
         debug_mode = bool(getattr(self.state_manager.session, "debug_mode", False))
-        dangling_tool_call_ids = _find_dangling_tool_call_ids(session_messages)
-        cleanup_applied = _remove_dangling_tool_calls(
-            session_messages,
-            tool_call_args_by_id,
-            dangling_tool_call_ids,
-        )
-        if cleanup_applied:
-            self.state_manager.session.update_token_count()
-            logger.lifecycle("Cleaned up dangling tool calls")
 
-        # Remove empty response messages (abort during response generation)
-        empty_cleanup = _remove_empty_responses(session_messages)
-        if empty_cleanup:
-            self.state_manager.session.update_token_count()
+        # Message cleanup is iterative because each pass can expose new issues:
+        # - Removing dangling tool calls may create consecutive requests
+        # - Removing consecutive requests may orphan tool returns, creating new dangling calls
+        # Loop until no more changes (transitive closure)
+        max_cleanup_iterations = 10
+        total_cleanup_applied = False
+        dangling_tool_call_ids: set[ToolCallId] = set()
 
-        # Remove consecutive request messages (caused by abort before model responds)
-        # Must run AFTER empty response removal since that can expose consecutive requests
-        consecutive_cleanup = _remove_consecutive_requests(session_messages)
-        if consecutive_cleanup:
+        for cleanup_iteration in range(max_cleanup_iterations):
+            any_cleanup = False
+
+            dangling_tool_call_ids = _find_dangling_tool_call_ids(session_messages)
+            if _remove_dangling_tool_calls(
+                session_messages,
+                tool_call_args_by_id,
+                dangling_tool_call_ids,
+            ):
+                any_cleanup = True
+                total_cleanup_applied = True
+                logger.lifecycle("Cleaned up dangling tool calls")
+
+            # Remove empty response messages (abort during response generation)
+            if _remove_empty_responses(session_messages):
+                any_cleanup = True
+                total_cleanup_applied = True
+
+            # Remove consecutive request messages (caused by abort before model responds)
+            # Must run AFTER empty response removal since that can expose consecutive requests
+            if _remove_consecutive_requests(session_messages):
+                any_cleanup = True
+                total_cleanup_applied = True
+
+            if not any_cleanup:
+                break
+
+            if cleanup_iteration == max_cleanup_iterations - 1:
+                logger.warning(
+                    f"Message cleanup did not stabilize after {max_cleanup_iterations} iterations"
+                )
+
+        # Handle trailing request in history if we are about to add a new one.
+        # This prevents [Request, Request] sequences when resuming after an abort.
+        # Only do this if we have a non-empty message (intent to start new turn).
+        if session_messages and self.message:
+            last_msg = session_messages[-1]
+            # Check for pydantic-ai ModelRequest or dict with kind='request'
+            last_kind = getattr(last_msg, "kind", None)
+            if isinstance(last_msg, dict):
+                last_kind = last_msg.get("kind")
+            
+            if last_kind == "request":
+                logger.lifecycle("Dropping trailing request to avoid consecutive requests")
+                session_messages.pop()
+                self.state_manager.session.update_token_count()
+                total_cleanup_applied = True
+
+        if total_cleanup_applied:
             self.state_manager.session.update_token_count()
 
         if debug_mode:
@@ -416,11 +460,33 @@ class RequestOrchestrator:
                         content_preview = f":{len(p_content)}chars"
                     parts_summary.append(f"{p_kind}{content_preview}")
                 logger.debug(
-                    f"  msg[-{3-idx}]: kind={msg_kind}, parts=[{', '.join(parts_summary)}]"
+                    f"  msg[-{3 - idx}]: kind={msg_kind}, parts=[{', '.join(parts_summary)}]"
                 )
 
         # Prepare history snapshot (now pruned)
-        message_history = list(session_messages)
+        # Sanitize history to prevent run_id conflicts or stale state on resume
+        message_history = _sanitize_history_for_resume(session_messages)
+
+        # CRITICAL DEBUG: Verify message_history state before passing to agent.iter()
+        if debug_mode:
+            type_names = (
+                [type(m).__name__ for m in message_history[:3]]
+                if message_history
+                else []
+            )
+            logger.debug(
+                f"message_history count={len(message_history)}, types={type_names}"
+            )
+            if message_history:
+                logger.debug(
+                    f"message_history[0]: {type(message_history[0]).__name__} "
+                    f"kind={getattr(message_history[0], 'kind', 'unknown')}"
+                )
+                if len(message_history) > 1:
+                    logger.debug(
+                        f"message_history[-1]: {type(message_history[-1]).__name__} "
+                        f"kind={getattr(message_history[-1], 'kind', 'unknown')}"
+                    )
 
         # Per-request trackers
         tool_buffer = ac.ToolBuffer()
@@ -428,10 +494,27 @@ class RequestOrchestrator:
         agent_run: AgentRun | None = None
 
         try:
-            logger.debug(f"Starting agent.iter() with message: {self.message[:50]}...")
+            msg_preview = self.message[:50]
+            history_len = len(message_history)
+            logger.debug(f"Starting agent.iter(): msg={msg_preview}... history={history_len}")
             async with agent.iter(self.message, message_history=message_history) as run_handle:
                 logger.debug("agent.iter() context entered successfully")
                 agent_run = run_handle
+                
+                # CRITICAL DEBUG: Check if pydantic-ai received the message_history
+                if debug_mode and hasattr(run_handle, 'ctx'):
+                    ctx_messages = getattr(run_handle.ctx, 'messages', None)
+                    if ctx_messages is None:
+                        run_state = getattr(run_handle.ctx, "state", None)
+                        if run_state and hasattr(run_state, "message_history"):
+                            ctx_messages = run_state.message_history
+                    
+                    if ctx_messages is not None:
+                        logger.debug(f"pydantic-ai ctx.messages count={len(ctx_messages)}")
+                        if ctx_messages:
+                            logger.debug(f"ctx.messages[0] type={type(ctx_messages[0]).__name__}")
+                    else:
+                        logger.debug("pydantic-ai ctx.messages not found or None")
                 i = 1
                 async for node in run_handle:
                     iter_start = time.perf_counter()
@@ -524,9 +607,7 @@ class RequestOrchestrator:
                 self.state_manager.session.update_token_count()
 
             # Clean up consecutive request messages (abort before model responded)
-            consecutive_cleanup = _remove_consecutive_requests(
-                self.state_manager.session.messages
-            )
+            consecutive_cleanup = _remove_consecutive_requests(self.state_manager.session.messages)
             if consecutive_cleanup:
                 self.state_manager.session.update_token_count()
 
@@ -676,10 +757,17 @@ def _get_message_tool_calls(message: Any) -> list[Any]:
 
 
 def _set_message_tool_calls(message: Any, tool_calls: list[Any]) -> None:
-    """Assign tool_calls to a message."""
+    """Assign tool_calls to a message.
+
+    Note: For pydantic-ai messages, tool_calls is a read-only property derived
+    from parts. Setting parts is sufficient; this function only handles dict
+    messages (e.g., serialized session data).
+    """
     if isinstance(message, dict):
         message[TOOL_CALLS_ATTR] = tool_calls
         return
+    # For pydantic-ai message objects, tool_calls is a computed property
+    # derived from parts. We cannot set it directly - setting parts is enough.
 
 
 def _format_debug_preview(value: Any, max_len: int) -> tuple[str, int]:
@@ -922,6 +1010,89 @@ def _remove_empty_responses(messages: list[Any]) -> bool:
     return True
 
 
+PART_KIND_SYSTEM_PROMPT: str = "system-prompt"
+
+
+def _strip_system_prompt_parts(parts: list[Any]) -> list[Any]:
+    """Remove system-prompt parts from a list of message parts.
+
+    pydantic-ai injects the system prompt automatically via agent.system_prompt.
+    If message_history contains system prompts from a previous run, we get
+    duplicate system prompts which can confuse the model or cause hangs.
+    """
+    if not parts:
+        return parts
+
+    return [p for p in parts if _get_attr_value(p, PART_KIND_ATTR) != PART_KIND_SYSTEM_PROMPT]
+
+
+def _sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
+    """Sanitize message history to ensure compatibility with pydantic-ai.
+
+    This function:
+    1. Removes internal IDs (run_id) that bind messages to previous sessions
+    2. Strips system-prompt parts (pydantic-ai injects these automatically)
+    3. Removes empty messages that result from stripping
+
+    Critical: pydantic-ai v1.21.0+ enforces that agent.iter() adds its own
+    system prompt. If history contains system prompts, they will be duplicated.
+    """
+    if not messages:
+        return []
+
+    sanitized = []
+    logger = get_logger()
+    system_prompts_stripped = 0
+
+    for msg in messages:
+        # Handle dict messages (from serialization)
+        if isinstance(msg, dict):
+            msg_copy = msg.copy()
+            if PARTS_ATTR in msg_copy and isinstance(msg_copy[PARTS_ATTR], list):
+                original_count = len(msg_copy[PARTS_ATTR])
+                msg_copy[PARTS_ATTR] = _strip_system_prompt_parts(msg_copy[PARTS_ATTR])
+                system_prompts_stripped += original_count - len(msg_copy[PARTS_ATTR])
+                # Skip empty messages
+                if not msg_copy[PARTS_ATTR]:
+                    continue
+            sanitized.append(msg_copy)
+            continue
+
+        # Handle pydantic-ai message objects
+        parts = _get_message_parts(msg)
+        original_part_count = len(parts)
+        filtered_parts = _strip_system_prompt_parts(parts)
+        stripped_count = original_part_count - len(filtered_parts)
+        system_prompts_stripped += stripped_count
+
+        # Skip messages that become empty after stripping system prompts
+        if original_part_count > 0 and not filtered_parts:
+            continue
+
+        # Clean run_id and update parts if needed
+        try:
+            if hasattr(msg, "run_id"):
+                if stripped_count > 0:
+                    clean_msg = replace(msg, run_id=None, parts=filtered_parts)
+                else:
+                    clean_msg = replace(msg, run_id=None)
+                sanitized.append(clean_msg)
+            elif stripped_count > 0:
+                # No run_id but need to update parts
+                clean_msg = replace(msg, parts=filtered_parts)
+                sanitized.append(clean_msg)
+            else:
+                sanitized.append(msg)
+        except Exception as e:
+            logger.debug(f"Failed to sanitize message {type(msg).__name__}: {e}")
+            sanitized.append(msg)
+
+    if system_prompts_stripped > 0:
+        logger.lifecycle(f"Stripped {system_prompts_stripped} system-prompt parts from history")
+
+    return sanitized
+
+
 def _log_message_history_debug(
     messages: list[Any],
     user_message: str,
@@ -931,9 +1102,7 @@ def _log_message_history_debug(
     logger = get_logger()
     message_count = len(messages)
     dangling_count = len(dangling_tool_call_ids)
-    logger.debug(
-        f"History dump: messages={message_count} dangling_tool_calls={dangling_count}"
-    )
+    logger.debug(f"History dump: messages={message_count} dangling_tool_calls={dangling_count}")
 
     if dangling_tool_call_ids:
         dangling_sorted = sorted(dangling_tool_call_ids)

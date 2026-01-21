@@ -140,6 +140,12 @@ async def stream_model_request_node(
     debug_mode = bool(getattr(state_manager.session, "debug_mode", False))
     node_type = type(node).__name__
     ctx_messages = getattr(agent_run_ctx, "messages", None)
+    # Fallback to state.message_history if messages attribute is missing (GraphRunContext)
+    if ctx_messages is None:
+        ctx_state = getattr(agent_run_ctx, "state", None)
+        if ctx_state and hasattr(ctx_state, "message_history"):
+            ctx_messages = ctx_state.message_history
+    
     ctx_messages_type = type(ctx_messages).__name__ if ctx_messages is not None else "None"
     ctx_message_count = len(ctx_messages) if isinstance(ctx_messages, list) else 0
     if debug_mode:
@@ -149,6 +155,25 @@ async def stream_model_request_node(
             f"ctx_messages_type={ctx_messages_type}"
         )
         _log_stream_request_parts(node, debug_mode)
+        
+        # Detailed dump of ALL messages being sent to provider
+        if ctx_messages and isinstance(ctx_messages, list):
+             logger.debug(f"FULL MESSAGE DUMP ({len(ctx_messages)} messages):")
+             for idx, msg in enumerate(ctx_messages):
+                 kind = getattr(msg, 'kind', 'unknown')
+                 parts = getattr(msg, 'parts', [])
+                 logger.debug(f"  [{idx}] {kind} ({len(parts)} parts)")
+                 for pidx, p in enumerate(parts):
+                     pkind = getattr(p, 'part_kind', 'unknown')
+                     content = getattr(p, 'content', '')
+                     args = getattr(p, 'args', '')
+                     tool = getattr(p, 'tool_name', '')
+                     content_preview = str(content)[:100].replace('\n', '\\n')
+                     args_preview = str(args)[:100].replace('\n', '\\n')
+                     logger.debug(
+                         f"      part[{pidx}] {pkind} tool={tool} "
+                         f"content='{content_preview}' args='{args_preview}'"
+                     )
 
     # Gracefully handle streaming errors from LLM provider
     try:
