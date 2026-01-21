@@ -111,15 +111,22 @@ def _collect_tool_call_ids_from_parts(parts: list[Any]) -> list[ToolCallId]:
     if not parts:
         return []
 
+    logger = get_logger()
     tool_call_ids: list[ToolCallId] = []
     for part in parts:
         part_kind = _get_attr_value(part, PART_KIND_ATTR)
         if part_kind != PART_KIND_TOOL_CALL:
+            logger.debug(
+                f"_collect_tool_call_ids: skipped part_kind={part_kind!r} "
+                f"(expected {PART_KIND_TOOL_CALL!r})"
+            )
             continue
         tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
         if tool_call_id is None:
+            logger.debug("_collect_tool_call_ids: skipped tool_call_id=None")
             continue
         tool_call_ids.append(tool_call_id)
+        logger.debug(f"_collect_tool_call_ids: found {tool_call_id!r}")
     return tool_call_ids
 
 
@@ -180,14 +187,35 @@ def find_dangling_tool_call_ids(messages: list[Any]) -> set[ToolCallId]:
     if not messages:
         return set()
 
+    logger = get_logger()
     tool_call_ids: set[ToolCallId] = set()
     tool_return_ids: set[ToolCallId] = set()
 
-    for message in messages:
-        tool_call_ids.update(_collect_message_tool_call_ids(message))
-        tool_return_ids.update(_collect_message_tool_return_ids(message))
+    for idx, message in enumerate(messages):
+        msg_kind = _get_attr_value(message, "kind")
+        msg_tool_call_ids = _collect_message_tool_call_ids(message)
+        msg_tool_return_ids = _collect_message_tool_return_ids(message)
 
-    return tool_call_ids - tool_return_ids
+        # Debug: trace collection for responses with parts
+        parts = _get_message_parts(message)
+        if msg_kind == "response" and parts:
+            for pidx, part in enumerate(parts):
+                part_kind = _get_attr_value(part, PART_KIND_ATTR)
+                tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
+                logger.debug(
+                    f"find_dangling[{idx}].part[{pidx}]: "
+                    f"part_kind={part_kind!r} tool_call_id={tool_call_id!r}"
+                )
+
+        tool_call_ids.update(msg_tool_call_ids)
+        tool_return_ids.update(msg_tool_return_ids)
+
+    dangling = tool_call_ids - tool_return_ids
+    logger.debug(
+        f"find_dangling_tool_call_ids: "
+        f"tool_call_ids={tool_call_ids} tool_return_ids={tool_return_ids} dangling={dangling}"
+    )
+    return dangling
 
 
 def _filter_dangling_tool_calls_from_parts(
