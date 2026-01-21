@@ -74,8 +74,15 @@ class ClearCommand(Command):
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
         app.rich_log.clear()
-        app.state_manager.session.messages = []
-        app.state_manager.session.total_tokens = 0
+        session = app.state_manager.session
+        session.messages = []
+        session.total_tokens = 0
+        session.thoughts = []
+        session.files_in_context.clear()
+        session.tool_calls = []
+        session.tool_call_args_by_id.clear()
+        app.state_manager.clear_react_scratchpad()
+        app.state_manager.clear_todos()
         app._update_resource_bar()
         app.notify("Cleared conversation history")
 
