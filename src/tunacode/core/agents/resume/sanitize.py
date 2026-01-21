@@ -226,6 +226,7 @@ def _filter_dangling_tool_calls_from_parts(
     if not parts:
         return parts, False
 
+    logger = get_logger()
     filtered_parts: list[Any] = []
     removed_any = False
 
@@ -241,6 +242,8 @@ def _filter_dangling_tool_calls_from_parts(
             continue
 
         if tool_call_id in dangling_tool_call_ids:
+            tool_name = _get_attr_value(part, "tool_name") or "unknown"
+            logger.debug(f"[PRUNED] tool_call part: tool={tool_name} id={tool_call_id}")
             removed_any = True
             continue
 
@@ -257,6 +260,7 @@ def _filter_dangling_tool_calls_from_tool_calls(
     if not tool_calls:
         return tool_calls, False
 
+    logger = get_logger()
     filtered_tool_calls: list[Any] = []
     removed_any = False
 
@@ -267,6 +271,8 @@ def _filter_dangling_tool_calls_from_tool_calls(
             continue
 
         if tool_call_id in dangling_tool_call_ids:
+            tool_name = _get_attr_value(tool_call, "tool_name") or "unknown"
+            logger.debug(f"[PRUNED] tool_calls entry: tool={tool_name} id={tool_call_id}")
             removed_any = True
             continue
 
