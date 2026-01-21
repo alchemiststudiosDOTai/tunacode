@@ -35,7 +35,7 @@ from tunacode.core.agents.agent_components.orchestrator.tool_dispatcher import (
 )
 from tunacode.core.agents.agent_components.response_state import ResponseState
 from tunacode.core.agents.agent_components.tool_executor import execute_tools_parallel
-from tunacode.core.agents.main import _remove_dangling_tool_calls
+from tunacode.core.agents.resume.sanitize import remove_dangling_tool_calls
 from tunacode.core.state import SessionState, StateManager
 from tunacode.exceptions import StateError
 from tunacode.types import AgentState, ToolArgs, ToolCallId
@@ -507,7 +507,7 @@ async def test_duplicate_tool_call_id_overwrites_previous(state_manager: StateMa
 
 
 # =============================================================================
-# Property Tests: _remove_dangling_tool_calls
+# Property Tests: remove_dangling_tool_calls
 # =============================================================================
 
 
@@ -555,7 +555,7 @@ def _extract_tool_call_ids(message: Any) -> list[str]:
 def test_remove_dangling_removes_trailing_tool_calls(
     call_parts: list[ToolCallPart], session_state: SessionState
 ) -> None:
-    """_remove_dangling_tool_calls should remove dangling tool call messages."""
+    """remove_dangling_tool_calls should remove dangling tool call messages."""
     # Arrange: Create messages with trailing tool calls
     messages = []
     tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {}
@@ -571,7 +571,7 @@ def test_remove_dangling_removes_trailing_tool_calls(
     initial_count = len(messages)
 
     # Act
-    removed = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     # Assert: If there were tool calls, they should be removed
     if call_parts:
@@ -586,7 +586,7 @@ def test_remove_dangling_removes_trailing_tool_calls(
 
 
 def test_remove_dangling_removes_non_trailing_tool_calls(session_state: SessionState) -> None:
-    """_remove_dangling_tool_calls should remove tool calls anywhere in history."""
+    """remove_dangling_tool_calls should remove tool calls anywhere in history."""
     # Arrange: Dangling tool call followed by a non-tool message
     tool_call = ToolCallPart(tool_name="read_file", args={"path": "test"}, tool_call_id="call_1")
     non_tool_msg = MockMessage(tool_calls=[], parts=[])
@@ -596,7 +596,7 @@ def test_remove_dangling_removes_non_trailing_tool_calls(session_state: SessionS
     tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
 
     # Act
-    _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     # Assert: Dangling message removed, non-tool message preserved
     assert len(messages) == 1
@@ -604,12 +604,12 @@ def test_remove_dangling_removes_non_trailing_tool_calls(session_state: SessionS
 
 
 def test_remove_dangling_with_empty_messages(session_state: SessionState) -> None:
-    """_remove_dangling_tool_calls should handle empty message list."""
+    """remove_dangling_tool_calls should handle empty message list."""
     messages: list[Any] = []
     tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {}
 
     # Act
-    removed = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     # Assert
     assert removed is False
@@ -617,14 +617,14 @@ def test_remove_dangling_with_empty_messages(session_state: SessionState) -> Non
 
 
 def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
-    """CancelledError should trigger _remove_dangling_tool_calls like UserAbortError.
+    """CancelledError should trigger remove_dangling_tool_calls like UserAbortError.
 
     This test validates that the cleanup logic invoked in the except block at main.py:409
     works correctly when triggered by asyncio.CancelledError (timeout scenario).
 
     The exception handler catches both UserAbortError and CancelledError:
         except (UserAbortError, asyncio.CancelledError):
-            cleanup_applied = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+            cleanup_applied = remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     Related: PR #246 (UserAbortError)
     See: memory-bank/research/2026-01-19_14-30-00_dangling_tool_calls_timeout_gap.md
@@ -639,7 +639,7 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
 
     # Act: Simulate the cleanup that happens in except (UserAbortError, CancelledError) block
     # This is exactly what main.py:409-416 does
-    cleanup_applied = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    cleanup_applied = remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     # Assert: State is now valid for next API request
     assert cleanup_applied is True
@@ -648,7 +648,7 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
 
 
 def test_remove_dangling_clears_corresponding_args(session_state: SessionState) -> None:
-    """_remove_dangling_tool_calls should clear args for removed tool calls."""
+    """remove_dangling_tool_calls should clear args for removed tool calls."""
     # Arrange
     call_1 = ToolCallPart(tool_name="read_file", args={"path": "file1"}, tool_call_id="call_1")
     call_2 = ToolCallPart(tool_name="grep", args={"pattern": "test"}, tool_call_id="call_2")
@@ -663,7 +663,7 @@ def test_remove_dangling_clears_corresponding_args(session_state: SessionState) 
     }
 
     # Act
-    _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     # Assert: All args cleared
     assert len(tool_call_args_by_id) == 0
@@ -671,7 +671,7 @@ def test_remove_dangling_clears_corresponding_args(session_state: SessionState) 
 
 
 def test_remove_dangling_keeps_matched_tool_calls(session_state: SessionState) -> None:
-    """_remove_dangling_tool_calls should not remove matched tool calls."""
+    """remove_dangling_tool_calls should not remove matched tool calls."""
     tool_call = ToolCallPart(tool_name="read_file", args={"path": "file1"}, tool_call_id="call_ok")
     tool_return = ToolReturnPart(
         tool_call_id=tool_call.tool_call_id,
@@ -684,7 +684,7 @@ def test_remove_dangling_keeps_matched_tool_calls(session_state: SessionState) -
     messages = [call_message, return_message]
     tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
 
-    removed = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     assert removed is False
     assert messages == [call_message, return_message]
@@ -692,7 +692,7 @@ def test_remove_dangling_keeps_matched_tool_calls(session_state: SessionState) -
 
 
 def test_remove_dangling_removes_only_unmatched_calls(session_state: SessionState) -> None:
-    """_remove_dangling_tool_calls should remove only unmatched tool calls."""
+    """remove_dangling_tool_calls should remove only unmatched tool calls."""
     matched_call = ToolCallPart(
         tool_name="read_file", args={"path": "file1"}, tool_call_id="call_matched"
     )
@@ -714,7 +714,7 @@ def test_remove_dangling_removes_only_unmatched_calls(session_state: SessionStat
         unmatched_call.tool_call_id: unmatched_call.args,
     }
 
-    removed = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
 
     assert removed is True
     assert messages == [matched_message, return_message]

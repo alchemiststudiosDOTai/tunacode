@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tunacode.core.compaction import (
+from tunacode.core.agents.resume.prune import (
     PRUNE_MIN_USER_TURNS,
     PRUNE_MINIMUM_THRESHOLD,
     PRUNE_PLACEHOLDER,
@@ -276,7 +276,7 @@ class TestPruneOldToolOutputs:
         messages = user_msgs + tool_msgs
 
         with patch(
-            "tunacode.core.compaction.estimate_tokens",
+            "tunacode.core.agents.resume.prune.estimate_tokens",
             side_effect=lambda text, _: 70000 if text == "large content" else 10,
         ):
             result, reclaimed = prune_old_tool_outputs(messages, "anthropic:claude-sonnet")
@@ -308,9 +308,9 @@ class TestPruneOldToolOutputs:
             return 10
 
         with (
-            patch("tunacode.core.compaction.estimate_tokens", side_effect=mock_tokens),
+            patch("tunacode.core.agents.resume.prune.estimate_tokens", side_effect=mock_tokens),
             patch(
-                "tunacode.core.compaction.get_prune_thresholds",
+                "tunacode.core.agents.resume.prune.get_prune_thresholds",
                 return_value=(PRUNE_PROTECT_TOKENS, PRUNE_MINIMUM_THRESHOLD),
             ),
         ):

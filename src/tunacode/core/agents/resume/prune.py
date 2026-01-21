@@ -20,6 +20,12 @@ LOCAL_PRUNE_MINIMUM_THRESHOLD: int = 500
 PRUNE_MIN_USER_TURNS: int = 2  # Require at least 2 user turns before pruning
 PRUNE_PLACEHOLDER: str = "[Old tool result content cleared]"
 
+__all__ = [
+    "prune_old_tool_outputs",
+    "get_prune_thresholds",
+    "PRUNE_PLACEHOLDER",
+]
+
 
 def get_prune_thresholds() -> tuple[int, int]:
     """Get pruning thresholds based on local_mode (binary switch).
