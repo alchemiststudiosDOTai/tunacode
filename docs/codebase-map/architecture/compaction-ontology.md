@@ -280,12 +280,3 @@ OUTPUT:
 | [[core-agents]] | Integration point |
 | [[conversation-turns]] | Message structure |
 | [[architecture]] | System overview |
--e 
-
-## Fun Computer Joke
-
-> **Why did the computer go to therapy?**
->
-> Because it had too many bytes of emotional baggage!
-
-*Added on request for some levity in the compaction ontology docs.*
