@@ -4,9 +4,13 @@ import asyncio
 import os
 import random
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import ModelRetry
+
+if TYPE_CHECKING:
+    from pydantic_ai.messages import ToolCallPart
+    from pydantic_ai.result import StreamedRunResult
 
 from tunacode.constants import (
     TOOL_MAX_RETRIES,
@@ -44,8 +48,8 @@ def _calculate_backoff(attempt: int) -> float:
 
 
 async def execute_tools_parallel(
-    tool_calls: list[tuple[Any, Any]], callback: ToolCallback
-) -> list[Any]:
+    tool_calls: list[tuple["ToolCallPart", "StreamedRunResult[None, str]"]], callback: ToolCallback
+) -> list[None]:
     """
     Execute multiple tool calls in parallel using asyncio with automatic retry.
 
@@ -67,17 +71,17 @@ async def execute_tools_parallel(
     tool_count = len(tool_calls)
     logger.lifecycle(f"Tool execution start (count={tool_count}, max_parallel={max_parallel})")
 
-    async def execute_with_retry(part, node):
+    async def execute_with_retry(part: "ToolCallPart", node: "StreamedRunResult[None, str]") -> None:
         tool_name = getattr(part, "tool_name", "unknown")
         start = time.perf_counter()
         logger.lifecycle(f"Tool start (tool={tool_name})")
 
         for attempt in range(1, TOOL_MAX_RETRIES + 1):
             try:
-                result = await callback(part, node)
+                await callback(part, node)
                 duration_ms = (time.perf_counter() - start) * 1000
                 logger.tool(tool_name, "completed", duration_ms=duration_ms)
-                return result
+                return
             except NON_RETRYABLE_ERRORS as e:
                 duration_ms = (time.perf_counter() - start) * 1000
                 err_type = type(e).__name__
@@ -103,22 +107,24 @@ async def execute_tools_parallel(
 
     # Execute in batches if we have more tools than max_parallel
     if len(tool_calls) > max_parallel:
-        results: list[Any] = []
+        results: list[None] = []
         for i in range(0, len(tool_calls), max_parallel):
             batch = tool_calls[i : i + max_parallel]
             batch_tasks = [execute_with_retry(part, node) for part, node in batch]
             batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-            results.extend(batch_results)
             # Check for errors after each batch
             for result in batch_results:
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     raise result
+                results.append(result)
     else:
         tasks = [execute_with_retry(part, node) for part, node in tool_calls]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        gathered_results = await asyncio.gather(*tasks, return_exceptions=True)
         # Check for errors - raise the first one
-        for result in results:
-            if isinstance(result, Exception):
+        results = []
+        for result in gathered_results:
+            if isinstance(result, BaseException):
                 raise result
+            results.append(result)
     logger.lifecycle(f"Tool execution complete (count={tool_count})")
     return results

@@ -94,7 +94,7 @@ class AgentStateMachine:
         with self._lock:
             return self._state == AgentState.RESPONSE and self._completion_detected
 
-    def reset(self, initial_state: "AgentState" = None) -> None:
+    def reset(self, initial_state: "AgentState | None" = None) -> None:
         """Reset the state machine to initial state."""
         with self._lock:
             self._state = initial_state or AgentState.USER_INPUT

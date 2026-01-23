@@ -25,7 +25,7 @@ class ResponseState:
     # Thread-safe lock for boolean flag access
     _lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the state machine."""
         if not hasattr(self, "_state_machine"):
             self._state_machine = AgentStateMachine(AgentState.USER_INPUT, AGENT_TRANSITION_RULES)

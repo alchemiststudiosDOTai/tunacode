@@ -6,7 +6,11 @@ structured progress reporting.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pydantic_ai.messages import ToolCallPart
+    from pydantic_ai.result import StreamedRunResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +31,7 @@ class ToolProgress:
 
 
 # Tool callbacks
-ToolCallback = Callable[[Any, Any], Awaitable[None]]
+ToolCallback = Callable[["ToolCallPart", "StreamedRunResult[None, str]"], Awaitable[None]]
 ToolStartCallback = Callable[[str], None]
 ToolProgressCallback = Callable[[ToolProgress], None]
 NoticeCallback = Callable[[str], None]

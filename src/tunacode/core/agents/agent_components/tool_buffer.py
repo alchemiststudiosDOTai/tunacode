@@ -6,7 +6,7 @@ from typing import Any
 class ToolBuffer:
     """Buffer for collecting read-only tool calls to execute in parallel."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.read_only_tasks: list[tuple[Any, Any]] = []
 
     def add(self, part: Any, node: Any) -> None:
