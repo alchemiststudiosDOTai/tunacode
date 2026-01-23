@@ -291,8 +291,15 @@ def _filter_dangling_tool_calls_from_tool_calls(
 def _strip_dangling_tool_calls_from_message(
     message: Any,
     dangling_tool_call_ids: set[ToolCallId],
-) -> tuple[bool, bool]:
-    """Remove dangling tool calls from a message and signal if it should be dropped."""
+) -> tuple[Any, bool, bool]:
+    """Remove dangling tool calls from a message.
+
+    Returns:
+        Tuple of (modified_message, removed_any, should_drop)
+        - modified_message: New message object (for pydantic) or same message (for dict)
+        - removed_any: True if any tool calls were removed
+        - should_drop: True if message should be dropped from history
+    """
     parts = _get_message_parts(message)
     tool_calls = _get_message_tool_calls(message)
 
@@ -305,14 +312,35 @@ def _strip_dangling_tool_calls_from_message(
         dangling_tool_call_ids,
     )
 
-    if removed_from_parts:
-        _set_message_parts(message, filtered_parts)
-    if removed_from_tool_calls:
-        _set_message_tool_calls(message, filtered_tool_calls)
-
     removed_any = removed_from_parts or removed_from_tool_calls
     should_drop = removed_any and not filtered_parts and not filtered_tool_calls
-    return removed_any, should_drop
+
+    # If nothing removed, return original message
+    if not removed_any:
+        return message, False, False
+
+    # For dict messages, mutate in place (backwards compat with serialized data)
+    if isinstance(message, dict):
+        if removed_from_parts:
+            message[PARTS_ATTR] = filtered_parts
+        if removed_from_tool_calls:
+            message[TOOL_CALLS_ATTR] = filtered_tool_calls
+        return message, removed_any, should_drop
+
+    # For pydantic objects, use replace() to create new immutable object
+    # Note: tool_calls is a computed property from parts, so only update parts
+    try:
+        modified_message = replace(message, parts=filtered_parts)
+        return modified_message, removed_any, should_drop
+    except Exception as e:
+        logger = get_logger()
+        logger.warning(f"Failed to replace message parts with dataclasses.replace: {e}")
+        # Fallback: try setattr (may fail on frozen models, but worth trying)
+        if removed_from_parts:
+            _set_message_parts(message, filtered_parts)
+        if removed_from_tool_calls:
+            _set_message_tool_calls(message, filtered_tool_calls)
+        return message, removed_any, should_drop
 
 
 def remove_dangling_tool_calls(
@@ -333,7 +361,11 @@ def remove_dangling_tool_calls(
     remaining_messages: list[Any] = []
 
     for message in messages:
-        removed_from_message, should_drop = _strip_dangling_tool_calls_from_message(
+        (
+            modified_message,
+            removed_from_message,
+            should_drop,
+        ) = _strip_dangling_tool_calls_from_message(
             message,
             dangling_tool_call_ids,
         )
@@ -342,7 +374,8 @@ def remove_dangling_tool_calls(
         if should_drop:
             removed_any = True
             continue
-        remaining_messages.append(message)
+        # Use modified_message (which may be a new object for pydantic messages)
+        remaining_messages.append(modified_message)
 
     if removed_any:
         messages[:] = remaining_messages
