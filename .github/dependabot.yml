@@ -1,0 +1,66 @@
+# This project uses uv for dependency management.
+# Dependabot uses 'pip' ecosystem to parse pyproject.toml.
+# PRs will update pyproject.toml; run 'uv sync' to apply.
+version: 2
+updates:
+  # Production dependencies (uv sync to apply)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      production-dependencies:
+        patterns:
+          - "*"
+    ignore:
+      # Respect pinned major versions
+      - dependency-name: "click"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "textual"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic-ai"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "rich"
+        update-types: ["version-update:semver-major"]
+
+  # Development dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    target-version: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "mypy"
+          - "bandit"
+          - "vulture"
+          - "textual-dev"
+          - "pre-commit"
+      build-dependencies:
+        patterns:
+          - "build"
+          - "twine"
+          - "hatchling"
+      code-quality:
+        patterns:
+          - "autoflake"
+          - "dead"
+          - "unimport"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
