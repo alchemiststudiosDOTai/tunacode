@@ -119,8 +119,8 @@ def _log_stream_request_parts(node: Any, debug_mode: bool) -> None:
 
 
 async def stream_model_request_node(
-    node,
-    agent_run_ctx,
+    node: Any,
+    agent_run_ctx: Any,
     state_manager: StateManager,
     streaming_callback: Callable[[str], Awaitable[None]] | None,
     request_id: str,
@@ -159,7 +159,7 @@ async def stream_model_request_node(
             pre_first_delta_text: str | None = None
 
             # Helper to extract text from a possible final-result object
-            def _extract_text(obj) -> str | None:
+            def _extract_text(obj: Any) -> str | None:
                 try:
                     if obj is None:
                         return None
@@ -281,7 +281,7 @@ async def stream_model_request_node(
                 # Handle delta events
                 if isinstance(event, PartDeltaEvent):
                     if isinstance(event.delta, TextPartDelta):
-                        if event.delta.content_delta is not None and streaming_callback:
+                        if event.delta.content_delta is not None and streaming_callback is not None:
                             # Seed prefix logic before the first true delta
                             if not first_delta_seen:
                                 first_delta_seen = True

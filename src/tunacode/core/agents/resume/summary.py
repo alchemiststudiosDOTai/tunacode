@@ -186,7 +186,7 @@ Summary:"""
     # Use agent to generate summary
     try:
         result = await agent.run(summary_prompt)
-        summary_text = str(result.data)
+        summary_text = str(result.output)
     except Exception as e:
         logger.warning(f"Summary generation failed: {e}")
         # Fallback to truncated content

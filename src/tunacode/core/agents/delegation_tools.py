@@ -4,13 +4,19 @@ Module: tunacode.core.agents.delegation_tools
 Delegation tools for multi-agent workflows using pydantic-ai's delegation pattern.
 """
 
+import json
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from pydantic_ai import RunContext
 
 from tunacode.core.agents.research_agent import create_research_agent
 from tunacode.core.state import StateManager
 
 
-def create_research_codebase_tool(state_manager: StateManager):
+def create_research_codebase_tool(
+    state_manager: StateManager,
+) -> Callable[[RunContext[None], str, list[str] | None, int], Awaitable[dict[str, Any]]]:
     """Factory to create research_codebase delegation tool with state_manager closure.
 
     Args:
@@ -29,7 +35,7 @@ def create_research_codebase_tool(state_manager: StateManager):
         query: str,
         directories: list[str] | None = None,
         max_files: int = 3,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Delegate codebase research to specialized read-only agent.
 
         This tool creates a child agent with read-only tools (grep, glob, list_dir, read_file)
@@ -88,7 +94,19 @@ Return a structured summary with:
                 usage=ctx.usage,  # Share usage tracking with parent agent
             )
 
-            return result.output
+            # Parse JSON string response from research agent
+            output_str = result.output
+            try:
+                parsed: dict[str, Any] = json.loads(output_str)
+                return parsed
+            except (json.JSONDecodeError, TypeError):
+                # If not valid JSON, wrap the response in a structured format
+                return {
+                    "relevant_files": [],
+                    "key_findings": [output_str],
+                    "code_examples": [],
+                    "recommendations": [],
+                }
 
         except Exception as e:
             # Catch all delegation errors (validation failures, pydantic-ai errors, etc.)

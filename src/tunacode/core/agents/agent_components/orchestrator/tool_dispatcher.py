@@ -275,14 +275,15 @@ async def dispatch_tools(
 
         await execute_tools_parallel(read_only_tasks, tool_callback)
 
-    for part, task_node in write_execute_tasks:
-        if tool_start_callback:
-            tool_start_callback(getattr(part, "tool_name", UNKNOWN_TOOL_NAME))
+    if tool_callback is not None:
+        for part, task_node in write_execute_tasks:
+            if tool_start_callback:
+                tool_start_callback(getattr(part, "tool_name", UNKNOWN_TOOL_NAME))
 
-        try:
-            await tool_callback(part, task_node)
-        except UserAbortError:
-            raise
+            try:
+                await tool_callback(part, task_node)
+            except UserAbortError:
+                raise
 
     if tool_call_records:
         session_tool_calls = state_manager.session.tool_calls

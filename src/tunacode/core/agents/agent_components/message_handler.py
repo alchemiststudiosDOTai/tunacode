@@ -22,7 +22,7 @@ def get_model_messages() -> tuple[Any, Any, Any]:
     # Create minimal fallback for SystemPromptPart if it doesn't exist
     if not hasattr(messages, "SystemPromptPart"):
 
-        class SystemPromptPart:  # type: ignore
+        class SystemPromptPart:
             def __init__(self, content: str = "", role: str = "system", part_kind: str = ""):
                 self.content = content
                 self.role = role

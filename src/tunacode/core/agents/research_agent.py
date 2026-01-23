@@ -1,6 +1,7 @@
 """Research agent factory for read-only codebase exploration."""
 
 import inspect
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +61,7 @@ def _load_research_prompt() -> str:
     return resolve_prompt(prompt)
 
 
-def _create_limited_read_file(max_files: int):
+def _create_limited_read_file(max_files: int) -> Callable[[str], Awaitable[str]]:
     """Create a read_file wrapper that enforces a maximum number of calls.
 
     Args:
@@ -127,10 +128,12 @@ class ProgressTracker:
             )
             self.callback(progress)
 
-    def wrap_tool(self, tool_func, tool_name: str):
+    def wrap_tool(
+        self, tool_func: Callable[..., Awaitable[Any]], tool_name: str
+    ) -> Callable[..., Awaitable[Any]]:
         """Wrap a tool function to emit progress before execution."""
 
-        async def wrapped(*args, **kwargs) -> Any:
+        async def wrapped(*args: Any, **kwargs: Any) -> Any:
             # Format operation description
             if args:
                 first_arg = str(args[0])[:40]
@@ -158,7 +161,7 @@ def create_research_agent(
     state_manager: StateManager,
     max_files: int = 3,
     progress_callback: ToolProgressCallback | None = None,
-) -> Agent[dict[str, Any]]:
+) -> Agent[None, str]:
     """Create research agent with read-only tools and file read limit.
 
     IMPORTANT: Uses same model as main agent - do NOT hardcode model selection.
@@ -238,5 +241,5 @@ def create_research_agent(
         model=model_instance,
         system_prompt=system_prompt,
         tools=tools_list,
-        output_type=dict,  # Structured research output as JSON dict
+        # Note: Agent returns str by default. Caller parses JSON response.
     )

@@ -551,7 +551,7 @@ class RequestOrchestrator:
                     # Handle empty response
                     self.empty_handler.track(empty_response)
                     if empty_response and self.empty_handler.should_intervene():
-                        await self.empty_handler.prompt_action(self.message, empty_reason, i)
+                        await self.empty_handler.prompt_action(self.message, empty_reason or "", i)
 
                     # Track whether we produced visible user output this iteration
                     if getattr(getattr(node, "result", None), "output", None):

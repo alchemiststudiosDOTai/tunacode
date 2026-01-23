@@ -72,7 +72,7 @@ def is_user_prompt_part(part: Any) -> bool:
     """
     if not hasattr(part, "part_kind"):
         return False
-    return part.part_kind == PART_KIND_USER_PROMPT
+    return bool(part.part_kind == PART_KIND_USER_PROMPT)
 
 
 def count_user_turns(messages: list[Any]) -> int:

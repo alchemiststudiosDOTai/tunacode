@@ -3,10 +3,13 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from httpx import AsyncClient, HTTPStatusError, Request
 from pydantic_ai import Agent
+
+if TYPE_CHECKING:
+    from pydantic_ai import Tool
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
@@ -138,7 +141,7 @@ def _build_request_hooks(
     return {"request": [_delay_before_request]}
 
 
-def clear_all_caches():
+def clear_all_caches() -> None:
     """Clear all module-level caches. Useful for testing."""
     _TUNACODE_CACHE.clear()
     _AGENT_CACHE.clear()
@@ -184,7 +187,7 @@ def invalidate_agent_cache(model: str, state_manager: "StateManager") -> bool:
     return invalidated
 
 
-def get_agent_tool():
+def get_agent_tool() -> tuple[type[Agent], type["Tool"]]:
     """Lazy import for Agent and Tool to avoid circular imports."""
     from pydantic_ai import Tool
 
@@ -279,23 +282,33 @@ def load_tunacode_context() -> str:
         raise
 
 
-def _get_provider_config_from_registry(provider_name: str) -> dict:
+class _ProviderConfig:
+    """Provider configuration from registry."""
+
+    __slots__ = ("api", "env")
+
+    def __init__(self, api: str | None, env: list[str]) -> None:
+        self.api = api
+        self.env = env
+
+
+def _get_provider_config_from_registry(provider_name: str) -> _ProviderConfig:
     """Get provider config from models registry.
 
-    Returns dict with 'api' (base_url) and 'env' (list of env var names).
-    Returns empty dict if provider not found.
+    Returns config with 'api' (base_url) and 'env' (list of env var names).
+    Returns empty config if provider not found.
     """
     registry = load_models_registry()
     provider_data = registry.get(provider_name, {})
-    return {
-        "api": provider_data.get("api"),
-        "env": provider_data.get("env", []),
-    }
+    return _ProviderConfig(
+        api=provider_data.get("api"),
+        env=provider_data.get("env", []),
+    )
 
 
 def _create_model_with_retry(
     model_string: str, http_client: AsyncClient, state_manager: StateManager
-):
+) -> AnthropicModel | OpenAIChatModel | str:
     """Create a model instance with retry-enabled HTTP client.
 
     Parses model string in format 'provider:model_name' and creates
@@ -328,8 +341,8 @@ def _create_model_with_retry(
 
     # Get config from registry
     registry_config = _get_provider_config_from_registry(provider_name)
-    api_url = registry_config.get("api")
-    env_vars = registry_config.get("env", [])
+    api_url = registry_config.api
+    env_vars = registry_config.env
     api_key_name = env_vars[0] if env_vars else f"{provider_name.upper()}_API_KEY"
 
     # Use user override if set, otherwise registry URL
@@ -340,11 +353,11 @@ def _create_model_with_retry(
 
     # Only anthropic provider uses AnthropicModel, all others use OpenAI
     if provider_name == "anthropic":
-        provider = AnthropicProvider(api_key=api_key, base_url=base_url, http_client=http_client)
-        return AnthropicModel(model_name, provider=provider)
+        anthropic_provider = AnthropicProvider(api_key=api_key, base_url=base_url, http_client=http_client)
+        return AnthropicModel(model_name, provider=anthropic_provider)
     else:
-        provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
-        return OpenAIChatModel(model_name, provider=provider)
+        openai_provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
+        return OpenAIChatModel(model_name, provider=openai_provider)
 
 
 def get_or_create_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:
@@ -359,7 +372,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
     session_version = state_manager.session.agent_versions.get(model)
     if session_agent and session_version == agent_version:
         logger.debug(f"Agent cache hit (session): {model}")
-        return session_agent
+        return cast(PydanticAgent, session_agent)
     if session_agent and session_version != agent_version:
         logger.debug(f"Agent cache invalidated (session version mismatch): {model}")
         del state_manager.session.agents[model]
