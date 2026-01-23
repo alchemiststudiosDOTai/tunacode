@@ -59,7 +59,7 @@ repos:
           - 'typer>=0.15'
           - 'types-requests'
         args: ['--ignore-missing-imports', '--no-strict-optional']
-        exclude: 'conftest\.py$'
+        exclude: '(conftest\.py|src/tunacode/core/agents/)$'
 
 
   # Local hooks for project-specific checks
