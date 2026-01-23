@@ -30,7 +30,7 @@ The debug logs now show:
 ## Current Symptom
 
 - Session has 56 messages with tool calls
-- pydantic-ai receives all 56 messages correctly  
+- pydantic-ai receives all 56 messages correctly
 - Stream receives zero events from provider
 - Times out after 30s (stream watchdog) then 120s (global timeout)
 
@@ -67,7 +67,7 @@ This is likely:
 
 This is **NOT a tunacode bug** - it's a **provider compatibility issue**. Our code works perfectly:
 - ✅ Session serialization works
-- ✅ pydantic-ai integration works  
+- ✅ pydantic-ai integration works
 - ✅ Message history passes correctly
 - ❌ Provider rejects tool call history
 

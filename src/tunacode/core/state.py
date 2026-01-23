@@ -272,8 +272,7 @@ class StateManager:
             if msg_adapter is None:
                 message_type = type(msg).__name__
                 raise TypeError(
-                    "Cannot serialize non-dict message without pydantic adapter: "
-                    f"{message_type}"
+                    f"Cannot serialize non-dict message without pydantic adapter: {message_type}"
                 )
 
             serialized_message = msg_adapter.dump_python(msg, mode="json")

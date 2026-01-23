@@ -141,8 +141,7 @@ async def stream_model_request_node(
     node_type = type(node).__name__
     if debug_mode:
         logger.debug(
-            f"Stream init: node={node_type} request_id={request_id} "
-            f"iteration={iteration_index}"
+            f"Stream init: node={node_type} request_id={request_id} iteration={iteration_index}"
         )
         _log_stream_request_parts(node, debug_mode)
 

@@ -20,10 +20,9 @@ if TYPE_CHECKING:
     from pydantic_ai import Tool  # noqa: F401
 
 from tunacode.constants import UI_COLORS
-from tunacode.core.agents.resume import prune_old_tool_outputs
+from tunacode.core.agents.resume import log_message_history_debug, prune_old_tool_outputs
 from tunacode.core.agents.resume.sanitize import (
     find_dangling_tool_call_ids,
-    log_message_history_debug,
     remove_consecutive_requests,
     remove_dangling_tool_calls,
     remove_empty_responses,
@@ -218,7 +217,7 @@ class ReactSnapshotManager:
                     state = getattr(agent_run_ctx, "state", None)
                     if state and hasattr(state, "message_history"):
                         ctx_messages = state.message_history
-                    
+
                 if isinstance(ctx_messages, list):
                     ModelRequest, _, SystemPromptPart = ac.get_model_messages()
                     system_part = SystemPromptPart(
@@ -406,7 +405,7 @@ class RequestOrchestrator:
             last_kind = getattr(last_msg, "kind", None)
             if isinstance(last_msg, dict):
                 last_kind = last_msg.get("kind")
-            
+
             if last_kind == "request":
                 logger.lifecycle("Dropping trailing request to avoid consecutive requests")
                 session_messages.pop()
@@ -459,14 +458,8 @@ class RequestOrchestrator:
 
         # CRITICAL DEBUG: Verify message_history state before passing to agent.iter()
         if debug_mode:
-            type_names = (
-                [type(m).__name__ for m in message_history[:3]]
-                if message_history
-                else []
-            )
-            logger.debug(
-                f"message_history count={len(message_history)}, types={type_names}"
-            )
+            type_names = [type(m).__name__ for m in message_history[:3]] if message_history else []
+            logger.debug(f"message_history count={len(message_history)}, types={type_names}")
             if message_history:
                 logger.debug(
                     f"message_history[0]: {type(message_history[0]).__name__} "
@@ -490,15 +483,15 @@ class RequestOrchestrator:
             async with agent.iter(self.message, message_history=message_history) as run_handle:
                 logger.debug("agent.iter() context entered successfully")
                 agent_run = run_handle
-                
+
                 # CRITICAL DEBUG: Check if pydantic-ai received the message_history
-                if debug_mode and hasattr(run_handle, 'ctx'):
-                    ctx_messages = getattr(run_handle.ctx, 'messages', None)
+                if debug_mode and hasattr(run_handle, "ctx"):
+                    ctx_messages = getattr(run_handle.ctx, "messages", None)
                     if ctx_messages is None:
                         run_state = getattr(run_handle.ctx, "state", None)
                         if run_state and hasattr(run_state, "message_history"):
                             ctx_messages = run_state.message_history
-                    
+
                     if ctx_messages is not None:
                         logger.debug(f"pydantic-ai ctx.messages count={len(ctx_messages)}")
                         if ctx_messages:

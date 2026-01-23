@@ -18,6 +18,7 @@ from tunacode.core.agents.resume.sanitize import (
     run_cleanup_loop,
     sanitize_history_for_resume,
 )
+from tunacode.core.agents.resume.sanitize_debug import log_message_history_debug
 from tunacode.core.agents.resume.summary import (
     SummaryMessage,
     generate_summary,
@@ -29,6 +30,7 @@ __all__ = [
     # Sanitization
     "sanitize_history_for_resume",
     "run_cleanup_loop",
+    "log_message_history_debug",
     # Pruning
     "prune_old_tool_outputs",
     # Filtering
