@@ -42,7 +42,7 @@ def show_welcome(rich_log: RichLog) -> None:
     welcome.append("   /help", style=STYLE_PRIMARY)
     welcome.append("       - Show all commands\n")
     welcome.append("   /clear", style=STYLE_PRIMARY)
-    welcome.append("      - Clear conversation\n")
+    welcome.append("      - Clear agent state (messages preserved)\n")
     welcome.append("   /resume", style=STYLE_PRIMARY)
     welcome.append("     - Load saved session\n\n")
     welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)

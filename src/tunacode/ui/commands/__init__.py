@@ -70,14 +70,60 @@ class HelpCommand(Command):
 
 class ClearCommand(Command):
     name = "clear"
-    description = "Clear conversation history"
+    description = "Clear agent working state (UI, thoughts, todos)"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
+        session = app.state_manager.session
+        
+        # UI clear (visual only)
         app.rich_log.clear()
-        app.state_manager.session.messages = []
-        app.state_manager.session.total_tokens = 0
+        
+        # PRESERVE messages - needed for /resume
+        # PRESERVE total_tokens - represents conversation size
+        
+        # Clear agent working state
+        session.thoughts = []
+        session.tool_calls = []
+        session.tool_call_args_by_id = {}
+        session.files_in_context = set()
+        
+        # ReAct state (use helper)
+        app.state_manager.clear_react_scratchpad()
+        session.react_forced_calls = 0
+        session.react_guidance = []
+        
+        # Todos (use helper)
+        app.state_manager.clear_todos()
+        
+        # Counters
+        session.iteration_count = 0
+        session.current_iteration = 0
+        session.consecutive_empty_responses = 0
+        session.batch_counter = 0
+        
+        # Request lifecycle
+        session.request_id = ""
+        session.original_query = ""
+        session.operation_cancelled = False
+        
+        # Debug instrumentation
+        session._debug_events = []
+        session._debug_raw_stream_accum = ""
+        
+        # Usage tracking - reset last call, preserve session total
+        session.last_call_usage = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
+        # Keep session_total_usage - tracks lifetime session cost
+        
+        # Recursive execution state (use helper)
+        app.state_manager.reset_recursive_state()
+        
+        # Update UI and notify
         app._update_resource_bar()
-        app.notify("Cleared conversation history")
+        app.notify("Cleared agent state (messages preserved for /resume)")
+        
+        # Save session to persist the cleared state
+        # Messages are preserved, so /resume will still work
+        app.state_manager.save_session()
 
 
 class YoloCommand(Command):

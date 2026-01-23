@@ -120,7 +120,7 @@ Custom Textual widgets:
 
 REPL command implementations:
 - **HelpCommand** - `/help` - Show available commands
-- **ClearCommand** - `/clear` - Clear conversation history
+- **ClearCommand** - `/clear` - Clear agent working state (UI, thoughts, todos) - messages preserved for /resume
 - **YoloCommand** - `/yolo` - Toggle auto-confirm for tool executions
 - **DebugCommand** - `/debug` - Toggle debug logging to screen (logs to ~/.local/share/tunacode/logs/)
 - **ModelCommand** - `/model` - Open model picker or switch directly
