@@ -3,6 +3,10 @@
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from tunacode.core.agents.resume.sanitize_debug import (
+    DEBUG_NEWLINE_REPLACEMENT,
+    DEBUG_PREVIEW_SUFFIX,
+)
 from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.types import AgentState
@@ -27,8 +31,6 @@ TOOL_RESULT_STATUS_COMPLETED = "completed"
 # Preview length limits for debug logging
 THOUGHT_PREVIEW_LENGTH = 80
 RESPONSE_PREVIEW_LENGTH = 100
-DEBUG_PREVIEW_SUFFIX = "..."
-DEBUG_NEWLINE_REPLACEMENT = "\\n"
 DEBUG_PART_PREVIEW_LENGTH = RESPONSE_PREVIEW_LENGTH
 
 ToolResultCallback = Callable[..., None]
