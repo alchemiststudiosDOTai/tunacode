@@ -103,23 +103,23 @@ class TestExecuteToolsParallel:
         return MagicMock()
 
     async def test_success_on_first_attempt(self, mock_part, mock_node):
-        """Successful call on first attempt returns result."""
-        callback = AsyncMock(return_value="success")
+        """Successful call on first attempt returns None (callback for side effects)."""
+        callback = AsyncMock(return_value=None)
         tool_calls = [(mock_part, mock_node)]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["success"]
+        assert results == [None]
         assert callback.call_count == 1
 
     async def test_success_on_second_attempt(self, mock_part, mock_node):
         """Retry on failure, succeed on second attempt."""
-        callback = AsyncMock(side_effect=[RuntimeError("transient"), "success"])
+        callback = AsyncMock(side_effect=[RuntimeError("transient"), None])
         tool_calls = [(mock_part, mock_node)]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["success"]
+        assert results == [None]
         assert callback.call_count == 2
 
     async def test_success_on_third_attempt(self, mock_part, mock_node):
@@ -128,14 +128,14 @@ class TestExecuteToolsParallel:
             side_effect=[
                 RuntimeError("transient1"),
                 RuntimeError("transient2"),
-                "success",
+                None,
             ]
         )
         tool_calls = [(mock_part, mock_node)]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["success"]
+        assert results == [None]
         assert callback.call_count == 3
 
     async def test_fails_after_max_retries(self, mock_part, mock_node):
@@ -212,19 +212,19 @@ class TestExecuteToolsParallel:
     async def test_multiple_tools_all_succeed(self, mock_node):
         """Multiple tools all succeed on first attempt."""
         parts = [MagicMock(tool_name=f"tool_{i}") for i in range(3)]
-        callback = AsyncMock(side_effect=["result1", "result2", "result3"])
+        callback = AsyncMock(side_effect=[None, None, None])
         tool_calls = [(p, mock_node) for p in parts]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["result1", "result2", "result3"]
+        assert results == [None, None, None]
 
     async def test_multiple_tools_one_fails(self, mock_node):
         """One failing tool causes entire batch to fail after retries."""
         parts = [MagicMock(tool_name=f"tool_{i}") for i in range(2)]
         # First tool succeeds, second always fails with retryable error
         error = RuntimeError("always fails")
-        callback = AsyncMock(side_effect=["success", error, error, error])
+        callback = AsyncMock(side_effect=[None, error, error, error])
         tool_calls = [(p, mock_node) for p in parts]
 
         with pytest.raises(RuntimeError, match="always fails"):
@@ -255,30 +255,30 @@ class TestExecuteToolsParallel:
 
     async def test_generic_exception_is_retried(self, mock_part, mock_node):
         """Generic exceptions (not in non-retryable) are retried."""
-        callback = AsyncMock(side_effect=[RuntimeError("transient"), "success"])
+        callback = AsyncMock(side_effect=[RuntimeError("transient"), None])
         tool_calls = [(mock_part, mock_node)]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["success"]
+        assert results == [None]
         assert callback.call_count == 2
 
     async def test_timeout_error_is_retried(self, mock_part, mock_node):
         """TimeoutError is retried."""
-        callback = AsyncMock(side_effect=[TimeoutError("network timeout"), "success"])
+        callback = AsyncMock(side_effect=[TimeoutError("network timeout"), None])
         tool_calls = [(mock_part, mock_node)]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["success"]
+        assert results == [None]
         assert callback.call_count == 2
 
     async def test_os_error_is_retried(self, mock_part, mock_node):
         """OSError is retried."""
-        callback = AsyncMock(side_effect=[OSError("disk busy"), "success"])
+        callback = AsyncMock(side_effect=[OSError("disk busy"), None])
         tool_calls = [(mock_part, mock_node)]
 
         results = await execute_tools_parallel(tool_calls, callback)
 
-        assert results == ["success"]
+        assert results == [None]
         assert callback.call_count == 2

@@ -4,7 +4,7 @@ import asyncio
 import os
 import random
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic_ai import ModelRetry
 
@@ -71,7 +71,9 @@ async def execute_tools_parallel(
     tool_count = len(tool_calls)
     logger.lifecycle(f"Tool execution start (count={tool_count}, max_parallel={max_parallel})")
 
-    async def execute_with_retry(part: "ToolCallPart", node: "StreamedRunResult[None, str]") -> None:
+    async def execute_with_retry(
+        part: "ToolCallPart", node: "StreamedRunResult[None, str]"
+    ) -> None:
         tool_name = getattr(part, "tool_name", "unknown")
         start = time.perf_counter()
         logger.lifecycle(f"Tool start (tool={tool_name})")

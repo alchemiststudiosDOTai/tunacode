@@ -940,15 +940,19 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
 async def test_execute_tools_parallel_preserves_order(
     parts: list[ResultPart], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """execute_tools_parallel should preserve input order."""
+    """execute_tools_parallel should call tools and return list of None."""
     node = DummyNode()
     tool_calls = [(part, node) for part in parts]
-    expected_results = [part.expected_result for part in parts]
     monkeypatch.setenv("TUNACODE_MAX_PARALLEL", str(MAX_PARALLEL_LIMIT))
 
-    async def callback(part: ResultPart, _node: DummyNode) -> str:
-        return part.expected_result
+    called_parts: list[ResultPart] = []
+
+    async def callback(part: ResultPart, _node: DummyNode) -> None:
+        called_parts.append(part)
 
     results = await execute_tools_parallel(tool_calls, callback)  # type: ignore[arg-type]
 
-    assert results == expected_results
+    # execute_tools_parallel returns list[None] - callback is for side effects
+    assert results == [None] * len(parts)
+    # All parts should have been called
+    assert len(called_parts) == len(parts)

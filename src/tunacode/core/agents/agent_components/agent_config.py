@@ -353,10 +353,14 @@ def _create_model_with_retry(
 
     # Only anthropic provider uses AnthropicModel, all others use OpenAI
     if provider_name == "anthropic":
-        anthropic_provider = AnthropicProvider(api_key=api_key, base_url=base_url, http_client=http_client)
+        anthropic_provider = AnthropicProvider(
+            api_key=api_key, base_url=base_url, http_client=http_client
+        )
         return AnthropicModel(model_name, provider=anthropic_provider)
     else:
-        openai_provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
+        openai_provider = OpenAIProvider(
+            api_key=api_key, base_url=base_url, http_client=http_client
+        )
         return OpenAIChatModel(model_name, provider=openai_provider)
 
 
