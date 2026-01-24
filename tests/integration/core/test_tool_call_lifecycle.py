@@ -10,7 +10,7 @@ Related:
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
@@ -38,7 +38,14 @@ from tunacode.core.agents.agent_components.tool_executor import execute_tools_pa
 from tunacode.core.agents.main import _remove_dangling_tool_calls
 from tunacode.core.state import SessionState, StateManager
 from tunacode.exceptions import StateError
-from tunacode.types import AgentState, ToolArgs, ToolCallId
+from tunacode.types import (
+    AgentState,
+    MessageLike,
+    SerializedMessage,
+    SerializedMessagePart,
+    ToolArgs,
+    ToolCallId,
+)
 
 # Mark all tests in this module as hypothesis property tests
 pytestmark = pytest.mark.hypothesis
@@ -80,6 +87,26 @@ RESEARCH_TOOL_NAME = ToolName.RESEARCH_CODEBASE.value
 ALL_TOOL_NAMES = READ_ONLY_TOOL_NAMES + WRITE_EXECUTE_TOOL_NAMES + [RESEARCH_TOOL_NAME]
 
 TOOL_CALL_FORMATS = ("qwen2_xml", "hermes", "code_fence", "raw_json")
+REAL_SESSION_COMMAND_KEY = "command"
+REAL_SESSION_COMMAND_VALUE = "git clean -f"
+REAL_SESSION_TOOL_NAME = "bash"
+REAL_SESSION_TOOL_CALL_ID = "sJiDRn0Ko"
+REAL_SESSION_TOOL_CALL_PART_KIND = "tool-call"
+REAL_SESSION_MESSAGE_KIND = "response"
+REAL_SESSION_TOOL_ARGS_DICT = {REAL_SESSION_COMMAND_KEY: REAL_SESSION_COMMAND_VALUE}
+REAL_SESSION_TOOL_ARGS_JSON = json.dumps(REAL_SESSION_TOOL_ARGS_DICT)
+REAL_SESSION_TOOL_CALL_PART: SerializedMessagePart = {
+    "tool_name": REAL_SESSION_TOOL_NAME,
+    "args": REAL_SESSION_TOOL_ARGS_JSON,
+    "tool_call_id": REAL_SESSION_TOOL_CALL_ID,
+    "id": None,
+    "provider_details": None,
+    "part_kind": REAL_SESSION_TOOL_CALL_PART_KIND,
+}
+REAL_SESSION_DANGLING_TOOL_CALL_MESSAGE: SerializedMessage = {
+    "parts": [REAL_SESSION_TOOL_CALL_PART],
+    "kind": REAL_SESSION_MESSAGE_KIND,
+}
 
 
 # =============================================================================
@@ -550,16 +577,16 @@ def test_remove_dangling_removes_trailing_tool_calls(
 ) -> None:
     """_remove_dangling_tool_calls should remove trailing tool call messages."""
     # Arrange: Create messages with trailing tool calls
-    messages = []
+    messages: list[MessageLike] = []
     tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {}
 
     for part in call_parts:
         msg = MockMessage(tool_calls=[part], parts=[part])
-        messages.append(msg)
+        messages.append(cast(MessageLike, msg))
         tool_call_args_by_id[part.tool_call_id] = part.args
 
     # Add a non-tool-call message at start (should not be removed)
-    messages.insert(0, MockMessage(tool_calls=[], parts=[]))
+    messages.insert(0, cast(MessageLike, MockMessage(tool_calls=[], parts=[])))
 
     initial_count = len(messages)
 
@@ -578,6 +605,21 @@ def test_remove_dangling_removes_trailing_tool_calls(
         assert len(messages) == initial_count
 
 
+def test_remove_dangling_dict_message_from_real_session(session_state: SessionState) -> None:
+    """_remove_dangling_tool_calls should handle dict messages from saved sessions."""
+    dangling_message = cast(SerializedMessage, dict(REAL_SESSION_DANGLING_TOOL_CALL_MESSAGE))
+    tool_call_args_by_id = {REAL_SESSION_TOOL_CALL_ID: REAL_SESSION_TOOL_ARGS_DICT}
+    messages: list[MessageLike] = [dangling_message]
+
+    assert "tool_calls" not in dangling_message
+
+    removed = _remove_dangling_tool_calls(messages, tool_call_args_by_id)
+
+    assert removed is True
+    assert len(messages) == 0
+    assert tool_call_args_by_id == {}
+
+
 def test_remove_dangling_stops_at_non_tool_message(session_state: SessionState) -> None:
     """_remove_dangling_tool_calls should stop at first non-tool message."""
     # Arrange: Mixed messages
@@ -585,7 +627,10 @@ def test_remove_dangling_stops_at_non_tool_message(session_state: SessionState) 
     non_tool_msg = MockMessage(tool_calls=[], parts=[])
     dangling_tool_msg = MockMessage(tool_calls=[tool_call], parts=[tool_call])
 
-    messages = [non_tool_msg, dangling_tool_msg]
+    messages: list[MessageLike] = [
+        cast(MessageLike, non_tool_msg),
+        cast(MessageLike, dangling_tool_msg),
+    ]
     tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
 
     # Act
@@ -598,7 +643,7 @@ def test_remove_dangling_stops_at_non_tool_message(session_state: SessionState) 
 
 def test_remove_dangling_with_empty_messages(session_state: SessionState) -> None:
     """_remove_dangling_tool_calls should handle empty message list."""
-    messages: list[Any] = []
+    messages: list[MessageLike] = []
     tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {}
 
     # Act
@@ -627,7 +672,7 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
         tool_name="bash", args={"command": "sleep 60"}, tool_call_id="call_timeout123"
     )
     dangling_message = MockMessage(tool_calls=[tool_call], parts=[tool_call])
-    messages: list[Any] = [dangling_message]
+    messages: list[MessageLike] = [cast(MessageLike, dangling_message)]
     tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {tool_call.tool_call_id: tool_call.args}
 
     # Act: Simulate the cleanup that happens in except (UserAbortError, CancelledError) block
@@ -646,9 +691,9 @@ def test_remove_dangling_clears_corresponding_args(session_state: SessionState) 
     call_1 = ToolCallPart(tool_name="read_file", args={"path": "file1"}, tool_call_id="call_1")
     call_2 = ToolCallPart(tool_name="grep", args={"pattern": "test"}, tool_call_id="call_2")
 
-    messages = [
-        MockMessage(tool_calls=[call_1], parts=[call_1]),
-        MockMessage(tool_calls=[call_2], parts=[call_2]),
+    messages: list[MessageLike] = [
+        cast(MessageLike, MockMessage(tool_calls=[call_1], parts=[call_1])),
+        cast(MessageLike, MockMessage(tool_calls=[call_2], parts=[call_2])),
     ]
     tool_call_args_by_id = {
         call_1.tool_call_id: call_1.args,

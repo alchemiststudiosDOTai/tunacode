@@ -12,7 +12,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic_ai import Agent
 
@@ -27,6 +27,8 @@ from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
 from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
+    MessageLike,
+    MessagePartLike,
     ModelName,
     NoticeCallback,
     ToolArgs,
@@ -40,6 +42,8 @@ from . import agent_components as ac
 colors = DotDict(UI_COLORS)
 
 PART_KIND_TOOL_CALL: str = "tool-call"
+PART_KIND_ATTR: str = "part_kind"
+PARTS_ATTR: str = "parts"
 TOOL_CALLS_ATTR: str = "tool_calls"
 TOOL_CALL_ID_ATTR: str = "tool_call_id"
 DANGLING_TOOL_CALLS_CLEANUP_MESSAGE: str = "Dangling tool calls removed before request"
@@ -484,34 +488,75 @@ async def _finalize_buffered_tasks(
     await ac.execute_tools_parallel(buffered_tasks, tool_callback)
 
 
-def _message_has_tool_calls(message: Any) -> bool:
-    """Return True if message is a model response containing tool calls."""
-    tool_calls = getattr(message, TOOL_CALLS_ATTR, None)
-    if tool_calls is None:
+def _get_message_attr(message: MessageLike, attr_name: str) -> object | None:
+    """Return attribute value from dicts or objects."""
+    if isinstance(message, dict):
+        return message.get(attr_name)
+    return getattr(message, attr_name, None)
+
+
+def _get_part_attr(part: MessagePartLike, attr_name: str) -> object | None:
+    """Return part attribute from dicts or objects."""
+    if isinstance(part, dict):
+        return part.get(attr_name)
+    return getattr(part, attr_name, None)
+
+
+def _coerce_part_list(value: object | None) -> list[MessagePartLike]:
+    """Return a list of parts from list/tuple values; otherwise empty."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return cast(list[MessagePartLike], value)
+    if isinstance(value, tuple):
+        return list(cast(tuple[MessagePartLike, ...], value))
+    return []
+
+
+def _message_has_tool_calls(message: MessageLike) -> bool:
+    """Return True if message contains tool call parts or metadata."""
+    tool_calls_value = _get_message_attr(message, TOOL_CALLS_ATTR)
+    if tool_calls_value is not None:
+        tool_calls = _coerce_part_list(tool_calls_value)
+        return bool(tool_calls)
+
+    parts_value = _get_message_attr(message, PARTS_ATTR)
+    parts = _coerce_part_list(parts_value)
+    if not parts:
         return False
-    return bool(tool_calls)
+
+    for part in parts:
+        part_kind = _get_part_attr(part, PART_KIND_ATTR)
+        if part_kind == PART_KIND_TOOL_CALL:
+            return True
+
+    return False
 
 
-def _collect_tool_call_ids(message: Any) -> list[ToolCallId]:
+def _collect_tool_call_ids(message: MessageLike) -> list[ToolCallId]:
     """Collect tool_call_id values from tool-call parts in a message."""
-    parts = getattr(message, "parts", None)
+    parts_value = _get_message_attr(message, PARTS_ATTR)
+    parts = _coerce_part_list(parts_value)
     if not parts:
         return []
 
     tool_call_ids: list[ToolCallId] = []
     for part in parts:
-        part_kind = getattr(part, "part_kind", None)
+        part_kind = _get_part_attr(part, PART_KIND_ATTR)
         if part_kind != PART_KIND_TOOL_CALL:
             continue
-        tool_call_id = getattr(part, TOOL_CALL_ID_ATTR, None)
-        if tool_call_id is None:
+        tool_call_id_value = _get_part_attr(part, TOOL_CALL_ID_ATTR)
+        if tool_call_id_value is None:
             continue
+        if not isinstance(tool_call_id_value, str):
+            continue
+        tool_call_id: ToolCallId = tool_call_id_value
         tool_call_ids.append(tool_call_id)
     return tool_call_ids
 
 
 def _remove_dangling_tool_calls(
-    messages: list[Any],
+    messages: list[MessageLike],
     tool_call_args_by_id: dict[ToolCallId, ToolArgs],
 ) -> bool:
     """Trim trailing tool-call responses and clear cached args."""

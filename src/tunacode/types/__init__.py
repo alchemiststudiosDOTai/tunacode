@@ -73,6 +73,12 @@ from tunacode.types.dataclasses import (
     ToolConfirmationRequest,
     ToolConfirmationResponse,
 )
+from tunacode.types.messages import (
+    MessageLike,
+    MessagePartLike,
+    SerializedMessage,
+    SerializedMessagePart,
+)
 
 # Pydantic-AI wrappers
 from tunacode.types.pydantic_ai import (
@@ -152,6 +158,11 @@ __all__ = [
     "NoticeCallback",
     "UICallback",
     "UIInputCallback",
+    # Serialized messages
+    "MessageLike",
+    "MessagePartLike",
+    "SerializedMessage",
+    "SerializedMessagePart",
     # State
     "SessionStateProtocol",
     "StateManagerProtocol",

@@ -62,6 +62,7 @@ agent.iter() -> Provider HTTP Request
 **process_request()** in `main.py`
 - Creates RequestOrchestrator with agent configuration
 - **Prunes old tool outputs before iteration** (line 369)
+- Removes dangling tool calls before iteration, including serialized session messages
 - Iterates through agent responses until completion
 - Handles tool execution and result aggregation
 - Tracks iteration counters during the run

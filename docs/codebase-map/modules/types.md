@@ -50,6 +50,12 @@ Callback type definitions:
 - **ToolResult** - Tool result wrapper
 - Custom type adapters
 
+### messages.py
+**Serialized message shapes:**
+- **SerializedMessage** - JSON session message payload
+- **SerializedMessagePart** - JSON message part payload
+- **MessageLike** - Union for serialized dicts and runtime message objects
+
 ## Type Categories
 
 ### Primitive Aliases
