@@ -624,31 +624,29 @@ async def _finalize_buffered_tasks(
 
 
 def _message_has_tool_calls(message: Any) -> bool:
-    """Return True if message contains tool calls in parts or metadata."""
-    part_kind_tool_call = "tool-call"
-    part_kind_attr = "part_kind"
-    parts_attr = "parts"
-    tool_calls_attr = "tool_calls"
+    """Return True if message contains tool calls in parts or metadata.
 
+    Handles both pydantic-ai message objects and raw dicts (from failed deserialization).
+    """
+    # Handle both object and dict forms (dicts occur when deserialization fails)
     if isinstance(message, dict):
-        parts = message.get(parts_attr, [])
-        tool_calls = message.get(tool_calls_attr, [])
+        parts = message.get("parts", [])
+        tool_calls = message.get("tool_calls", [])
     else:
-        parts = getattr(message, parts_attr, [])
-        tool_calls = getattr(message, tool_calls_attr, [])
+        parts = getattr(message, "parts", [])
+        tool_calls = getattr(message, "tool_calls", [])
 
     if tool_calls:
         return True
-    if not parts:
-        return False
 
     for part in parts:
         if isinstance(part, dict):
-            part_kind = part.get(part_kind_attr)
+            part_kind = part.get("part_kind")
         else:
-            part_kind = getattr(part, part_kind_attr, None)
-        if part_kind == part_kind_tool_call:
+            part_kind = getattr(part, "part_kind", None)
+        if part_kind == "tool-call":
             return True
+
     return False
 
 
