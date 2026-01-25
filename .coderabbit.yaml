@@ -1,0 +1,341 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit configuration for tunacode
+# Generated from analysis of 2 months of PRs (Nov 2025 - Jan 2026)
+
+language: "en-US"
+tone_instructions: |
+  Be direct and technical. Focus on correctness over style.
+  Flag potential bugs and state corruption issues prominently.
+  Reference specific CLAUDE.md gates when violations are found.
+early_access: false
+
+reviews:
+  profile: "assertive"  # Thorough feedback - this project values catching bugs early
+  request_changes_workflow: false  # Don't block, but provide strong feedback
+  high_level_summary: true
+  high_level_summary_instructions: |
+    Focus on:
+    1. State management changes (SessionState, messages, tool calls)
+    2. Exception handling paths
+    3. Type safety improvements or regressions
+    4. Dead code added or removed
+  poem: false  # Keep it professional
+  review_status: true
+  review_details: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false  # Not useful for this codebase
+
+  # Files to exclude from review
+  path_filters:
+    - "!**/docs/**"
+    - "!**/*.md"
+    - "!**/memory-bank/**"
+    - "!**/.claude/**"
+    - "!**/assets/**"
+    - "!**/*.json"
+    - "!**/*.yaml"
+    - "!**/*.yml"
+    - "!**/vulture_whitelist.py"
+    - "!**/__pycache__/**"
+    - "!**/.venv/**"
+
+  # Path-specific review instructions based on common bugs
+  path_instructions:
+    # Core agent code - highest risk area for state bugs
+    - path: "src/tunacode/core/agents/**/*.py"
+      instructions: |
+        CRITICAL REVIEW AREA - Most bugs in last 2 months originated here.
+
+        Check for these specific bug patterns:
+
+        1. DANGLING TOOL CALLS (PRs #283, #257, #246):
+           - Every exception handler in agent loops MUST clean up state
+           - If messages are mutated before an await, the except block MUST handle cleanup
+           - Look for: `except (UserAbortError, asyncio.CancelledError)` without cleanup
+           - Pattern: `_remove_dangling_tool_calls()` should be called on abort
+
+        2. FROZEN DATACLASS MUTATION (PR #279):
+           - pydantic-ai messages are frozen dataclasses
+           - NEVER use `setattr()` on message objects
+           - MUST use `dataclasses.replace()` to create new instances
+           - Look for: `setattr(message, ...)` or `message.field = ...`
+
+        3. SHALLOW COPY CORRUPTION (PR #289):
+           - `.copy()` does NOT deep copy nested dicts
+           - Mutating a shallow copy pollutes the original
+           - Look for: `config.copy()` followed by mutation of nested keys
+           - Fix: Either use `deepcopy()` or don't mutate at all
+
+        4. GATE 6 - Exception Paths Are First-Class:
+           - Every `try` block: what state is dirty if exception occurs?
+           - Every `except` block: does it restore valid state?
+           - Message lists MUST have matching tool calls and returns
+
+    # Resume/session handling - high bug frequency
+    - path: "src/tunacode/core/agents/resume/**/*.py"
+      instructions: |
+        Session resume is fragile. PRs #272, #275 fixed hangs and data loss here.
+
+        Verify:
+        1. History sanitization handles ALL message formats (dict and pydantic objects)
+        2. System prompts are stripped (pydantic-ai injects them automatically)
+        3. Consecutive user requests are detected and handled
+        4. Empty responses are removed
+        5. Tool call/return invariant is maintained
+
+    # State management
+    - path: "src/tunacode/core/state.py"
+      instructions: |
+        State persistence is critical. PR #275 fixed /clear deleting conversation history.
+
+        Verify:
+        1. SessionState modifications are intentional
+        2. Auto-save doesn't persist invalid state
+        3. Clear operations preserve what should be preserved (messages for /resume)
+        4. No shallow copies of nested structures
+
+    # Tools - dependency direction and contracts
+    - path: "src/tunacode/tools/**/*.py"
+      instructions: |
+        Tools layer rules (CLAUDE.md Gates 2 & 3):
+
+        1. DEPENDENCY DIRECTION: tools/ MUST NOT import from ui/ or core/
+           - Only allowed: utils/, types/, standard library
+           - Check imports at top of file
+
+        2. DESIGN BY CONTRACT:
+           - Preconditions: Validate inputs, raise if invalid
+           - Postconditions: Return type must match annotation
+           - NO silent failures - raise exceptions, don't return None for errors
+
+        3. READ_ONLY_TOOLS list must be updated if tool doesn't modify state
+
+    # UI layer
+    - path: "src/tunacode/ui/**/*.py"
+      instructions: |
+        UI layer rules:
+
+        1. DEPENDENCY DIRECTION: ui/ can import from core/, tools/, utils/, types/
+           - core/ MUST NOT import from ui/ (check for violations)
+
+        2. GATE 5 - Indirection Requires Verification:
+           - If using `expand=True`, verify actual rendered width
+           - Panel widths should be explicit, not delegated
+
+        3. Command implementations:
+           - Must handle errors gracefully
+           - Must not corrupt session state (see PR #264 /update crash)
+
+    # Type definitions
+    - path: "src/tunacode/types/**/*.py"
+      instructions: |
+        Type layer is at the bottom of the dependency hierarchy.
+
+        1. types/ MUST NOT import from ui/, core/, or tools/
+        2. Only standard library and typing imports allowed
+        3. All type definitions must have proper annotations
+        4. Canonical types (PR #293) are immutable - use frozen=True
+
+  # Auto-review settings
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "DRAFT"
+      - "[skip ci]"
+      - "[skip review]"
+    labels:
+      - "!skip-ai-review"
+    base_branches:
+      - "master"
+      - "main"
+      - "develop"
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "pre-commit-ci[bot]"
+
+  # Pre-merge checks based on common issues
+  pre_merge_checks:
+    title:
+      mode: "warning"
+      requirements: |
+        PR title should follow conventional commits format:
+        - feat: for new features
+        - fix: for bug fixes
+        - chore: for maintenance
+        - refactor: for code restructuring
+        - docs: for documentation only
+        - test: for test changes
+        Title should be under 72 characters.
+
+    description:
+      mode: "warning"
+
+    # Custom checks derived from bug history
+    custom_checks:
+      - name: "NoShallowCopyMutation"
+        mode: "error"
+        instructions: |
+          Check for shallow copy followed by nested dict mutation.
+          This pattern caused PR #289 (config corruption):
+
+          BAD:
+          ```python
+          config = DEFAULT_CONFIG.copy()
+          config["settings"]["key"] = value  # Mutates original!
+          ```
+
+          GOOD:
+          ```python
+          from copy import deepcopy
+          config = deepcopy(DEFAULT_CONFIG)
+          config["settings"]["key"] = value
+          ```
+
+          OR BETTER - don't mutate at all:
+          ```python
+          config = {**DEFAULT_CONFIG, "settings": {**DEFAULT_CONFIG["settings"], "key": value}}
+          ```
+
+          Flag any `.copy()` on a dict that contains nested dicts/lists.
+
+      - name: "ExceptionPathCleanup"
+        mode: "warning"
+        instructions: |
+          In agent/orchestration code, verify exception handlers clean up state.
+
+          This check is for CLAUDE.md Gate 6: Exception Paths Are First-Class.
+
+          Look for patterns where:
+          1. State is mutated (messages.append, session modifications)
+          2. An await or function call follows that could raise
+          3. The except block does NOT clean up the mutation
+
+          PRs #283, #257, #246 all fixed variations of this pattern.
+
+          Flag if: `except (UserAbortError, CancelledError)` exists without
+          corresponding cleanup like `_remove_dangling_tool_calls()` or state rollback.
+
+      - name: "NoSetAttrOnPydantic"
+        mode: "error"
+        instructions: |
+          pydantic-ai message objects are frozen dataclasses.
+          Using setattr() on them silently fails (PR #279).
+
+          BAD:
+          ```python
+          setattr(message, "parts", new_parts)
+          message.parts = new_parts  # Also fails silently on frozen
+          ```
+
+          GOOD:
+          ```python
+          from dataclasses import replace
+          new_message = replace(message, parts=new_parts)
+          ```
+
+          Flag any setattr() call on objects that could be pydantic messages.
+
+      - name: "DependencyDirection"
+        mode: "warning"
+        instructions: |
+          Enforce CLAUDE.md Gate 2: Dependency Direction.
+
+          Dependency flow: ui → core → tools → utils/types
+
+          VIOLATIONS to flag:
+          - core/ importing from ui/
+          - tools/ importing from ui/
+          - tools/ importing from core/
+          - types/ importing from anything except stdlib/typing
+
+          Check import statements at top of changed files.
+
+      - name: "NoSilentFailures"
+        mode: "warning"
+        instructions: |
+          Enforce CLAUDE.md error handling: "Fail fast, fail loud. No silent fallbacks."
+
+          Flag these patterns:
+          1. `except: pass` or `except Exception: pass`
+          2. `return None` in error paths without raising
+          3. Empty except blocks
+          4. Catching broad exceptions without re-raising or logging
+
+          Functions should raise exceptions for invalid inputs, not return
+          sentinel values like None, [], or {}.
+
+      - name: "MagicNumbers"
+        mode: "warning"
+        instructions: |
+          CLAUDE.md: "Never use magic literals; symbolic constants are preferred."
+
+          Flag numeric literals that should be named constants:
+          - Timeouts (e.g., `timeout=30` should be `timeout=DEFAULT_TIMEOUT`)
+          - Buffer sizes (e.g., `1024`, `4096`)
+          - Retry counts
+          - Token limits
+
+          Exceptions (don't flag):
+          - 0, 1, -1 in common idioms
+          - Line numbers in assertions
+          - Test data
+
+  # Code generation features
+  finishing_touches:
+    docstrings:
+      enabled: false  # Project doesn't require docstrings on everything
+    unit_tests:
+      enabled: false  # Tests are manually written with specific patterns
+
+  # Tool integrations - leverage existing tooling
+  tools:
+    # Python linters we already use
+    ruff:
+      enabled: true  # Matches our pyproject.toml config
+    mypy:
+      enabled: true  # Matches our strict mypy config
+
+    # Security (already in pre-commit but good to double-check)
+    bandit:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+    # Disable tools we don't use or that duplicate our setup
+    eslint:
+      enabled: false
+    biome:
+      enabled: false
+    markdownlint:
+      enabled: false  # Disabled in pre-commit due to Node compatibility
+    yamllint:
+      enabled: false  # We validate YAML in pre-commit
+
+    # GitHub checks integration
+    github-checks:
+      enabled: true
+      timeout_ms: 120000  # 2 minutes - allow CI to run
+
+chat:
+  auto_reply: true
+  art: false  # Keep responses professional
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - ".claude/skills/*/SKILL.md"
+  learnings:
+    scope: "local"
+  issues:
+    scope: "local"
+  pull_requests:
+    scope: "local"
