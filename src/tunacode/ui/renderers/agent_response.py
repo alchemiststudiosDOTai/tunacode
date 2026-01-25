@@ -192,7 +192,8 @@ def render_agent_response(
     status_parts = []
     if model:
         status_parts.append(_format_model(model))
-    status_parts.append(f"{tokens * 1000 / duration_ms:.0f} t/s")
+    if tokens > 0 and duration_ms > 0:
+        status_parts.append(f"{tokens * 1000 / duration_ms:.0f} t/s")
     if tokens > 0:
         status_parts.append(_format_tokens(tokens))
     if duration_ms > 0:
