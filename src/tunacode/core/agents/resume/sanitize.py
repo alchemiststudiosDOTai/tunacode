@@ -130,20 +130,6 @@ def _replace_message_fields(message: Any, updates: dict[str, Any]) -> Any:
     raise TypeError(f"Unsupported message type for updates: {message_type} ({update_fields})")
 
 
-def _clone_message_fields(message: Any, updates: dict[str, Any]) -> Any:
-    """Return a copy of the message with updates applied when possible."""
-    if isinstance(message, dict):
-        new_message = message.copy()
-        if updates:
-            new_message.update(updates)
-        return new_message
-
-    if not updates:
-        return message
-
-    return _replace_message_fields(message, updates)
-
-
 def _apply_message_updates(message: Any, updates: dict[str, Any]) -> Any:
     """Apply updates to a message, mutating when possible."""
     if not updates:
@@ -159,7 +145,7 @@ def _apply_message_updates(message: Any, updates: dict[str, Any]) -> Any:
         for key, value in updates.items():
             try:
                 setattr(message, key, value)
-            except Exception:
+            except (AttributeError, TypeError):
                 can_set_attrs = False
                 break
 
@@ -454,7 +440,7 @@ def sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
         if supports_run_id:
             updates[RUN_ID_ATTR] = None
 
-        sanitized_message = _clone_message_fields(message, updates)
+        sanitized_message = _replace_message_fields(message, updates)
         sanitized_messages.append(sanitized_message)
 
     if system_prompts_stripped > 0:

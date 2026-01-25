@@ -223,8 +223,7 @@ The module handles multiple pydantic-ai message part kinds:
 | `system-prompt` | System instructions | No |
 | `tool-call` | Tool invocation | Yes |
 | `tool-return` | Successful tool result | Yes |
-| `retry-prompt` | Tool failure retry prompt | Yes |
-| `retry-prompt` | Error response for failed tools | Yes |
+| `retry-prompt` | Tool failure / error retry prompt | Yes |
 
 **Critical:** All parts with `tool_call_id` must be pruned together when a tool call is dangling.
 
