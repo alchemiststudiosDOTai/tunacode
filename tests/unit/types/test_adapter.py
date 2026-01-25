@@ -11,6 +11,7 @@ import pytest
 from tunacode.types.canonical import (
     CanonicalMessage,
     MessageRole,
+    RetryPromptPart,
     SystemPromptPart,
     TextPart,
     ThoughtPart,
@@ -123,6 +124,28 @@ class TestToCanonical:
         assert isinstance(result.parts[0], SystemPromptPart)
         assert result.parts[0].content == "You are helpful."
 
+    def test_dict_with_parts_retry_prompt(self) -> None:
+        """Dict with parts containing retry prompt."""
+        msg = {
+            "kind": "request",
+            "parts": [
+                {
+                    "part_kind": "retry-prompt",
+                    "tool_call_id": "tc_123",
+                    "tool_name": "read_file",
+                    "content": "Try again",
+                },
+            ],
+        }
+        result = to_canonical(msg)
+
+        assert result.role == MessageRole.USER
+        assert len(result.parts) == 1
+        assert isinstance(result.parts[0], RetryPromptPart)
+        assert result.parts[0].tool_call_id == "tc_123"
+        assert result.parts[0].tool_name == "read_file"
+        assert result.parts[0].content == "Try again"
+
     def test_dict_with_mixed_parts(self) -> None:
         """Dict with multiple part types."""
         msg = {
@@ -215,6 +238,26 @@ class TestFromCanonical:
         assert result["parts"][0]["part_kind"] == "tool-return"
         assert result["parts"][0]["tool_call_id"] == "tc_123"
         assert result["parts"][0]["content"] == "file.txt\nother.txt"
+
+    def test_retry_prompt_message(self) -> None:
+        """Convert retry prompt message back to dict."""
+        msg = CanonicalMessage(
+            role=MessageRole.USER,
+            parts=(
+                RetryPromptPart(
+                    tool_call_id="tc_123",
+                    tool_name="bash",
+                    content="Try again",
+                ),
+            ),
+        )
+        result = from_canonical(msg)
+
+        assert result["kind"] == "request"
+        assert result["parts"][0]["part_kind"] == "retry-prompt"
+        assert result["parts"][0]["tool_call_id"] == "tc_123"
+        assert result["parts"][0]["tool_name"] == "bash"
+        assert result["parts"][0]["content"] == "Try again"
 
 
 class TestRoundTrip:

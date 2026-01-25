@@ -12,6 +12,7 @@ from tunacode.types.canonical import (
     ReActEntryKind,
     ReActScratchpad,
     RecursiveContext,
+    RetryPromptPart,
     SystemPromptPart,
     TextPart,
     ThoughtPart,
@@ -62,6 +63,17 @@ class TestMessageParts:
         assert part.content == "file contents here"
         assert part.kind == PartKind.TOOL_RETURN
 
+    def test_retry_prompt_part_creation(self) -> None:
+        part = RetryPromptPart(
+            tool_call_id="tc_123",
+            tool_name="read_file",
+            content="Try again",
+        )
+        assert part.tool_call_id == "tc_123"
+        assert part.tool_name == "read_file"
+        assert part.content == "Try again"
+        assert part.kind == PartKind.RETRY_PROMPT
+
     def test_parts_are_frozen(self) -> None:
         part = TextPart(content="immutable")
         with pytest.raises(AttributeError):
@@ -94,12 +106,14 @@ class TestCanonicalMessage:
             role=MessageRole.ASSISTANT,
             parts=(
                 TextPart(content="Hello"),
+                SystemPromptPart(content="System"),
                 ThoughtPart(content="thinking"),
+                ToolReturnPart(tool_call_id="tc_1", content="result"),
+                RetryPromptPart(tool_call_id="tc_2", tool_name="bash", content="retry"),
                 TextPart(content="World"),
             ),
         )
-        # Should concatenate text and thought parts
-        assert msg.get_text_content() == "Hello thinking World"
+        assert msg.get_text_content() == "Hello System thinking result retry World"
 
     def test_get_text_content_ignores_tool_parts(self) -> None:
         msg = CanonicalMessage(
@@ -110,7 +124,7 @@ class TestCanonicalMessage:
                 TextPart(content="After"),
             ),
         )
-        assert msg.get_text_content() == "Before After"
+        assert msg.get_text_content() == "Before  After"
 
     def test_get_tool_call_ids(self) -> None:
         msg = CanonicalMessage(

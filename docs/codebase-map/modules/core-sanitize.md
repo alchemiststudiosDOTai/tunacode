@@ -9,7 +9,7 @@ seams: [S] state, [D] data
 
 # Message History Sanitization
 
-> **Status**: Working but scheduled for rewrite. This document maps the current implementation.
+> **Status**: Canonicalized. Cleanup rules are derived from canonical messages and applied consistently.
 
 ## Where
 
@@ -19,7 +19,7 @@ src/tunacode/core/agents/resume/sanitize.py
 
 ## What
 
-Functions to clean up corrupt or inconsistent message history that can occur from abort scenarios, preventing API errors on subsequent requests.
+Functions to clean up corrupt or inconsistent message history that can occur from abort scenarios, preventing API errors on subsequent requests. Cleanup decisions are made from canonical message structure and then applied to the original message objects.
 
 **Key cleanup operations:**
 - Remove dangling tool calls (no matching tool return)
@@ -47,31 +47,36 @@ Without cleanup, the next API request fails with format errors.
 ```
 sanitize.py
 ├── Constants
-│   ├── PART_KIND_TOOL_CALL = "tool-call"
 │   ├── PART_KIND_SYSTEM_PROMPT = "system-prompt"
-│   ├── MESSAGE_KIND_REQUEST = "request"
-│   ├── MESSAGE_KIND_RESPONSE = "response"
-│   └── MAX_CLEANUP_ITERATIONS = 10
+│   ├── MAX_CLEANUP_ITERATIONS = 10
+│   └── REQUEST_ROLES / RESPONSE_ROLES
 │
-├── Mutation Helpers (internal)
-│   ├── _set_message_parts()
-│   ├── _set_message_tool_calls()
+├── Canonical Helpers
+│   ├── _canonicalize_messages()
+│   ├── _is_request_message()
+│   └── _is_response_message()
+│
+├── Message Mutation Helpers
 │   ├── _normalize_list()
-│   └── _get_message_tool_calls()
+│   ├── _get_message_tool_calls()
+│   ├── _replace_message_fields()
+│   ├── _clone_message_fields()
+│   └── _apply_message_updates()
+│
+├── Part Filtering
+│   ├── _strip_system_prompt_parts()
+│   ├── _filter_parts_by_tool_call_id()
+│   └── _filter_tool_calls_by_tool_call_id()
 │
 ├── Dangling Tool Call Handling
 │   ├── find_dangling_tool_call_ids()      → delegates to adapter
-│   ├── _filter_dangling_tool_calls_from_parts()
-│   ├── _filter_dangling_tool_calls_from_tool_calls()
-│   ├── _strip_dangling_tool_calls_from_message()
 │   └── remove_dangling_tool_calls()       → PUBLIC
 │
 ├── Message Cleanup
-│   ├── remove_consecutive_requests()      → PUBLIC
-│   └── remove_empty_responses()           → PUBLIC
+│   ├── remove_empty_responses()           → PUBLIC
+│   └── remove_consecutive_requests()      → PUBLIC
 │
-├── System Prompt Stripping
-│   ├── _strip_system_prompt_parts()
+├── Resume Sanitization
 │   └── sanitize_history_for_resume()      → PUBLIC
 │
 └── Orchestrator
@@ -157,9 +162,9 @@ def sanitize_history_for_resume(messages: list[Any]) -> list[Any]
 ```
 
 **Operations:**
-1. Removes `run_id` (binds messages to previous sessions)
+1. Clears `run_id` where present (unbinds messages from previous sessions)
 2. Strips `system-prompt` parts (pydantic-ai injects these automatically)
-3. Removes empty messages resulting from stripping
+3. Removes messages that become empty after stripping
 
 **Returns:** New sanitized list (does not mutate input).
 
@@ -218,6 +223,7 @@ The module handles multiple pydantic-ai message part kinds:
 | `system-prompt` | System instructions | No |
 | `tool-call` | Tool invocation | Yes |
 | `tool-return` | Successful tool result | Yes |
+| `retry-prompt` | Tool failure retry prompt | Yes |
 | `retry-prompt` | Error response for failed tools | Yes |
 
 **Critical:** All parts with `tool_call_id` must be pruned together when a tool call is dangling.

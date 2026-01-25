@@ -19,6 +19,7 @@ from tunacode.types.canonical import (
     CanonicalMessage,
     CanonicalPart,
     MessageRole,
+    RetryPromptPart,
     SystemPromptPart,
     TextPart,
     ThoughtPart,
@@ -33,6 +34,7 @@ from tunacode.types.canonical import (
 PYDANTIC_PART_KIND_TEXT = "text"
 PYDANTIC_PART_KIND_TOOL_CALL = "tool-call"
 PYDANTIC_PART_KIND_TOOL_RETURN = "tool-return"
+PYDANTIC_PART_KIND_RETRY_PROMPT = "retry-prompt"
 PYDANTIC_PART_KIND_SYSTEM_PROMPT = "system-prompt"
 PYDANTIC_PART_KIND_USER_PROMPT = "user-prompt"
 
@@ -96,6 +98,14 @@ def _convert_part_to_canonical(part: Any) -> CanonicalPart | None:
         content = _get_attr(part, "content", "")
         return ToolReturnPart(
             tool_call_id=_get_attr(part, "tool_call_id", ""),
+            content=str(content),
+        )
+
+    if part_kind == PYDANTIC_PART_KIND_RETRY_PROMPT:
+        content = _get_attr(part, "content", "")
+        return RetryPromptPart(
+            tool_call_id=_get_attr(part, "tool_call_id", ""),
+            tool_name=_get_attr(part, "tool_name", ""),
             content=str(content),
         )
 
@@ -235,6 +245,15 @@ def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
                 {
                     "part_kind": PYDANTIC_PART_KIND_TOOL_RETURN,
                     "tool_call_id": part.tool_call_id,
+                    "content": part.content,
+                }
+            )
+        elif isinstance(part, RetryPromptPart):
+            parts.append(
+                {
+                    "part_kind": PYDANTIC_PART_KIND_RETRY_PROMPT,
+                    "tool_call_id": part.tool_call_id,
+                    "tool_name": part.tool_name,
                     "content": part.content,
                 }
             )

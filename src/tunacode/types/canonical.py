@@ -35,6 +35,7 @@ class PartKind(Enum):
     TEXT = "text"
     TOOL_CALL = "tool-call"
     TOOL_RETURN = "tool-return"
+    RETRY_PROMPT = "retry-prompt"
     SYSTEM_PROMPT = "system-prompt"
     THOUGHT = "thought"
 
@@ -82,8 +83,21 @@ class ToolReturnPart:
     kind: PartKind = field(default=PartKind.TOOL_RETURN, repr=False)
 
 
+# NOTE: retry prompts are emitted when a tool call fails and the model is re-prompted.
+@dataclass(frozen=True, slots=True)
+class RetryPromptPart:
+    """Retry prompt emitted after a tool call failure."""
+
+    tool_call_id: str
+    tool_name: str
+    content: str
+    kind: PartKind = field(default=PartKind.RETRY_PROMPT, repr=False)
+
+
 # Union of all part types for type hints
-CanonicalPart = TextPart | ThoughtPart | SystemPromptPart | ToolCallPart | ToolReturnPart
+CanonicalPart = (
+    TextPart | ThoughtPart | SystemPromptPart | ToolCallPart | ToolReturnPart | RetryPromptPart
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,8 +113,13 @@ class CanonicalMessage:
     timestamp: datetime | None = None
 
     def get_text_content(self) -> str:
-        """Extract concatenated text content from all text parts."""
-        return " ".join(p.content for p in self.parts if isinstance(p, (TextPart, ThoughtPart)))
+        """Extract concatenated text content, preserving part boundaries."""
+        text_segments: list[str] = []
+        for part in self.parts:
+            content_value = getattr(part, "content", "")
+            content_text = "" if content_value is None else str(content_value)
+            text_segments.append(content_text)
+        return " ".join(text_segments)
 
     def get_tool_call_ids(self) -> set[str]:
         """Get all tool call IDs in this message."""
@@ -327,6 +346,7 @@ __all__ = [
     "SystemPromptPart",
     "ToolCallPart",
     "ToolReturnPart",
+    "RetryPromptPart",
     "CanonicalPart",
     "CanonicalMessage",
     # Tool call types
