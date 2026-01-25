@@ -12,7 +12,6 @@ from typing import Any
 ModelName = str
 ToolName = str
 SessionId = str
-DeviceId = str
 AgentName = str
 ToolCallId = str
 
@@ -66,7 +65,6 @@ __all__ = [
     "ConfigFile",
     "ConfigPath",
     "CostAmount",
-    "DeviceId",
     "DiffHunk",
     "DiffLine",
     "EnvConfig",

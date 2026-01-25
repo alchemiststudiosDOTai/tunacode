@@ -10,4 +10,10 @@ ToolHandler = None  # noqa: F841
 context = None  # noqa: F841
 
 # TYPE_CHECKING imports used in string annotations
-StreamedRunResult = None  # noqa: F841
+# These imports are used in quoted type annotations like "StreamedRunResult[None, str]"
+# but vulture can't detect usage inside strings
+from pydantic_ai.result import StreamedRunResult  # noqa: F401
+from pydantic_ai.messages import ToolCallPart  # noqa: F401
+
+_ = StreamedRunResult  # Mark as used
+_ = ToolCallPart  # Mark as used

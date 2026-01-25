@@ -15,7 +15,7 @@ TunaCode reads user settings from `~/.config/tunacode.json`. Use the bundled exa
 - `default_model`: provider/model the TUI selects on startup.
 - `env`: API keys exported to the agent so tools can call providers.
 - `settings`: runtime behavior such as retries, iterations, delays, timeouts, streaming, and theme.
-- `settings.ripgrep`: search tuning (timeout, buffer size, result cap, optional metrics and debug logging).
+- `settings.ripgrep`: search tuning (timeout, result cap, optional metrics).
 
 See `docs/configuration/tunacode.json.example` for the full JSON structure and defaults.
 

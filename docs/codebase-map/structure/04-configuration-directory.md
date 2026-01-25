@@ -172,5 +172,4 @@ DEFAULT_SETTINGS = {
 ## Configuration Files
 - **User Config**: `~/.tunacode/tunacode.json`
 - **Environment**: `.env` file in project root
-- **Device ID**: `~/.tunacode/device_id` for anonymous telemetry
 - **Session Data**: `~/.tunacode/sessions/<session_id>/`

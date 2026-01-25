@@ -21,7 +21,6 @@ Fundamental type aliases:
 - **SessionId** - Session UUID
 - **ToolName** - Tool identifier
 - **ToolCallId** - Tool call UUID
-- **DeviceId** - Device identifier
 
 ### dataclasses.py
 **Pydantic dataclasses for structured data:**
