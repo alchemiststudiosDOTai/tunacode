@@ -89,7 +89,7 @@ def _convert_part_to_canonical(part: Any) -> CanonicalPart | None:
         return ToolCallPart(
             tool_call_id=_get_attr(part, "tool_call_id", ""),
             tool_name=_get_attr(part, "tool_name", ""),
-            args=_get_attr(part, "args", {}) or {},
+            args=_get_attr(part, "args", {}),
         )
 
     if part_kind == PYDANTIC_PART_KIND_TOOL_RETURN:
@@ -207,25 +207,37 @@ def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
     parts: list[dict[str, Any]] = []
 
     for part in message.parts:
-        if isinstance(part, TextPart):
-            parts.append({"part_kind": "text", "content": part.content})
-        elif isinstance(part, ThoughtPart):
-            parts.append({"part_kind": "text", "content": part.content})
+        if isinstance(part, (TextPart, ThoughtPart)):
+            parts.append(
+                {
+                    "part_kind": PYDANTIC_PART_KIND_TEXT,
+                    "content": part.content,
+                }
+            )
         elif isinstance(part, SystemPromptPart):
-            parts.append({"part_kind": "system-prompt", "content": part.content})
+            parts.append(
+                {
+                    "part_kind": PYDANTIC_PART_KIND_SYSTEM_PROMPT,
+                    "content": part.content,
+                }
+            )
         elif isinstance(part, ToolCallPart):
-            parts.append({
-                "part_kind": "tool-call",
-                "tool_call_id": part.tool_call_id,
-                "tool_name": part.tool_name,
-                "args": part.args,
-            })
+            parts.append(
+                {
+                    "part_kind": PYDANTIC_PART_KIND_TOOL_CALL,
+                    "tool_call_id": part.tool_call_id,
+                    "tool_name": part.tool_name,
+                    "args": part.args,
+                }
+            )
         elif isinstance(part, ToolReturnPart):
-            parts.append({
-                "part_kind": "tool-return",
-                "tool_call_id": part.tool_call_id,
-                "content": part.content,
-            })
+            parts.append(
+                {
+                    "part_kind": PYDANTIC_PART_KIND_TOOL_RETURN,
+                    "tool_call_id": part.tool_call_id,
+                    "content": part.content,
+                }
+            )
 
     kind = (
         PYDANTIC_MESSAGE_KIND_REQUEST
