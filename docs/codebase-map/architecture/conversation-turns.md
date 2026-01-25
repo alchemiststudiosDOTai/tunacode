@@ -64,7 +64,7 @@ USER INPUT
 │    process_node() phases:                                       │
 │    ├─ Phase 1: Transition to ASSISTANT state                    │
 │    ├─ Phase 2: Emit tool returns (tool_result_callback)         │
-│    ├─ Phase 3: Record thoughts (session.thoughts)               │
+│    ├─ Phase 3: Record thoughts (session.conversation.thoughts)  │
 │    ├─ Phase 4: Update usage tracking (tokens)                   │
 │    ├─ Phase 5: Dispatch tools (categorize → execute)            │
 │    ├─ Phase 6: Detect truncation/emptiness                      │
@@ -128,9 +128,9 @@ USER INPUT
 │                                                                 │
 │    After agent loop:                                            │
 │    ├─ run_messages = agent_run.all_messages()                   │
-│    ├─ external_messages = session.messages[baseline_count:]     │
+│    ├─ external_messages = session.conversation.messages[baseline_count:]     │
 │    ├─ merged = [*run_messages, *external_messages]              │
-│    ├─ session.messages = merged                                 │
+│    ├─ session.conversation.messages = merged                                 │
 │    └─ session.update_token_count()                              │
 └─────────────────────────────────────────────────────────────────┘
     │
@@ -222,7 +222,7 @@ Persisted after agent completes
 
 ```python
 # Normalized and stored during dispatch
-session.tool_call_args_by_id: dict[ToolCallId, ToolArgs]
+session.runtime.tool_call_args_by_id: dict[ToolCallId, ToolArgs]
 # Maps tool_call_id → parsed_args
 # Retrieved when tool result returns
 ```
@@ -393,7 +393,7 @@ User: "find all grep calls in src/"
    - task_completed = True, early exit
 
 6. Post-iteration:
-   - Messages merged to session.messages
+   - Messages merged to session.conversation.messages
    - Final response panel rendered
    - Session saved to disk
 ```

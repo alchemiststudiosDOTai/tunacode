@@ -197,12 +197,12 @@ Messages use pydantic-ai's standard types from `types/pydantic_ai.py`:
 - Tool schemas (fewer in local mode)
 
 Message history persistence happens after a run finishes or aborts.
-`RequestOrchestrator` syncs `SessionState.messages` from
+`RequestOrchestrator` syncs `SessionState.conversation.messages` from
 `agent_run.all_messages()` on normal completion, but **does not persist** on abort/cancel to prevent dangling tool calls.
 
 When aborting (e.g., ESC pressed during tool execution):
 - `agent_run` state is **not persisted** to avoid copying incomplete tool states
-- Only cleanups already in `session.messages` are applied (dangling tool calls, empty responses, consecutive requests)
+- Only cleanups already in `session.conversation.messages` are applied (dangling tool calls, empty responses, consecutive requests)
 - This prevents 'Cannot provide a new user prompt when the message history contains unprocessed tool calls' errors
 
 See `main.py:577-601` for the abort handling logic and `main.py:626-653` for the improved `_message_has_tool_calls` helper.

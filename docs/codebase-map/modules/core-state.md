@@ -16,21 +16,23 @@ Central singleton managing all session data including conversation history, user
 ## Key Classes
 
 ### SessionState
-Dataclass container for all session data:
+Dataclass container for all session data with decomposed sub-structures:
+- **conversation** - Messages, thoughts, token totals, context tracking
+- **react** - Scratchpad timeline, forced call counter, guidance entries
+- **task** - Todos and original query tracking
+- **runtime** - Iteration counters, tool call tracking, request metadata, streaming flags
+- **usage** - Per-call and cumulative usage metrics
 - **user_config** - User settings and preferences
 - **agents** - Cached pydantic-ai Agent instances
 - **agent_versions** - Version tracking for cache invalidation
-- **messages** - Full conversation history (MessageHistory)
 - **current_model** - Active model name
 - **tool_ignore** - Tools approved for auto-execution
 - **tool_progress_callback** - UI callback for tool updates
-- **todos** - Agent task list
-- **total_tokens** - Context window usage tracking
-- **session_total_usage** - Cost tracking per session
 
 ### StateManager
 Singleton class with global instance access:
-- **get_state()** - Retrieve SessionState instance
+- **session** - Retrieve SessionState instance
+- **conversation/react/task/runtime/usage** - Typed sub-state accessors
 - **update_token_count()** - Track token usage
 - **save_session()** - Persist session to disk
 - **load_session()** - Restore session from disk

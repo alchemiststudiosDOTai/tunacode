@@ -67,7 +67,8 @@ async def record_tool_call_args(part: Any, state_manager: StateManager) -> ToolA
     parsed_args = await normalize_tool_args(raw_args)
     tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
     if tool_call_id:
-        state_manager.session.tool_call_args_by_id[tool_call_id] = parsed_args
+        runtime = state_manager.session.runtime
+        runtime.tool_call_args_by_id[tool_call_id] = parsed_args
     return parsed_args
 
 
@@ -76,7 +77,8 @@ def consume_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
     tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
     if not tool_call_id:
         raise StateError(ERROR_TOOL_CALL_ID_MISSING)
-    tool_call_args = state_manager.session.tool_call_args_by_id.pop(tool_call_id, None)
+    runtime = state_manager.session.runtime
+    tool_call_args = runtime.tool_call_args_by_id.pop(tool_call_id, None)
     if tool_call_args is None:
         raise StateError(ERROR_TOOL_ARGS_MISSING.format(tool_call_id=tool_call_id))
     return tool_call_args
@@ -101,6 +103,7 @@ async def _extract_fallback_tool_calls(
     )
 
     logger = get_logger()
+    runtime = state_manager.session.runtime
 
     text_segments: list[str] = []
     for part in parts:
@@ -161,7 +164,7 @@ async def _extract_fallback_tool_calls(
             tool_call_id=parsed.tool_call_id,
         )
         tool_args = await normalize_tool_args(parsed.args)
-        state_manager.session.tool_call_args_by_id[parsed.tool_call_id] = tool_args
+        runtime.tool_call_args_by_id[parsed.tool_call_id] = tool_args
         results.append((part, tool_args))
 
     return results
@@ -183,6 +186,8 @@ async def dispatch_tools(
     from ..tool_executor import execute_tools_parallel
 
     logger = get_logger()
+    session = state_manager.session
+    runtime = session.runtime
 
     is_processing_tools = False
     used_fallback = False
@@ -192,7 +197,7 @@ async def dispatch_tools(
     write_execute_tasks: list[tuple[Any, Any]] = []
     tool_call_records: list[tuple[Any, ToolArgs]] = []
 
-    debug_mode = getattr(state_manager.session, "debug_mode", False)
+    debug_mode = getattr(session, "debug_mode", False)
 
     dispatch_start = time.perf_counter()
 
@@ -262,8 +267,8 @@ async def dispatch_tools(
         await execute_tools_parallel(research_agent_tasks, tool_callback)
 
     if read_only_tasks and tool_callback:
-        batch_id = state_manager.session.batch_counter + 1
-        state_manager.session.batch_counter = batch_id
+        batch_id = runtime.batch_counter + 1
+        runtime.batch_counter = batch_id
 
         if tool_start_callback:
             preview_tasks = read_only_tasks[:TOOL_BATCH_PREVIEW_COUNT]
@@ -286,7 +291,7 @@ async def dispatch_tools(
                 raise
 
     if tool_call_records:
-        session_tool_calls = state_manager.session.tool_calls
+        session_tool_calls = runtime.tool_calls
         for part, tool_args in tool_call_records:
             tool_call_id = getattr(part, "tool_call_id", None)
             tool_info = {

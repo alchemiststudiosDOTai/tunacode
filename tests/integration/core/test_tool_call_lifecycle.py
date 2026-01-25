@@ -261,8 +261,8 @@ async def test_record_tool_call_args_stores_correctly(
     recorded_args = await record_tool_call_args(part, state_manager)
 
     # Assert
-    assert part.tool_call_id in state_manager.session.tool_call_args_by_id
-    stored_args = state_manager.session.tool_call_args_by_id[part.tool_call_id]
+    assert part.tool_call_id in state_manager.session.runtime.tool_call_args_by_id
+    stored_args = state_manager.session.runtime.tool_call_args_by_id[part.tool_call_id]
     assert stored_args == recorded_args
 
 
@@ -302,7 +302,7 @@ async def test_consume_tool_call_args_retrieves_and_removes(
     assert consumed_args == recorded_args
 
     # Assert: Should be removed from storage
-    assert tool_call_id not in state_manager.session.tool_call_args_by_id
+    assert tool_call_id not in state_manager.session.runtime.tool_call_args_by_id
 
 
 @given(part=tool_call_part_strategy())
@@ -374,14 +374,14 @@ async def test_multiple_tool_calls_maintain_distinct_args(
         recorded_args[part.tool_call_id] = args
 
     # Assert: All stored, all retrievable in any order
-    assert len(state_manager.session.tool_call_args_by_id) == len(parts)
+    assert len(state_manager.session.runtime.tool_call_args_by_id) == len(parts)
 
     for part in parts:
         consumed = consume_tool_call_args(part, state_manager)
         assert consumed == recorded_args[part.tool_call_id]
 
     # Assert: All consumed, dict empty
-    assert len(state_manager.session.tool_call_args_by_id) == 0
+    assert len(state_manager.session.runtime.tool_call_args_by_id) == 0
 
 
 # =============================================================================
@@ -439,7 +439,7 @@ async def test_pairing_invariant_requires_matching_ids(
 
     # For each return part, check if it references a known call
     for return_part in return_parts:
-        if return_part.tool_call_id in state_manager.session.tool_call_args_by_id:
+        if return_part.tool_call_id in state_manager.session.runtime.tool_call_args_by_id:
             # Should succeed
             consume_tool_call_args(return_part, state_manager)
         else:
@@ -502,7 +502,7 @@ async def test_duplicate_tool_call_id_overwrites_previous(state_manager: StateMa
     await record_tool_call_args(second_part, state_manager)
 
     # Assert: Second args should have overwritten first
-    stored = state_manager.session.tool_call_args_by_id[tool_call_id]
+    stored = state_manager.session.runtime.tool_call_args_by_id[tool_call_id]
     assert stored == second_args
 
 
@@ -827,7 +827,7 @@ async def test_extract_fallback_tool_calls_records_args(
     assert len(results) == 1
     result_part, result_args = results[0]
     tool_call_id = result_part.tool_call_id
-    cached_args = state_manager.session.tool_call_args_by_id[tool_call_id]
+    cached_args = state_manager.session.runtime.tool_call_args_by_id[tool_call_id]
 
     assert result_args == expected_args
     assert cached_args == expected_args
@@ -855,9 +855,9 @@ async def test_dispatch_tools_batches_by_category(
     parts: list[ToolCallPart], monkeypatch: pytest.MonkeyPatch, state_manager: StateManager
 ) -> None:
     """dispatch_tools should batch read-only and research tools separately."""
-    state_manager.session.tool_calls = []
-    state_manager.session.tool_call_args_by_id = {}
-    state_manager.session.batch_counter = 0
+    state_manager.session.runtime.tool_calls = []
+    state_manager.session.runtime.tool_call_args_by_id = {}
+    state_manager.session.runtime.batch_counter = 0
     response_state = ResponseState()
     response_state.transition_to(AgentState.ASSISTANT)
     node = DummyNode()
@@ -898,7 +898,7 @@ async def test_dispatch_tools_batches_by_category(
     assert dispatch_result.used_fallback is False
     assert parallel_batches == expected_parallel
     assert tool_callback.call_count == len(parts)
-    assert len(state_manager.session.tool_calls) == len(parts)
+    assert len(state_manager.session.runtime.tool_calls) == len(parts)
     assert response_state.current_state == AgentState.RESPONSE
 
     # NOTE: submit tool no longer sets task_completed - pydantic-ai loop ends naturally
@@ -922,9 +922,9 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
     state_manager: StateManager,
 ) -> None:
     """dispatch_tools should use fallback parsing when no tool-call parts exist."""
-    state_manager.session.tool_calls = []
-    state_manager.session.tool_call_args_by_id = {}
-    state_manager.session.batch_counter = 0
+    state_manager.session.runtime.tool_calls = []
+    state_manager.session.runtime.tool_call_args_by_id = {}
+    state_manager.session.runtime.batch_counter = 0
     response_state = ResponseState()
     response_state.transition_to(AgentState.ASSISTANT)
     node = DummyNode()
@@ -959,7 +959,7 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
 
     assert dispatch_result.used_fallback is True
     assert dispatch_result.has_tool_calls is True
-    assert len(state_manager.session.tool_calls) == 1
+    assert len(state_manager.session.runtime.tool_calls) == 1
     assert response_state.current_state == AgentState.RESPONSE
 
     is_parallel_tool = (

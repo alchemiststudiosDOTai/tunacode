@@ -6,6 +6,14 @@ creating circular imports with the concrete implementation.
 
 from typing import TYPE_CHECKING, Any, Protocol
 
+from tunacode.types.state_structures import (
+    ConversationState,
+    ReActState,
+    RuntimeState,
+    TaskState,
+    UsageState,
+)
+
 if TYPE_CHECKING:
     from tunacode.types.callbacks import ToolProgressCallback
 
@@ -16,38 +24,22 @@ class SessionStateProtocol(Protocol):
     user_config: dict[str, Any]
     current_model: str
     tool_progress_callback: "ToolProgressCallback | None"
-    messages: list[Any]
-    thoughts: list[str]
-    tool_calls: list[dict[str, Any]]
     tool_ignore: list[str]
     yolo: bool
     debug_mode: bool
     plan_mode: bool
     plan_approval_callback: Any | None
     show_thoughts: bool
-    operation_cancelled: bool
-    total_tokens: int
-    max_tokens: int
+    conversation: ConversationState
+    react: ReActState
+    task: TaskState
+    runtime: RuntimeState
+    usage: UsageState
     # Persistence fields
     session_id: str
     project_id: str
     created_at: str
     working_directory: str
-    # Usage tracking
-    session_total_usage: dict[str, Any]
-    # Agent execution state
-    consecutive_empty_responses: int
-    current_iteration: int
-    iteration_count: int
-    batch_counter: int
-    request_id: str
-    original_query: str
-    # ReAct tracking
-    react_forced_calls: int
-    react_scratchpad: dict[str, Any]
-    react_guidance: list[str]
-    # Tool tracking
-    tool_call_args_by_id: dict[str, dict[str, Any]]
 
     def update_token_count(self) -> None:
         """Calculate total token count from conversation messages."""
@@ -73,6 +65,31 @@ class StateManagerProtocol(Protocol):
 
     def set_tool_handler(self, handler: Any) -> None:
         """Set the tool handler instance."""
+        ...
+
+    @property
+    def conversation(self) -> ConversationState:
+        """Access the conversation sub-state."""
+        ...
+
+    @property
+    def react(self) -> ReActState:
+        """Access the ReAct sub-state."""
+        ...
+
+    @property
+    def task(self) -> TaskState:
+        """Access the task sub-state."""
+        ...
+
+    @property
+    def runtime(self) -> RuntimeState:
+        """Access the runtime sub-state."""
+        ...
+
+    @property
+    def usage(self) -> UsageState:
+        """Access the usage sub-state."""
         ...
 
     # ReAct scratchpad methods

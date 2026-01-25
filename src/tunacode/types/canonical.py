@@ -100,9 +100,7 @@ class CanonicalMessage:
 
     def get_text_content(self) -> str:
         """Extract concatenated text content from all text parts."""
-        return " ".join(
-            p.content for p in self.parts if isinstance(p, (TextPart, ThoughtPart))
-        )
+        return " ".join(p.content for p in self.parts if isinstance(p, (TextPart, ThoughtPart)))
 
     def get_tool_call_ids(self) -> set[str]:
         """Get all tool call IDs in this message."""
@@ -116,8 +114,8 @@ class CanonicalMessage:
 # =============================================================================
 # Tool Call Types
 # =============================================================================
-# These replace the duplicated tracking in session.tool_calls,
-# session.tool_call_args_by_id, and message parts.
+# These replace the duplicated tracking in session.runtime.tool_calls,
+# session.runtime.tool_call_args_by_id, and message parts.
 
 
 class ToolCallStatus(Enum):
@@ -135,7 +133,7 @@ class CanonicalToolCall:
     """Typed tool call record.
 
     Single source of truth for tool call state.
-    Replaces session.tool_calls and session.tool_call_args_by_id.
+    Replaces session.runtime.tool_calls and session.runtime.tool_call_args_by_id.
     """
 
     tool_call_id: str
@@ -193,9 +191,7 @@ class ReActScratchpad:
 
     def append(self, kind: ReActEntryKind, content: str) -> None:
         """Add an entry to the timeline."""
-        self.timeline.append(
-            ReActEntry(kind=kind, content=content, timestamp=datetime.now())
-        )
+        self.timeline.append(ReActEntry(kind=kind, content=content, timestamp=datetime.now()))
 
     def clear(self) -> None:
         """Reset the scratchpad."""

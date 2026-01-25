@@ -20,16 +20,20 @@ def test_update_usage_handles_missing_cached_tokens(monkeypatch) -> None:
 
     usage_tracker.update_usage(session, usage, session.current_model)
 
-    assert session.last_call_usage[usage_tracker.SESSION_USAGE_KEY_PROMPT_TOKENS] == PROMPT_TOKENS
+    usage_state = session.usage
     assert (
-        session.last_call_usage[usage_tracker.SESSION_USAGE_KEY_COMPLETION_TOKENS]
+        usage_state.last_call_usage[usage_tracker.SESSION_USAGE_KEY_PROMPT_TOKENS] == PROMPT_TOKENS
+    )
+    assert (
+        usage_state.last_call_usage[usage_tracker.SESSION_USAGE_KEY_COMPLETION_TOKENS]
         == COMPLETION_TOKENS
     )
-    assert session.last_call_usage[usage_tracker.SESSION_USAGE_KEY_COST] == EXPECTED_COST
+    assert usage_state.last_call_usage[usage_tracker.SESSION_USAGE_KEY_COST] == EXPECTED_COST
     assert (
-        session.session_total_usage[usage_tracker.SESSION_USAGE_KEY_PROMPT_TOKENS] == PROMPT_TOKENS
+        usage_state.session_total_usage[usage_tracker.SESSION_USAGE_KEY_PROMPT_TOKENS]
+        == PROMPT_TOKENS
     )
     assert (
-        session.session_total_usage[usage_tracker.SESSION_USAGE_KEY_COMPLETION_TOKENS]
+        usage_state.session_total_usage[usage_tracker.SESSION_USAGE_KEY_COMPLETION_TOKENS]
         == COMPLETION_TOKENS
     )

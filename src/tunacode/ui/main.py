@@ -209,16 +209,19 @@ def run_headless(
             )
 
             if output_json:
+                conversation = state_manager.session.conversation
+                runtime = state_manager.session.runtime
+                usage = state_manager.session.usage
                 trajectory = {
-                    "messages": [_serialize_message(msg) for msg in state_manager.session.messages],
-                    "tool_calls": state_manager.session.tool_calls,
-                    "usage": state_manager.session.session_total_usage,
+                    "messages": [_serialize_message(msg) for msg in conversation.messages],
+                    "tool_calls": runtime.tool_calls,
+                    "usage": usage.session_total_usage,
                     "success": True,
                 }
                 print(json.dumps(trajectory, indent=2))
                 return 0
 
-            headless_output = resolve_output(agent_run, state_manager.session.messages)
+            headless_output = resolve_output(agent_run, state_manager.session.conversation.messages)
             if headless_output is None:
                 print(HEADLESS_NO_RESPONSE_ERROR, file=sys.stderr)
                 return 1

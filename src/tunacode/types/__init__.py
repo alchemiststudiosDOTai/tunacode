@@ -116,6 +116,13 @@ from tunacode.types.state import (
     SessionStateProtocol,
     StateManagerProtocol,
 )
+from tunacode.types.state_structures import (
+    ConversationState,
+    ReActState,
+    RuntimeState,
+    TaskState,
+    UsageState,
+)
 
 # ProcessRequestCallback uses the protocol, not concrete implementation
 ProcessRequestCallback = Callable[[str, StateManagerProtocol, bool], Awaitable[Any]]
@@ -178,6 +185,11 @@ __all__ = [
     # State
     "SessionStateProtocol",
     "StateManagerProtocol",
+    "ConversationState",
+    "ReActState",
+    "RuntimeState",
+    "TaskState",
+    "UsageState",
     # Dataclasses
     "AgentState",
     "CommandContext",

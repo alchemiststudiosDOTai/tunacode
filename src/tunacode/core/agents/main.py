@@ -83,15 +83,18 @@ class EmptyResponseHandler:
 
     def track(self, is_empty: bool) -> None:
         """Track empty response and increment counter if empty."""
+        session = self.state_manager.session
+        runtime = session.runtime
         if is_empty:
-            current = getattr(self.state_manager.session, "consecutive_empty_responses", 0)
-            self.state_manager.session.consecutive_empty_responses = current + 1
+            current = runtime.consecutive_empty_responses
+            runtime.consecutive_empty_responses = current + 1
         else:
-            self.state_manager.session.consecutive_empty_responses = 0
+            runtime.consecutive_empty_responses = 0
 
     def should_intervene(self) -> bool:
         """Check if intervention is needed (>= 1 consecutive empty)."""
-        return getattr(self.state_manager.session, "consecutive_empty_responses", 0) >= 1
+        runtime = self.state_manager.session.runtime
+        return runtime.consecutive_empty_responses >= 1
 
     async def prompt_action(self, message: str, reason: str, iteration: int) -> None:
         """Delegate to agent_components.handle_empty_response."""
@@ -109,7 +112,7 @@ class EmptyResponseHandler:
         if self.notice_callback:
             self.notice_callback(notice)
         # Clear after intervention
-        self.state_manager.session.consecutive_empty_responses = 0
+        self.state_manager.session.runtime.consecutive_empty_responses = 0
 
 
 class IterationManager:
@@ -120,8 +123,9 @@ class IterationManager:
 
     def update_counters(self, iteration: int) -> None:
         """Update session iteration counters."""
-        self.state_manager.session.current_iteration = iteration
-        self.state_manager.session.iteration_count = iteration
+        runtime = self.state_manager.session.runtime
+        runtime.current_iteration = iteration
+        runtime.iteration_count = iteration
 
 
 class ReactSnapshotManager:
@@ -141,7 +145,7 @@ class ReactSnapshotManager:
         if iteration % self.config.forced_react_interval != 0:
             return False
 
-        forced_calls = getattr(self.state_manager.session, "react_forced_calls", 0)
+        forced_calls = self.state_manager.session.react.forced_calls
         return forced_calls < self.config.forced_react_limit
 
     async def capture_snapshot(
@@ -160,15 +164,17 @@ class ReactSnapshotManager:
             )
 
             # Increment forced calls counter
-            forced_calls = getattr(self.state_manager.session, "react_forced_calls", 0)
-            self.state_manager.session.react_forced_calls = forced_calls + 1
+            react_state = self.state_manager.session.react
+            forced_calls = react_state.forced_calls
+            react_state.forced_calls = forced_calls + 1
 
             # Build guidance from last tool call
-            timeline = self.state_manager.session.react_scratchpad.get("timeline", [])
+            scratchpad = react_state.scratchpad
+            timeline = scratchpad.get("timeline", [])
             latest = timeline[-1] if timeline else {"thoughts": "?", "next_action": "?"}
             summary = latest.get("thoughts", "")
 
-            tool_calls = getattr(self.state_manager.session, "tool_calls", [])
+            tool_calls = self.state_manager.session.runtime.tool_calls
             if tool_calls:
                 last_tool = tool_calls[-1]
                 tool_name = last_tool.get("tool", "tool")
@@ -203,11 +209,10 @@ class ReactSnapshotManager:
             )
 
             # Append and trim guidance
-            self.state_manager.session.react_guidance.append(guidance_entry)
-            if len(self.state_manager.session.react_guidance) > self.config.forced_react_limit:
-                self.state_manager.session.react_guidance = (
-                    self.state_manager.session.react_guidance[-self.config.forced_react_limit :]
-                )
+            guidance = react_state.guidance
+            guidance.append(guidance_entry)
+            if len(guidance) > self.config.forced_react_limit:
+                react_state.guidance = guidance[-self.config.forced_react_limit :]
 
             # CRITICAL: Inject into agent_run.ctx.messages so next LLM call sees guidance
             if agent_run_ctx is not None:
@@ -273,7 +278,7 @@ class RequestOrchestrator:
     def _init_request_context(self) -> RequestContext:
         """Initialize request context with ID and config."""
         req_id = str(uuid.uuid4())[:8]
-        self.state_manager.session.request_id = req_id
+        self.state_manager.session.runtime.request_id = req_id
 
         return RequestContext(
             request_id=req_id,
@@ -283,34 +288,39 @@ class RequestOrchestrator:
 
     def _reset_session_state(self) -> None:
         """Reset/initialize fields needed for a new run."""
-        self.state_manager.session.current_iteration = 0
-        self.state_manager.session.iteration_count = 0
-        self.state_manager.session.tool_calls = []
-        self.state_manager.session.tool_call_args_by_id = {}
-        self.state_manager.session.react_forced_calls = 0
-        self.state_manager.session.react_guidance = []
+        session = self.state_manager.session
+        runtime = session.runtime
+        react_state = session.react
+        task_state = session.task
 
-        # Counter used by other subsystems; initialize if absent
-        if not hasattr(self.state_manager.session, "batch_counter"):
-            self.state_manager.session.batch_counter = 0
+        runtime.current_iteration = 0
+        runtime.iteration_count = 0
+        runtime.tool_calls = []
+        runtime.tool_call_args_by_id = {}
+        react_state.forced_calls = 0
+        react_state.guidance = []
+
+        runtime.batch_counter = 0
 
         # Track empty response streaks
-        self.state_manager.session.consecutive_empty_responses = 0
+        runtime.consecutive_empty_responses = 0
 
-        self.state_manager.session.original_query = ""
+        task_state.original_query = ""
 
     def _set_original_query_once(self, query: str) -> None:
         """Set original query if not already set."""
-        if not getattr(self.state_manager.session, "original_query", None):
-            self.state_manager.session.original_query = query
+        task_state = self.state_manager.session.task
+        if not task_state.original_query:
+            task_state.original_query = query
 
     def _persist_run_messages(self, agent_run: AgentRun, baseline_message_count: int) -> None:
         """Persist authoritative run messages, preserving external additions."""
         run_messages = list(agent_run.all_messages())
-        external_messages = self.state_manager.session.messages[baseline_message_count:]
+        conversation = self.state_manager.session.conversation
+        external_messages = conversation.messages[baseline_message_count:]
         merged_messages = [*run_messages, *external_messages]
 
-        self.state_manager.session.messages = merged_messages
+        conversation.messages = merged_messages
         self.state_manager.session.update_token_count()
 
     async def run(self) -> AgentRun:
@@ -347,13 +357,16 @@ class RequestOrchestrator:
         agent = ac.get_or_create_agent(self.model, self.state_manager)
 
         # Prune old tool outputs directly in session (persisted)
-        session_messages = self.state_manager.session.messages
-        tool_call_args_by_id = self.state_manager.session.tool_call_args_by_id
+        session = self.state_manager.session
+        conversation = session.conversation
+        runtime = session.runtime
+        session_messages = conversation.messages
+        tool_call_args_by_id = runtime.tool_call_args_by_id
         _, tokens_reclaimed = prune_old_tool_outputs(session_messages, self.model)
         if tokens_reclaimed > 0:
             logger.lifecycle(f"History pruned ({tokens_reclaimed} tokens reclaimed)")
 
-        debug_mode = bool(getattr(self.state_manager.session, "debug_mode", False))
+        debug_mode = bool(getattr(session, "debug_mode", False))
 
         # Run iterative cleanup until message history stabilizes
         total_cleanup_applied, dangling_tool_call_ids = run_cleanup_loop(
@@ -373,11 +386,11 @@ class RequestOrchestrator:
             if last_kind == "request":
                 logger.lifecycle("Dropping trailing request to avoid consecutive requests")
                 session_messages.pop()
-                self.state_manager.session.update_token_count()
+                session.update_token_count()
                 total_cleanup_applied = True
 
         if total_cleanup_applied:
-            self.state_manager.session.update_token_count()
+            session.update_token_count()
 
         if debug_mode:
             log_message_history_debug(
@@ -540,23 +553,26 @@ class RequestOrchestrator:
 
         except (UserAbortError, asyncio.CancelledError):
             # DON'T persist agent_run messages - they contain the dangling tool call
-            # Just clean up what's already in session.messages
+            # Just clean up what's already in conversation messages
+            session = self.state_manager.session
+            conversation = session.conversation
+            runtime = session.runtime
             cleanup_applied = remove_dangling_tool_calls(
-                self.state_manager.session.messages,
-                self.state_manager.session.tool_call_args_by_id,
+                conversation.messages,
+                runtime.tool_call_args_by_id,
             )
             if cleanup_applied:
-                self.state_manager.session.update_token_count()
+                session.update_token_count()
 
             # Clean up empty response messages (abort during response generation)
-            empty_cleanup = remove_empty_responses(self.state_manager.session.messages)
+            empty_cleanup = remove_empty_responses(conversation.messages)
             if empty_cleanup:
-                self.state_manager.session.update_token_count()
+                session.update_token_count()
 
             # Clean up consecutive request messages (abort before model responded)
-            consecutive_cleanup = remove_consecutive_requests(self.state_manager.session.messages)
+            consecutive_cleanup = remove_consecutive_requests(conversation.messages)
             if consecutive_cleanup:
-                self.state_manager.session.update_token_count()
+                session.update_token_count()
 
             # Invalidate agent cache - HTTP client may be in bad state after abort
             invalidated = ac.invalidate_agent_cache(self.model, self.state_manager)
@@ -581,7 +597,8 @@ async def _finalize_buffered_tasks(
     task_count = len(buffered_tasks)
     logger = get_logger()
     buffered_message = f"Executing buffered tools (count={task_count})"
-    logger.lifecycle(buffered_message, request_id=state_manager.session.request_id)
+    request_id = state_manager.session.runtime.request_id
+    logger.lifecycle(buffered_message, request_id=request_id)
 
     # Execute
     await ac.execute_tools_parallel(buffered_tasks, tool_callback)

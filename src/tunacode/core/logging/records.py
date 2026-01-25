@@ -15,7 +15,7 @@ class LogRecord:
     message: str
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     source: str = ""  # Module/component name
-    request_id: str = ""  # Ties to session.request_id
+    request_id: str = ""  # Ties to session.runtime.request_id
     iteration: int = 0  # Agent iteration number
     tool_name: str = ""  # For TOOL level logs
     duration_ms: float = 0.0  # For timing information

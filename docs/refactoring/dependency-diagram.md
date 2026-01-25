@@ -156,10 +156,10 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        TOOL CALL TRACKING (Current)                         │
 │                                                                             │
-│   1. session.tool_calls: list[dict]                                         │
+│   1. session.runtime.tool_calls: list[dict]                                 │
 │      {"tool": "read_file", "args": {...}, "id": "tc_123"}                   │
 │                                                                             │
-│   2. session.tool_call_args_by_id: dict[str, dict]                          │
+│   2. session.runtime.tool_call_args_by_id: dict[str, dict]                  │
 │      {"tc_123": {"filepath": "/foo/bar"}}                                   │
 │                                                                             │
 │   3. Message parts (pydantic-ai)                                            │

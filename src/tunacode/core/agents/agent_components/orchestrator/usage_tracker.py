@@ -26,12 +26,16 @@ def update_usage(session: SessionState, usage: Any | None, model_name: str) -> N
     completion_tokens = normalized_usage.response_tokens
     cached_tokens = normalized_usage.cached_tokens
 
-    session.last_call_usage[SESSION_USAGE_KEY_PROMPT_TOKENS] = prompt_tokens
-    session.last_call_usage[SESSION_USAGE_KEY_COMPLETION_TOKENS] = completion_tokens
+    usage_state = session.usage
+    last_call_usage = usage_state.last_call_usage
+    session_total_usage = usage_state.session_total_usage
+
+    last_call_usage[SESSION_USAGE_KEY_PROMPT_TOKENS] = prompt_tokens
+    last_call_usage[SESSION_USAGE_KEY_COMPLETION_TOKENS] = completion_tokens
 
     pricing = get_model_pricing(model_name)
     if pricing is None:
-        session.last_call_usage[SESSION_USAGE_KEY_COST] = DEFAULT_COST
+        last_call_usage[SESSION_USAGE_KEY_COST] = DEFAULT_COST
         cost = DEFAULT_COST
     else:
         non_cached_input = max(
@@ -44,11 +48,11 @@ def update_usage(session: SessionState, usage: Any | None, model_name: str) -> N
             cached_tokens,
             completion_tokens,
         )
-        session.last_call_usage[SESSION_USAGE_KEY_COST] = cost
-        session.session_total_usage[SESSION_USAGE_KEY_COST] += cost
+        last_call_usage[SESSION_USAGE_KEY_COST] = cost
+        session_total_usage[SESSION_USAGE_KEY_COST] += cost
 
-    session.session_total_usage[SESSION_USAGE_KEY_PROMPT_TOKENS] += prompt_tokens
-    session.session_total_usage[SESSION_USAGE_KEY_COMPLETION_TOKENS] += completion_tokens
+    session_total_usage[SESSION_USAGE_KEY_PROMPT_TOKENS] += prompt_tokens
+    session_total_usage[SESSION_USAGE_KEY_COMPLETION_TOKENS] += completion_tokens
 
     # Debug logging for token counts
     logger.lifecycle(

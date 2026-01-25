@@ -24,7 +24,7 @@ Location: core/agents/main.py:367-372
 
 ```python
 # In RequestOrchestrator._run_impl()
-session_messages = self.state_manager.session.messages
+session_messages = self.state_manager.session.conversation.messages
 _, tokens_reclaimed = prune_old_tool_outputs(session_messages, self.model)
 message_history = list(session_messages)
 ```
@@ -141,7 +141,7 @@ Defined as `PRUNE_PLACEHOLDER` at line 21.
 | Trigger point | `core/agents/main.py:369` | Called at request start |
 | Token counting | `utils/messaging/token_counter.py` | `estimate_tokens()` |
 | Message types | `types/pydantic_ai.py` | `ToolReturnPart`, `ModelRequest` |
-| State | `core/state.py` | `session.messages` storage |
+| State | `core/state.py` | `session.conversation.messages` storage |
 
 ## Constants
 

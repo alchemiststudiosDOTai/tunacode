@@ -34,7 +34,7 @@ class ToolRejectionNotifier:
             content=cancellation_message,
             part_kind=USER_PROMPT_PART_KIND,
         )
-        state.session.messages.append(
+        state.session.conversation.messages.append(
             ModelRequest(parts=[user_prompt_part], kind=MODEL_REQUEST_KIND)
         )
         state.session.update_token_count()

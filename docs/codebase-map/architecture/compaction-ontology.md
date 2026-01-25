@@ -36,7 +36,7 @@ updated_at: 2026-01-20T16:25:00Z
 │                         (core/agents/main.py)                                │
 │                                                                              │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐         │
-│  │ state_manager   │───▶│ session.messages│───▶│ prune_old_tool  │         │
+│  │ state_manager   │───▶│ session.conversation.messages│───▶│ prune_old_tool  │         │
 │  │                 │    │                 │    │ _outputs()      │         │
 │  └─────────────────┘    └─────────────────┘    └────────┬────────┘         │
 │                                                          │                  │
@@ -94,7 +94,7 @@ updated_at: 2026-01-20T16:25:00Z
 | Entity | Type | Location | Description |
 |--------|------|----------|-------------|
 | `Compaction` | Process | `core/compaction.py` | Context pruning system |
-| `Message` | Data | `session.messages` | Conversation history item |
+| `Message` | Data | `session.conversation.messages` | Conversation history item |
 | `Part` | Data | `message.parts` | Sub-component of message |
 | `ToolReturn` | Data | `part_kind="tool-return"` | Tool execution result |
 | `Token` | Unit | Estimated | Context window unit |
@@ -143,7 +143,7 @@ main.py
     │
     ├──▶ compaction.py::prune_old_tool_outputs()
     │
-    └──▶ state.py::session.messages
+    └──▶ state.py::session.conversation.messages
 ```
 
 ### Trigger (INVOKED-BY)

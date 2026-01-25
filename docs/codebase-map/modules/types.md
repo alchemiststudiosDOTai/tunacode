@@ -36,6 +36,14 @@ State-related types:
 - **ToolProgressCallback** - Progress update callback
 - **InputSessions** - Session list structure
 
+### state_structures.py
+SessionState sub-structures:
+- **ConversationState** - Messages, thoughts, token tracking
+- **ReActState** - Scratchpad and guidance
+- **TaskState** - Todos and original query
+- **RuntimeState** - Iteration counters, tool tracking, request metadata
+- **UsageState** - Per-call and cumulative usage metrics
+
 ### callbacks.py
 Callback type definitions:
 - **ToolCallback** - Tool execution callback

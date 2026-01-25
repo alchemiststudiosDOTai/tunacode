@@ -8,7 +8,7 @@ TunaCode employs a multi-layered state management strategy that combines a centr
 
 ### 1.1 Primary State Store: StateManager
 
-**Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/core/state.py`
+**Location:** `src/tunacode/core/state.py`
 
 The `StateManager` class is the central application state orchestrator. It holds a `SessionState` object and is instantiated as a global singleton in `/Users/tuna/Desktop/tunacode/src/tunacode/ui/main.py`.
 
@@ -20,13 +20,15 @@ state_manager = StateManager()
 
 The `SessionState` class encapsulates the entire user session runtime state:
 
-- **Conversation State:** `messages`, `current_model`
+- **Conversation State:** `conversation` (messages, thoughts, token counts)
+- **ReAct State:** `react` (scratchpad, guidance, forced calls)
+- **Task State:** `task` (todos, original query)
+- **Runtime State:** `runtime` (iteration counters, request_id, tool tracking, streaming flags)
+- **Usage State:** `usage` (per-call and cumulative metrics)
 - **Configuration:** `user_config` (merged defaults + user settings)
-- **Tool State:** `tool_calls`, `tool_ignore`, `yolo` mode
-- **Agent State:** `react_scratchpad`, `todos`, `iteration_count`
-- **UI State:** `operation_cancelled`, `is_streaming_active`
+- **Tool State:** `runtime.tool_calls`, `tool_ignore`, `yolo` mode
+- **UI State:** `runtime.operation_cancelled`, `runtime.is_streaming_active`
 - **Metadata:** `session_id`, `project_id`, `created_at`, `last_modified`, `working_directory`
-- **Metrics:** `session_total_usage` (token and cost tracking)
 
 The `state_manager.session` object is the primary shared mutable state passed across agent components, tools, and UI elements.
 

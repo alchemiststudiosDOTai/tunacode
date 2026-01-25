@@ -75,6 +75,7 @@ from tunacode.ui.widgets import (
 
 # Throttle streaming display updates to reduce visual churn
 STREAM_THROTTLE_MS: float = 100.0
+DEFAULT_COMPLETION_TOKENS = 0
 
 
 class TextualReplApp(App[None]):
@@ -216,10 +217,11 @@ class TextualReplApp(App[None]):
         self._request_start_time = time.monotonic()
 
         try:
-            model_name = self.state_manager.session.current_model or "openai/gpt-4o"
+            session = self.state_manager.session
+            model_name = session.current_model or "openai/gpt-4o"
 
             # Set progress callback on session for subagent progress tracking
-            self.state_manager.session.tool_progress_callback = build_tool_progress_callback(self)
+            session.tool_progress_callback = build_tool_progress_callback(self)
 
             self._current_request_task = asyncio.create_task(
                 process_request(
@@ -252,9 +254,10 @@ class TextualReplApp(App[None]):
                 from tunacode.ui.renderers.agent_response import render_agent_response
 
                 duration_ms = (time.monotonic() - self._request_start_time) * 1000
-                usage = self.state_manager.session.last_call_usage or {}
-                tokens = usage.get("completion_tokens", 0)
-                model = self.state_manager.session.current_model or ""
+                session = self.state_manager.session
+                usage = session.usage.last_call_usage or {}
+                tokens = int(usage.get("completion_tokens", DEFAULT_COMPLETION_TOKENS))
+                model = session.current_model or ""
 
                 panel = render_agent_response(
                     content=self.current_stream_text,
@@ -351,7 +354,8 @@ class TextualReplApp(App[None]):
 
         from tunacode.utils.messaging import get_content
 
-        for msg in self.state_manager.session.messages:
+        conversation = self.state_manager.session.conversation
+        for msg in conversation.messages:
             content = get_content(msg)
             if not content:
                 continue
@@ -457,15 +461,16 @@ class TextualReplApp(App[None]):
 
     def _update_resource_bar(self) -> None:
         session = self.state_manager.session
-        usage = session.session_total_usage
+        conversation = session.conversation
+        usage = session.usage.session_total_usage
 
         # Use actual context window tokens, not cumulative API usage
-        context_tokens = session.total_tokens
+        context_tokens = conversation.total_tokens
 
         self.resource_bar.update_stats(
             model=session.current_model or "No model selected",
             tokens=context_tokens,
-            max_tokens=session.max_tokens or 200000,
+            max_tokens=conversation.max_tokens or 200000,
             session_cost=usage.get("cost", 0.0),
         )
 

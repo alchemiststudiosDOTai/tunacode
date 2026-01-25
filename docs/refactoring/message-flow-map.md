@@ -241,9 +241,9 @@ These must always be true:
 | `tests/unit/types/test_adapter.py` | Adapter tests |
 | `tests/unit/types/test_canonical.py` | Canonical type tests |
 
-## Future: Removing session.tool_calls
+## Future: Removing session.runtime.tool_calls
 
-Currently `session.tool_calls: list[ToolCall]` tracks tool calls separately for:
+Currently `session.runtime.tool_calls: list[ToolCall]` tracks tool calls separately for:
 - ReAct guidance display
 - JSON session export
 

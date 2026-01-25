@@ -15,14 +15,16 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import (
+    ConversationState,
     InputSessions,
-    MessageHistory,
     ModelName,
+    ReActState,
+    RuntimeState,
     SessionId,
-    ToolArgs,
-    ToolCallId,
+    TaskState,
     ToolName,
     ToolProgressCallback,
+    UsageState,
     UserConfig,
 )
 from tunacode.utils.messaging import estimate_tokens, get_content
@@ -40,8 +42,6 @@ class SessionState:
         default_factory=dict
     )  # Keep as dict[str, Any] for agent instances
     agent_versions: dict[str, int] = field(default_factory=dict)
-    messages: MessageHistory = field(default_factory=list)
-    thoughts: list[str] = field(default_factory=list)
     # Keep session default in sync with configuration default
     current_model: ModelName = DEFAULT_USER_CONFIG["default_model"]
     spinner: Any | None = None
@@ -55,6 +55,13 @@ class SessionState:
     plan_approval_callback: Any | None = None
     undo_initialized: bool = False
     show_thoughts: bool = False
+    conversation: ConversationState = field(default_factory=ConversationState)
+    # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
+    react: ReActState = field(default_factory=ReActState)
+    # CLAUDE_ANCHOR[todos]: Session todo list for task tracking
+    task: TaskState = field(default_factory=TaskState)
+    runtime: RuntimeState = field(default_factory=RuntimeState)
+    usage: UsageState = field(default_factory=UsageState)
     session_id: SessionId = field(default_factory=lambda: str(uuid.uuid4()))
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Any | None = None
@@ -63,42 +70,6 @@ class SessionState:
     created_at: str = ""
     last_modified: str = ""
     working_directory: str = ""
-    # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
-    react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
-    react_forced_calls: int = 0
-    react_guidance: list[str] = field(default_factory=list)
-    # CLAUDE_ANCHOR[todos]: Session todo list for task tracking
-    todos: list[dict[str, Any]] = field(default_factory=list)
-    # Operation state tracking
-    operation_cancelled: bool = False
-    # Enhanced tracking for thoughts display
-    files_in_context: set[str] = field(default_factory=set)
-    tool_calls: list[dict[str, Any]] = field(default_factory=list)
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = field(default_factory=dict)
-    iteration_count: int = 0
-    current_iteration: int = 0
-    # Track streaming state to prevent spinner conflicts
-    is_streaming_active: bool = False
-    # Track streaming panel reference for tool handler access
-    streaming_panel: Any | None = None
-    # Context window tracking (estimation based)
-    total_tokens: int = 0
-    max_tokens: int = 0
-    # API usage tracking (actual from providers)
-    last_call_usage: dict = field(
-        default_factory=lambda: {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "cost": 0.0,
-        }
-    )
-    session_total_usage: dict = field(
-        default_factory=lambda: {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "cost": 0.0,
-        }
-    )
     # Recursive execution tracking
     current_recursion_depth: int = 0
     max_recursion_depth: int = 5
@@ -109,25 +80,26 @@ class SessionState:
     # Streaming debug instrumentation (see core/agents/agent_components/streaming.py)
     _debug_events: list[str] = field(default_factory=list)
     _debug_raw_stream_accum: str = ""
-    # Request lifecycle metadata
-    request_id: str = ""
-    original_query: str = ""
-    # Agent execution counters
-    consecutive_empty_responses: int = 0
-    batch_counter: int = 0
 
     def update_token_count(self) -> None:
         """Calculate total token count from conversation messages."""
-        total = 0
-        for msg in self.messages:
+        messages = self.conversation.messages
+        model_name = self.current_model
+        total_tokens = 0
+
+        for msg in messages:
             content = get_content(msg)
-            if content:
-                total += estimate_tokens(content, self.current_model)
-        self.total_tokens = total
+            if not content:
+                continue
+            token_count = estimate_tokens(content, model_name)
+            total_tokens += token_count
+
+        self.conversation.total_tokens = total_tokens
 
     def adjust_token_count(self, delta: int) -> None:
         """Adjust total_tokens by delta (negative for reclaimed tokens)."""
-        self.total_tokens = max(0, self.total_tokens + delta)
+        updated_total = self.conversation.total_tokens + delta
+        self.conversation.total_tokens = max(0, updated_total)
 
 
 class StateManager:
@@ -154,11 +126,33 @@ class StateManager:
             self._session.current_model = self._session.user_config["default_model"]
 
         # Initialize max_tokens from model's registry context window
-        self._session.max_tokens = get_model_context_window(self._session.current_model)
+        self._session.conversation.max_tokens = get_model_context_window(
+            self._session.current_model
+        )
 
     @property
     def session(self) -> SessionState:
         return self._session
+
+    @property
+    def conversation(self) -> ConversationState:
+        return self._session.conversation
+
+    @property
+    def react(self) -> ReActState:
+        return self._session.react
+
+    @property
+    def task(self) -> TaskState:
+        return self._session.task
+
+    @property
+    def runtime(self) -> RuntimeState:
+        return self._session.runtime
+
+    @property
+    def usage(self) -> UsageState:
+        return self._session.usage
 
     @property
     def tool_handler(self) -> Optional["ToolHandler"]:
@@ -203,27 +197,28 @@ class StateManager:
 
     # React scratchpad helpers
     def get_react_scratchpad(self) -> dict[str, Any]:
-        return self._session.react_scratchpad
+        return self._session.react.scratchpad
 
     def append_react_entry(self, entry: dict[str, Any]) -> None:
-        timeline = self._session.react_scratchpad.setdefault("timeline", [])
+        scratchpad = self._session.react.scratchpad
+        timeline = scratchpad.setdefault("timeline", [])
         timeline.append(entry)
 
     def clear_react_scratchpad(self) -> None:
-        self._session.react_scratchpad = {"timeline": []}
+        self._session.react.scratchpad = {"timeline": []}
 
     # Todo list helpers
     def get_todos(self) -> list[dict[str, Any]]:
         """Return the current todo list."""
-        return self._session.todos
+        return self._session.task.todos
 
     def set_todos(self, todos: list[dict[str, Any]]) -> None:
         """Replace the entire todo list."""
-        self._session.todos = todos
+        self._session.task.todos = todos
 
     def clear_todos(self) -> None:
         """Clear the todo list."""
-        self._session.todos = []
+        self._session.task.todos = []
 
     def reset_session(self) -> None:
         """Reset the session to a fresh state."""
@@ -249,7 +244,7 @@ class StateManager:
             msg_adapter = None
 
         serialized_messages: list[dict] = []
-        for msg in self._session.messages:
+        for msg in self._session.conversation.messages:
             if isinstance(msg, dict):
                 serialized_messages.append(msg)
                 continue
@@ -321,13 +316,13 @@ class StateManager:
             "last_modified": self._session.last_modified,
             "working_directory": self._session.working_directory,
             "current_model": self._session.current_model,
-            "total_tokens": self._session.total_tokens,
-            "session_total_usage": self._session.session_total_usage,
+            "total_tokens": self._session.conversation.total_tokens,
+            "session_total_usage": self._session.usage.session_total_usage,
             "tool_ignore": self._session.tool_ignore,
             "yolo": self._session.yolo,
-            "react_scratchpad": self._session.react_scratchpad,
-            "todos": self._session.todos,
-            "thoughts": self._session.thoughts,
+            "react_scratchpad": self._session.react.scratchpad,
+            "todos": self._session.task.todos,
+            "thoughts": self._session.conversation.thoughts,
             "messages": self._serialize_messages(),
         }
 
@@ -368,25 +363,30 @@ class StateManager:
             self._session.created_at = data.get("created_at", "")
             self._session.last_modified = data.get("last_modified", "")
             self._session.working_directory = data.get("working_directory", "")
-            self._session.current_model = data.get(
-                "current_model", DEFAULT_USER_CONFIG["default_model"]
-            )
+            default_model = DEFAULT_USER_CONFIG["default_model"]
+            self._session.current_model = data.get("current_model", default_model)
             # Update max_tokens based on loaded model's context window
-            self._session.max_tokens = get_model_context_window(self._session.current_model)
-            self._session.total_tokens = data.get("total_tokens", 0)
-            self._session.session_total_usage = data.get(
-                "session_total_usage",
-                {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0},
+            self._session.conversation.max_tokens = get_model_context_window(
+                self._session.current_model
             )
-            self._session.tool_ignore = data.get("tool_ignore", [])
+            default_total_tokens = self._session.conversation.total_tokens
+            self._session.conversation.total_tokens = data.get("total_tokens", default_total_tokens)
+            default_total_usage = self._session.usage.session_total_usage
+            self._session.usage.session_total_usage = data.get(
+                "session_total_usage",
+                default_total_usage,
+            )
+            tool_ignore = data.get("tool_ignore", [])
+            self._session.tool_ignore = tool_ignore
             self._session.yolo = data.get("yolo", False)
-            self._session.react_scratchpad = data.get("react_scratchpad", {"timeline": []})
-            self._session.todos = data.get("todos", [])
+            default_scratchpad = self._session.react.scratchpad
+            self._session.react.scratchpad = data.get("react_scratchpad", default_scratchpad)
+            self._session.task.todos = data.get("todos", [])
             loaded_messages = self._deserialize_messages(data.get("messages", []))
             stored_thoughts = data.get("thoughts") or []
             extracted_thoughts, cleaned_messages = self._split_thought_messages(loaded_messages)
-            self._session.thoughts = [*stored_thoughts, *extracted_thoughts]
-            self._session.messages = cleaned_messages
+            self._session.conversation.thoughts = [*stored_thoughts, *extracted_thoughts]
+            self._session.conversation.messages = cleaned_messages
 
             return True
         except json.JSONDecodeError:

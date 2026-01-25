@@ -12,7 +12,7 @@ TunaCode has clean dependency direction (ui → core → tools) but suffers from
 
 1. **SessionState mega-dataclass** (40+ fields mixing unrelated concerns)
 2. **Message format polymorphism** (4+ formats requiring defensive accessors everywhere)
-3. **Tool call tracking duplication** (session.tool_calls, message parts, tool_call_args_by_id)
+3. **Tool call tracking duplication** (session.runtime.tool_calls, message parts, session.runtime.tool_call_args_by_id)
 4. **Ad-hoc dicts** where typed structures would prevent bugs (todos, react_scratchpad, usage)
 
 The rowing codebase refactor principles translate as follows:
@@ -315,8 +315,8 @@ def remove_dangling_tool_calls(messages: list[Message]) -> list[Message]:
 **Goal**: Single source of truth for tool call state.
 
 **Current problem**: Tool calls tracked in 3 places:
-1. `session.tool_calls: list[dict[str, Any]]`
-2. `session.tool_call_args_by_id: dict[str, dict]`
+1. `session.runtime.tool_calls: list[dict[str, Any]]`
+2. `session.runtime.tool_call_args_by_id: dict[str, dict]`
 3. Message parts (ToolCallPart in pydantic-ai messages)
 
 **Target**: One `dict[str, ToolCall]` keyed by tool_call_id.
@@ -478,7 +478,7 @@ After each chunk achieves parity:
 
 **Candidates for deletion** (after migration):
 - `message_utils.py` polymorphic accessors (replace with adapter)
-- Duplicate tracking in `session.tool_calls` (replace with registry)
+- Duplicate tracking in `session.runtime.tool_calls` (replace with registry)
 - Ad-hoc dict factories in SessionState (replace with typed defaults)
 
 ---

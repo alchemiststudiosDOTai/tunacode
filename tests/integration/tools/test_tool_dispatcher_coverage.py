@@ -98,9 +98,9 @@ class DummyNode:
 @pytest.fixture
 def state_manager() -> StateManager:
     manager = StateManager()
-    manager.session.tool_calls = []
-    manager.session.tool_call_args_by_id = {}
-    manager.session.batch_counter = 0
+    manager.session.runtime.tool_calls = []
+    manager.session.runtime.tool_call_args_by_id = {}
+    manager.session.runtime.batch_counter = 0
     return manager
 
 
@@ -224,7 +224,7 @@ async def test_dispatch_debug_logging_and_skips_callbacks(
 
     assert result.has_tool_calls is True
     assert result.used_fallback is False
-    assert len(state_manager.session.tool_calls) == len(parts)
+    assert len(state_manager.session.runtime.tool_calls) == len(parts)
 
 
 @pytest.mark.asyncio

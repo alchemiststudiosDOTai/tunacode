@@ -37,9 +37,7 @@ def load_config() -> UserConfig | None:
         raise ConfigurationError(f"Failed to load configuration: {err}") from err
 
 
-def merge_user_config(
-    default_config: UserConfig, user_config: UserConfig | None
-) -> UserConfig:
+def merge_user_config(default_config: UserConfig, user_config: UserConfig | None) -> UserConfig:
     """Merge user config on top of defaults."""
     if not user_config:
         return default_config

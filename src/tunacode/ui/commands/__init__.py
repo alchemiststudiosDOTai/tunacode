@@ -80,30 +80,34 @@ class ClearCommand(Command):
         # PRESERVE messages - needed for /resume
         # PRESERVE total_tokens - represents conversation size
 
-        session.thoughts = []
-        session.tool_calls = []
-        session.tool_call_args_by_id = {}
-        session.files_in_context = set()
+        session.conversation.thoughts = []
+        session.runtime.tool_calls = []
+        session.runtime.tool_call_args_by_id = {}
+        session.conversation.files_in_context = set()
 
         app.state_manager.clear_react_scratchpad()
-        session.react_forced_calls = 0
-        session.react_guidance = []
+        session.react.forced_calls = 0
+        session.react.guidance = []
 
         app.state_manager.clear_todos()
 
-        session.iteration_count = 0
-        session.current_iteration = 0
-        session.consecutive_empty_responses = 0
-        session.batch_counter = 0
+        session.runtime.iteration_count = 0
+        session.runtime.current_iteration = 0
+        session.runtime.consecutive_empty_responses = 0
+        session.runtime.batch_counter = 0
 
-        session.request_id = ""
-        session.original_query = ""
-        session.operation_cancelled = False
+        session.runtime.request_id = ""
+        session.task.original_query = ""
+        session.runtime.operation_cancelled = False
 
         session._debug_events = []
         session._debug_raw_stream_accum = ""
 
-        session.last_call_usage = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
+        session.usage.last_call_usage = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "cost": 0.0,
+        }
         # Keep session_total_usage - tracks lifetime session cost
 
         app.state_manager.reset_recursive_state()
@@ -216,7 +220,7 @@ class ModelCommand(Command):
 
             session.current_model = model_name
             session.user_config["default_model"] = model_name
-            session.max_tokens = get_model_context_window(model_name)
+            session.conversation.max_tokens = get_model_context_window(model_name)
             save_config(state_manager)
             invalidate_agent_cache(model_name, state_manager)
             app._update_resource_bar()
@@ -243,7 +247,7 @@ class ModelCommand(Command):
 
                 session.current_model = full_model
                 session.user_config["default_model"] = full_model
-                session.max_tokens = get_model_context_window(full_model)
+                session.conversation.max_tokens = get_model_context_window(full_model)
                 save_config(state_manager)
                 invalidate_agent_cache(full_model, state_manager)
                 app._update_resource_bar()
