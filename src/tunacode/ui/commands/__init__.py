@@ -185,11 +185,11 @@ class ModelCommand(Command):
     usage = "/model [provider:model-name]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
+        from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
         from tunacode.configuration.models import (
             get_model_context_window,
             load_models_registry,
         )
-        from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
         from tunacode.core.agents.agent_components.agent_config import (
             invalidate_agent_cache,
         )
