@@ -150,97 +150,6 @@ class TestToCanonical:
         result = to_canonical(msg)
         assert result.parts == ()
 
-    def test_dict_with_tool_calls_metadata(self) -> None:
-        """Dict with tool_calls metadata (separate from parts).
-
-        Some serialized messages have tool_calls as a separate key,
-        not derived from parts. This can happen with failed deserialization.
-        """
-        msg = {
-            "kind": "response",
-            "parts": [],  # Empty parts
-            "tool_calls": [
-                {
-                    "tool_call_id": "tc_meta_1",
-                    "tool_name": "bash",
-                    "args": {"command": "ls"},
-                },
-            ],
-        }
-        result = to_canonical(msg)
-
-        assert result.role == MessageRole.ASSISTANT
-        assert len(result.parts) == 1
-        assert isinstance(result.parts[0], ToolCallPart)
-        assert result.parts[0].tool_call_id == "tc_meta_1"
-        assert result.parts[0].tool_name == "bash"
-
-    def test_dict_with_tool_calls_metadata_and_parts(self) -> None:
-        """Dict with both parts and tool_calls metadata.
-
-        Should deduplicate by tool_call_id - parts take precedence.
-        """
-        msg = {
-            "kind": "response",
-            "parts": [
-                {
-                    "part_kind": "tool-call",
-                    "tool_call_id": "tc_1",
-                    "tool_name": "from_parts",
-                    "args": {"source": "parts"},
-                },
-            ],
-            "tool_calls": [
-                # Same ID as in parts - should be deduplicated
-                {
-                    "tool_call_id": "tc_1",
-                    "tool_name": "from_metadata",
-                    "args": {"source": "metadata"},
-                },
-                # Different ID - should be added
-                {
-                    "tool_call_id": "tc_2",
-                    "tool_name": "only_in_metadata",
-                    "args": {},
-                },
-            ],
-        }
-        result = to_canonical(msg)
-
-        assert len(result.parts) == 2
-
-        # First part from parts (not replaced by metadata)
-        tc1 = result.parts[0]
-        assert isinstance(tc1, ToolCallPart)
-        assert tc1.tool_call_id == "tc_1"
-        assert tc1.tool_name == "from_parts"  # Not overwritten
-
-        # Second part from metadata
-        tc2 = result.parts[1]
-        assert isinstance(tc2, ToolCallPart)
-        assert tc2.tool_call_id == "tc_2"
-        assert tc2.tool_name == "only_in_metadata"
-
-    def test_tool_calls_metadata_alternate_keys(self) -> None:
-        """Tool calls metadata may use alternate key names."""
-        msg = {
-            "kind": "response",
-            "parts": [],
-            "tool_calls": [
-                # Using 'id' instead of 'tool_call_id'
-                {"id": "tc_alt_1", "name": "grep", "args": {}},
-                # Using 'tool' instead of 'tool_name'
-                {"tool_call_id": "tc_alt_2", "tool": "read_file", "args": {}},
-            ],
-        }
-        result = to_canonical(msg)
-
-        assert len(result.parts) == 2
-        assert result.parts[0].tool_call_id == "tc_alt_1"
-        assert result.parts[0].tool_name == "grep"
-        assert result.parts[1].tool_call_id == "tc_alt_2"
-        assert result.parts[1].tool_name == "read_file"
-
 
 class TestFromCanonical:
     """Tests for from_canonical() conversion."""
@@ -321,7 +230,6 @@ class TestRoundTrip:
         canonical = to_canonical(original)
         restored = from_canonical(canonical)
 
-        # Content should be preserved (structure may differ slightly)
         assert restored["kind"] == "request"
         assert restored["parts"][0]["content"] == "Hello world"
 
@@ -377,7 +285,7 @@ class TestToolCallHelpers:
     """Tests for tool call ID extraction helpers."""
 
     def test_get_tool_call_ids_from_dict(self) -> None:
-        """Extract tool call IDs from dict message."""
+        """Extract tool call IDs from dict message with parts."""
         msg = {
             "kind": "response",
             "parts": [
@@ -422,7 +330,7 @@ class TestToolCallHelpers:
         ]
 
         dangling = find_dangling_tool_calls(messages)
-        assert dangling == {"tc_2"}  # tc_2 has no return
+        assert dangling == {"tc_2"}
 
     def test_find_dangling_no_dangling(self) -> None:
         """No dangling when all calls have returns."""
@@ -444,37 +352,3 @@ class TestToolCallHelpers:
 
         dangling = find_dangling_tool_calls(messages)
         assert dangling == set()
-
-    def test_find_dangling_from_tool_calls_metadata(self) -> None:
-        """Find dangling tool calls from tool_calls metadata."""
-        messages = [
-            {
-                "kind": "response",
-                "parts": [],  # No parts
-                "tool_calls": [
-                    {"tool_call_id": "tc_meta_1", "tool_name": "bash", "args": {}},
-                    {"tool_call_id": "tc_meta_2", "tool_name": "grep", "args": {}},
-                ],
-            },
-            {
-                "kind": "request",
-                "parts": [
-                    {"part_kind": "tool-return", "tool_call_id": "tc_meta_1", "content": "ok"},
-                ],
-            },
-        ]
-
-        dangling = find_dangling_tool_calls(messages)
-        assert dangling == {"tc_meta_2"}  # tc_meta_2 has no return
-
-    def test_get_tool_call_ids_from_metadata(self) -> None:
-        """Extract tool call IDs from tool_calls metadata."""
-        msg = {
-            "kind": "response",
-            "parts": [],
-            "tool_calls": [
-                {"tool_call_id": "tc_m1", "tool_name": "a", "args": {}},
-                {"id": "tc_m2", "name": "b", "args": {}},  # Alternate key names
-            ],
-        }
-        assert get_tool_call_ids(msg) == {"tc_m1", "tc_m2"}

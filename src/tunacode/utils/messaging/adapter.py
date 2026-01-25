@@ -7,6 +7,9 @@ This module provides bidirectional conversion between:
 The adapter is the ONLY place that handles message format polymorphism.
 All other code should use canonical types exclusively.
 
+Tool calls are ONLY in `parts`. The `tool_calls` property on pydantic-ai
+objects is a computed property derived from parts - not a separate source.
+
 See docs/refactoring/architecture-refactor-plan.md for migration strategy.
 """
 
@@ -40,7 +43,6 @@ PYDANTIC_MESSAGE_KIND_RESPONSE = "response"
 # =============================================================================
 # Attribute Accessors
 # =============================================================================
-# These handle the dict/object polymorphism in one place.
 
 
 def _get_attr(obj: Any, name: str, default: Any = None) -> Any:
@@ -51,65 +53,16 @@ def _get_attr(obj: Any, name: str, default: Any = None) -> Any:
 
 
 def _get_parts(message: Any) -> list[Any]:
-    """Extract parts list from a message."""
+    """Extract parts list from a message.
+
+    Parts is the single source of truth for message content including tool calls.
+    """
     parts = _get_attr(message, "parts")
     if parts is None:
         return []
     if isinstance(parts, (list, tuple)):
         return list(parts)
     return []
-
-
-def _get_tool_calls_metadata(message: Any) -> list[Any]:
-    """Extract tool_calls metadata from a message.
-
-    In pydantic-ai objects, tool_calls is a computed property derived from parts.
-    In serialized dicts, it may exist as a separate key with tool call info.
-
-    This is needed because some serialized messages have tool_calls metadata
-    that isn't also in parts (e.g., from failed deserialization).
-    """
-    tool_calls = _get_attr(message, "tool_calls")
-    if tool_calls is None:
-        return []
-    if isinstance(tool_calls, (list, tuple)):
-        return list(tool_calls)
-    return []
-
-
-def _convert_tool_call_metadata_to_part(tool_call: Any) -> ToolCallPart | None:
-    """Convert a tool_calls metadata entry to a ToolCallPart.
-
-    tool_calls metadata may have a different structure than parts:
-    - May have 'tool_name' or 'name'
-    - May have 'tool_call_id' or 'id'
-    """
-    # Try multiple attribute names for tool_call_id
-    tool_call_id = (
-        _get_attr(tool_call, "tool_call_id")
-        or _get_attr(tool_call, "id")
-        or ""
-    )
-
-    # Try multiple attribute names for tool_name
-    tool_name = (
-        _get_attr(tool_call, "tool_name")
-        or _get_attr(tool_call, "name")
-        or _get_attr(tool_call, "tool")
-        or ""
-    )
-
-    # Skip if no ID (can't track without ID)
-    if not tool_call_id:
-        return None
-
-    args = _get_attr(tool_call, "args", {}) or {}
-
-    return ToolCallPart(
-        tool_call_id=str(tool_call_id),
-        tool_name=str(tool_name),
-        args=args if isinstance(args, dict) else {},
-    )
 
 
 # =============================================================================
@@ -124,17 +77,14 @@ def _convert_part_to_canonical(part: Any) -> CanonicalPart | None:
     """
     part_kind = _get_attr(part, "part_kind")
 
-    # Text part
     if part_kind == PYDANTIC_PART_KIND_TEXT:
         content = _get_attr(part, "content", "")
         return TextPart(content=str(content))
 
-    # User prompt (treat as text)
     if part_kind == PYDANTIC_PART_KIND_USER_PROMPT:
         content = _get_attr(part, "content", "")
         return TextPart(content=str(content))
 
-    # Tool call
     if part_kind == PYDANTIC_PART_KIND_TOOL_CALL:
         return ToolCallPart(
             tool_call_id=_get_attr(part, "tool_call_id", ""),
@@ -142,7 +92,6 @@ def _convert_part_to_canonical(part: Any) -> CanonicalPart | None:
             args=_get_attr(part, "args", {}) or {},
         )
 
-    # Tool return
     if part_kind == PYDANTIC_PART_KIND_TOOL_RETURN:
         content = _get_attr(part, "content", "")
         return ToolReturnPart(
@@ -150,12 +99,10 @@ def _convert_part_to_canonical(part: Any) -> CanonicalPart | None:
             content=str(content),
         )
 
-    # System prompt
     if part_kind == PYDANTIC_PART_KIND_SYSTEM_PROMPT:
         content = _get_attr(part, "content", "")
         return SystemPromptPart(content=str(content))
 
-    # Unknown part type - log and skip
     return None
 
 
@@ -168,7 +115,6 @@ def _determine_role(message: Any) -> MessageRole:
     if kind == PYDANTIC_MESSAGE_KIND_RESPONSE:
         return MessageRole.ASSISTANT
 
-    # Fallback: check for role attribute
     role = _get_attr(message, "role")
     if role == "user":
         return MessageRole.USER
@@ -179,7 +125,6 @@ def _determine_role(message: Any) -> MessageRole:
     if role == "system":
         return MessageRole.SYSTEM
 
-    # Default to user for unknown
     return MessageRole.USER
 
 
@@ -191,20 +136,16 @@ def _determine_role(message: Any) -> MessageRole:
 def to_canonical(message: Any) -> CanonicalMessage:
     """Convert a pydantic-ai message (or dict) to canonical format.
 
-    Handles all the polymorphic message formats:
+    Handles:
     - pydantic-ai ModelRequest/ModelResponse objects
-    - Serialized dict messages
+    - Serialized dict messages with parts
     - Legacy dict formats with "content" or "thought" keys
 
-    Args:
-        message: A pydantic-ai message or dict
-
-    Returns:
-        CanonicalMessage with typed parts
+    Tool calls are extracted from `parts` only. The `tool_calls` property
+    on pydantic-ai objects is computed from parts, not a separate source.
     """
     # Handle legacy dict formats first
     if isinstance(message, dict):
-        # Legacy thought format
         if "thought" in message:
             content = str(message.get("thought", ""))
             return CanonicalMessage(
@@ -212,7 +153,6 @@ def to_canonical(message: Any) -> CanonicalMessage:
                 parts=(ThoughtPart(content=content),),
             )
 
-        # Legacy content-only format
         if "content" in message and "parts" not in message and "kind" not in message:
             content = message.get("content", "")
             if isinstance(content, str):
@@ -221,10 +161,9 @@ def to_canonical(message: Any) -> CanonicalMessage:
                     parts=(TextPart(content=content),),
                 )
 
-    # Extract role
     role = _determine_role(message)
 
-    # Extract and convert parts
+    # Extract and convert parts - the single source of truth
     raw_parts = _get_parts(message)
     canonical_parts: list[CanonicalPart] = []
 
@@ -233,28 +172,13 @@ def to_canonical(message: Any) -> CanonicalMessage:
         if converted is not None:
             canonical_parts.append(converted)
 
-    # Also check tool_calls metadata for any tool calls not in parts
-    # This handles serialized dicts where tool_calls exists separately
-    # Collect IDs we already have from parts to avoid duplicates
-    existing_tool_call_ids = {
-        p.tool_call_id for p in canonical_parts if isinstance(p, ToolCallPart)
-    }
-
-    tool_calls_metadata = _get_tool_calls_metadata(message)
-    for tool_call in tool_calls_metadata:
-        converted = _convert_tool_call_metadata_to_part(tool_call)
-        if converted is not None and converted.tool_call_id not in existing_tool_call_ids:
-            canonical_parts.append(converted)
-            existing_tool_call_ids.add(converted.tool_call_id)
-
-    # If no parts but has content, create a text part
+    # Fallback: if no parts but has content, create a text part
     if not canonical_parts:
         content = _get_attr(message, "content")
         if content:
             if isinstance(content, str):
                 canonical_parts.append(TextPart(content=content))
             elif isinstance(content, list):
-                # Nested content (e.g., list of dicts)
                 for item in content:
                     if isinstance(item, str):
                         canonical_parts.append(TextPart(content=item))
@@ -264,7 +188,7 @@ def to_canonical(message: Any) -> CanonicalMessage:
     return CanonicalMessage(
         role=role,
         parts=tuple(canonical_parts),
-        timestamp=None,  # Could extract from message if available
+        timestamp=None,
     )
 
 
@@ -279,38 +203,16 @@ def to_canonical_list(messages: list[Any]) -> list[CanonicalMessage]:
 
 
 def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
-    """Convert a canonical message back to dict format for pydantic-ai.
-
-    Note: We return dicts rather than pydantic-ai objects because:
-    1. pydantic-ai can accept dict format in message_history
-    2. We avoid importing pydantic-ai types here
-    3. Dict format is more portable for serialization
-
-    Args:
-        message: A CanonicalMessage
-
-    Returns:
-        Dict in pydantic-ai compatible format
-    """
+    """Convert a canonical message back to dict format for pydantic-ai."""
     parts: list[dict[str, Any]] = []
 
     for part in message.parts:
         if isinstance(part, TextPart):
-            parts.append({
-                "part_kind": "text",
-                "content": part.content,
-            })
+            parts.append({"part_kind": "text", "content": part.content})
         elif isinstance(part, ThoughtPart):
-            # Thoughts are internal - convert to text for API
-            parts.append({
-                "part_kind": "text",
-                "content": part.content,
-            })
+            parts.append({"part_kind": "text", "content": part.content})
         elif isinstance(part, SystemPromptPart):
-            parts.append({
-                "part_kind": "system-prompt",
-                "content": part.content,
-            })
+            parts.append({"part_kind": "system-prompt", "content": part.content})
         elif isinstance(part, ToolCallPart):
             parts.append({
                 "part_kind": "tool-call",
@@ -331,10 +233,7 @@ def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
         else PYDANTIC_MESSAGE_KIND_RESPONSE
     )
 
-    return {
-        "kind": kind,
-        "parts": parts,
-    }
+    return {"kind": kind, "parts": parts}
 
 
 def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]]:
@@ -343,32 +242,18 @@ def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]
 
 
 # =============================================================================
-# Content Extraction (replaces message_utils.get_message_content)
+# Content Extraction
 # =============================================================================
 
 
 def get_content(message: Any) -> str:
     """Extract text content from any message format.
 
-    This is the unified replacement for message_utils.get_message_content().
-    Works with:
-    - CanonicalMessage
-    - pydantic-ai messages
-    - Dict messages in any legacy format
-
-    Args:
-        message: Any message format
-
-    Returns:
-        Concatenated text content
+    Replaces message_utils.get_message_content().
     """
-    # If already canonical, use the method
     if isinstance(message, CanonicalMessage):
         return message.get_text_content()
-
-    # Convert to canonical and extract
-    canonical = to_canonical(message)
-    return canonical.get_text_content()
+    return to_canonical(message).get_text_content()
 
 
 # =============================================================================
@@ -391,10 +276,7 @@ def get_tool_return_ids(message: Any) -> set[str]:
 
 
 def find_dangling_tool_calls(messages: list[Any]) -> set[str]:
-    """Find tool call IDs that have no matching tool return.
-
-    This is a simplified version of what sanitize.py does.
-    """
+    """Find tool call IDs that have no matching tool return."""
     call_ids: set[str] = set()
     return_ids: set[str] = set()
 
@@ -410,14 +292,11 @@ def find_dangling_tool_calls(messages: list[Any]) -> set[str]:
 # =============================================================================
 
 __all__ = [
-    # Conversion functions
     "to_canonical",
     "to_canonical_list",
     "from_canonical",
     "from_canonical_list",
-    # Content extraction
     "get_content",
-    # Tool call helpers
     "get_tool_call_ids",
     "get_tool_return_ids",
     "find_dangling_tool_calls",
