@@ -6,6 +6,7 @@ Handles user preferences, conversation history, and runtime state.
 CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 """
 
+import copy
 import json
 import uuid
 from dataclasses import dataclass, field
@@ -149,20 +150,19 @@ class StateManager:
         # Load user config from file
         user_config = load_config()
         if user_config:
-            # Merge with defaults: user config takes precedence
-            merged_config = DEFAULT_USER_CONFIG.copy()
+            # Deep copy defaults, then merge user config on top
+            merged_config = copy.deepcopy(DEFAULT_USER_CONFIG)
             merged_config.update(user_config)
 
-            # Merge nested settings
+            # Deep merge nested settings
             if "settings" in user_config:
-                merged_config["settings"] = DEFAULT_USER_CONFIG["settings"].copy()
+                merged_config["settings"] = copy.deepcopy(DEFAULT_USER_CONFIG["settings"])
                 merged_config["settings"].update(user_config["settings"])
 
-            # Update session with merged configuration
             self._session.user_config = merged_config
         else:
-            # No user config file found, use defaults
-            self._session.user_config = DEFAULT_USER_CONFIG.copy()
+            # No config file - setup will be shown and replace this reference
+            self._session.user_config = DEFAULT_USER_CONFIG
 
         # Update current_model to match the loaded user config
         if self._session.user_config.get("default_model"):

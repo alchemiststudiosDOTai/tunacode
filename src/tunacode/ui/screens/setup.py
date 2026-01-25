@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import TYPE_CHECKING
 
 from textual.app import ComposeResult
@@ -9,13 +10,13 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, Select, Static
 
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.configuration.models import (
     get_models_for_provider,
     get_provider_base_url,
     get_provider_env_var,
     get_providers,
 )
-from tunacode.constants import SETTINGS_BASE_URL
 from tunacode.utils.config import save_config
 
 if TYPE_CHECKING:
@@ -196,18 +197,16 @@ class SetupScreen(Screen[bool]):
         env_var = get_provider_env_var(provider)
         base_url = get_provider_base_url(provider)
 
-        user_config = self.state_manager.session.user_config
+        user_config = copy.deepcopy(DEFAULT_USER_CONFIG)
         user_config["default_model"] = full_model
-
-        if "env" not in user_config:
-            user_config["env"] = {}
         user_config["env"][env_var] = api_key
 
         if base_url:
-            if "settings" not in user_config:
-                user_config["settings"] = {}
-            user_config["settings"][SETTINGS_BASE_URL] = base_url
+            if "providers" not in user_config["settings"]:
+                user_config["settings"]["providers"] = {}
+            user_config["settings"]["providers"][provider] = {"base_url": base_url}
 
+        self.state_manager.session.user_config = user_config
         self.state_manager.session.current_model = full_model
 
         try:

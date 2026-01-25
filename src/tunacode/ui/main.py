@@ -8,7 +8,7 @@ import sys
 import typer
 
 from tunacode.configuration.settings import ApplicationSettings
-from tunacode.constants import SETTINGS_BASE_URL
+from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.core.state import StateManager
 from tunacode.exceptions import UserAbortError
 from tunacode.tools.authorization.handler import ToolHandler
@@ -43,17 +43,22 @@ def _print_version() -> None:
     print(f"tunacode {APP_VERSION}")
 
 
+def _config_exists() -> bool:
+    return app_settings.paths.config_file.exists()
+
+
 def _apply_base_url_override(state_manager: StateManager, base_url: str | None) -> None:
+    """Apply --baseurl CLI flag as OPENAI_BASE_URL env override."""
     if not base_url:
         return
 
     user_config = state_manager.session.user_config
-    settings = user_config.get("settings")
-    if settings is None:
-        settings = {}
-        user_config["settings"] = settings
+    env = user_config.get("env")
+    if env is None:
+        env = {}
+        user_config["env"] = env
 
-    settings[SETTINGS_BASE_URL] = base_url
+    env[ENV_OPENAI_BASE_URL] = base_url
 
 
 async def _run_textual_app(*, model: str | None, show_setup: bool) -> None:
@@ -124,7 +129,7 @@ def _default_command(
         return
 
     _apply_base_url_override(state_manager, baseurl)
-    _run_textual_cli(model=model, show_setup=setup)
+    _run_textual_cli(model=model, show_setup=setup or not _config_exists())
 
 
 @app.command(hidden=True)
@@ -146,7 +151,7 @@ def main(
         raise typer.Exit(code=0)
 
     _apply_base_url_override(state_manager, baseurl)
-    _run_textual_cli(model=model, show_setup=setup)
+    _run_textual_cli(model=model, show_setup=setup or not _config_exists())
 
 
 @app.command(name="run")
