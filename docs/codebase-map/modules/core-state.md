@@ -19,8 +19,8 @@ Central singleton managing all session data including conversation history, user
 Dataclass container for all session data with decomposed sub-structures:
 - **conversation** - Messages, thoughts, token totals, context tracking
 - **react** - Scratchpad timeline, forced call counter, guidance entries
-- **task** - Todos and original query tracking
-- **runtime** - Iteration counters, tool call tracking, request metadata, streaming flags
+- **task** - Typed todo tracking and original query
+- **runtime** - Iteration counters, tool call registry, request metadata, streaming flags
 - **usage** - Per-call and cumulative usage metrics
 - **user_config** - User settings and preferences
 - **agents** - Cached pydantic-ai Agent instances

@@ -41,8 +41,12 @@ SessionState sub-structures:
 - **ConversationState** - Messages, thoughts, token tracking
 - **ReActState** - Scratchpad and guidance
 - **TaskState** - Todos and original query
-- **RuntimeState** - Iteration counters, tool tracking, request metadata
+- **RuntimeState** - Iteration counters, tool registry, request metadata
 - **UsageState** - Per-call and cumulative usage metrics
+
+### tool_registry.py
+Tool call lifecycle registry:
+- **ToolCallRegistry** - Single source of truth for tool call state
 
 ### callbacks.py
 Callback type definitions:

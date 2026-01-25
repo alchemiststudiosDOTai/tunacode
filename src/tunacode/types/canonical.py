@@ -133,8 +133,8 @@ class CanonicalMessage:
 # =============================================================================
 # Tool Call Types
 # =============================================================================
-# These replace the duplicated tracking in session.runtime.tool_calls,
-# session.runtime.tool_call_args_by_id, and message parts.
+# These replace the duplicated tracking in session.runtime.tool_registry
+# and message parts.
 
 
 class ToolCallStatus(Enum):
@@ -152,7 +152,7 @@ class CanonicalToolCall:
     """Typed tool call record.
 
     Single source of truth for tool call state.
-    Replaces session.runtime.tool_calls and session.runtime.tool_call_args_by_id.
+    Replaces session.runtime tool call tracking and argument caches.
     """
 
     tool_call_id: str

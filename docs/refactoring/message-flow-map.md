@@ -241,10 +241,8 @@ These must always be true:
 | `tests/unit/types/test_adapter.py` | Adapter tests |
 | `tests/unit/types/test_canonical.py` | Canonical type tests |
 
-## Future: Removing session.runtime.tool_calls
+## Tool Call Registry (Chunk 5)
 
-Currently `session.runtime.tool_calls: list[ToolCall]` tracks tool calls separately for:
-- ReAct guidance display
-- JSON session export
-
-This can be derived from messages using `find_dangling_tool_calls()` and walking message history. Planned for Chunk 5 of the refactor.
+Tool call lifecycle state now lives in `session.runtime.tool_registry`, which stores
+`CanonicalToolCall` entries keyed by `tool_call_id`. ReAct guidance and JSON export
+consume the registry instead of a standalone `tool_calls` list.

@@ -22,6 +22,7 @@ from tunacode.types import (
     RuntimeState,
     SessionId,
     TaskState,
+    TodoItem,
     ToolName,
     ToolProgressCallback,
     UsageState,
@@ -31,6 +32,12 @@ from tunacode.utils.messaging import estimate_tokens, get_content
 
 if TYPE_CHECKING:
     from tunacode.tools.authorization.handler import ToolHandler
+
+
+ERROR_SESSION_TODOS_NOT_LIST = "Session todos must be a list, got {todo_type}"
+ERROR_SESSION_TODO_ITEM_NOT_DICT = (
+    "Session todo entry at index {index} must be a dict, got {item_type}"
+)
 
 
 @dataclass
@@ -208,11 +215,11 @@ class StateManager:
         self._session.react.scratchpad = {"timeline": []}
 
     # Todo list helpers
-    def get_todos(self) -> list[dict[str, Any]]:
+    def get_todos(self) -> list[TodoItem]:
         """Return the current todo list."""
         return self._session.task.todos
 
-    def set_todos(self, todos: list[dict[str, Any]]) -> None:
+    def set_todos(self, todos: list[TodoItem]) -> None:
         """Replace the entire todo list."""
         self._session.task.todos = todos
 
@@ -300,6 +307,33 @@ class StateManager:
 
         return thoughts, cleaned_messages
 
+    def _serialize_todos(self) -> list[dict[str, Any]]:
+        """Serialize todo items to legacy dict format."""
+        todos = self._session.task.todos
+        serialized: list[dict[str, Any]] = []
+        for todo in todos:
+            serialized.append(todo.to_dict())
+        return serialized
+
+    def _deserialize_todos(self, todos: Any) -> list[TodoItem]:
+        """Deserialize todo items from legacy dict format."""
+        if not isinstance(todos, list):
+            todo_type = type(todos).__name__
+            raise TypeError(ERROR_SESSION_TODOS_NOT_LIST.format(todo_type=todo_type))
+
+        todo_items: list[TodoItem] = []
+        for index, todo in enumerate(todos):
+            if isinstance(todo, TodoItem):
+                todo_items.append(todo)
+                continue
+            if not isinstance(todo, dict):
+                item_type = type(todo).__name__
+                raise TypeError(
+                    ERROR_SESSION_TODO_ITEM_NOT_DICT.format(index=index, item_type=item_type)
+                )
+            todo_items.append(TodoItem.from_dict(todo))
+        return todo_items
+
     def save_session(self) -> bool:
         """Save current session to disk."""
         if not self._session.project_id:
@@ -321,7 +355,7 @@ class StateManager:
             "tool_ignore": self._session.tool_ignore,
             "yolo": self._session.yolo,
             "react_scratchpad": self._session.react.scratchpad,
-            "todos": self._session.task.todos,
+            "todos": self._serialize_todos(),
             "thoughts": self._session.conversation.thoughts,
             "messages": self._serialize_messages(),
         }
@@ -381,7 +415,9 @@ class StateManager:
             self._session.yolo = data.get("yolo", False)
             default_scratchpad = self._session.react.scratchpad
             self._session.react.scratchpad = data.get("react_scratchpad", default_scratchpad)
-            self._session.task.todos = data.get("todos", [])
+            todos_data = data.get("todos", [])
+            deserialized_todos = self._deserialize_todos(todos_data)
+            self._session.task.todos = deserialized_todos
             loaded_messages = self._deserialize_messages(data.get("messages", []))
             stored_thoughts = data.get("thoughts") or []
             extracted_thoughts, cleaned_messages = self._split_thought_messages(loaded_messages)

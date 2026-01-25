@@ -124,6 +124,7 @@ from tunacode.types.state_structures import (
     TaskState,
     UsageState,
 )
+from tunacode.types.tool_registry import ToolCallRegistry
 
 # ProcessRequestCallback uses the protocol, not concrete implementation
 ProcessRequestCallback = Callable[[str, StateManagerProtocol, bool], Awaitable[Any]]
@@ -191,6 +192,7 @@ __all__ = [
     "RuntimeState",
     "TaskState",
     "UsageState",
+    "ToolCallRegistry",
     # Dataclasses
     "AgentState",
     "CommandContext",

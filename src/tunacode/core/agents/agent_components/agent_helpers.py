@@ -2,6 +2,10 @@
 
 from typing import Any
 
+from tunacode.types import CanonicalToolCall
+
+RECENT_TOOL_LIMIT = 3
+
 
 def get_tool_description(tool_name: str, tool_args: dict[str, Any]) -> str:
     """Get a descriptive string for a tool call."""
@@ -59,15 +63,17 @@ def get_readable_tool_description(tool_name: str, tool_args: dict[str, Any]) -> 
     return f"Executing `{tool_name}`"
 
 
-def get_recent_tools_context(tool_calls: list[dict[str, Any]], limit: int = 3) -> str:
+def get_recent_tools_context(
+    tool_calls: list[CanonicalToolCall], limit: int = RECENT_TOOL_LIMIT
+) -> str:
     """Get a context string describing recent tool usage."""
     if not tool_calls:
         return "No tools used yet"
 
     last_tools = []
     for tc in tool_calls[-limit:]:
-        tool_name = tc.get("tool", "unknown")
-        tool_args = tc.get("args", {})
+        tool_name = tc.tool_name
+        tool_args = tc.args
         tool_desc = get_tool_description(tool_name, tool_args)
         last_tools.append(tool_desc)
 
@@ -77,7 +83,7 @@ def get_recent_tools_context(tool_calls: list[dict[str, Any]], limit: int = 3) -
 def create_empty_response_message(
     message: str,
     empty_reason: str,
-    tool_calls: list[dict[str, Any]],
+    tool_calls: list[CanonicalToolCall],
     iteration: int,
 ) -> str:
     """Create a constructive message for handling empty responses."""
@@ -114,10 +120,12 @@ async def handle_empty_response(
     state: Any,
 ) -> str:
     """Build a user-facing notice for empty responses."""
+    tool_registry = state.sm.session.runtime.tool_registry
+    recent_calls = tool_registry.recent_calls(limit=RECENT_TOOL_LIMIT)
     force_action_content = create_empty_response_message(
         message,
         reason,
-        getattr(state.sm.session, "tool_calls", []),
+        recent_calls,
         iter_index,
     )
     return force_action_content

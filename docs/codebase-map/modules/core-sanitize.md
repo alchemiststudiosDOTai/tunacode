@@ -87,14 +87,14 @@ sanitize.py
 
 ## Public API
 
-### `run_cleanup_loop(messages, tool_call_args_by_id)`
+### `run_cleanup_loop(messages, tool_registry)`
 
 **Main entry point.** Runs iterative cleanup until message history stabilizes.
 
 ```python
 def run_cleanup_loop(
     messages: list[Any],
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs],
+    tool_registry: ToolCallRegistry,
 ) -> tuple[bool, set[ToolCallId]]
 ```
 
@@ -104,18 +104,18 @@ def run_cleanup_loop(
 
 **Returns:** `(any_cleanup_applied, final_dangling_tool_call_ids)`
 
-**Mutates:** Both `messages` and `tool_call_args_by_id` in place.
+**Mutates:** Both `messages` and `tool_registry` in place.
 
 ---
 
-### `remove_dangling_tool_calls(messages, tool_call_args_by_id, dangling_ids=None)`
+### `remove_dangling_tool_calls(messages, tool_registry, dangling_ids=None)`
 
 Removes tool calls that never received tool returns.
 
 ```python
 def remove_dangling_tool_calls(
     messages: list[Any],
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs],
+    tool_registry: ToolCallRegistry,
     dangling_tool_call_ids: set[ToolCallId] | None = None,
 ) -> bool
 ```
@@ -263,7 +263,8 @@ msg["tool_calls"]  # legacy, computed from parts in pydantic-ai
 
 ```python
 from tunacode.core.logging import get_logger
-from tunacode.types import ToolArgs, ToolCallId
+from tunacode.types import ToolCallId
+from tunacode.types.tool_registry import ToolCallRegistry
 from tunacode.utils.messaging import (
     _get_attr,           # Polymorphic attribute access
     _get_parts,          # Extract parts from any message format
@@ -287,10 +288,8 @@ from tunacode.core.agents.resume.sanitize import (
 messages = sanitize_history_for_resume(loaded_messages)
 
 # On abort/error during agent loop
-cleanup_applied, dangling_ids = run_cleanup_loop(
-    messages,
-    tool_call_args_by_id,
-)
+tool_registry = session.runtime.tool_registry
+cleanup_applied, dangling_ids = run_cleanup_loop(messages, tool_registry)
 if cleanup_applied:
     logger.lifecycle("Cleaned up corrupt message history")
 ```

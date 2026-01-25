@@ -8,12 +8,13 @@ from typing import Any
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.tools.xml_helper import load_prompt_from_xml
-from tunacode.types import StateManagerProtocol
+from tunacode.types import StateManagerProtocol, TodoItem, TodoStatus
 
 # Heavily yoinked from https://github.com/sst/opencode/blob/dev/packages/opencode/src/tool/todo.ts
 # and adapted for python.
 
 TODO_FIELD_ACTIVE_FORM = "activeForm"
+TODO_FIELD_ACTIVE_FORM_ALT = "active_form"
 TODO_FIELD_CONTENT = "content"
 TODO_FIELD_STATUS = "status"
 
@@ -36,7 +37,7 @@ STATUS_SYMBOLS = {
 }
 
 
-def _validate_todo(todo: Any, index: int) -> dict[str, Any]:
+def _validate_todo(todo: Any, index: int) -> TodoItem:
     """Validate a single todo item has required fields.
 
     Args:
@@ -46,10 +47,14 @@ def _validate_todo(todo: Any, index: int) -> dict[str, Any]:
     Raises:
         ModelRetry: If validation fails.
     """
-    if not isinstance(todo, dict):
-        raise ModelRetry(f"Todo at index {index} must be a dictionary, got {type(todo).__name__}")
+    if isinstance(todo, TodoItem):
+        return todo
 
-    required_fields = (TODO_FIELD_CONTENT, TODO_FIELD_STATUS, TODO_FIELD_ACTIVE_FORM)
+    if not isinstance(todo, dict):
+        todo_type = type(todo).__name__
+        raise ModelRetry(f"Todo at index {index} must be a dictionary, got {todo_type}")
+
+    required_fields = (TODO_FIELD_CONTENT, TODO_FIELD_STATUS)
     missing = [f for f in required_fields if f not in todo]
     if missing:
         raise ModelRetry(f"Todo at index {index} missing required fields: {', '.join(missing)}")
@@ -67,24 +72,23 @@ def _validate_todo(todo: Any, index: int) -> dict[str, Any]:
     if not isinstance(content, str) or not content:
         raise ModelRetry(f"Todo at index {index} must have non-empty string '{TODO_FIELD_CONTENT}'")
 
-    active_form = todo[TODO_FIELD_ACTIVE_FORM]
+    active_form = todo.get(TODO_FIELD_ACTIVE_FORM, todo.get(TODO_FIELD_ACTIVE_FORM_ALT, ""))
     if not isinstance(active_form, str) or not active_form:
         raise ModelRetry(
             f"Todo at index {index} must have non-empty string '{TODO_FIELD_ACTIVE_FORM}'"
         )
 
-    return todo
+    status_enum = TodoStatus(status)
+    return TodoItem(content=content, status=status_enum, active_form=active_form)
 
 
-def _validate_todos(todos: Any) -> list[dict[str, Any]]:
+def _validate_todos(todos: Any) -> list[TodoItem]:
     if not isinstance(todos, list):
         raise ModelRetry(f"todos must be a list, got {type(todos).__name__}")
 
     validated = [_validate_todo(todo, index) for index, todo in enumerate(todos)]
 
-    in_progress_count = sum(
-        1 for todo in validated if todo[TODO_FIELD_STATUS] == TODO_STATUS_IN_PROGRESS
-    )
+    in_progress_count = sum(1 for todo in validated if todo.status == TodoStatus.IN_PROGRESS)
     if in_progress_count > MAX_IN_PROGRESS_TODOS:
         raise ModelRetry(
             f"Only {MAX_IN_PROGRESS_TODOS} todo may be '{TODO_STATUS_IN_PROGRESS}' at a time, "
@@ -94,7 +98,7 @@ def _validate_todos(todos: Any) -> list[dict[str, Any]]:
     return validated
 
 
-def _format_todos(todos: list[dict[str, Any]]) -> str:
+def _format_todos(todos: list[TodoItem]) -> str:
     """Format todos for display output.
 
     Args:
@@ -108,12 +112,12 @@ def _format_todos(todos: list[dict[str, Any]]) -> str:
 
     lines = []
     for i, todo in enumerate(todos, 1):
-        status = todo[TODO_FIELD_STATUS]
-        symbol = STATUS_SYMBOLS[status]
-        content = todo[TODO_FIELD_CONTENT]
-        active_form = todo[TODO_FIELD_ACTIVE_FORM]
+        status_value = todo.status.value
+        symbol = STATUS_SYMBOLS[status_value]
+        content = todo.content
+        active_form = todo.active_form
 
-        if status == TODO_STATUS_IN_PROGRESS:
+        if todo.status == TodoStatus.IN_PROGRESS:
             lines.append(f"{i}. {symbol} {content} ({active_form})")
         else:
             lines.append(f"{i}. {symbol} {content}")

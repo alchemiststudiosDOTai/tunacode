@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from tunacode.types.base import ToolArgs, ToolCallId
+from tunacode.types.canonical import TodoItem
 from tunacode.types.pydantic_ai import MessageHistory
+from tunacode.types.tool_registry import ToolCallRegistry
 
 REACT_TIMELINE_KEY = "timeline"
 
@@ -64,7 +65,7 @@ class ReActState:
 class TaskState:
     """Todo state and original task context."""
 
-    todos: list[dict[str, Any]] = field(default_factory=list)
+    todos: list[TodoItem] = field(default_factory=list)
     original_query: str = DEFAULT_ORIGINAL_QUERY
 
 
@@ -77,8 +78,7 @@ class RuntimeState:
     request_id: str = DEFAULT_REQUEST_ID
     consecutive_empty_responses: int = DEFAULT_CONSECUTIVE_EMPTY_RESPONSES
     batch_counter: int = DEFAULT_BATCH_COUNTER
-    tool_calls: list[dict[str, Any]] = field(default_factory=list)
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = field(default_factory=dict)
+    tool_registry: ToolCallRegistry = field(default_factory=ToolCallRegistry)
     operation_cancelled: bool = False
     is_streaming_active: bool = False
     streaming_panel: Any | None = None

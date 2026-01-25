@@ -38,7 +38,7 @@ from tunacode.core.agents.agent_components.tool_executor import execute_tools_pa
 from tunacode.core.agents.resume.sanitize import remove_dangling_tool_calls
 from tunacode.core.state import SessionState, StateManager
 from tunacode.exceptions import StateError
-from tunacode.types import AgentState, ToolArgs, ToolCallId
+from tunacode.types import AgentState
 
 # Mark all tests in this module as hypothesis property tests
 pytestmark = pytest.mark.hypothesis
@@ -261,9 +261,10 @@ async def test_record_tool_call_args_stores_correctly(
     recorded_args = await record_tool_call_args(part, state_manager)
 
     # Assert
-    assert part.tool_call_id in state_manager.session.runtime.tool_call_args_by_id
-    stored_args = state_manager.session.runtime.tool_call_args_by_id[part.tool_call_id]
-    assert stored_args == recorded_args
+    tool_registry = state_manager.session.runtime.tool_registry
+    stored_call = tool_registry.get(part.tool_call_id)
+    assert stored_call is not None
+    assert stored_call.args == recorded_args
 
 
 @given(part=tool_call_part_strategy())
@@ -290,7 +291,7 @@ async def test_record_tool_call_args_returns_parsed_args(
 async def test_consume_tool_call_args_retrieves_and_removes(
     part: ToolCallPart, state_manager: StateManager
 ) -> None:
-    """consume_tool_call_args should retrieve and delete stored args."""
+    """consume_tool_call_args should retrieve stored args."""
     # Arrange: First record the args
     recorded_args = await record_tool_call_args(part, state_manager)
     tool_call_id = part.tool_call_id
@@ -301,8 +302,10 @@ async def test_consume_tool_call_args_retrieves_and_removes(
     # Assert: Should return the same args that were recorded
     assert consumed_args == recorded_args
 
-    # Assert: Should be removed from storage
-    assert tool_call_id not in state_manager.session.runtime.tool_call_args_by_id
+    tool_registry = state_manager.session.runtime.tool_registry
+    stored_call = tool_registry.get(tool_call_id)
+    assert stored_call is not None
+    assert stored_call.args == recorded_args
 
 
 @given(part=tool_call_part_strategy())
@@ -310,19 +313,18 @@ async def test_consume_tool_call_args_retrieves_and_removes(
     max_examples=MAX_EXAMPLES_STANDARD,
     suppress_health_check=SUPPRESS_HEALTH_CHECKS,
 )
-async def test_consume_is_idempotent_fails_on_second_call(
+async def test_consume_is_idempotent_returns_same_args(
     part: ToolCallPart, state_manager: StateManager
 ) -> None:
-    """Second consume call for same tool_call_id should fail gracefully."""
+    """Second consume call for same tool_call_id should return the same args."""
     # Arrange: Record and consume once
     await record_tool_call_args(part, state_manager)
-    consume_tool_call_args(part, state_manager)
+    first_args = consume_tool_call_args(part, state_manager)
 
-    # Act/Assert: Second consume should raise StateError
-    with pytest.raises(StateError) as exc_info:
-        consume_tool_call_args(part, state_manager)
+    # Act: Second consume returns the same args
+    second_args = consume_tool_call_args(part, state_manager)
 
-    assert ERROR_TOOL_ARGS_MISSING.format(tool_call_id=part.tool_call_id) in str(exc_info.value)
+    assert second_args == first_args
 
 
 # =============================================================================
@@ -366,6 +368,8 @@ async def test_multiple_tool_calls_maintain_distinct_args(
     # Assume all tool_call_ids are unique (pydantic-ai guarantee)
     tool_call_ids = [p.tool_call_id for p in parts]
     assume(len(set(tool_call_ids)) == len(tool_call_ids))
+    tool_registry = state_manager.session.runtime.tool_registry
+    tool_registry.clear()
 
     # Act: Record all args
     recorded_args = {}
@@ -374,14 +378,15 @@ async def test_multiple_tool_calls_maintain_distinct_args(
         recorded_args[part.tool_call_id] = args
 
     # Assert: All stored, all retrievable in any order
-    assert len(state_manager.session.runtime.tool_call_args_by_id) == len(parts)
+    unique_tool_call_ids = {part.tool_call_id for part in parts}
+    assert len(tool_registry.list_calls()) == len(unique_tool_call_ids)
 
     for part in parts:
         consumed = consume_tool_call_args(part, state_manager)
         assert consumed == recorded_args[part.tool_call_id]
 
-    # Assert: All consumed, dict empty
-    assert len(state_manager.session.runtime.tool_call_args_by_id) == 0
+    # Assert: All calls still tracked after consumption
+    assert len(tool_registry.list_calls()) == len(parts)
 
 
 # =============================================================================
@@ -438,8 +443,9 @@ async def test_pairing_invariant_requires_matching_ids(
         await record_tool_call_args(part, state_manager)
 
     # For each return part, check if it references a known call
+    tool_registry = state_manager.session.runtime.tool_registry
     for return_part in return_parts:
-        if return_part.tool_call_id in state_manager.session.runtime.tool_call_args_by_id:
+        if tool_registry.get(return_part.tool_call_id):
             # Should succeed
             consume_tool_call_args(return_part, state_manager)
         else:
@@ -502,8 +508,9 @@ async def test_duplicate_tool_call_id_overwrites_previous(state_manager: StateMa
     await record_tool_call_args(second_part, state_manager)
 
     # Assert: Second args should have overwritten first
-    stored = state_manager.session.runtime.tool_call_args_by_id[tool_call_id]
-    assert stored == second_args
+    tool_registry = state_manager.session.runtime.tool_registry
+    stored_args = tool_registry.get_args(tool_call_id)
+    assert stored_args == second_args
 
 
 # =============================================================================
@@ -558,12 +565,12 @@ def test_remove_dangling_removes_trailing_tool_calls(
     """remove_dangling_tool_calls should remove dangling tool call messages."""
     # Arrange: Create messages with trailing tool calls
     messages = []
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {}
+    tool_registry = session_state.runtime.tool_registry
 
     for part in call_parts:
         msg = MockMessage(tool_calls=[part])
         messages.append(msg)
-        tool_call_args_by_id[part.tool_call_id] = part.args
+        tool_registry.register(part.tool_call_id, part.tool_name, part.args)
 
     # Add a non-tool-call message at start (should not be removed)
     messages.insert(0, MockMessage(tool_calls=[], parts=[]))
@@ -571,7 +578,7 @@ def test_remove_dangling_removes_trailing_tool_calls(
     initial_count = len(messages)
 
     # Act
-    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_registry)
 
     # Assert: If there were tool calls, they should be removed
     if call_parts:
@@ -579,7 +586,7 @@ def test_remove_dangling_removes_trailing_tool_calls(
         # Only non-tool-call message should remain
         assert len(messages) == 1
         # Tool call args should be cleared
-        assert len(tool_call_args_by_id) == 0
+        assert len(tool_registry.list_calls()) == 0
     else:
         assert removed is False
         assert len(messages) == initial_count
@@ -593,10 +600,11 @@ def test_remove_dangling_removes_non_trailing_tool_calls(session_state: SessionS
     dangling_tool_msg = MockMessage(tool_calls=[tool_call])
 
     messages = [dangling_tool_msg, non_tool_msg]
-    tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
+    tool_registry = session_state.runtime.tool_registry
+    tool_registry.register(tool_call.tool_call_id, tool_call.tool_name, tool_call.args)
 
     # Act
-    remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    remove_dangling_tool_calls(messages, tool_registry)
 
     # Assert: Dangling message removed, non-tool message preserved
     assert len(messages) == 1
@@ -606,10 +614,10 @@ def test_remove_dangling_removes_non_trailing_tool_calls(session_state: SessionS
 def test_remove_dangling_with_empty_messages(session_state: SessionState) -> None:
     """remove_dangling_tool_calls should handle empty message list."""
     messages: list[Any] = []
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {}
+    tool_registry = session_state.runtime.tool_registry
 
     # Act
-    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_registry)
 
     # Assert
     assert removed is False
@@ -624,7 +632,7 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
 
     The exception handler catches both UserAbortError and CancelledError:
         except (UserAbortError, asyncio.CancelledError):
-            cleanup_applied = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+            cleanup_applied = remove_dangling_tool_calls(messages, tool_registry)
 
     Related: PR #246 (UserAbortError)
     See: memory-bank/research/2026-01-19_14-30-00_dangling_tool_calls_timeout_gap.md
@@ -635,16 +643,17 @@ def test_cancelled_error_triggers_cleanup(session_state: SessionState) -> None:
     )
     dangling_message = MockMessage(tool_calls=[tool_call])
     messages: list[Any] = [dangling_message]
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs] = {tool_call.tool_call_id: tool_call.args}
+    tool_registry = session_state.runtime.tool_registry
+    tool_registry.register(tool_call.tool_call_id, tool_call.tool_name, tool_call.args)
 
     # Act: Simulate the cleanup that happens in except (UserAbortError, CancelledError) block
     # This is exactly what main.py:409-416 does
-    cleanup_applied = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    cleanup_applied = remove_dangling_tool_calls(messages, tool_registry)
 
     # Assert: State is now valid for next API request
     assert cleanup_applied is True
     assert len(messages) == 0, "Dangling tool call message should be removed"
-    assert len(tool_call_args_by_id) == 0, "Cached tool args should be cleared"
+    assert len(tool_registry.list_calls()) == 0, "Registry should be cleared"
 
 
 def test_remove_dangling_clears_corresponding_args(session_state: SessionState) -> None:
@@ -657,16 +666,15 @@ def test_remove_dangling_clears_corresponding_args(session_state: SessionState) 
         MockMessage(tool_calls=[call_1]),
         MockMessage(tool_calls=[call_2]),
     ]
-    tool_call_args_by_id = {
-        call_1.tool_call_id: call_1.args,
-        call_2.tool_call_id: call_2.args,
-    }
+    tool_registry = session_state.runtime.tool_registry
+    tool_registry.register(call_1.tool_call_id, call_1.tool_name, call_1.args)
+    tool_registry.register(call_2.tool_call_id, call_2.tool_name, call_2.args)
 
     # Act
-    remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    remove_dangling_tool_calls(messages, tool_registry)
 
     # Assert: All args cleared
-    assert len(tool_call_args_by_id) == 0
+    assert len(tool_registry.list_calls()) == 0
     assert len(messages) == 0
 
 
@@ -682,13 +690,14 @@ def test_remove_dangling_keeps_matched_tool_calls(session_state: SessionState) -
     call_message = MockMessage(tool_calls=[tool_call])
     return_message = MockMessage(parts=[tool_return])
     messages = [call_message, return_message]
-    tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
+    tool_registry = session_state.runtime.tool_registry
+    tool_registry.register(tool_call.tool_call_id, tool_call.tool_name, tool_call.args)
 
-    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_registry)
 
     assert removed is False
     assert messages == [call_message, return_message]
-    assert tool_call_args_by_id == {tool_call.tool_call_id: tool_call.args}
+    assert tool_registry.get_args(tool_call.tool_call_id) == tool_call.args
 
 
 def test_remove_dangling_removes_only_unmatched_calls(session_state: SessionState) -> None:
@@ -709,16 +718,17 @@ def test_remove_dangling_removes_only_unmatched_calls(session_state: SessionStat
     return_message = MockMessage(parts=[tool_return])
     unmatched_message = MockMessage(tool_calls=[unmatched_call])
     messages = [matched_message, return_message, unmatched_message]
-    tool_call_args_by_id = {
-        matched_call.tool_call_id: matched_call.args,
-        unmatched_call.tool_call_id: unmatched_call.args,
-    }
+    tool_registry = session_state.runtime.tool_registry
+    tool_registry.register(matched_call.tool_call_id, matched_call.tool_name, matched_call.args)
+    tool_registry.register(
+        unmatched_call.tool_call_id, unmatched_call.tool_name, unmatched_call.args
+    )
 
-    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_registry)
 
     assert removed is True
     assert messages == [matched_message, return_message]
-    assert tool_call_args_by_id == {matched_call.tool_call_id: matched_call.args}
+    assert tool_registry.get_args(matched_call.tool_call_id) == matched_call.args
 
 
 def test_remove_dangling_removes_orphaned_retry_prompt_parts(session_state: SessionState) -> None:
@@ -761,15 +771,16 @@ def test_remove_dangling_removes_orphaned_retry_prompt_parts(session_state: Sess
     tool_call_message = MockMessage(tool_calls=[tool_call])
     retry_message = MockMessage(parts=[retry_prompt])
     messages = [tool_call_message, retry_message]
-    tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
+    tool_registry = session_state.runtime.tool_registry
+    tool_registry.register(tool_call.tool_call_id, tool_call.tool_name, tool_call.args)
 
     # Act
-    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+    removed = remove_dangling_tool_calls(messages, tool_registry)
 
     # Assert: Both tool-call and retry-prompt should be removed
     assert removed is True
     assert len(messages) == 0, "Both tool-call and retry-prompt messages should be removed"
-    assert len(tool_call_args_by_id) == 0, "Cached args should be cleared"
+    assert len(tool_registry.list_calls()) == 0, "Registry should be cleared"
 
 
 # =============================================================================
@@ -827,7 +838,8 @@ async def test_extract_fallback_tool_calls_records_args(
     assert len(results) == 1
     result_part, result_args = results[0]
     tool_call_id = result_part.tool_call_id
-    cached_args = state_manager.session.runtime.tool_call_args_by_id[tool_call_id]
+    tool_registry = state_manager.session.runtime.tool_registry
+    cached_args = tool_registry.get_args(tool_call_id)
 
     assert result_args == expected_args
     assert cached_args == expected_args
@@ -855,8 +867,8 @@ async def test_dispatch_tools_batches_by_category(
     parts: list[ToolCallPart], monkeypatch: pytest.MonkeyPatch, state_manager: StateManager
 ) -> None:
     """dispatch_tools should batch read-only and research tools separately."""
-    state_manager.session.runtime.tool_calls = []
-    state_manager.session.runtime.tool_call_args_by_id = {}
+    tool_registry = state_manager.session.runtime.tool_registry
+    tool_registry.clear()
     state_manager.session.runtime.batch_counter = 0
     response_state = ResponseState()
     response_state.transition_to(AgentState.ASSISTANT)
@@ -866,7 +878,9 @@ async def test_dispatch_tools_batches_by_category(
     tool_names = [part.tool_name for part in parts]
 
     async def fake_execute_tools_parallel(
-        tool_calls: list[tuple[Any, Any]], callback: Any
+        tool_calls: list[tuple[Any, Any]],
+        callback: Any,
+        tool_failure_callback: Any | None = None,
     ) -> list[Any]:
         batch_tool_names = [getattr(part, "tool_name", "") for part, _ in tool_calls]
         recorded_batches.append(batch_tool_names)
@@ -898,7 +912,8 @@ async def test_dispatch_tools_batches_by_category(
     assert dispatch_result.used_fallback is False
     assert parallel_batches == expected_parallel
     assert tool_callback.call_count == len(parts)
-    assert len(state_manager.session.runtime.tool_calls) == len(parts)
+    unique_tool_call_ids = {part.tool_call_id for part in parts}
+    assert len(tool_registry.list_calls()) == len(unique_tool_call_ids)
     assert response_state.current_state == AgentState.RESPONSE
 
     # NOTE: submit tool no longer sets task_completed - pydantic-ai loop ends naturally
@@ -922,8 +937,8 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
     state_manager: StateManager,
 ) -> None:
     """dispatch_tools should use fallback parsing when no tool-call parts exist."""
-    state_manager.session.runtime.tool_calls = []
-    state_manager.session.runtime.tool_call_args_by_id = {}
+    tool_registry = state_manager.session.runtime.tool_registry
+    tool_registry.clear()
     state_manager.session.runtime.batch_counter = 0
     response_state = ResponseState()
     response_state.transition_to(AgentState.ASSISTANT)
@@ -934,7 +949,9 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
     text_part = TextPart(part_kind=TEXT_PART_KIND, content=tool_text)
 
     async def fake_execute_tools_parallel(
-        tool_calls: list[tuple[Any, Any]], callback: Any
+        tool_calls: list[tuple[Any, Any]],
+        callback: Any,
+        tool_failure_callback: Any | None = None,
     ) -> list[Any]:
         batch_tool_names = [getattr(part, "tool_name", "") for part, _ in tool_calls]
         recorded_batches.append(batch_tool_names)
@@ -959,7 +976,7 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
 
     assert dispatch_result.used_fallback is True
     assert dispatch_result.has_tool_calls is True
-    assert len(state_manager.session.runtime.tool_calls) == 1
+    assert len(tool_registry.list_calls()) == 1
     assert response_state.current_state == AgentState.RESPONSE
 
     is_parallel_tool = (

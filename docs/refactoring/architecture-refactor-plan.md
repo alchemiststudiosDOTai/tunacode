@@ -12,8 +12,8 @@ TunaCode has clean dependency direction (ui → core → tools) but suffers from
 
 1. **SessionState mega-dataclass** (40+ fields mixing unrelated concerns)
 2. **Message format polymorphism** (4+ formats requiring defensive accessors everywhere)
-3. **Tool call tracking duplication** (session.runtime.tool_calls, message parts, session.runtime.tool_call_args_by_id)
-4. **Ad-hoc dicts** where typed structures would prevent bugs (todos, react_scratchpad, usage)
+3. **Tool call tracking duplication** (resolved via tool registry)
+4. **Ad-hoc dicts** where typed structures would prevent bugs (todos resolved; react_scratchpad, usage pending)
 
 The rowing codebase refactor principles translate as follows:
 
@@ -314,7 +314,7 @@ def remove_dangling_tool_calls(messages: list[Message]) -> list[Message]:
 
 **Goal**: Single source of truth for tool call state.
 
-**Current problem**: Tool calls tracked in 3 places:
+**Former problem (resolved)**: Tool calls tracked in 3 places:
 1. `session.runtime.tool_calls: list[dict[str, Any]]`
 2. `session.runtime.tool_call_args_by_id: dict[str, dict]`
 3. Message parts (ToolCallPart in pydantic-ai messages)
@@ -351,9 +351,9 @@ class ToolCallRegistry:
 ```
 
 **Deliverables**:
-- [ ] Create `core/tool_registry.py`
-- [ ] Integrate with `ToolHandler` and `tool_executor.py`
-- [ ] Remove `tool_call_args_by_id` and `tool_calls` list from SessionState
+- [x] Create `types/tool_registry.py`
+- [x] Integrate with tool dispatch/execution paths
+- [x] Remove `tool_call_args_by_id` and `tool_calls` list from SessionState
 
 ---
 
@@ -361,7 +361,7 @@ class ToolCallRegistry:
 
 **Goal**: Replace `react_scratchpad: dict[str, Any]` with `ReActScratchpad`.
 
-**Current**:
+**Previous**:
 ```python
 react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
 react_forced_calls: int = 0
@@ -397,9 +397,9 @@ todos: list[TodoItem] = field(default_factory=list)
 ```
 
 **Deliverables**:
-- [ ] Update `create_todowrite_tool()` to produce `TodoItem`
-- [ ] Update UI rendering (if any)
-- [ ] Update serialization
+- [x] Update `create_todowrite_tool()` to produce `TodoItem`
+- [x] Update runtime/state accessors for typed todos
+- [x] Update serialization
 
 ---
 

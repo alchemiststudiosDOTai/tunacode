@@ -212,9 +212,10 @@ def run_headless(
                 conversation = state_manager.session.conversation
                 runtime = state_manager.session.runtime
                 usage = state_manager.session.usage
+                tool_records = runtime.tool_registry.to_legacy_records()
                 trajectory = {
                     "messages": [_serialize_message(msg) for msg in conversation.messages],
-                    "tool_calls": runtime.tool_calls,
+                    "tool_calls": tool_records,
                     "usage": usage.session_total_usage,
                     "success": True,
                 }

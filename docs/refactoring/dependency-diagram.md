@@ -150,11 +150,11 @@
         └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Tool Call Duplication (Current)
+## Tool Call Duplication (Historical)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        TOOL CALL TRACKING (Current)                         │
+│                        TOOL CALL TRACKING (Historical)                      │
 │                                                                             │
 │   1. session.runtime.tool_calls: list[dict]                                 │
 │      {"tool": "read_file", "args": {...}, "id": "tc_123"}                   │
@@ -171,7 +171,7 @@
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        TOOL CALL TRACKING (Target)                          │
+│                        TOOL CALL TRACKING (Current)                         │
 │                                                                             │
 │   ToolCallRegistry:                                                         │
 │      dict[str, ToolCall]  keyed by tool_call_id                             │
@@ -199,8 +199,7 @@
 │ CONVERSATION           │ REACT             │ TASK                          │
 │  messages              │  react_scratchpad │  todos                        │
 │  thoughts              │  react_forced     │  task_hierarchy               │
-│  tool_calls            │  react_guidance   │  recursive_context_stack      │
-│  tool_call_args_by_id  │                   │  current_recursion_depth      │
+│                        │  react_guidance   │  recursive_context_stack      │
 │                        │                   │  max_recursion_depth          │
 │                        │                   │  parent_task_id               │
 │                        │                   │  iteration_budgets            │
@@ -209,8 +208,9 @@
 │  spinner               │  total_tokens     │  user_config                  │
 │  is_streaming_active   │  max_tokens       │  current_model                │
 │  streaming_panel       │  last_call_usage  │  yolo                         │
-│  operation_cancelled   │  session_total    │  debug_mode                   │
-│  current_task          │                   │  plan_mode                    │
+│  tool_registry         │  session_total    │  debug_mode                   │
+│  operation_cancelled   │                   │  plan_mode                    │
+│  current_task          │                   │                               │
 ├────────────────────────┼───────────────────┼───────────────────────────────┤
 │ IDENTITY               │ DEBUG             │ COUNTERS                      │
 │  session_id            │  _debug_events    │  consecutive_empty_responses  │

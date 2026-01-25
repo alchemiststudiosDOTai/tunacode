@@ -16,8 +16,9 @@ from dataclasses import is_dataclass, replace
 from typing import Any
 
 from tunacode.core.logging import get_logger
-from tunacode.types import ToolArgs, ToolCallId
+from tunacode.types import ToolCallId
 from tunacode.types.canonical import CanonicalMessage, MessageRole, SystemPromptPart
+from tunacode.types.tool_registry import ToolCallRegistry
 from tunacode.utils.messaging import (
     _get_attr,
     _get_parts,
@@ -250,10 +251,10 @@ def find_dangling_tool_call_ids(messages: list[Any]) -> set[ToolCallId]:
 
 def remove_dangling_tool_calls(
     messages: list[Any],
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs],
+    tool_registry: ToolCallRegistry,
     dangling_tool_call_ids: set[ToolCallId] | None = None,
 ) -> bool:
-    """Remove tool calls that never received tool returns and clear cached args."""
+    """Remove tool calls that never received tool returns and prune the registry."""
     has_messages = bool(messages)
     if not has_messages:
         return False
@@ -311,8 +312,7 @@ def remove_dangling_tool_calls(
         return False
 
     messages[:] = remaining_messages
-    for tool_call_id in dangling_tool_call_ids:
-        tool_call_args_by_id.pop(tool_call_id, None)
+    tool_registry.remove_many(dangling_tool_call_ids)
 
     return True
 
@@ -456,7 +456,7 @@ def sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
 
 def run_cleanup_loop(
     messages: list[Any],
-    tool_call_args_by_id: dict[ToolCallId, ToolArgs],
+    tool_registry: ToolCallRegistry,
 ) -> tuple[bool, set[ToolCallId]]:
     """Run iterative cleanup until message history stabilizes."""
     logger = get_logger()
@@ -471,7 +471,7 @@ def run_cleanup_loop(
         dangling_tool_call_ids = find_dangling_tool_call_ids(messages)
         removed_dangling = remove_dangling_tool_calls(
             messages,
-            tool_call_args_by_id,
+            tool_registry,
             dangling_tool_call_ids,
         )
         if removed_dangling:

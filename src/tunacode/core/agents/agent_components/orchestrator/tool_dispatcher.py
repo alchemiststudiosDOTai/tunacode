@@ -35,6 +35,8 @@ TOOL_NAMES_DISPLAY_LIMIT = 5
 # Characters that should never appear in valid tool names
 INVALID_TOOL_NAME_CHARS = frozenset("<>(){}[]\"'`")
 
+TOOL_FAILURE_TEMPLATE = "{error_type}: {error_message}"
+
 
 def _is_suspicious_tool_name(tool_name: str) -> bool:
     """Check if a tool name looks malformed (contains special chars)."""
@@ -43,6 +45,57 @@ def _is_suspicious_tool_name(tool_name: str) -> bool:
     if len(tool_name) > 50:  # Tool names shouldn't be this long
         return True
     return any(c in INVALID_TOOL_NAME_CHARS for c in tool_name)
+
+
+def _register_tool_call(
+    state_manager: StateManager,
+    tool_call_id: ToolCallId | None,
+    tool_name: str,
+    tool_args: ToolArgs,
+) -> None:
+    """Register a tool call in the runtime registry."""
+    if not tool_call_id:
+        return
+    tool_registry = state_manager.session.runtime.tool_registry
+    tool_registry.register(tool_call_id, tool_name, tool_args)
+
+
+def _mark_tool_calls_running(
+    state_manager: StateManager,
+    tasks: list[tuple[Any, Any]],
+) -> None:
+    """Mark tool calls as running for upcoming tasks."""
+    tool_registry = state_manager.session.runtime.tool_registry
+    for part, _ in tasks:
+        tool_call_id = getattr(part, "tool_call_id", None)
+        if not tool_call_id:
+            continue
+        tool_registry.start(tool_call_id)
+
+
+def _record_tool_failure(
+    state_manager: StateManager,
+    part: Any,
+    error: Exception,
+) -> None:
+    """Record a failed tool call in the registry."""
+    tool_call_id = getattr(part, "tool_call_id", None)
+    if not tool_call_id:
+        return
+
+    tool_registry = state_manager.session.runtime.tool_registry
+    if isinstance(error, UserAbortError):
+        tool_registry.cancel(tool_call_id, reason=str(error))
+        return
+
+    error_message = str(error)
+    error_type = type(error).__name__
+    error_detail = (
+        TOOL_FAILURE_TEMPLATE.format(error_type=error_type, error_message=error_message)
+        if error_message
+        else error_type
+    )
+    tool_registry.fail(tool_call_id, error_detail)
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,23 +115,22 @@ async def normalize_tool_args(raw_args: Any) -> ToolArgs:
 
 
 async def record_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
-    """Parse and store tool args keyed by tool_call_id."""
+    """Parse tool args and register the tool call."""
     raw_args = getattr(part, "args", {})
     parsed_args = await normalize_tool_args(raw_args)
     tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
-    if tool_call_id:
-        runtime = state_manager.session.runtime
-        runtime.tool_call_args_by_id[tool_call_id] = parsed_args
+    tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+    _register_tool_call(state_manager, tool_call_id, tool_name, parsed_args)
     return parsed_args
 
 
 def consume_tool_call_args(part: Any, state_manager: StateManager) -> ToolArgs:
-    """Consume stored tool args for a tool return part."""
+    """Retrieve stored tool args for a tool return part."""
     tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
     if not tool_call_id:
         raise StateError(ERROR_TOOL_CALL_ID_MISSING)
-    runtime = state_manager.session.runtime
-    tool_call_args = runtime.tool_call_args_by_id.pop(tool_call_id, None)
+    tool_registry = state_manager.session.runtime.tool_registry
+    tool_call_args = tool_registry.get_args(tool_call_id)
     if tool_call_args is None:
         raise StateError(ERROR_TOOL_ARGS_MISSING.format(tool_call_id=tool_call_id))
     return tool_call_args
@@ -103,8 +155,6 @@ async def _extract_fallback_tool_calls(
     )
 
     logger = get_logger()
-    runtime = state_manager.session.runtime
-
     text_segments: list[str] = []
     for part in parts:
         part_kind = getattr(part, "part_kind", None)
@@ -164,7 +214,7 @@ async def _extract_fallback_tool_calls(
             tool_call_id=parsed.tool_call_id,
         )
         tool_args = await normalize_tool_args(parsed.args)
-        runtime.tool_call_args_by_id[parsed.tool_call_id] = tool_args
+        _register_tool_call(state_manager, parsed.tool_call_id, parsed.tool_name, tool_args)
         results.append((part, tool_args))
 
     return results
@@ -260,13 +310,22 @@ async def dispatch_tools(
                 else:
                     write_execute_tasks.append((part, node))
 
+    def tool_failure_callback(part: Any, error: Exception) -> None:
+        _record_tool_failure(state_manager, part, error)
+
     if research_agent_tasks and tool_callback:
+        _mark_tool_calls_running(state_manager, research_agent_tasks)
         if tool_start_callback:
             tool_start_callback(TOOL_START_RESEARCH_LABEL)
 
-        await execute_tools_parallel(research_agent_tasks, tool_callback)
+        await execute_tools_parallel(
+            research_agent_tasks,
+            tool_callback,
+            tool_failure_callback=tool_failure_callback,
+        )
 
     if read_only_tasks and tool_callback:
+        _mark_tool_calls_running(state_manager, read_only_tasks)
         batch_id = runtime.batch_counter + 1
         runtime.batch_counter = batch_id
 
@@ -278,7 +337,11 @@ async def dispatch_tools(
             suffix = TOOL_NAME_SUFFIX if len(read_only_tasks) > TOOL_BATCH_PREVIEW_COUNT else ""
             tool_start_callback(TOOL_NAME_JOINER.join(preview_names) + suffix)
 
-        await execute_tools_parallel(read_only_tasks, tool_callback)
+        await execute_tools_parallel(
+            read_only_tasks,
+            tool_callback,
+            tool_failure_callback=tool_failure_callback,
+        )
 
     if tool_callback is not None:
         for part, task_node in write_execute_tasks:
@@ -286,21 +349,14 @@ async def dispatch_tools(
                 tool_start_callback(getattr(part, "tool_name", UNKNOWN_TOOL_NAME))
 
             try:
+                _mark_tool_calls_running(state_manager, [(part, task_node)])
                 await tool_callback(part, task_node)
-            except UserAbortError:
+            except UserAbortError as error:
+                _record_tool_failure(state_manager, part, error)
                 raise
-
-    if tool_call_records:
-        session_tool_calls = runtime.tool_calls
-        for part, tool_args in tool_call_records:
-            tool_call_id = getattr(part, "tool_call_id", None)
-            tool_info = {
-                "tool": getattr(part, "tool_name", UNKNOWN_TOOL_NAME),
-                "args": tool_args,
-                "timestamp": getattr(part, "timestamp", None),
-                "tool_call_id": tool_call_id,
-            }
-            session_tool_calls.append(tool_info)
+            except Exception as error:
+                _record_tool_failure(state_manager, part, error)
+                raise
 
     if (
         is_processing_tools

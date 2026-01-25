@@ -6,6 +6,7 @@ creating circular imports with the concrete implementation.
 
 from typing import TYPE_CHECKING, Any, Protocol
 
+from tunacode.types.canonical import TodoItem
 from tunacode.types.state_structures import (
     ConversationState,
     ReActState,
@@ -106,11 +107,11 @@ class StateManagerProtocol(Protocol):
         ...
 
     # Todo list methods
-    def get_todos(self) -> list[dict[str, Any]]:
+    def get_todos(self) -> list[TodoItem]:
         """Get the current todo list."""
         ...
 
-    def set_todos(self, todos: list[dict[str, Any]]) -> None:
+    def set_todos(self, todos: list[TodoItem]) -> None:
         """Replace the entire todo list."""
         ...
 

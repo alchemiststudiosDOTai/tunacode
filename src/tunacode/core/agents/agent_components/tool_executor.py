@@ -4,6 +4,7 @@ import asyncio
 import os
 import random
 import time
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from pydantic_ai import ModelRetry
@@ -39,6 +40,8 @@ NON_RETRYABLE_ERRORS = (
     FileOperationError,
 )
 
+ToolFailureCallback = Callable[["ToolCallPart", Exception], None]
+
 
 def _calculate_backoff(attempt: int) -> float:
     """Exponential backoff with jitter."""
@@ -48,7 +51,9 @@ def _calculate_backoff(attempt: int) -> float:
 
 
 async def execute_tools_parallel(
-    tool_calls: list[tuple["ToolCallPart", "StreamedRunResult[None, str]"]], callback: ToolCallback
+    tool_calls: list[tuple["ToolCallPart", "StreamedRunResult[None, str]"]],
+    callback: ToolCallback,
+    tool_failure_callback: ToolFailureCallback | None = None,
 ) -> list[None]:
     """
     Execute multiple tool calls in parallel using asyncio with automatic retry.
@@ -59,6 +64,7 @@ async def execute_tools_parallel(
     Args:
         tool_calls: List of (part, node) tuples
         callback: The tool callback function to execute
+        tool_failure_callback: Optional callback invoked after a tool ultimately fails
 
     Returns:
         List of results in the same order as input
@@ -89,6 +95,8 @@ async def execute_tools_parallel(
                 err_type = type(e).__name__
                 logger.tool(tool_name, "failed (non-retryable)", duration_ms=duration_ms)
                 logger.lifecycle(f"Error: {tool_name} failed - {err_type}: {e}")
+                if tool_failure_callback:
+                    tool_failure_callback(part, e)
                 raise
             except Exception as e:
                 if attempt == TOOL_MAX_RETRIES:
@@ -98,6 +106,8 @@ async def execute_tools_parallel(
                     logger.lifecycle(
                         f"Error: {tool_name} failed after {attempt} retries - {err_type}: {e}"
                     )
+                    if tool_failure_callback:
+                        tool_failure_callback(part, e)
                     raise
                 backoff = _calculate_backoff(attempt)
                 logger.lifecycle(

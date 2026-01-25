@@ -59,9 +59,13 @@ def _emit_tool_returns(
         logger = get_logger()
         tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
         logger.lifecycle(f"Tool return received (tool={tool_name})")
+        tool_call_id = getattr(part, "tool_call_id", None)
         tool_args = consume_tool_call_args(part, state_manager)
         content = getattr(part, "content", None)
         result_str = str(content) if content is not None else None
+        if tool_call_id:
+            tool_registry = state_manager.session.runtime.tool_registry
+            tool_registry.complete(tool_call_id, result_str)
         tool_result_callback(
             tool_name=tool_name,
             status=TOOL_RESULT_STATUS_COMPLETED,
@@ -70,7 +74,6 @@ def _emit_tool_returns(
         )
 
         if debug_mode:
-            tool_call_id = getattr(part, "tool_call_id", None)
             debug_summary = _format_tool_return_debug(
                 tool_name,
                 tool_call_id,

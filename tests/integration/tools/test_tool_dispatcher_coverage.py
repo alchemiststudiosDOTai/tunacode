@@ -98,8 +98,7 @@ class DummyNode:
 @pytest.fixture
 def state_manager() -> StateManager:
     manager = StateManager()
-    manager.session.runtime.tool_calls = []
-    manager.session.runtime.tool_call_args_by_id = {}
+    manager.session.runtime.tool_registry.clear()
     manager.session.runtime.batch_counter = 0
     return manager
 
@@ -110,7 +109,11 @@ def _make_response_state() -> ResponseState:
     return response_state
 
 
-async def _capture_parallel_exec(tool_calls: list[tuple[Any, Any]], callback: Any) -> list[Any]:
+async def _capture_parallel_exec(
+    tool_calls: list[tuple[Any, Any]],
+    callback: Any,
+    tool_failure_callback: Any | None = None,
+) -> list[Any]:
     for part, task_node in tool_calls:
         await callback(part, task_node)
     return [CALLBACK_RETURN for _ in tool_calls]
@@ -224,7 +227,8 @@ async def test_dispatch_debug_logging_and_skips_callbacks(
 
     assert result.has_tool_calls is True
     assert result.used_fallback is False
-    assert len(state_manager.session.runtime.tool_calls) == len(parts)
+    tool_registry = state_manager.session.runtime.tool_registry
+    assert len(tool_registry.list_calls()) == len(parts)
 
 
 @pytest.mark.asyncio

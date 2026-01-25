@@ -82,7 +82,7 @@ USER INPUT
 │    │   ├─ READ_ONLY: glob, grep, read_file, list_dir, web_fetch │
 │    │   ├─ RESEARCH: research_codebase (subagent)                │
 │    │   └─ WRITE/EXECUTE: bash, write_file, update_file          │
-│    ├─ Store args: tool_call_args_by_id[tool_call_id] = args     │
+│    ├─ Register: tool_registry.register(tool_call_id, name, args)│
 │    └─ Execute via tool_callback                                 │
 └─────────────────────────────────────────────────────────────────┘
     │
@@ -222,8 +222,8 @@ Persisted after agent completes
 
 ```python
 # Normalized and stored during dispatch
-session.runtime.tool_call_args_by_id: dict[ToolCallId, ToolArgs]
-# Maps tool_call_id → parsed_args
+session.runtime.tool_registry: ToolCallRegistry
+# Maps tool_call_id → CanonicalToolCall (args + lifecycle)
 # Retrieved when tool result returns
 ```
 
@@ -234,8 +234,7 @@ session.runtime.tool_call_args_by_id: dict[ToolCallId, ToolArgs]
 class SessionState:
     messages: MessageHistory      # pydantic-ai messages
     thoughts: list[str]           # thoughts outside history
-    tool_calls: list[dict]        # call metadata
-    tool_call_args_by_id: dict    # tool_call_id → args
+    tool_registry: ToolCallRegistry  # tool call lifecycle + args
 ```
 
 **File:** `src/tunacode/core/state.py`
@@ -328,7 +327,7 @@ The agent loop naturally maintains this. Violations indicate a bug.
 ### Tool Call Resolution
 
 1. Part has unique `tool_call_id`
-2. Args parsed and stored in `tool_call_args_by_id`
+2. Args parsed and stored in `tool_registry`
 3. Tool executed via callback
 4. When result returns, args retrieved and consumed
 5. All results accumulated for next LLM request

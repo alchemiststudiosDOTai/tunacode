@@ -81,8 +81,7 @@ class ClearCommand(Command):
         # PRESERVE total_tokens - represents conversation size
 
         session.conversation.thoughts = []
-        session.runtime.tool_calls = []
-        session.runtime.tool_call_args_by_id = {}
+        session.runtime.tool_registry.clear()
         session.conversation.files_in_context = set()
 
         app.state_manager.clear_react_scratchpad()

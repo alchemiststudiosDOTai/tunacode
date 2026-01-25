@@ -174,11 +174,11 @@ class ReactSnapshotManager:
             latest = timeline[-1] if timeline else {"thoughts": "?", "next_action": "?"}
             summary = latest.get("thoughts", "")
 
-            tool_calls = self.state_manager.session.runtime.tool_calls
-            if tool_calls:
-                last_tool = tool_calls[-1]
-                tool_name = last_tool.get("tool", "tool")
-                args = last_tool.get("args", {})
+            tool_registry = self.state_manager.session.runtime.tool_registry
+            last_tool_call = tool_registry.latest_call()
+            if last_tool_call:
+                tool_name = last_tool_call.tool_name
+                args = last_tool_call.args
                 if isinstance(args, str):
                     try:
                         args = json.loads(args)
@@ -295,8 +295,7 @@ class RequestOrchestrator:
 
         runtime.current_iteration = 0
         runtime.iteration_count = 0
-        runtime.tool_calls = []
-        runtime.tool_call_args_by_id = {}
+        runtime.tool_registry.clear()
         react_state.forced_calls = 0
         react_state.guidance = []
 
@@ -361,7 +360,7 @@ class RequestOrchestrator:
         conversation = session.conversation
         runtime = session.runtime
         session_messages = conversation.messages
-        tool_call_args_by_id = runtime.tool_call_args_by_id
+        tool_registry = runtime.tool_registry
         _, tokens_reclaimed = prune_old_tool_outputs(session_messages, self.model)
         if tokens_reclaimed > 0:
             logger.lifecycle(f"History pruned ({tokens_reclaimed} tokens reclaimed)")
@@ -370,7 +369,7 @@ class RequestOrchestrator:
 
         # Run iterative cleanup until message history stabilizes
         total_cleanup_applied, dangling_tool_call_ids = run_cleanup_loop(
-            session_messages, tool_call_args_by_id
+            session_messages, tool_registry
         )
 
         # Handle trailing request in history if we are about to add a new one.
@@ -559,7 +558,7 @@ class RequestOrchestrator:
             runtime = session.runtime
             cleanup_applied = remove_dangling_tool_calls(
                 conversation.messages,
-                runtime.tool_call_args_by_id,
+                runtime.tool_registry,
             )
             if cleanup_applied:
                 session.update_token_count()
