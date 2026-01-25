@@ -20,7 +20,14 @@ if TYPE_CHECKING:
     from pydantic_ai import Tool  # noqa: F401
 
 from tunacode.constants import UI_COLORS
-from tunacode.core.agents.resume import log_message_history_debug, prune_old_tool_outputs
+from tunacode.core.agents.resume import (
+    create_summary_request_message,
+    filter_compacted,
+    generate_summary,
+    log_message_history_debug,
+    prune_old_tool_outputs,
+    should_compact,
+)
 from tunacode.core.agents.resume.sanitize import (
     find_dangling_tool_call_ids,
     remove_consecutive_requests,
@@ -28,6 +35,7 @@ from tunacode.core.agents.resume.sanitize import (
     remove_empty_responses,
     sanitize_history_for_resume,
 )
+from tunacode.core.limits import get_summary_threshold, is_local_mode, is_rolling_summaries_enabled
 from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
@@ -44,6 +52,9 @@ from tunacode.utils.ui import DotDict
 from . import agent_components as ac
 
 colors = DotDict(UI_COLORS)
+
+# Number of recent messages to retain after summary compaction
+RETAINED_MESSAGES_COUNT = 3
 
 __all__ = [
     "process_request",
@@ -314,6 +325,48 @@ class RequestOrchestrator:
         self.state_manager.session.messages = merged_messages
         self.state_manager.session.update_token_count()
 
+    async def _maybe_generate_summary(self, agent: Agent) -> None:
+        """Generate rolling summary if token threshold exceeded."""
+        logger = get_logger()
+        session_messages = self.state_manager.session.messages
+        threshold = get_summary_threshold()
+
+        if not should_compact(
+            session_messages,
+            self.model,
+            local_mode=is_local_mode(),
+            threshold_override=threshold,
+        ):
+            return
+
+        logger.lifecycle("Token threshold exceeded, generating summary...")
+
+        tail_start = max(0, len(session_messages) - RETAINED_MESSAGES_COUNT)
+        if tail_start < 2:
+            return
+
+        # Save the tail before modifying
+        tail_messages = session_messages[tail_start:]
+
+        summary = await generate_summary(
+            agent,
+            session_messages,
+            self.model,
+            start_index=0,
+            end_index=tail_start,
+        )
+
+        summary_message = create_summary_request_message(summary)
+
+        # Store summary for ctrl+o viewing
+        self.state_manager.session.last_summary = summary
+
+        # Replace messages: [summary] + [tail]
+        session_messages[:] = [summary_message] + tail_messages
+        self.state_manager.session.update_token_count()
+
+        logger.lifecycle(f"Summary generated: {summary.token_count} tokens")
+
     async def run(self) -> AgentRun:
         """Run the main request processing loop with optional global timeout."""
         from tunacode.core.agents.agent_components.agent_config import (
@@ -452,6 +505,16 @@ class RequestOrchestrator:
                     f"  msg[-{3 - idx}]: kind={msg_kind}, parts=[{', '.join(parts_summary)}]"
                 )
 
+        # Filter at summary checkpoint if enabled
+        if is_rolling_summaries_enabled():
+            filtered = filter_compacted(session_messages)
+            if len(filtered) < len(session_messages):
+                self.state_manager.session.messages = filtered
+                session_messages = filtered
+                logger.lifecycle(
+                    f"Filtered to summary checkpoint ({len(session_messages)} messages)"
+                )
+
         # Prepare history snapshot (now pruned)
         # Sanitize history to prevent run_id conflicts or stale state on resume
         message_history = sanitize_history_for_resume(session_messages)
@@ -571,6 +634,11 @@ class RequestOrchestrator:
 
                 # Return wrapper that carries response_state
                 self._persist_run_messages(run_handle, baseline_message_count)
+
+                # Check for rolling summary trigger
+                if is_rolling_summaries_enabled():
+                    await self._maybe_generate_summary(agent)
+
                 logger.lifecycle("Request complete")
                 return ac.AgentRunWithState(run_handle, response_state)
 

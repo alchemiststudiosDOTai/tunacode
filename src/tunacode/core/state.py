@@ -28,6 +28,7 @@ from tunacode.types import (
 from tunacode.utils.messaging import estimate_tokens, get_message_content
 
 if TYPE_CHECKING:
+    from tunacode.core.agents.resume.summary import SummaryMessage
     from tunacode.tools.authorization.handler import ToolHandler
 
 
@@ -115,6 +116,8 @@ class SessionState:
     # Agent execution counters
     consecutive_empty_responses: int = 0
     batch_counter: int = 0
+    # Last generated summary (for /compact or auto-compact)
+    last_summary: "SummaryMessage | None" = None
 
     def update_token_count(self) -> None:
         """Calculate total token count from conversation messages."""

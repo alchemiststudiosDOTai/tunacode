@@ -54,6 +54,7 @@ Modal screens for specific workflows:
 - **SetupScreen** - Initial configuration wizard (auto-shown on first run when no config exists)
 - **ThemePickerScreen** - Theme selection
 - **UpdateConfirmScreen** - Tool change confirmation
+- **SummaryViewerScreen** - Modal screen displaying conversation summaries; renders Markdown content inside a Panel with title "Conversation Summary" and subtitle "ctrl+o or escape to close"; uses VerticalScroll and Static containers; binds `ctrl+o` and `escape` to `action_dismiss`
 
 Each screen uses `app.push_screen()` / `app.dismiss()` pattern.
 
@@ -126,6 +127,7 @@ Custom Textual widgets:
 REPL command implementations:
 - **HelpCommand** - `/help` - Show available commands
 - **ClearCommand** - `/clear` - Clear agent working state (UI, thoughts, todos) - messages preserved for /resume
+- **CompactCommand** - `/compact [status]` - Compress conversation history into a summary; uses configured threshold from `get_summary_threshold()`; stores summary for ctrl+o viewing
 - **YoloCommand** - `/yolo` - Toggle auto-confirm for tool executions
 - **DebugCommand** - `/debug` - Toggle debug logging to screen (logs to ~/.local/share/tunacode/logs/)
 - **ModelCommand** - `/model` - Reload config, then open model picker or switch directly (invalidates agent cache)

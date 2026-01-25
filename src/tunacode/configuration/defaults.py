@@ -34,5 +34,8 @@ DEFAULT_USER_CONFIG: UserConfig = {
             "enabled": True,
             "timeout": 5.0,
         },
+        "enable_rolling_summaries": False,
+        "summary_threshold": 40000,
+        "local_summary_threshold": 6000,
     },
 }

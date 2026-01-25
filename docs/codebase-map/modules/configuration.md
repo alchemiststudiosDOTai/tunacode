@@ -55,6 +55,20 @@ Default configuration values:
 - **max_iterations** - Agent loop limit
 - And more...
 
+### Rolling Summary Configuration
+
+These settings control automatic conversation compaction:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enable_rolling_summaries` | bool | `false` | Enable automatic rolling summaries when token threshold exceeded |
+| `summary_threshold` | int | `40000` | Token count threshold for triggering summary generation |
+| `local_summary_threshold` | int | `6000` | Token threshold when `local_mode: true` (for resource-constrained environments) |
+
+**Consumed by:**
+- `core/limits.py` - `get_summary_threshold()` reads these values
+- `core/agents/main.py` - `_maybe_generate_summary()` triggers compaction
+
 ### pricing.py
 **get_pricing()**
 - Retrieves pricing information for models

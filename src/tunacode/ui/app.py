@@ -89,6 +89,7 @@ class TextualReplApp(App[None]):
 
     BINDINGS = [
         Binding("ctrl+p", "toggle_pause", "Pause/Resume Stream", show=False, priority=True),
+        Binding("ctrl+o", "show_summary", "Show Summary", show=False, priority=True),
         Binding("escape", "cancel_stream", "Cancel", show=False, priority=True),
     ]
 
@@ -397,6 +398,22 @@ class TextualReplApp(App[None]):
             self.resume_streaming()
         else:
             self.pause_streaming()
+
+    def action_show_summary(self) -> None:
+        """Toggle the summary modal (show if hidden, dismiss if shown)."""
+        from tunacode.ui.screens import SummaryViewerScreen
+
+        # If summary modal is already open, dismiss it
+        if isinstance(self.screen, SummaryViewerScreen):
+            self.screen.dismiss(None)
+            return
+
+        summary = self.state_manager.session.last_summary
+        if not summary:
+            self.notify("No summary available")
+            return
+
+        self.push_screen(SummaryViewerScreen(summary.content))
 
     def pause_streaming(self) -> None:
         self._streaming_paused = True
