@@ -24,6 +24,13 @@ The TUI design is heavily inspired by the classic **NeXTSTEP** user interface. T
 - `NeXTSTEP_User_Interface_Guidelines_Release_3_Nov93.pdf` - Original 198-page reference
 - `read_pdf.py` - Chunked PDF reader (`uv run python read_pdf.py --help`)
 
+**Debug Rule:** For session corruption, dangling tool calls, abort/cancel bugs, or state persistence issues, invoke the debug-tunacode skill.
+
+**Debug Skill Location:** `~/.claude/skills/debug-tunacode/`
+
+- `SKILL.md` - Debug workflow and common issues
+- `references/commands.md` - Quick debug commands for logs and sessions
+
 ## Workflow Rules
 
 - Never begin coding until the objective is **explicitly defined**. If unclear, ask questions or use best practices.

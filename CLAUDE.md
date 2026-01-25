@@ -526,6 +526,8 @@ Types: bug, smell, pattern, lesson, antipattern
 
 [2026-01-17] [bug] **Dangling tool calls on user abort (PR #246).** User aborts mid-tool-call → `messages` has `ModelResponse` with tool calls but no `ToolReturn` → next API request fails. Root cause: exception path violated message invariant (every tool call needs a return). Fix: `_remove_dangling_tool_calls()` in `except UserAbortError`. **Prevention:** Document state invariants. Test exception scenarios. See Gate 6.
 
+[2026-01-24] [bug] **Shallow copy corrupts DEFAULT_USER_CONFIG.** `.copy()` is shallow - nested dicts (`settings`, `env`) still reference the constant. Setup was mutating user_config in-place → polluted module-level default → first-run config missing all defaults. **Fix:** Don't mutate, replace. `state.py` assigns constant directly (reference replaced by setup). `setup.py` builds new dict from `deepcopy(DEFAULT_USER_CONFIG)`. **Key insight:** If you don't mutate, you don't need to copy. See `.claude/JOURNAL.md` 2026-01-24 entry.
+
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go

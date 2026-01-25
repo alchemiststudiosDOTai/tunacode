@@ -19,7 +19,7 @@ from pydantic_ai.settings import ModelSettings
 from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.models import load_models_registry
-from tunacode.constants import ENV_OPENAI_BASE_URL, SETTINGS_BASE_URL
+from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.core.agents.delegation_tools import create_research_codebase_tool
 from tunacode.core.limits import get_max_tokens, is_local_mode
 from tunacode.core.logging import get_logger
@@ -100,19 +100,6 @@ def _coerce_optional_str(value: Any, label: str) -> str | None:
         return None
 
     return normalized
-
-
-def _resolve_base_url_override(
-    env_base_url: str | None,
-    settings_base_url: str | None,
-) -> str | None:
-    if env_base_url:
-        return env_base_url
-
-    if settings_base_url:
-        return settings_base_url
-
-    return None
 
 
 def _compute_agent_version(settings: dict[str, Any], request_delay: float) -> int:
@@ -320,13 +307,6 @@ def _create_model_with_retry(
     env = state_manager.session.user_config.get("env", {})
     settings = state_manager.session.user_config.get("settings", {})
 
-    # User overrides for base_url
-    env_base_url_raw = env.get(ENV_OPENAI_BASE_URL)
-    settings_base_url_raw = settings.get(SETTINGS_BASE_URL)
-    env_base_url = _coerce_optional_str(env_base_url_raw, ENV_OPENAI_BASE_URL)
-    settings_base_url = _coerce_optional_str(settings_base_url_raw, SETTINGS_BASE_URL)
-    base_url_override = _resolve_base_url_override(env_base_url, settings_base_url)
-
     # Parse model string
     if ":" in model_string:
         provider_name, model_name = model_string.split(":", 1)
@@ -341,27 +321,29 @@ def _create_model_with_retry(
 
     # Get config from registry
     registry_config = _get_provider_config_from_registry(provider_name)
-    api_url = registry_config.api
     env_vars = registry_config.env
     api_key_name = env_vars[0] if env_vars else f"{provider_name.upper()}_API_KEY"
-
-    # Use user override if set, otherwise registry URL
-    base_url = base_url_override if base_url_override else api_url
-
-    # Get API key
     api_key = env.get(api_key_name)
 
-    # Only anthropic provider uses AnthropicModel, all others use OpenAI
+    # Resolve base_url: user override > registry default
+    provider_settings = settings.get("providers", {}).get(provider_name, {})
+    base_url = provider_settings.get("base_url") or registry_config.api
+
     if provider_name == "anthropic":
         anthropic_provider = AnthropicProvider(
             api_key=api_key, base_url=base_url, http_client=http_client
         )
         return AnthropicModel(model_name, provider=anthropic_provider)
-    else:
-        openai_provider = OpenAIProvider(
-            api_key=api_key, base_url=base_url, http_client=http_client
-        )
-        return OpenAIChatModel(model_name, provider=openai_provider)
+
+    # OpenAI-compatible: also check OPENAI_BASE_URL env var as escape hatch
+    env_base_url = _coerce_optional_str(env.get(ENV_OPENAI_BASE_URL), ENV_OPENAI_BASE_URL)
+    if env_base_url:
+        base_url = env_base_url
+
+    openai_provider = OpenAIProvider(
+        api_key=api_key, base_url=base_url, http_client=http_client
+    )
+    return OpenAIChatModel(model_name, provider=openai_provider)
 
 
 def get_or_create_agent(model: ModelName, state_manager: StateManager) -> PydanticAgent:

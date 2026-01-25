@@ -24,10 +24,6 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "global_request_timeout": 120.0,
         "tool_ignore": [],
         "guide_file": GUIDE_FILE_NAME,
-        "fallback_response": True,
-        "fallback_verbosity": "normal",
-        "context_window_size": 200000,
-        "enable_streaming": True,
         "theme": "dracula",
         "ripgrep": {
             "timeout": 10,

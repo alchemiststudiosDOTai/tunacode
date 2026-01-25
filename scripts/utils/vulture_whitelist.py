@@ -8,3 +8,6 @@ ToolHandler = None  # noqa: F841
 
 # Abstract method parameter in src/tunacode/cli/commands/base.py
 context = None  # noqa: F841
+
+# TYPE_CHECKING imports used in string annotations
+StreamedRunResult = None  # noqa: F841

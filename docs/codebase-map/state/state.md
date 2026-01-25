@@ -305,7 +305,7 @@ This makes preferences accessible throughout the application.
 
 CLI commands allow runtime preference changes:
 
-- **`/model`:** Changes `user_config["default_model"]`
+- **`/model`:** Reloads config from disk, updates `user_config["default_model"]`, and invalidates the agent cache
 - **`/theme`:** Updates `user_config["settings"]["theme"]`
 - **`/yolo`:** Toggles auto-approve mode for tool execution
 

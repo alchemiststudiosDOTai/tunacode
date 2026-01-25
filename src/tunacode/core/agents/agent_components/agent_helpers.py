@@ -2,8 +2,6 @@
 
 from typing import Any
 
-from tunacode.types import FallbackResponse
-
 
 def get_tool_description(tool_name: str, tool_args: dict[str, Any]) -> str:
     """Get a descriptive string for a tool call."""
@@ -109,83 +107,6 @@ Ready to continue with a complete response."""
     return content
 
 
-def create_fallback_response(
-    iterations: int,
-    max_iterations: int,
-    tool_calls: list[dict[str, Any]],
-    messages: list[Any],
-    verbosity: str = "normal",
-) -> FallbackResponse:
-    """Create a comprehensive fallback response when iteration limit is reached."""
-    fallback = FallbackResponse(
-        summary="Reached maximum iterations without producing a final response.",
-        progress=f"Completed {iterations} iterations (limit: {max_iterations})",
-    )
-
-    # Extract context from messages
-    tool_calls_summary = []
-    files_modified = set()
-    commands_run = []
-
-    for msg in messages:
-        if hasattr(msg, "parts"):
-            for part in msg.parts:
-                if hasattr(part, "part_kind") and part.part_kind == "tool-call":
-                    tool_name = getattr(part, "tool_name", "unknown")
-                    tool_calls_summary.append(tool_name)
-
-                    # Track specific operations
-                    if (
-                        tool_name in ["write_file", "update_file"]
-                        and hasattr(part, "args")
-                        and isinstance(part.args, dict)
-                        and "file_path" in part.args
-                    ):
-                        files_modified.add(part.args["file_path"])
-                    elif (
-                        tool_name == "bash"
-                        and hasattr(part, "args")
-                        and isinstance(part.args, dict)
-                        and "command" in part.args
-                    ):
-                        commands_run.append(part.args["command"])
-
-    if verbosity in ["normal", "detailed"]:
-        # Add what was attempted
-        if tool_calls_summary:
-            tool_counts: dict[str, int] = {}
-            for tool in tool_calls_summary:
-                tool_counts[tool] = tool_counts.get(tool, 0) + 1
-
-            fallback.issues.append(f"Executed {len(tool_calls_summary)} tool calls:")
-            for tool, count in sorted(tool_counts.items()):
-                fallback.issues.append(f"  • {tool}: {count}x")
-
-        if verbosity == "detailed":
-            if files_modified:
-                fallback.issues.append(f"\nFiles modified ({len(files_modified)}):")
-                for f in sorted(files_modified)[:5]:
-                    fallback.issues.append(f"  • {f}")
-                if len(files_modified) > 5:
-                    fallback.issues.append(f"  • ... and {len(files_modified) - 5} more")
-
-            if commands_run:
-                fallback.issues.append(f"\nCommands executed ({len(commands_run)}):")
-                for cmd in commands_run[:3]:
-                    display_cmd = cmd if len(cmd) <= 60 else cmd[:57] + "..."
-                    fallback.issues.append(f"  • {display_cmd}")
-                if len(commands_run) > 3:
-                    fallback.issues.append(f"  • ... and {len(commands_run) - 3} more")
-
-    # Add helpful next steps
-    fallback.next_steps.append("The task may be too complex - try breaking it into smaller steps")
-    fallback.next_steps.append("Check the output above for any errors or partial progress")
-    if files_modified:
-        fallback.next_steps.append("Review modified files to see what changes were made")
-
-    return fallback
-
-
 async def handle_empty_response(
     message: str,
     reason: str,
@@ -200,22 +121,3 @@ async def handle_empty_response(
         iter_index,
     )
     return force_action_content
-
-
-def format_fallback_output(fallback: FallbackResponse) -> str:
-    """Format a fallback response into a comprehensive output string."""
-    output_parts = [fallback.summary, ""]
-
-    if fallback.progress:
-        output_parts.append(f"Progress: {fallback.progress}")
-
-    if fallback.issues:
-        output_parts.append("\nWhat happened:")
-        output_parts.extend(fallback.issues)
-
-    if fallback.next_steps:
-        output_parts.append("\nSuggested next steps:")
-        for step in fallback.next_steps:
-            output_parts.append(f"  • {step}")
-
-    return "\n".join(output_parts)

@@ -3,8 +3,6 @@
 from .agent_config import get_or_create_agent, invalidate_agent_cache
 from .agent_helpers import (
     create_empty_response_message,
-    create_fallback_response,
-    format_fallback_output,
     get_recent_tools_context,
     get_tool_description,
     handle_empty_response,
@@ -29,8 +27,6 @@ __all__ = [
     "ToolBuffer",
     "execute_tools_parallel",
     "create_empty_response_message",
-    "create_fallback_response",
-    "format_fallback_output",
     "get_recent_tools_context",
     "get_tool_description",
     "handle_empty_response",

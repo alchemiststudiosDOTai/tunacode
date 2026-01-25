@@ -189,7 +189,18 @@ class ModelCommand(Command):
             get_model_context_window,
             load_models_registry,
         )
+        from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
+        from tunacode.core.agents.agent_components.agent_config import (
+            invalidate_agent_cache,
+        )
+        from tunacode.utils.config import load_config_with_defaults
         from tunacode.utils.config.user_configuration import save_config
+
+        state_manager = app.state_manager
+        session = state_manager.session
+        default_user_config = DEFAULT_USER_CONFIG
+        reloaded_user_config = load_config_with_defaults(default_user_config)
+        session.user_config = reloaded_user_config
 
         if args:
             load_models_registry()
@@ -197,16 +208,17 @@ class ModelCommand(Command):
 
             if not _validate_provider_api_key_with_notification(
                 model_name,
-                app.state_manager.session.user_config,
+                session.user_config,
                 app,
                 show_config_path=True,
             ):
                 return
 
-            app.state_manager.session.current_model = model_name
-            app.state_manager.session.user_config["default_model"] = model_name
-            app.state_manager.session.max_tokens = get_model_context_window(model_name)
-            save_config(app.state_manager)
+            session.current_model = model_name
+            session.user_config["default_model"] = model_name
+            session.max_tokens = get_model_context_window(model_name)
+            save_config(state_manager)
+            invalidate_agent_cache(model_name, state_manager)
             app._update_resource_bar()
             app.notify(f"Model: {model_name}")
         else:
@@ -223,16 +235,17 @@ class ModelCommand(Command):
 
                 if not _validate_provider_api_key_with_notification(
                     full_model,
-                    app.state_manager.session.user_config,
+                    session.user_config,
                     app,
                     show_config_path=False,
                 ):
                     return
 
-                app.state_manager.session.current_model = full_model
-                app.state_manager.session.user_config["default_model"] = full_model
-                app.state_manager.session.max_tokens = get_model_context_window(full_model)
-                save_config(app.state_manager)
+                session.current_model = full_model
+                session.user_config["default_model"] = full_model
+                session.max_tokens = get_model_context_window(full_model)
+                save_config(state_manager)
+                invalidate_agent_cache(full_model, state_manager)
                 app._update_resource_bar()
                 app.notify(f"Model: {full_model}")
 

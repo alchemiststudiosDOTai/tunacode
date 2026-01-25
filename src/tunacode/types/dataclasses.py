@@ -60,16 +60,6 @@ class ResponseState:
     awaiting_user_guidance: bool = False
 
 
-@dataclass
-class FallbackResponse:
-    """Structure for synthesized fallback responses."""
-
-    summary: str
-    progress: str = ""
-    issues: list[str] = field(default_factory=list)
-    next_steps: list[str] = field(default_factory=list)
-
-
 class AgentState(Enum):
     """Agent loop states for enhanced completion detection."""
 
@@ -110,7 +100,6 @@ __all__ = [
     "AgentState",
     "CommandContext",
     "CostBreakdown",
-    "FallbackResponse",
     "ModelConfig",
     "ModelPricing",
     "ModelRegistry",

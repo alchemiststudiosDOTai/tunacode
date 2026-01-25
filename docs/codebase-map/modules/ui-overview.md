@@ -123,7 +123,7 @@ REPL command implementations:
 - **ClearCommand** - `/clear` - Clear agent working state (UI, thoughts, todos) - messages preserved for /resume
 - **YoloCommand** - `/yolo` - Toggle auto-confirm for tool executions
 - **DebugCommand** - `/debug` - Toggle debug logging to screen (logs to ~/.local/share/tunacode/logs/)
-- **ModelCommand** - `/model` - Open model picker or switch directly
+- **ModelCommand** - `/model` - Reload config, then open model picker or switch directly (invalidates agent cache)
 - **BranchCommand** - `/branch` - Create conversation branch
 - **PlanCommand** - `/plan` - Toggle plan mode
 - **ThemeCommand** - `/theme` - Switch UI theme

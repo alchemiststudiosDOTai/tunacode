@@ -5,6 +5,7 @@ Provides user configuration file management.
 Handles loading, saving, and updating user preferences including model selection.
 """
 
+import copy
 import json
 from json import JSONDecodeError
 from typing import TYPE_CHECKING
@@ -34,6 +35,32 @@ def load_config() -> UserConfig | None:
         raise ConfigurationError(msg) from err
     except Exception as err:
         raise ConfigurationError(f"Failed to load configuration: {err}") from err
+
+
+def merge_user_config(
+    default_config: UserConfig, user_config: UserConfig | None
+) -> UserConfig:
+    """Merge user config on top of defaults."""
+    if not user_config:
+        return default_config
+
+    merged_config = copy.deepcopy(default_config)
+    merged_config.update(user_config)
+
+    user_settings = user_config.get("settings")
+    if not user_settings:
+        return merged_config
+
+    merged_settings = copy.deepcopy(default_config["settings"])
+    merged_settings.update(user_settings)
+    merged_config["settings"] = merged_settings
+    return merged_config
+
+
+def load_config_with_defaults(default_config: UserConfig) -> UserConfig:
+    """Load user config from file and merge with defaults."""
+    user_config = load_config()
+    return merge_user_config(default_config, user_config)
 
 
 def save_config(state_manager: "StateManagerProtocol") -> None:

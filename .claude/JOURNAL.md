@@ -500,3 +500,62 @@ The debug log `ctx_messages=0` was a red herring - that's pydantic-ai's internal
 - Always validate message structure before API calls, not just tool call pairing
 - Test abort scenarios: mid-stream, mid-tool-call, before any response
 - Remember: Python 3.8+ CancelledError is BaseException, not Exception
+
+---
+
+## 2026-01-24: First-Run Config Shallow Copy Bug (Branch: config-qa)
+
+### Problem
+User deletes config, runs `tunacode`, setup screen appears, saves config - but only user-entered fields saved (model, api_key, base_url). All defaults missing (max_retries, ripgrep, lsp, theme, etc.).
+
+### Root Cause: Python Dict Shallow Copy
+```python
+self._session.user_config = DEFAULT_USER_CONFIG.copy()  # SHALLOW!
+```
+
+`.copy()` only copies the top-level dict. Nested dicts (`settings`, `env`, `ripgrep`, `lsp`) still reference the same objects as `DEFAULT_USER_CONFIG`. Any mutation pollutes the module-level constant.
+
+The user initially noticed the bug, I kept looking for phantom config files and doubting them. They were right - it was in the code.
+
+### Solution (The Journey)
+
+**First attempt:** Just use `deepcopy()` everywhere. User pushed back: "why are we copying at all?"
+
+**Second attempt:** Setup was mutating existing user_config instead of building new. Changed to build fresh dict - but that dict was incomplete (missing defaults).
+
+**Final solution:** User insight: "make default config and start config the same way"
+- `state.py`: Assign `DEFAULT_USER_CONFIG` directly when no config (reference gets replaced by setup)
+- `setup.py`: Build new config from `deepcopy(DEFAULT_USER_CONFIG)`, add user data, assign to session (replaces reference)
+- `main.py`: Auto-show setup if no config file (`show_setup=setup or not _config_exists()`)
+
+### Key Insight
+Python dicts are mutable references. If you don't mutate, you don't need to copy. Setup creates a NEW dict and assigns it (replaces reference), so state.py can safely assign the constant directly.
+
+The old code's mistake was **mutating** user_config in-place. The fix isn't "copy more" - it's "don't mutate, replace the reference."
+
+### Files Modified
+- `src/tunacode/core/state.py` - assign directly, deepcopy only for merge logic
+- `src/tunacode/ui/screens/setup.py` - deepcopy defaults, modify, assign new dict
+- `src/tunacode/ui/main.py` - auto-show setup when no config
+
+### Commit
+`ceacd276` - fix: shallow copy bug corrupting DEFAULT_USER_CONFIG
+
+### Verification
+Config now saves complete with all defaults:
+```json
+{
+    "default_model": "openrouter:anthropic/claude-3.5-haiku",
+    "env": { ... all env vars ... },
+    "settings": {
+        "max_retries": 3,
+        "max_iterations": 40,
+        "ripgrep": { ... },
+        "lsp": { ... },
+        "providers": { "openrouter": { "base_url": "..." } }
+    }
+}
+```
+
+### Lesson Learned
+When user says "it's in the code" and you're looking for external files - stop. Read the code. Trust the user. The shallow copy bug was on line 165 of state.py the whole time.
