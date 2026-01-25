@@ -60,6 +60,58 @@ def _get_parts(message: Any) -> list[Any]:
     return []
 
 
+def _get_tool_calls_metadata(message: Any) -> list[Any]:
+    """Extract tool_calls metadata from a message.
+
+    In pydantic-ai objects, tool_calls is a computed property derived from parts.
+    In serialized dicts, it may exist as a separate key with tool call info.
+
+    This is needed because some serialized messages have tool_calls metadata
+    that isn't also in parts (e.g., from failed deserialization).
+    """
+    tool_calls = _get_attr(message, "tool_calls")
+    if tool_calls is None:
+        return []
+    if isinstance(tool_calls, (list, tuple)):
+        return list(tool_calls)
+    return []
+
+
+def _convert_tool_call_metadata_to_part(tool_call: Any) -> ToolCallPart | None:
+    """Convert a tool_calls metadata entry to a ToolCallPart.
+
+    tool_calls metadata may have a different structure than parts:
+    - May have 'tool_name' or 'name'
+    - May have 'tool_call_id' or 'id'
+    """
+    # Try multiple attribute names for tool_call_id
+    tool_call_id = (
+        _get_attr(tool_call, "tool_call_id")
+        or _get_attr(tool_call, "id")
+        or ""
+    )
+
+    # Try multiple attribute names for tool_name
+    tool_name = (
+        _get_attr(tool_call, "tool_name")
+        or _get_attr(tool_call, "name")
+        or _get_attr(tool_call, "tool")
+        or ""
+    )
+
+    # Skip if no ID (can't track without ID)
+    if not tool_call_id:
+        return None
+
+    args = _get_attr(tool_call, "args", {}) or {}
+
+    return ToolCallPart(
+        tool_call_id=str(tool_call_id),
+        tool_name=str(tool_name),
+        args=args if isinstance(args, dict) else {},
+    )
+
+
 # =============================================================================
 # Part Conversion: pydantic-ai -> Canonical
 # =============================================================================
@@ -180,6 +232,20 @@ def to_canonical(message: Any) -> CanonicalMessage:
         converted = _convert_part_to_canonical(raw_part)
         if converted is not None:
             canonical_parts.append(converted)
+
+    # Also check tool_calls metadata for any tool calls not in parts
+    # This handles serialized dicts where tool_calls exists separately
+    # Collect IDs we already have from parts to avoid duplicates
+    existing_tool_call_ids = {
+        p.tool_call_id for p in canonical_parts if isinstance(p, ToolCallPart)
+    }
+
+    tool_calls_metadata = _get_tool_calls_metadata(message)
+    for tool_call in tool_calls_metadata:
+        converted = _convert_tool_call_metadata_to_part(tool_call)
+        if converted is not None and converted.tool_call_id not in existing_tool_call_ids:
+            canonical_parts.append(converted)
+            existing_tool_call_ids.add(converted.tool_call_id)
 
     # If no parts but has content, create a text part
     if not canonical_parts:
