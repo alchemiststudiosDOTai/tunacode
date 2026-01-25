@@ -721,6 +721,57 @@ def test_remove_dangling_removes_only_unmatched_calls(session_state: SessionStat
     assert tool_call_args_by_id == {matched_call.tool_call_id: matched_call.args}
 
 
+def test_remove_dangling_removes_orphaned_retry_prompt_parts(session_state: SessionState) -> None:
+    """remove_dangling_tool_calls should remove retry-prompt parts for dangling tool calls.
+
+    When a tool call fails (e.g., 403 error from web_fetch), pydantic-ai creates a
+    retry-prompt part that references the original tool_call_id. If the tool-call part
+    is pruned, the retry-prompt must also be pruned to avoid orphaned references.
+
+    Bug: Prior to fix, retry-prompt parts were left behind because only tool-call
+    parts were filtered by part_kind. Now any part with tool_call_id matching a
+    dangling ID is removed.
+
+    Related: tunacode.log 2026-01-25 showing orphaned retry-prompt after web_fetch 403
+    """
+
+    @dataclass
+    class RetryPromptPart:
+        """Mock retry-prompt part as created by pydantic-ai for failed tool calls."""
+
+        part_kind: str
+        tool_call_id: str
+        tool_name: str
+        content: str
+
+    # Arrange: Create a dangling tool call with an orphaned retry-prompt
+    tool_call = ToolCallPart(
+        tool_name="web_fetch",
+        args={"url": "https://example.com"},
+        tool_call_id="call_XoXFHWUpi1KujOYx3zHTR1KN",
+    )
+    retry_prompt = RetryPromptPart(
+        part_kind="retry-prompt",
+        tool_call_id="call_XoXFHWUpi1KujOYx3zHTR1KN",
+        tool_name="web_fetch",
+        content="Access forbidden (403): https://example.com",
+    )
+
+    # Create messages: tool-call in response, retry-prompt in following request
+    tool_call_message = MockMessage(tool_calls=[tool_call])
+    retry_message = MockMessage(parts=[retry_prompt])
+    messages = [tool_call_message, retry_message]
+    tool_call_args_by_id = {tool_call.tool_call_id: tool_call.args}
+
+    # Act
+    removed = remove_dangling_tool_calls(messages, tool_call_args_by_id)
+
+    # Assert: Both tool-call and retry-prompt should be removed
+    assert removed is True
+    assert len(messages) == 0, "Both tool-call and retry-prompt messages should be removed"
+    assert len(tool_call_args_by_id) == 0, "Cached args should be cleared"
+
+
 # =============================================================================
 # Property Tests: Argument Normalization
 # =============================================================================

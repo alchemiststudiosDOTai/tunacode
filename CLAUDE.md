@@ -528,6 +528,10 @@ Types: bug, smell, pattern, lesson, antipattern
 
 [2026-01-24] [bug] **Shallow copy corrupts DEFAULT_USER_CONFIG.** `.copy()` is shallow - nested dicts (`settings`, `env`) still reference the constant. Setup was mutating user_config in-place → polluted module-level default → first-run config missing all defaults. **Fix:** Don't mutate, replace. `state.py` assigns constant directly (reference replaced by setup). `setup.py` builds new dict from `deepcopy(DEFAULT_USER_CONFIG)`. **Key insight:** If you don't mutate, you don't need to copy. See `.claude/JOURNAL.md` 2026-01-24 entry.
 
+[2026-01-25] [pattern] **Canonical messaging adoption complete (Task 01).** Migrated production code to use `adapter.get_content()` (P1) and routed sanitize.py through adapter helpers (P2). Key insight: adapter layer now handles ALL message polymorphism. Detection uses adapter (`find_dangling_tool_calls`, `get_tool_call_ids`), mutation stays in sanitize.py. Deleted ~117 LOC of duplicate accessors. Branch: `types-architect`. See `.claude/JOURNAL.md` 2026-01-25 entry.
+
+[2026-01-25] [bug] **Orphaned retry-prompt parts after dangling tool call cleanup.** When pruning dangling tool calls, `_filter_dangling_tool_calls_from_parts()` only removed `tool-call` parts. This left behind `retry-prompt` parts (pydantic-ai's error response for failed tools like 403). **Fix:** Filter ANY part with `tool_call_id` matching a dangling ID, not just `part_kind == "tool-call"`. **Key insight:** pydantic-ai uses multiple part kinds (`tool-call`, `tool-return`, `retry-prompt`) that all reference the same `tool_call_id`. Cleanup must be ID-based, not kind-based.
+
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go

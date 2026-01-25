@@ -17,10 +17,14 @@ from typing import Any
 
 from tunacode.core.logging import get_logger
 from tunacode.types import ToolArgs, ToolCallId
+from tunacode.utils.messaging import (
+    _get_attr,
+    _get_parts,
+    find_dangling_tool_calls,
+)
 
-# Message part kind identifiers
+# Message part kind identifiers (kept for mutation functions)
 PART_KIND_TOOL_CALL: str = "tool-call"
-PART_KIND_TOOL_RETURN: str = "tool-return"
 PART_KIND_SYSTEM_PROMPT: str = "system-prompt"
 PART_KIND_ATTR: str = "part_kind"
 PARTS_ATTR: str = "parts"
@@ -39,44 +43,15 @@ __all__ = [
     "remove_empty_responses",
     "remove_consecutive_requests",
     "find_dangling_tool_call_ids",
-    # Exported for sanitize_debug.py
+    # Constants for external use
     "PART_KIND_ATTR",
     "TOOL_CALL_ID_ATTR",
-    "_get_attr_value",
-    "_get_message_parts",
-    "_get_message_tool_calls",
-    "_collect_message_tool_call_ids",
-    "_collect_message_tool_return_ids",
 ]
 
 
 # -----------------------------------------------------------------------------
-# Attribute accessors (handle both dict and object messages)
+# Mutation helpers (kept for modifying messages)
 # -----------------------------------------------------------------------------
-
-
-def _get_attr_value(item: Any, attr_name: str) -> Any:
-    """Return attribute values from dicts or objects."""
-    if isinstance(item, dict):
-        return item.get(attr_name)
-    return getattr(item, attr_name, None)
-
-
-def _normalize_list(value: Any) -> list[Any]:
-    """Normalize optional list-like values to a list."""
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    if isinstance(value, tuple):
-        return list(value)
-    return []
-
-
-def _get_message_parts(message: Any) -> list[Any]:
-    """Return message parts as a list."""
-    parts_value = _get_attr_value(message, PARTS_ATTR)
-    return _normalize_list(parts_value)
 
 
 def _set_message_parts(message: Any, parts: list[Any]) -> None:
@@ -86,12 +61,6 @@ def _set_message_parts(message: Any, parts: list[Any]) -> None:
         return
     if hasattr(message, PARTS_ATTR):
         setattr(message, PARTS_ATTR, parts)
-
-
-def _get_message_tool_calls(message: Any) -> list[Any]:
-    """Return tool_calls from a message as a list."""
-    tool_calls_value = _get_attr_value(message, TOOL_CALLS_ATTR)
-    return _normalize_list(tool_calls_value)
 
 
 def _set_message_tool_calls(message: Any, tool_calls: list[Any]) -> None:
@@ -108,128 +77,50 @@ def _set_message_tool_calls(message: Any, tool_calls: list[Any]) -> None:
     # derived from parts. We cannot set it directly - setting parts is enough.
 
 
-# -----------------------------------------------------------------------------
-# Tool call ID collection
-# -----------------------------------------------------------------------------
-
-
-def _collect_tool_call_ids_from_parts(parts: list[Any]) -> list[ToolCallId]:
-    """Collect tool_call_id values from tool-call parts."""
-    if not parts:
+def _normalize_list(value: Any) -> list[Any]:
+    """Normalize optional list-like values to a list."""
+    if value is None:
         return []
-
-    logger = get_logger()
-    tool_call_ids: list[ToolCallId] = []
-    for part in parts:
-        part_kind = _get_attr_value(part, PART_KIND_ATTR)
-        if part_kind != PART_KIND_TOOL_CALL:
-            logger.debug(
-                f"_collect_tool_call_ids: skipped part_kind={part_kind!r} "
-                f"(expected {PART_KIND_TOOL_CALL!r})"
-            )
-            continue
-        tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
-        if tool_call_id is None:
-            logger.debug("_collect_tool_call_ids: skipped tool_call_id=None")
-            continue
-        tool_call_ids.append(tool_call_id)
-        logger.debug(f"_collect_tool_call_ids: found {tool_call_id!r}")
-    return tool_call_ids
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return []
 
 
-def _collect_tool_call_ids_from_tool_calls(tool_calls: list[Any]) -> list[ToolCallId]:
-    """Collect tool_call_id values from tool_calls lists."""
-    if not tool_calls:
-        return []
-
-    tool_call_ids: list[ToolCallId] = []
-    for tool_call in tool_calls:
-        tool_call_id = _get_attr_value(tool_call, TOOL_CALL_ID_ATTR)
-        if tool_call_id is None:
-            continue
-        tool_call_ids.append(tool_call_id)
-    return tool_call_ids
-
-
-def _collect_tool_return_ids_from_parts(parts: list[Any]) -> list[ToolCallId]:
-    """Collect tool_call_id values from tool-return parts."""
-    if not parts:
-        return []
-
-    tool_return_ids: list[ToolCallId] = []
-    for part in parts:
-        part_kind = _get_attr_value(part, PART_KIND_ATTR)
-        if part_kind != PART_KIND_TOOL_RETURN:
-            continue
-        tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
-        if tool_call_id is None:
-            continue
-        tool_return_ids.append(tool_call_id)
-    return tool_return_ids
-
-
-def _collect_message_tool_call_ids(message: Any) -> set[ToolCallId]:
-    """Collect tool_call_ids from tool-call parts and tool_calls metadata."""
-    parts = _get_message_parts(message)
-    tool_calls = _get_message_tool_calls(message)
-
-    tool_call_ids = set(_collect_tool_call_ids_from_parts(parts))
-    tool_call_ids.update(_collect_tool_call_ids_from_tool_calls(tool_calls))
-    return tool_call_ids
-
-
-def _collect_message_tool_return_ids(message: Any) -> set[ToolCallId]:
-    """Collect tool_call_ids from tool-return parts."""
-    parts = _get_message_parts(message)
-    return set(_collect_tool_return_ids_from_parts(parts))
+def _get_message_tool_calls(message: Any) -> list[Any]:
+    """Return tool_calls from a message as a list (for mutation functions)."""
+    tool_calls_value = _get_attr(message, TOOL_CALLS_ATTR)
+    return _normalize_list(tool_calls_value)
 
 
 # -----------------------------------------------------------------------------
-# Dangling tool call detection and removal
+# Dangling tool call detection (delegates to adapter)
 # -----------------------------------------------------------------------------
 
 
 def find_dangling_tool_call_ids(messages: list[Any]) -> set[ToolCallId]:
-    """Return tool_call_ids that never received a tool return."""
-    if not messages:
-        return set()
+    """Return tool_call_ids that never received a tool return.
 
-    logger = get_logger()
-    tool_call_ids: set[ToolCallId] = set()
-    tool_return_ids: set[ToolCallId] = set()
-
-    for idx, message in enumerate(messages):
-        msg_kind = _get_attr_value(message, "kind")
-        msg_tool_call_ids = _collect_message_tool_call_ids(message)
-        msg_tool_return_ids = _collect_message_tool_return_ids(message)
-
-        # Debug: trace collection for responses with parts
-        parts = _get_message_parts(message)
-        if msg_kind == "response" and parts:
-            for pidx, part in enumerate(parts):
-                part_kind = _get_attr_value(part, PART_KIND_ATTR)
-                tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
-                logger.debug(
-                    f"find_dangling[{idx}].part[{pidx}]: "
-                    f"part_kind={part_kind!r} tool_call_id={tool_call_id!r}"
-                )
-
-        tool_call_ids.update(msg_tool_call_ids)
-        tool_return_ids.update(msg_tool_return_ids)
-
-    dangling = tool_call_ids - tool_return_ids
-    logger.debug(
-        f"find_dangling_tool_call_ids: "
-        f"tool_call_ids={tool_call_ids} tool_return_ids={tool_return_ids} dangling={dangling}"
-    )
-    return dangling
+    This is a thin wrapper around adapter.find_dangling_tool_calls() for
+    backwards compatibility. The adapter handles all message format polymorphism.
+    """
+    return find_dangling_tool_calls(messages)
 
 
 def _filter_dangling_tool_calls_from_parts(
     parts: list[Any],
     dangling_tool_call_ids: set[ToolCallId],
 ) -> tuple[list[Any], bool]:
-    """Remove dangling tool-call parts and return filtered parts."""
+    """Remove parts that reference dangling tool call IDs.
+
+    This filters:
+    - tool-call parts: the original tool invocation
+    - tool-return parts: the result of the tool call
+    - retry-prompt parts: pydantic-ai's error response for failed tool calls
+
+    All of these have a tool_call_id attribute that must be pruned together.
+    """
     if not parts:
         return parts, False
 
@@ -238,19 +129,18 @@ def _filter_dangling_tool_calls_from_parts(
     removed_any = False
 
     for part in parts:
-        part_kind = _get_attr_value(part, PART_KIND_ATTR)
-        if part_kind != PART_KIND_TOOL_CALL:
-            filtered_parts.append(part)
-            continue
+        tool_call_id = _get_attr(part, TOOL_CALL_ID_ATTR)
 
-        tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
+        # Parts without tool_call_id are never dangling
         if tool_call_id is None:
             filtered_parts.append(part)
             continue
 
+        # Check if this part references a dangling tool call
         if tool_call_id in dangling_tool_call_ids:
-            tool_name = _get_attr_value(part, "tool_name") or "unknown"
-            logger.debug(f"[PRUNED] tool_call part: tool={tool_name} id={tool_call_id}")
+            part_kind = _get_attr(part, PART_KIND_ATTR) or "unknown"
+            tool_name = _get_attr(part, "tool_name") or "unknown"
+            logger.debug(f"[PRUNED] {part_kind} part: tool={tool_name} id={tool_call_id}")
             removed_any = True
             continue
 
@@ -272,13 +162,13 @@ def _filter_dangling_tool_calls_from_tool_calls(
     removed_any = False
 
     for tool_call in tool_calls:
-        tool_call_id = _get_attr_value(tool_call, TOOL_CALL_ID_ATTR)
+        tool_call_id = _get_attr(tool_call, TOOL_CALL_ID_ATTR)
         if tool_call_id is None:
             filtered_tool_calls.append(tool_call)
             continue
 
         if tool_call_id in dangling_tool_call_ids:
-            tool_name = _get_attr_value(tool_call, "tool_name") or "unknown"
+            tool_name = _get_attr(tool_call, "tool_name") or "unknown"
             logger.debug(f"[PRUNED] tool_calls entry: tool={tool_name} id={tool_call_id}")
             removed_any = True
             continue
@@ -300,7 +190,7 @@ def _strip_dangling_tool_calls_from_message(
         - removed_any: True if any tool calls were removed
         - should_drop: True if message should be dropped from history
     """
-    parts = _get_message_parts(message)
+    parts = _get_parts(message)
     tool_calls = _get_message_tool_calls(message)
 
     filtered_parts, removed_from_parts = _filter_dangling_tool_calls_from_parts(
@@ -499,7 +389,7 @@ def _strip_system_prompt_parts(parts: list[Any]) -> list[Any]:
     if not parts:
         return parts
 
-    return [p for p in parts if _get_attr_value(p, PART_KIND_ATTR) != PART_KIND_SYSTEM_PROMPT]
+    return [p for p in parts if _get_attr(p, PART_KIND_ATTR) != PART_KIND_SYSTEM_PROMPT]
 
 
 def sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
@@ -535,7 +425,7 @@ def sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
             continue
 
         # Handle pydantic-ai message objects
-        parts = _get_message_parts(msg)
+        parts = _get_parts(msg)
         original_part_count = len(parts)
         filtered_parts = _strip_system_prompt_parts(parts)
         stripped_count = original_part_count - len(filtered_parts)
