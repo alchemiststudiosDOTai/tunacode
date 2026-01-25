@@ -559,3 +559,76 @@ Config now saves complete with all defaults:
 
 ### Lesson Learned
 When user says "it's in the code" and you're looking for external files - stop. Read the code. Trust the user. The shallow copy bug was on line 165 of state.py the whole time.
+
+---
+
+## 2026-01-25: Canonical Messaging Adoption (Branch: types-architect)
+
+### Task
+Implement Task 01 from `.claude/task/task_01_canonical_messaging_adoption.md` - migrate production code to use canonical message types via adapter layer.
+
+### Completed
+
+**P1: Message Content Accessor Migration ✓**
+Replaced 3 production call sites using legacy `get_message_content()` with `adapter.get_content()`:
+
+| File | Line | Usage |
+|------|------|-------|
+| `src/tunacode/core/state.py` | 123 | Token counting in `update_token_count()` |
+| `src/tunacode/ui/app.py` | 355 | Session replay in `_replay_session_messages()` |
+| `src/tunacode/ui/headless/output.py` | 50 | Output extraction in `_extract_from_messages()` |
+
+**P2: Tool Call Tracking Consolidation ✓**
+
+1. **sanitize.py refactor** (~117 LOC deleted):
+   - Imported `_get_attr`, `_get_parts`, `find_dangling_tool_calls` from adapter
+   - Deleted duplicate accessor functions: `_get_attr_value`, `_normalize_list`, `_get_message_parts`, `_collect_tool_*`
+   - Kept mutation helpers and cleanup orchestration functions
+   - `find_dangling_tool_call_ids` now thin wrapper around adapter
+
+2. **sanitize_debug.py update**:
+   - Uses adapter functions for reading: `_get_attr`, `_get_parts`, `get_tool_call_ids`, `get_tool_return_ids`
+   - No more imports from sanitize internal functions
+
+3. **main.py cleanup loop replaced**:
+   - Before: 35-line inline cleanup loop (lines 363-397)
+   - After: Single call to `run_cleanup_loop(session_messages, tool_call_args_by_id)`
+
+### Key Files Modified
+```
+src/tunacode/core/state.py                    # import + call site
+src/tunacode/ui/app.py                        # import + call site
+src/tunacode/ui/headless/output.py            # import + call site
+src/tunacode/utils/messaging/__init__.py      # exports _get_attr, _get_parts
+src/tunacode/utils/messaging/adapter.py       # exports _get_attr, _get_parts
+src/tunacode/core/agents/resume/sanitize.py   # major refactor (-117 LOC)
+src/tunacode/core/agents/resume/sanitize_debug.py  # use adapter functions
+src/tunacode/core/agents/main.py              # replaced inline loop
+```
+
+### Verification
+- All 429 tests pass
+- ruff: only pre-existing issue (types/__init__.py import sort)
+- mypy: only pre-existing issues
+
+### What's Left (Future Tasks)
+According to the architecture plan:
+- Task 02: State Manager Type Safety
+- Task 03: Tool System Typing
+- Task 04: UI Layer Adoption
+
+### Key Insight
+The adapter pattern is working well - sanitize.py now only contains mutation logic (session sanitization concerns) while all message reading/parsing goes through the canonical adapter. This clean separation makes the codebase easier to maintain.
+
+### Branch
+`types-architect`
+
+### Commands
+```bash
+uv run pytest tests/ -x -q          # 429 passed
+uv run ruff check .                  # pre-existing import sort only
+git diff --stat                      # see changes
+```
+
+### Fun Note
+We deleted 117 lines of duplicated polymorphic accessors! The adapter layer is earning its keep. 🎉

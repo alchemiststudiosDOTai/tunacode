@@ -9,15 +9,16 @@ from typing import Any
 
 from tunacode.core.logging import get_logger
 from tunacode.types import ToolCallId
+from tunacode.utils.messaging import (
+    _get_attr,
+    _get_parts,
+    get_tool_call_ids,
+    get_tool_return_ids,
+)
 
 from .sanitize import (
     PART_KIND_ATTR,
     TOOL_CALL_ID_ATTR,
-    _collect_message_tool_call_ids,
-    _collect_message_tool_return_ids,
-    _get_attr_value,
-    _get_message_parts,
-    _get_message_tool_calls,
 )
 
 __all__ = ["log_message_history_debug"]
@@ -45,12 +46,12 @@ def _format_debug_preview(value: Any, max_len: int) -> tuple[str, int]:
 
 def _format_part_debug(part: Any, max_len: int) -> str:
     """Format a single part for debug logging."""
-    part_kind_value = _get_attr_value(part, PART_KIND_ATTR)
+    part_kind_value = _get_attr(part, PART_KIND_ATTR)
     part_kind = part_kind_value if part_kind_value is not None else "unknown"
-    tool_name = _get_attr_value(part, "tool_name")
-    tool_call_id = _get_attr_value(part, TOOL_CALL_ID_ATTR)
-    content = _get_attr_value(part, "content")
-    args = _get_attr_value(part, "args")
+    tool_name = _get_attr(part, "tool_name")
+    tool_call_id = _get_attr(part, TOOL_CALL_ID_ATTR)
+    content = _get_attr(part, "content")
+    args = _get_attr(part, "args")
 
     segments = [f"kind={part_kind}"]
     if tool_name:
@@ -71,9 +72,9 @@ def _format_part_debug(part: Any, max_len: int) -> str:
 
 def _format_tool_call_debug(tool_call: Any, max_len: int) -> str:
     """Format a tool call metadata entry for debug logging."""
-    tool_name = _get_attr_value(tool_call, "tool_name")
-    tool_call_id = _get_attr_value(tool_call, TOOL_CALL_ID_ATTR)
-    args = _get_attr_value(tool_call, "args")
+    tool_name = _get_attr(tool_call, "tool_name")
+    tool_call_id = _get_attr(tool_call, TOOL_CALL_ID_ATTR)
+    args = _get_attr(tool_call, "args")
 
     segments: list[str] = []
     if tool_name:
@@ -114,12 +115,12 @@ def log_message_history_debug(
         logger.debug(f"Outgoing user message: {preview} ({msg_len} chars)")
 
     for msg_index, message in enumerate(messages):
-        msg_kind_value = _get_attr_value(message, "kind")
+        msg_kind_value = _get_attr(message, "kind")
         msg_kind = msg_kind_value if msg_kind_value is not None else "unknown"
-        parts = _get_message_parts(message)
-        tool_calls = _get_message_tool_calls(message)
-        tool_call_ids = _collect_message_tool_call_ids(message)
-        tool_return_ids = _collect_message_tool_return_ids(message)
+        parts = _get_parts(message)
+        tool_calls = getattr(message, "tool_calls", []) or []
+        tool_call_ids = get_tool_call_ids(message)
+        tool_return_ids = get_tool_return_ids(message)
 
         part_count = len(parts)
         tool_call_count = len(tool_call_ids)

@@ -20,7 +20,10 @@ from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.models import load_models_registry
 from tunacode.constants import ENV_OPENAI_BASE_URL
-from tunacode.core.agents.delegation_tools import create_research_codebase_tool
+
+# TODO: Re-enable research_codebase subagent after fixing parameter name mismatch
+# See: memory-bank/research/2026-01-25_limited-read-file-parameter-mismatch.md
+# from tunacode.core.agents.delegation_tools import create_research_codebase_tool
 from tunacode.core.limits import get_max_tokens, is_local_mode
 from tunacode.core.logging import get_logger
 from tunacode.core.prompting import (
@@ -340,9 +343,7 @@ def _create_model_with_retry(
     if env_base_url:
         base_url = env_base_url
 
-    openai_provider = OpenAIProvider(
-        api_key=api_key, base_url=base_url, http_client=http_client
-    )
+    openai_provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
     return OpenAIChatModel(model_name, provider=openai_provider)
 
 
@@ -425,11 +426,12 @@ def get_or_create_agent(model: ModelName, state_manager: StateManager) -> Pydant
                 Tool(write_file, max_retries=max_retries, strict=tool_strict_validation),
             ]
 
-            # Add delegation tool (multi-agent pattern) - skip in local mode
-            research_codebase = create_research_codebase_tool(state_manager)
-            tools_list.append(
-                Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
-            )
+            # TODO: Re-enable research_codebase subagent after fixing parameter name mismatch
+            # See: memory-bank/research/2026-01-25_limited-read-file-parameter-mismatch.md
+            # research_codebase = create_research_codebase_tool(state_manager)
+            # tools_list.append(
+            #     Tool(research_codebase, max_retries=max_retries, strict=tool_strict_validation)
+            # )
 
             # Add todo tools (task tracking) - skip in local mode
             todowrite = create_todowrite_tool(state_manager)

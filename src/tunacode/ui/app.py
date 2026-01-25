@@ -349,10 +349,10 @@ class TextualReplApp(App[None]):
         """Render loaded session messages to RichLog."""
         from pydantic_ai.messages import ModelRequest, ModelResponse
 
-        from tunacode.utils.messaging.message_utils import get_message_content
+        from tunacode.utils.messaging import get_content
 
         for msg in self.state_manager.session.messages:
-            content = get_message_content(msg)
+            content = get_content(msg)
             if not content:
                 continue
 

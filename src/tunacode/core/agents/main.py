@@ -22,10 +22,10 @@ if TYPE_CHECKING:
 from tunacode.constants import UI_COLORS
 from tunacode.core.agents.resume import log_message_history_debug, prune_old_tool_outputs
 from tunacode.core.agents.resume.sanitize import (
-    find_dangling_tool_call_ids,
     remove_consecutive_requests,
     remove_dangling_tool_calls,
     remove_empty_responses,
+    run_cleanup_loop,
     sanitize_history_for_resume,
 )
 from tunacode.core.logging import get_logger
@@ -37,7 +37,6 @@ from tunacode.types import (
     ModelName,
     NoticeCallback,
     ToolCallback,
-    ToolCallId,
 )
 from tunacode.utils.ui import DotDict
 
@@ -356,45 +355,10 @@ class RequestOrchestrator:
 
         debug_mode = bool(getattr(self.state_manager.session, "debug_mode", False))
 
-        # Message cleanup is iterative because each pass can expose new issues:
-        # - Removing dangling tool calls may create consecutive requests
-        # - Removing consecutive requests may orphan tool returns, creating new dangling calls
-        # Loop until no more changes (transitive closure)
-        max_cleanup_iterations = 10
-        total_cleanup_applied = False
-        dangling_tool_call_ids: set[ToolCallId] = set()
-
-        for cleanup_iteration in range(max_cleanup_iterations):
-            any_cleanup = False
-
-            dangling_tool_call_ids = find_dangling_tool_call_ids(session_messages)
-            if remove_dangling_tool_calls(
-                session_messages,
-                tool_call_args_by_id,
-                dangling_tool_call_ids,
-            ):
-                any_cleanup = True
-                total_cleanup_applied = True
-                logger.lifecycle("Cleaned up dangling tool calls")
-
-            # Remove empty response messages (abort during response generation)
-            if remove_empty_responses(session_messages):
-                any_cleanup = True
-                total_cleanup_applied = True
-
-            # Remove consecutive request messages (caused by abort before model responds)
-            # Must run AFTER empty response removal since that can expose consecutive requests
-            if remove_consecutive_requests(session_messages):
-                any_cleanup = True
-                total_cleanup_applied = True
-
-            if not any_cleanup:
-                break
-
-            if cleanup_iteration == max_cleanup_iterations - 1:
-                logger.warning(
-                    f"Message cleanup did not stabilize after {max_cleanup_iterations} iterations"
-                )
+        # Run iterative cleanup until message history stabilizes
+        total_cleanup_applied, dangling_tool_call_ids = run_cleanup_loop(
+            session_messages, tool_call_args_by_id
+        )
 
         # Handle trailing request in history if we are about to add a new one.
         # This prevents [Request, Request] sequences when resuming after an abort.

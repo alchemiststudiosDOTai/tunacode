@@ -304,12 +304,17 @@ def find_dangling_tool_calls(messages: list[Any]) -> set[str]:
 # =============================================================================
 
 __all__ = [
+    # Conversion
     "to_canonical",
     "to_canonical_list",
     "from_canonical",
     "from_canonical_list",
+    # Content extraction
     "get_content",
     "get_tool_call_ids",
     "get_tool_return_ids",
     "find_dangling_tool_calls",
+    # Low-level accessors (for internal modules like sanitize.py)
+    "_get_attr",
+    "_get_parts",
 ]

@@ -27,6 +27,7 @@ from tunacode.tools.read_file import read_file
 from tunacode.types import ModelName, ToolProgress, ToolProgressCallback
 
 # Maximum wait time in seconds for retry backoff
+# move this to the defualt config TODO, for now let it pass, but handle this in its own pr
 MAX_RETRY_WAIT_SECONDS = 60
 
 
@@ -74,11 +75,11 @@ def _create_limited_read_file(max_files: int) -> Callable[[str], Awaitable[str]]
     call_count = {"count": 0}
 
     @file_tool
-    async def limited_read_file(file_path: str) -> str:
+    async def limited_read_file(filepath: str) -> str:
         """Read file with enforced limit on number of calls.
 
         Args:
-            file_path: Path to file to read
+            filepath: Path to file to read
 
         Returns:
             File content dict from read_file tool, or limit message if exceeded
@@ -92,17 +93,18 @@ def _create_limited_read_file(max_files: int) -> Callable[[str], Awaitable[str]]
             return (
                 "<file>\n"
                 f"FILE READ LIMIT REACHED ({max_files} files maximum)\n\n"
-                f"Cannot read '{file_path}' - you have already read {max_files} files.\n"
+                f"Cannot read '{filepath}' - you have already read {max_files} files.\n"
                 "Please complete your research with the files you have analyzed.\n"
                 "</file>"
             )
 
         call_count["count"] += 1
-        return await read_file(file_path)
+        return await read_file(filepath)
 
     return limited_read_file
 
 
+# todo move this to be properly imported and modular TODO
 class ProgressTracker:
     """Tracks tool execution progress for subagent feedback.
 

@@ -507,3 +507,63 @@ Before each phase, verify:
 | Repo | alchemiststudiosDOTai/tunacode |
 | Related Tasks | Task 01 (Canonical Messaging), Task 03 (Parity Harness), Task 04 (Canonical Sanitization) |
 | Related Research | [2026-01-25 Architecture Refactor Status](./2026-01-25_architecture-refactor-status.md) |
+
+---
+
+## Follow-up Research: P1/P2 Split [2026-01-25]
+
+### Summary
+
+Task 01 has been split into two phases to separate messaging concerns from tooling concerns:
+
+| Phase | Scope | Complexity | Files |
+|-------|-------|------------|-------|
+| **P1 (Messaging)** | Replace 3 `get_message_content()` calls | LOW | 3 files |
+| **P2 (Tooling)** | Route sanitize.py through adapter helpers | MEDIUM | 3 files |
+
+### P1 Specific Findings
+
+All 3 production call sites are pure content extraction with no side effects:
+
+| Call Site | Context | Usage |
+|-----------|---------|-------|
+| `state.py:123` | `update_token_count()` | Token estimation |
+| `app.py:355` | `_replay_session_messages()` | Session UI replay |
+| `output.py:50` | `_extract_from_messages()` | Headless output |
+
+**Parity verified:** Both functions return `str`, empty string for no content. Tests exist at `tests/unit/types/test_adapter.py:259-273`.
+
+### P2 Specific Findings
+
+**Duplication analysis (~150 LOC can be deleted):**
+
+The tool call tracking logic is duplicated between `adapter.py` and `sanitize.py`:
+
+| adapter.py Function | sanitize.py Equivalent |
+|--------------------|------------------------|
+| `_get_attr()` (L48-52) | `_get_attr_value()` (L58-62) |
+| `_get_parts()` (L55-66) | `_get_message_parts()` (L76-79) |
+| `get_tool_call_ids()` (L276-280) | `_collect_message_tool_call_ids()` (L171-178) |
+| `get_tool_return_ids()` (L283-287) | `_collect_message_tool_return_ids()` (L181-184) |
+| `find_dangling_tool_calls()` (L290-299) | `find_dangling_tool_call_ids()` (L192-225) |
+
+**main.py embedded duplication:**
+
+`main.py:365-397` reimplements the cleanup loop that already exists in `sanitize.py:577-630` as `run_cleanup_loop()`. Replacing this saves 30 lines.
+
+**Unique sanitize.py functions (KEEP):**
+
+These perform session state mutation and cannot be replaced by adapter functions:
+- `remove_dangling_tool_calls()` - mutates messages list
+- `remove_empty_responses()` - repairs abort scenarios
+- `remove_consecutive_requests()` - repairs abort scenarios
+- `sanitize_history_for_resume()` - pydantic-ai compatibility
+- `run_cleanup_loop()` - orchestration
+
+### Sequencing Dependency
+
+P1 must complete before P2. Rationale: P2 depends on adapter layer stability, and P1 validates that `get_content()` works correctly in production before we route more complex tooling logic through the same adapter.
+
+### Task File Updated
+
+The detailed P1/P2 breakdown is now in `.claude/task/task_01_canonical_messaging_adoption.md`.

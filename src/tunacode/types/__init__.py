@@ -58,6 +58,32 @@ from tunacode.types.callbacks import (
     UIInputCallback,
 )
 
+# Canonical types (new - see docs/refactoring/architecture-refactor-plan.md)
+from tunacode.types.canonical import (
+    CanonicalMessage,
+    CanonicalPart,
+    CanonicalToolCall,
+    MessageRole,
+    PartKind,
+    ReActEntry,
+    ReActEntryKind,
+    ReActScratchpad,
+    RecursiveContext,
+    SystemPromptPart,
+    TextPart,
+    ThoughtPart,
+    TodoItem,
+    TodoStatus,
+    ToolCallStatus,
+    UsageMetrics,
+)
+from tunacode.types.canonical import (
+    ToolCallPart as CanonicalToolCallPart,
+)
+from tunacode.types.canonical import (
+    ToolReturnPart as CanonicalToolReturnPart,
+)
+
 # Dataclasses
 from tunacode.types.dataclasses import (
     AgentState,
@@ -89,28 +115,6 @@ from tunacode.types.pydantic_ai import (
 from tunacode.types.state import (
     SessionStateProtocol,
     StateManagerProtocol,
-)
-
-# Canonical types (new - see docs/refactoring/architecture-refactor-plan.md)
-from tunacode.types.canonical import (
-    CanonicalMessage,
-    CanonicalPart,
-    CanonicalToolCall,
-    MessageRole,
-    PartKind,
-    ReActEntry,
-    ReActEntryKind,
-    ReActScratchpad,
-    RecursiveContext,
-    SystemPromptPart,
-    TextPart,
-    ThoughtPart,
-    TodoItem,
-    TodoStatus,
-    ToolCallPart as CanonicalToolCallPart,
-    ToolCallStatus,
-    ToolReturnPart as CanonicalToolReturnPart,
-    UsageMetrics,
 )
 
 # ProcessRequestCallback uses the protocol, not concrete implementation

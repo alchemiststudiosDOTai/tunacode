@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic_ai.messages import ModelResponse
 
-from tunacode.utils.messaging import get_message_content
+from tunacode.utils.messaging import get_content
 
 TEXT_ATTRIBUTES: tuple[str, ...] = ("output", "text", "content", "message")
 
@@ -47,7 +47,7 @@ def _extract_from_messages(messages: list[Any]) -> str | None:
         if not isinstance(message, ModelResponse):
             continue
 
-        content = get_message_content(message)
+        content = get_content(message)
         normalized = _normalize(content)
         if normalized is not None:
             return normalized

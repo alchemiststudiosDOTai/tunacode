@@ -25,7 +25,7 @@ from tunacode.types import (
     ToolProgressCallback,
     UserConfig,
 )
-from tunacode.utils.messaging import estimate_tokens, get_message_content
+from tunacode.utils.messaging import estimate_tokens, get_content
 
 if TYPE_CHECKING:
     from tunacode.tools.authorization.handler import ToolHandler
@@ -120,7 +120,7 @@ class SessionState:
         """Calculate total token count from conversation messages."""
         total = 0
         for msg in self.messages:
-            content = get_message_content(msg)
+            content = get_content(msg)
             if content:
                 total += estimate_tokens(content, self.current_model)
         self.total_tokens = total
@@ -133,7 +133,7 @@ class SessionState:
 class StateManager:
     """CLAUDE_ANCHOR[state-manager]: Main state manager singleton"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._session = SessionState()
         self._tool_handler: ToolHandler | None = None
         self._load_user_configuration()
