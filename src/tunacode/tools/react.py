@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.types import StateManagerProtocol
+from tunacode.types.canonical import ReActEntryKind
 
 
 def create_react_tool(state_manager: StateManagerProtocol) -> Callable:
@@ -38,7 +39,6 @@ def create_react_tool(state_manager: StateManagerProtocol) -> Callable:
             Status message or scratchpad contents.
         """
         scratchpad = state_manager.get_react_scratchpad()
-        scratchpad.setdefault("timeline", [])
 
         if action == "think":
             if not thoughts:
@@ -46,25 +46,24 @@ def create_react_tool(state_manager: StateManagerProtocol) -> Callable:
             if not next_action:
                 raise ModelRetry("Specify next_action when recording react thoughts")
 
-            entry = {"type": "think", "thoughts": thoughts, "next_action": next_action}
-            state_manager.append_react_entry(entry)
+            content = f"{thoughts} -> {next_action}"
+            state_manager.append_react_entry(ReActEntryKind.THINK, content)
             return "Recorded think step"
 
         if action == "observe":
             if not result:
                 raise ModelRetry("Provide result when using react observe action")
 
-            entry = {"type": "observe", "result": result}
-            state_manager.append_react_entry(entry)
+            state_manager.append_react_entry(ReActEntryKind.OBSERVE, result)
             return "Recorded observation"
 
         if action == "get":
-            timeline = scratchpad.get("timeline", [])
+            timeline = scratchpad.timeline
             if not timeline:
                 return "React scratchpad is empty"
 
             formatted = [
-                f"{i + 1}. {item['type']}: {_format_entry(item)}" for i, item in enumerate(timeline)
+                f"{i + 1}. {entry.kind.value}: {entry.content}" for i, entry in enumerate(timeline)
             ]
             return "\n".join(formatted)
 
@@ -75,15 +74,6 @@ def create_react_tool(state_manager: StateManagerProtocol) -> Callable:
         raise ModelRetry("Invalid react action. Use one of: think, observe, get, clear")
 
     return react
-
-
-def _format_entry(item: dict[str, Any]) -> str:
-    """Format a scratchpad entry for display."""
-    if item["type"] == "think":
-        return f"thoughts='{item['thoughts']}', next_action='{item['next_action']}'"
-    if item["type"] == "observe":
-        return f"result='{item['result']}'"
-    return str(item)
 
 
 # Backwards compatibility: ReactTool class wrapper

@@ -5,40 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from tunacode.types.canonical import TodoItem
+from tunacode.types.canonical import ReActScratchpad, TodoItem, UsageMetrics
 from tunacode.types.pydantic_ai import MessageHistory
 from tunacode.types.tool_registry import ToolCallRegistry
 
-REACT_TIMELINE_KEY = "timeline"
-
-USAGE_KEY_PROMPT_TOKENS = "prompt_tokens"
-USAGE_KEY_COMPLETION_TOKENS = "completion_tokens"
-USAGE_KEY_COST = "cost"
-
 DEFAULT_BATCH_COUNTER = 0
 DEFAULT_CONSECUTIVE_EMPTY_RESPONSES = 0
-DEFAULT_FORCED_CALLS = 0
 DEFAULT_ITERATION_COUNT = 0
 DEFAULT_MAX_TOKENS = 0
 DEFAULT_REQUEST_ID = ""
 DEFAULT_TOTAL_TOKENS = 0
 
 DEFAULT_ORIGINAL_QUERY = ""
-DEFAULT_USAGE_COMPLETION_TOKENS = 0
-DEFAULT_USAGE_COST = 0.0
-DEFAULT_USAGE_PROMPT_TOKENS = 0
-
-
-def _default_react_scratchpad() -> dict[str, Any]:
-    return {REACT_TIMELINE_KEY: []}
-
-
-def _default_usage_metrics() -> dict[str, int | float]:
-    return {
-        USAGE_KEY_PROMPT_TOKENS: DEFAULT_USAGE_PROMPT_TOKENS,
-        USAGE_KEY_COMPLETION_TOKENS: DEFAULT_USAGE_COMPLETION_TOKENS,
-        USAGE_KEY_COST: DEFAULT_USAGE_COST,
-    }
 
 
 @dataclass(slots=True)
@@ -56,9 +34,7 @@ class ConversationState:
 class ReActState:
     """ReAct scratchpad and guidance tracking."""
 
-    scratchpad: dict[str, Any] = field(default_factory=_default_react_scratchpad)
-    forced_calls: int = DEFAULT_FORCED_CALLS
-    guidance: list[str] = field(default_factory=list)
+    scratchpad: ReActScratchpad = field(default_factory=ReActScratchpad)
 
 
 @dataclass(slots=True)
@@ -88,8 +64,8 @@ class RuntimeState:
 class UsageState:
     """Usage metrics for last call and cumulative session totals."""
 
-    last_call_usage: dict[str, int | float] = field(default_factory=_default_usage_metrics)
-    session_total_usage: dict[str, int | float] = field(default_factory=_default_usage_metrics)
+    last_call_usage: UsageMetrics = field(default_factory=UsageMetrics)
+    session_total_usage: UsageMetrics = field(default_factory=UsageMetrics)
 
 
 __all__ = [

@@ -84,9 +84,8 @@ class ClearCommand(Command):
         session.runtime.tool_registry.clear()
         session.conversation.files_in_context = set()
 
+        # Clear ReAct scratchpad (includes forced_calls and guidance)
         app.state_manager.clear_react_scratchpad()
-        session.react.forced_calls = 0
-        session.react.guidance = []
 
         app.state_manager.clear_todos()
 
@@ -102,11 +101,9 @@ class ClearCommand(Command):
         session._debug_events = []
         session._debug_raw_stream_accum = ""
 
-        session.usage.last_call_usage = {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "cost": 0.0,
-        }
+        from tunacode.types.canonical import UsageMetrics
+
+        session.usage.last_call_usage = UsageMetrics()
         # Keep session_total_usage - tracks lifetime session cost
 
         app.state_manager.reset_recursive_state()

@@ -6,7 +6,7 @@ creating circular imports with the concrete implementation.
 
 from typing import TYPE_CHECKING, Any, Protocol
 
-from tunacode.types.canonical import TodoItem
+from tunacode.types.canonical import ReActEntryKind, ReActScratchpad, TodoItem
 from tunacode.types.state_structures import (
     ConversationState,
     ReActState,
@@ -94,11 +94,11 @@ class StateManagerProtocol(Protocol):
         ...
 
     # ReAct scratchpad methods
-    def get_react_scratchpad(self) -> dict[str, Any]:
-        """Get the ReAct scratchpad dictionary."""
+    def get_react_scratchpad(self) -> ReActScratchpad:
+        """Get the ReAct scratchpad."""
         ...
 
-    def append_react_entry(self, entry: dict[str, Any]) -> None:
+    def append_react_entry(self, kind: ReActEntryKind, content: str) -> None:
         """Append an entry to the ReAct timeline."""
         ...
 

@@ -216,7 +216,7 @@ def run_headless(
                 trajectory = {
                     "messages": [_serialize_message(msg) for msg in conversation.messages],
                     "tool_calls": tool_records,
-                    "usage": usage.session_total_usage,
+                    "usage": usage.session_total_usage.to_dict(),
                     "success": True,
                 }
                 print(json.dumps(trajectory, indent=2))

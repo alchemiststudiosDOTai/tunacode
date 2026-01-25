@@ -196,6 +196,23 @@ class ReActEntry:
     content: str
     timestamp: datetime
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ReActEntry":
+        """Convert from dict (serialization only)."""
+        return cls(
+            kind=ReActEntryKind(data["kind"]),
+            content=data["content"],
+            timestamp=datetime.fromisoformat(data["timestamp"]),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dict for serialization."""
+        return {
+            "kind": self.kind.value,
+            "content": self.content,
+            "timestamp": self.timestamp.isoformat(),
+        }
+
 
 @dataclass(slots=True)
 class ReActScratchpad:
@@ -217,6 +234,23 @@ class ReActScratchpad:
         self.timeline.clear()
         self.forced_calls = 0
         self.guidance.clear()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ReActScratchpad":
+        """Convert from dict (serialization only)."""
+        return cls(
+            timeline=[ReActEntry.from_dict(e) for e in data.get("timeline", [])],
+            forced_calls=data.get("forced_calls", 0),
+            guidance=data.get("guidance", []),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dict for serialization."""
+        return {
+            "timeline": [e.to_dict() for e in self.timeline],
+            "forced_calls": self.forced_calls,
+            "guidance": list(self.guidance),
+        }
 
 
 # =============================================================================

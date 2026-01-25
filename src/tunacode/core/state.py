@@ -28,6 +28,7 @@ from tunacode.types import (
     UsageState,
     UserConfig,
 )
+from tunacode.types.canonical import ReActEntryKind, ReActScratchpad, UsageMetrics
 from tunacode.utils.messaging import estimate_tokens, get_content
 
 if TYPE_CHECKING:
@@ -203,16 +204,14 @@ class StateManager:
         self._session.recursive_context_stack.clear()
 
     # React scratchpad helpers
-    def get_react_scratchpad(self) -> dict[str, Any]:
+    def get_react_scratchpad(self) -> ReActScratchpad:
         return self._session.react.scratchpad
 
-    def append_react_entry(self, entry: dict[str, Any]) -> None:
-        scratchpad = self._session.react.scratchpad
-        timeline = scratchpad.setdefault("timeline", [])
-        timeline.append(entry)
+    def append_react_entry(self, kind: ReActEntryKind, content: str) -> None:
+        self._session.react.scratchpad.append(kind, content)
 
     def clear_react_scratchpad(self) -> None:
-        self._session.react.scratchpad = {"timeline": []}
+        self._session.react.scratchpad.clear()
 
     # Todo list helpers
     def get_todos(self) -> list[TodoItem]:
@@ -348,10 +347,10 @@ class StateManager:
             "working_directory": self._session.working_directory,
             "current_model": self._session.current_model,
             "total_tokens": self._session.conversation.total_tokens,
-            "session_total_usage": self._session.usage.session_total_usage,
+            "session_total_usage": self._session.usage.session_total_usage.to_dict(),
             "tool_ignore": self._session.tool_ignore,
             "yolo": self._session.yolo,
-            "react_scratchpad": self._session.react.scratchpad,
+            "react_scratchpad": self._session.react.scratchpad.to_dict(),
             "todos": self._serialize_todos(),
             "thoughts": self._session.conversation.thoughts,
             "messages": self._serialize_messages(),
@@ -398,16 +397,15 @@ class StateManager:
             )
             default_total_tokens = self._session.conversation.total_tokens
             self._session.conversation.total_tokens = data.get("total_tokens", default_total_tokens)
-            default_total_usage = self._session.usage.session_total_usage
-            self._session.usage.session_total_usage = data.get(
-                "session_total_usage",
-                default_total_usage,
-            )
+            usage_data = data.get("session_total_usage")
+            if usage_data:
+                self._session.usage.session_total_usage = UsageMetrics.from_dict(usage_data)
             tool_ignore = data.get("tool_ignore", [])
             self._session.tool_ignore = tool_ignore
             self._session.yolo = data.get("yolo", False)
-            default_scratchpad = self._session.react.scratchpad
-            self._session.react.scratchpad = data.get("react_scratchpad", default_scratchpad)
+            scratchpad_data = data.get("react_scratchpad")
+            if scratchpad_data:
+                self._session.react.scratchpad = ReActScratchpad.from_dict(scratchpad_data)
             todos_data = data.get("todos", [])
             deserialized_todos = self._deserialize_todos(todos_data)
             self._session.task.todos = deserialized_todos

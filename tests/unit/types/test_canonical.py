@@ -9,6 +9,7 @@ from tunacode.types.canonical import (
     CanonicalToolCall,
     MessageRole,
     PartKind,
+    ReActEntry,
     ReActEntryKind,
     ReActScratchpad,
     RecursiveContext,
@@ -348,6 +349,99 @@ class TestReActScratchpad:
         assert pad.timeline == []
         assert pad.forced_calls == 0
         assert pad.guidance == []
+
+    def test_scratchpad_to_dict(self) -> None:
+        pad = ReActScratchpad()
+        pad.append(ReActEntryKind.THINK, "I should read the file")
+        pad.forced_calls = 3
+        pad.guidance = ["hint"]
+
+        result = pad.to_dict()
+
+        assert result["forced_calls"] == 3
+        assert result["guidance"] == ["hint"]
+        assert len(result["timeline"]) == 1
+        assert result["timeline"][0]["kind"] == "think"
+        assert result["timeline"][0]["content"] == "I should read the file"
+
+    def test_scratchpad_from_dict(self) -> None:
+        data = {
+            "timeline": [
+                {"kind": "think", "content": "test thought", "timestamp": "2026-01-25T12:00:00"},
+                {
+                    "kind": "observe",
+                    "content": "test observation",
+                    "timestamp": "2026-01-25T12:01:00",
+                },
+            ],
+            "forced_calls": 5,
+            "guidance": ["hint 1", "hint 2"],
+        }
+
+        pad = ReActScratchpad.from_dict(data)
+
+        assert len(pad.timeline) == 2
+        assert pad.timeline[0].kind == ReActEntryKind.THINK
+        assert pad.timeline[0].content == "test thought"
+        assert pad.timeline[1].kind == ReActEntryKind.OBSERVE
+        assert pad.forced_calls == 5
+        assert pad.guidance == ["hint 1", "hint 2"]
+
+    def test_scratchpad_round_trip(self) -> None:
+        pad = ReActScratchpad()
+        pad.append(ReActEntryKind.THINK, "thinking...")
+        pad.append(ReActEntryKind.ACT, "acting...")
+        pad.forced_calls = 2
+        pad.guidance = ["be careful"]
+
+        data = pad.to_dict()
+        restored = ReActScratchpad.from_dict(data)
+
+        assert len(restored.timeline) == len(pad.timeline)
+        assert restored.timeline[0].kind == pad.timeline[0].kind
+        assert restored.timeline[0].content == pad.timeline[0].content
+        assert restored.forced_calls == pad.forced_calls
+        assert restored.guidance == pad.guidance
+
+
+class TestReActEntry:
+    """Tests for ReActEntry converters."""
+
+    def test_entry_to_dict(self) -> None:
+        now = datetime(2026, 1, 25, 12, 0, 0)
+        entry = ReActEntry(kind=ReActEntryKind.THINK, content="test", timestamp=now)
+
+        result = entry.to_dict()
+
+        assert result == {
+            "kind": "think",
+            "content": "test",
+            "timestamp": "2026-01-25T12:00:00",
+        }
+
+    def test_entry_from_dict(self) -> None:
+        data = {
+            "kind": "observe",
+            "content": "observation",
+            "timestamp": "2026-01-25T12:00:00",
+        }
+
+        entry = ReActEntry.from_dict(data)
+
+        assert entry.kind == ReActEntryKind.OBSERVE
+        assert entry.content == "observation"
+        assert entry.timestamp == datetime(2026, 1, 25, 12, 0, 0)
+
+    def test_entry_round_trip(self) -> None:
+        now = datetime(2026, 1, 25, 12, 30, 0)
+        original = ReActEntry(kind=ReActEntryKind.ACT, content="doing something", timestamp=now)
+
+        data = original.to_dict()
+        restored = ReActEntry.from_dict(data)
+
+        assert restored.kind == original.kind
+        assert restored.content == original.content
+        assert restored.timestamp == original.timestamp
 
 
 class TestRecursiveContext:
