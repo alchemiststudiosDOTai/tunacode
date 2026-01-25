@@ -115,8 +115,6 @@ async def execute_tools_parallel(
                 )
                 await asyncio.sleep(backoff)
 
-        raise AssertionError("unreachable")
-
     # Execute in batches if we have more tools than max_parallel
     if len(tool_calls) > max_parallel:
         results: list[None] = []

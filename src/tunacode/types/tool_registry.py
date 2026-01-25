@@ -127,13 +127,7 @@ class ToolCallRegistry:
 
     def list_calls(self) -> list[CanonicalToolCall]:
         """Return tool calls in registration order."""
-        ordered_calls: list[CanonicalToolCall] = []
-        for tool_call_id in self._order:
-            call = self._calls.get(tool_call_id)
-            if call is None:
-                continue
-            ordered_calls.append(call)
-        return ordered_calls
+        return [self._calls[tool_call_id] for tool_call_id in self._order]
 
     def latest_call(self) -> CanonicalToolCall | None:
         """Return the most recently registered tool call."""
@@ -144,24 +138,15 @@ class ToolCallRegistry:
 
     def recent_calls(self, limit: int) -> list[CanonicalToolCall]:
         """Return the most recent tool calls."""
-        if limit <= 0:
-            return []
-        call_ids = self._order[-limit:]
-        recent_calls: list[CanonicalToolCall] = []
-        for tool_call_id in call_ids:
-            call = self._calls.get(tool_call_id)
-            if call is None:
-                continue
-            recent_calls.append(call)
-        return recent_calls
+        call_ids = self._order[-limit:] if limit > 0 else []
+        return [self._calls[tool_call_id] for tool_call_id in call_ids]
 
     def remove(self, tool_call_id: ToolCallId) -> bool:
         """Remove a tool call from the registry."""
         call = self._calls.pop(tool_call_id, None)
         if call is None:
             return False
-        if tool_call_id in self._order:
-            self._order.remove(tool_call_id)
+        self._order.remove(tool_call_id)
         return True
 
     def remove_many(self, tool_call_ids: Iterable[ToolCallId]) -> int:

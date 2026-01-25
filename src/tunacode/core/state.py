@@ -323,9 +323,6 @@ class StateManager:
 
         todo_items: list[TodoItem] = []
         for index, todo in enumerate(todos):
-            if isinstance(todo, TodoItem):
-                todo_items.append(todo)
-                continue
             if not isinstance(todo, dict):
                 item_type = type(todo).__name__
                 raise TypeError(
@@ -366,11 +363,7 @@ class StateManager:
             with open(session_file, "w") as f:
                 json.dump(session_data, f, indent=2)
             return True
-        except PermissionError:
-            return False
-        except OSError:
-            return False
-        except Exception:
+        except (PermissionError, OSError):
             return False
 
     def load_session(self, session_id: str) -> bool:
