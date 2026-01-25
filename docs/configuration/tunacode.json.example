@@ -27,10 +27,8 @@
         "max_tokens": null,
         "ripgrep": {
             "timeout": 10,
-            "max_buffer_size": 1048576,
             "max_results": 100,
-            "enable_metrics": false,
-            "debug": false
+            "enable_metrics": false
         }
     }
 }

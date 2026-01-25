@@ -47,23 +47,7 @@ class ParallelGrep:
 
     def _load_ripgrep_config(self) -> dict[str, Any]:
         """Load ripgrep configuration from defaults."""
-        default_ripgrep_config = {
-            "timeout": 10,
-            "max_buffer_size": 1048576,
-            "max_results": 100,
-            "enable_metrics": False,
-            "debug": False,
-        }
-        settings = DEFAULT_USER_CONFIG.get("settings", {})
-        if not isinstance(settings, dict):
-            return default_ripgrep_config
-
-        config = settings.get("ripgrep", default_ripgrep_config)
-        if not isinstance(config, dict):
-            return default_ripgrep_config
-
-        merged = default_ripgrep_config | config
-        return merged
+        return DEFAULT_USER_CONFIG["settings"]["ripgrep"]
 
     async def execute(
         self,

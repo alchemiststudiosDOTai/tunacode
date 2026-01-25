@@ -27,15 +27,12 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "theme": "dracula",
         "ripgrep": {
             "timeout": 10,
-            "max_buffer_size": 1048576,
             "max_results": 100,
             "enable_metrics": False,
-            "debug": False,
         },
         "lsp": {
             "enabled": True,
             "timeout": 5.0,
-            "max_diagnostics": 20,
         },
     },
 }

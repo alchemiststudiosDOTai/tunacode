@@ -501,10 +501,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
         "context_window_size": 200000,
         "ripgrep": {
             "timeout": 10,
-            "max_buffer_size": 1048576,
             "max_results": 100,
-            "enable_metrics": false,
-            "debug": false
+            "enable_metrics": false
         }
     },
     "mcpServers": {}

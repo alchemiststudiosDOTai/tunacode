@@ -33,7 +33,6 @@ LSP_DIAGNOSTICS_TIMEOUT_WARNING: str = "LSP diagnostics timed out for %s (no typ
 DEFAULT_LSP_CONFIG: dict[str, Any] = {
     "enabled": False,
     "timeout": 5.0,
-    "max_diagnostics": 20,
 }
 
 

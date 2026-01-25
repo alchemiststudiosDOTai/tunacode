@@ -108,7 +108,6 @@ EXIT_PLAN_MODE_SENTINEL = "__EXIT_PLAN_MODE__"
 
 TUNACODE_HOME_DIR = ".tunacode"
 SESSIONS_SUBDIR = "sessions"
-DEVICE_ID_FILE = "device_id"
 
 UI_COLORS = {
     "background": "#1a1a1a",

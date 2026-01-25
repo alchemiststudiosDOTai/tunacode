@@ -7,11 +7,10 @@ Provides path utilities, session management, device identification, and update c
 import hashlib
 import os
 import subprocess
-import uuid
 from pathlib import Path
 
 from tunacode.configuration.settings import ApplicationSettings
-from tunacode.constants import DEVICE_ID_FILE, SESSIONS_SUBDIR, TUNACODE_HOME_DIR
+from tunacode.constants import SESSIONS_SUBDIR, TUNACODE_HOME_DIR
 
 
 def get_tunacode_home():
@@ -80,32 +79,6 @@ def get_session_storage_dir() -> Path:
     storage_dir = Path(xdg_data) / "tunacode" / "sessions"
     storage_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     return storage_dir
-
-
-def get_device_id():
-    """
-    Get the device ID from the ~/.tunacode/device_id file.
-    If the file doesn't exist, generate a new UUID and save it.
-
-    Returns:
-        str: The device ID as a string.
-    """
-    try:
-        tunacode_home = get_tunacode_home()
-        device_id_file = tunacode_home / DEVICE_ID_FILE
-
-        if device_id_file.exists():
-            device_id = device_id_file.read_text().strip()
-            if device_id:
-                return device_id
-
-        device_id = str(uuid.uuid4())
-        device_id_file.write_text(device_id)
-
-        return device_id
-    except Exception as e:
-        print(f"Error getting device ID: {e}")
-        return str(uuid.uuid4())
 
 
 def cleanup_session(state_manager):

@@ -18,15 +18,12 @@
         "theme": "dracula",
         "ripgrep": {
             "timeout": 10,
-            "max_buffer_size": 1048576,
             "max_results": 100,
-            "enable_metrics": false,
-            "debug": false
+            "enable_metrics": false
         },
         "lsp": {
             "enabled": true,
-            "timeout": 5.0,
-            "max_diagnostics": 20
+            "timeout": 5.0
         },
         "local_mode": true,
         "local_max_tokens": 1000

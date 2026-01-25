@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import (
-    DeviceId,
     InputSessions,
     MessageHistory,
     ModelName,
@@ -57,7 +56,6 @@ class SessionState:
     undo_initialized: bool = False
     show_thoughts: bool = False
     session_id: SessionId = field(default_factory=lambda: str(uuid.uuid4()))
-    device_id: DeviceId | None = None
     input_sessions: InputSessions = field(default_factory=dict)
     current_task: Any | None = None
     # Persistence fields
