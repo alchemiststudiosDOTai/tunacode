@@ -92,6 +92,28 @@ from tunacode.types.state import (
     StateManagerProtocol,
 )
 
+# Canonical types (new - see docs/refactoring/architecture-refactor-plan.md)
+from tunacode.types.canonical import (
+    CanonicalMessage,
+    CanonicalPart,
+    CanonicalToolCall,
+    MessageRole,
+    PartKind,
+    ReActEntry,
+    ReActEntryKind,
+    ReActScratchpad,
+    RecursiveContext,
+    SystemPromptPart,
+    TextPart,
+    ThoughtPart,
+    TodoItem,
+    TodoStatus,
+    ToolCallPart as CanonicalToolCallPart,
+    ToolCallStatus,
+    ToolReturnPart as CanonicalToolReturnPart,
+    UsageMetrics,
+)
+
 # ProcessRequestCallback uses the protocol, not concrete implementation
 ProcessRequestCallback = Callable[[str, StateManagerProtocol, bool], Awaitable[Any]]
 
@@ -165,4 +187,23 @@ __all__ = [
     "TokenUsage",
     "ToolConfirmationRequest",
     "ToolConfirmationResponse",
+    # Canonical types (new)
+    "CanonicalMessage",
+    "CanonicalPart",
+    "CanonicalToolCall",
+    "CanonicalToolCallPart",
+    "CanonicalToolReturnPart",
+    "MessageRole",
+    "PartKind",
+    "ReActEntry",
+    "ReActEntryKind",
+    "ReActScratchpad",
+    "RecursiveContext",
+    "SystemPromptPart",
+    "TextPart",
+    "ThoughtPart",
+    "TodoItem",
+    "TodoStatus",
+    "ToolCallStatus",
+    "UsageMetrics",
 ]
