@@ -84,3 +84,5 @@ vendor/
 .osgrep*
 .pre-commit-cache/
 TODO.md
+TASK.md
+detective_verdict.md
