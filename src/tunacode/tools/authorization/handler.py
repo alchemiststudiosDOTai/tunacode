@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from tunacode.templates.loader import Template
 from tunacode.types import (
     AuthorizationProtocol,
+    TemplateProtocol,
     ToolArgs,
     ToolConfirmationRequest,
     ToolConfirmationResponse,
@@ -28,13 +28,13 @@ class ToolHandler:
         factory: ConfirmationRequestFactory | None = None,
     ):
         self.state = state_manager
-        self.active_template: Template | None = None
+        self.active_template: TemplateProtocol | None = None
 
         self._policy = policy or create_default_authorization_policy()
         self._notifier = notifier or ToolRejectionNotifier()
         self._factory = factory or ConfirmationRequestFactory()
 
-    def set_active_template(self, template: Template | None) -> None:
+    def set_active_template(self, template: TemplateProtocol | None) -> None:
         self.active_template = template
 
     def get_authorization(self, tool_name: ToolName) -> AuthorizationResult:
