@@ -1,8 +1,8 @@
-"""Utilities for formatting and truncating LSP diagnostics."""
+"""Shared formatting helpers."""
 
 from __future__ import annotations
 
-MAX_DIAGNOSTIC_MESSAGE_LENGTH = 80
+MAX_DIAGNOSTIC_MESSAGE_LENGTH = 40
 
 
 def truncate_diagnostic_message(

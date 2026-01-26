@@ -35,6 +35,12 @@ Provides shared utility functions across configuration, messaging, parsing, and 
 - Supports multiple models (Claude, GPT, etc.)
 - Used for context window management
 
+### Formatting (utils/formatting.py)
+
+**formatting.py**
+- **truncate_diagnostic_message()** - Shorten verbose diagnostic text
+- Shared by LSP and UI renderers
+
 ### Parsing (utils/parsing/)
 
 **json_utils.py**
