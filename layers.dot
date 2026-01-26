@@ -49,6 +49,5 @@ digraph tunacode_layers {
   ui -> types [label="6", penwidth=2.2, color="#888888"];
   ui -> utils [label="10", penwidth=3.0, color="#888888"];
 
-  // VIOLATION: ui -> tools (should not exist)
-  ui -> tools [label="3", penwidth=1.6, color="red", style=dashed];
+  // ui -> tools: FIXED (was 3 imports, now 0)
 }
