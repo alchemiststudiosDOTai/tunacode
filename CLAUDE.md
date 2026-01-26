@@ -280,6 +280,15 @@ ui → core → tools → utils/types
 infrastructure (filesystem, shell, network)
 ```
 
+**Dependency Map:** `docs/architecture/DEPENDENCY_MAP.md`
+
+The current dependency graph is frozen as a baseline (2026-01-26). **DO NOT add new cross-layer violations.**
+
+- If you fix one violation but create another, that's not progress
+- UI should only push into CORE, not scatter imports everywhere
+- Keep it as clean as possible - we're actively cleaning this up
+- Verify with grimp: `uv run python -c "import grimp; g = grimp.build_graph('tunacode'); ..."`
+
 **Utils-level modules** (can be imported by any layer):
 - `utils/` - helper functions, no business logic
 - `types/` - type definitions, no behavior

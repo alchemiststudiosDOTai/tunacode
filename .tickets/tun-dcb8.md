@@ -1,6 +1,6 @@
 ---
 id: tun-dcb8
-status: open
+status: closed
 deps: []
 links: []
 created: 2026-01-26T16:54:41Z
@@ -16,3 +16,9 @@ Remove IGNORE_PATTERNS_COUNT import from ui/renderers/tools/list_dir.py by inclu
 
 No 'from tunacode.tools' imports in ui/renderers/tools/list_dir.py. Ignore count still displays correctly.
 
+
+## Notes
+
+**2026-01-26T18:06:32Z**
+
+Completed in commit 1d0647c7

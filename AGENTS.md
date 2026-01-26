@@ -266,12 +266,26 @@ ui → core → tools → utils/types
 infrastructure (filesystem, shell, network)
 ```
 
+**Dependency Map:** `docs/architecture/DEPENDENCY_MAP.md`
+
+The current dependency graph is frozen as a baseline. **DO NOT add new cross-layer violations.**
+
+- If you fix one violation but create another, that's not progress
+- UI should only push into CORE, not scatter imports everywhere
+- Verify with grimp before committing: `uv run python -c "import grimp; ..."`
+
+**Utils-level modules** (can be imported by any layer):
+- `utils/` - helper functions
+- `types/` - type definitions
+- `configuration/` - static config data
+- `constants.py` - module constants
+
 **Rules:**
 
 - Inner layers know nothing about outer layers
   - core/ never imports from ui/
   - tools/ never imports from ui/
-  - utils/ and types/ import from nothing
+  - utils/, types/, configuration/ import only from each other
 - Infrastructure is a plugin
   - Filesystem, shell, network = details
   - Core logic doesn't know or care which system provider
