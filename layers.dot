@@ -14,8 +14,9 @@ digraph tunacode_layers {
 
   configuration -> types [label="3", penwidth=1.6];
   core -> configuration [label="4", penwidth=1.8];
+  core -> indexing [label="2", penwidth=1.4];
   core -> tools [label="18", penwidth=4.6];
-  core -> types [label="20", penwidth=5.0];
+  core -> types [label="22", penwidth=5];
   core -> utils [label="13", penwidth=3.6];
   indexing -> tools [label="1", penwidth=1.2];
   tools -> configuration [label="2", penwidth=1.4];
@@ -26,10 +27,9 @@ digraph tunacode_layers {
   tools -> utils [label="4", penwidth=1.8];
   ui -> configuration [label="8", penwidth=2.6];
   ui -> core [label="9", penwidth=2.8];
-  ui -> indexing [label="2", penwidth=1.4];
   ui -> lsp [label="2", penwidth=1.4];
   ui -> tools [label="3", penwidth=1.6];
-  ui -> types [label="5", penwidth=2.0];
+  ui -> types [label="6", penwidth=2.2];
   ui -> utils [label="10", penwidth=3.0];
   utils -> configuration [label="2", penwidth=1.4];
   utils -> types [label="4", penwidth=1.8];

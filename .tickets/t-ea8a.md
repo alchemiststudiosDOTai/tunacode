@@ -1,8 +1,8 @@
 ---
 id: t-ea8a
-status: open
+status: closed
 deps: []
-links: []
+links: [t-6162]
 created: 2026-01-26T07:13:30Z
 type: task
 priority: 1
@@ -20,3 +20,9 @@ The UI currently directly imports and manages the CodeIndex background task in s
 
 1. 'grep -r tunacode.indexing src/tunacode/ui' returns no results.\n2. layers.dot shows 0 links for ui -> indexing.\n3. Background indexing still starts on app launch and provides visual feedback to the user via Core state updates.
 
+
+## Notes
+
+**2026-01-26T07:34:15Z**
+
+Closed in favor of Epic t-6162 which has a more detailed breakdown.
