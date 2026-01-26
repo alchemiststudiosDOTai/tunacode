@@ -55,7 +55,6 @@ from tunacode.ui.repl_support import (
     format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
-from tunacode.ui.startup import run_startup_index
 from tunacode.ui.styles import (
     STYLE_ERROR,
     STYLE_MUTED,
@@ -191,7 +190,7 @@ class TextualReplApp(App[None]):
 
         self.set_focus(self.editor)
         self.run_worker(self._request_worker, exclusive=False)
-        self.run_worker(run_startup_index(self.rich_log), exclusive=False)
+        self.run_worker(self._run_startup_index(), exclusive=False)
         self._update_resource_bar()
         show_welcome(self.rich_log)
 
@@ -205,6 +204,20 @@ class TextualReplApp(App[None]):
                 self.rich_log.write(error_renderable)
             finally:
                 self.request_queue.task_done()
+
+    async def _run_startup_index(self) -> None:
+        """Run startup indexing via core IndexingService."""
+
+        def status_callback(message: str, style: str) -> None:
+            msg = Text()
+            if style == "muted":
+                msg.append(message, style=STYLE_MUTED)
+            else:
+                msg.append(f"⚙ {message}", style=STYLE_SUCCESS)
+            self.rich_log.write(msg)
+
+        self.state_manager.indexing_service.set_status_callback(status_callback)
+        await self.state_manager.indexing_service.run_full_startup()
 
     async def _process_request(self, message: str) -> None:
         self.current_stream_text = ""
