@@ -153,6 +153,7 @@ async def list_dir(
         raise ModelRetry(f"Not a directory: {dir_path}. Provide a directory path.")
 
     ignore_manager = get_ignore_manager(dir_path)
+    additional_count = len(ignore) if ignore else 0
     if ignore:
         ignore_manager = ignore_manager.with_additional_patterns(ignore)
 
@@ -161,11 +162,13 @@ async def list_dir(
         _collect_files, dir_path, max_files, show_hidden, ignore_manager
     )
 
+    total_ignore_count = IGNORE_PATTERNS_COUNT + additional_count
+
     if not files:
-        return f"{dir_path.name}/\n0 files  0 dirs"
+        return f"0 files  0 dirs  {total_ignore_count} ignored\n{dir_path.name}/"
 
     tree_output, file_count, dir_count = _render_tree(dir_path.name, files)
-    summary = f"{file_count} files  {dir_count} dirs"
+    summary = f"{file_count} files  {dir_count} dirs  {total_ignore_count} ignored"
 
     if len(files) >= max_files:
         summary += " (truncated)"

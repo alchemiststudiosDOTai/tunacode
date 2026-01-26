@@ -14,8 +14,6 @@ from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
-from tunacode.tools.list_dir import IGNORE_PATTERNS_COUNT
-
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -54,15 +52,19 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
         if len(lines) < 2:
             return None
 
-        # First line is summary: "45 files  12 dirs" or "0 files  0 dirs"
+        # First line is summary: "45 files  12 dirs  5 ignored" or with "(truncated)"
         summary_line = lines[0]
-        summary_match = re.match(r"(\d+)\s+files\s+(\d+)\s+dirs(?:\s+\(truncated\))?", summary_line)
+        summary_match = re.match(
+            r"(\d+)\s+files\s+(\d+)\s+dirs\s+(\d+)\s+ignored(?:\s+\(truncated\))?",
+            summary_line,
+        )
 
         if not summary_match:
             return None
 
         file_count = int(summary_match.group(1))
         dir_count = int(summary_match.group(2))
+        ignore_count = int(summary_match.group(3))
         is_truncated = "(truncated)" in summary_line
 
         # Second line is directory name
@@ -74,10 +76,6 @@ class ListDirRenderer(BaseToolRenderer[ListDirData]):
         args = args or {}
         max_files = args.get("max_files", 100)
         show_hidden = args.get("show_hidden", False)
-        ignore_list = args.get("ignore", [])
-        ignore_count = (
-            IGNORE_PATTERNS_COUNT + len(ignore_list) if ignore_list else IGNORE_PATTERNS_COUNT
-        )
 
         return ListDirData(
             directory=directory,
