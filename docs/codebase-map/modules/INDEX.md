@@ -28,7 +28,6 @@ Each module file includes:
 - **[core-agents.md](./core-agents.md)** - AI agent orchestration (process_request, RequestOrchestrator)
 - **[core-prompting.md](./core-prompting.md)** - System prompt composition (PromptingEngine, SectionLoader)
 - **[core-compaction.md](./core-compaction.md)** - Context window management (prune_old_tool_outputs)
-- **[core-limits.md](./core-limits.md)** - Tool output limits with cascading defaults (get_read_limit, is_local_mode)
 - **[core-logging.md](./core-logging.md)** - Unified structured logging (LogManager, LogRecord, FileHandler)
 - **[core-sanitize.md](./core-sanitize.md)** - Message history cleanup (run_cleanup_loop, remove_dangling_tool_calls)
 
@@ -42,6 +41,7 @@ Each module file includes:
 - **[configuration.md](./configuration.md)** - User settings and model registry (load_user_config, ModelRegistry)
 - **[types.md](./types.md)** - Type definitions and protocols (UserConfig, MessageHistory, ToolCallback)
 - **[utils.md](./utils.md)** - Shared utilities (estimate_tokens, parse_json)
+- **[utils-limits.md](./utils-limits.md)** - Tool output limits with cascading defaults (get_read_limit, is_local_mode)
 - **[indexing.md](./indexing.md)** - Fast codebase indexing (CodeIndex)
 - **[lsp.md](./lsp.md)** - Language Server Protocol client (LSPClient, get_diagnostics)
 - **[templates.md](./templates.md)** - Template management system (TemplateLoader)
@@ -93,12 +93,12 @@ src/tunacode/
 │   ├── prompting/ → core-prompting.md
 │   ├── state.py → core-state.md
 │   ├── compaction.py → core-compaction.md
-│   └── limits.py → core-limits.md
 ├── ui/ → ui-overview.md
 ├── tools/ → tools-overview.md
 ├── configuration/ → configuration.md
 ├── types/ → types.md
 ├── utils/ → utils.md
+│   └── limits.py → utils-limits.md
 ├── indexing/ → indexing.md
 ├── lsp/ → lsp.md
 ├── templates/ → templates.md

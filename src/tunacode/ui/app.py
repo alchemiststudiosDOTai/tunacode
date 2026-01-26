@@ -27,13 +27,15 @@ from tunacode.constants import (
     build_nextstep_theme,
     build_tunacode_theme,
 )
-from tunacode.core.agents.main import process_request
-from tunacode.core.state import StateManager
 from tunacode.types import (
     ModelName,
     ToolConfirmationRequest,
     ToolConfirmationResponse,
 )
+
+from tunacode.core.agents.main import process_request
+from tunacode.core.state import StateManager
+
 from tunacode.ui.plan_approval import (
     handle_plan_approval_key,
 )

@@ -71,7 +71,6 @@ PACKAGE_PREFIX = f"{PACKAGE_NAME}{MODULE_SEPARATOR}"
 UI_PREFIX = f"{PACKAGE_PREFIX}{LAYER_UI}"
 CORE_PREFIX = f"{PACKAGE_PREFIX}{LAYER_CORE}"
 TOOLS_PREFIX = f"{PACKAGE_PREFIX}{LAYER_TOOLS}"
-CORE_LIMITS_MODULE = f"{CORE_PREFIX}{MODULE_SEPARATOR}limits"
 
 SOURCE_CONFIG = SourceConfig(
     source_root=SOURCE_ROOT,
@@ -89,19 +88,7 @@ LAYER_RULES: tuple[LayerRule, ...] = (
     LayerRule(layer=LAYER_TYPES, forbidden_prefixes=(UI_PREFIX, CORE_PREFIX, TOOLS_PREFIX)),
 )
 
-READ_FILE_MODULE = f"{TOOLS_PREFIX}{MODULE_SEPARATOR}read_file"
-BASH_MODULE = f"{TOOLS_PREFIX}{MODULE_SEPARATOR}bash"
-
-KNOWN_VIOLATIONS: tuple[KnownViolation, ...] = (
-    KnownViolation(
-        module_name=READ_FILE_MODULE,
-        allowed_import_prefixes=(CORE_LIMITS_MODULE,),
-    ),
-    KnownViolation(
-        module_name=BASH_MODULE,
-        allowed_import_prefixes=(CORE_LIMITS_MODULE,),
-    ),
-)
+KNOWN_VIOLATIONS: tuple[KnownViolation, ...] = ()
 
 
 def _layer_rule_id(rule: LayerRule) -> str:

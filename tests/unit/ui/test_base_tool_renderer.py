@@ -1,6 +1,7 @@
 """Tests for BaseToolRenderer helper functions and registry."""
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+
 from tunacode.ui.renderers.tools.base import (
     RendererConfig,
     get_renderer,

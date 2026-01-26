@@ -18,6 +18,7 @@ from textual import events
 from textual.widgets import RichLog
 
 from tunacode.constants import EXIT_PLAN_MODE_SENTINEL
+
 from tunacode.ui.repl_support import PendingPlanApprovalState
 from tunacode.ui.styles import (
     STYLE_ERROR,

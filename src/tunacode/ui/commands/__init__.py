@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
 
 from tunacode.configuration.settings import ApplicationSettings
+
 from tunacode.ui.styles import STYLE_PRIMARY
 
 # Update command constants
@@ -187,11 +188,12 @@ class ModelCommand(Command):
             get_model_context_window,
             load_models_registry,
         )
+        from tunacode.utils.config import load_config_with_defaults
+        from tunacode.utils.config.user_configuration import save_config
+
         from tunacode.core.agents.agent_components.agent_config import (
             invalidate_agent_cache,
         )
-        from tunacode.utils.config import load_config_with_defaults
-        from tunacode.utils.config.user_configuration import save_config
 
         state_manager = app.state_manager
         session = state_manager.session
@@ -360,8 +362,9 @@ class ResumeCommand(Command):
     usage = "/resume [load <id>|delete <id>]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        from tunacode.ui.screens import SessionPickerScreen
         from tunacode.utils.system.paths import delete_session_file
+
+        from tunacode.ui.screens import SessionPickerScreen
 
         parts = args.split(maxsplit=1) if args else []
         subcommand = parts[0].lower() if parts else ""

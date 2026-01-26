@@ -18,6 +18,7 @@ from tunacode.constants import (
     SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
     TOOL_VIEWPORT_LINES,
 )
+
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,

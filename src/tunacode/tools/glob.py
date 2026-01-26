@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.indexing import CodeIndex
+
 from tunacode.tools.decorators import base_tool
 from tunacode.tools.ignore import IgnoreManager, get_ignore_manager
 

@@ -8,7 +8,7 @@ Inspired by OpenCode's compaction strategy.
 
 from typing import Any
 
-from tunacode.core.limits import is_local_mode
+from tunacode.utils.limits import is_local_mode
 from tunacode.utils.messaging import estimate_tokens
 
 # Pruning thresholds - binary switch based on local_mode

@@ -1,6 +1,6 @@
 ---
-title: Core Limits
-path: src/tunacode/core/limits.py
+title: Utils Limits
+path: src/tunacode/utils/limits.py
 type: file
 depth: 1
 description: Centralized tool output limits with cascading defaults
@@ -8,7 +8,7 @@ exports: [is_local_mode, get_read_limit, get_max_line_length, get_command_limit,
 seams: [M]
 ---
 
-# Core Limits
+# Utils Limits
 
 ## Purpose
 

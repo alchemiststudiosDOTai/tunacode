@@ -7,8 +7,9 @@ from typing import Any
 
 from pydantic_ai.exceptions import ModelRetry
 
-from tunacode.tools.xml_helper import load_prompt_from_xml
 from tunacode.types import StateManagerProtocol, TodoItem, TodoStatus
+
+from tunacode.tools.xml_helper import load_prompt_from_xml
 
 # Heavily yoinked from https://github.com/sst/opencode/blob/dev/packages/opencode/src/tool/todo.ts
 # and adapted for python.

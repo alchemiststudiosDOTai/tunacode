@@ -1,8 +1,9 @@
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 
-from tunacode.core.state import StateManager
 from tunacode.tools.todo import create_todoclear_tool, create_todoread_tool, create_todowrite_tool
+
+from tunacode.core.state import StateManager
 
 
 @pytest.fixture

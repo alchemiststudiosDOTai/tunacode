@@ -111,7 +111,7 @@ The project follows a **pragmatic layered architecture** with strong component-b
           ┌────────────────┼────────────────┐
           ▼                ▼                ▼
     ┌───────────┐    ┌───────────┐    ┌───────────┐
-    │   Core    │◄──►│   Tools   │    │    LSP    │
+    │   Core    │───▶│   Tools   │    │    LSP    │
     └─────┬─────┘    └─────┬─────┘    └───────────┘
           │                │
           └────────┬───────┘
@@ -121,9 +121,9 @@ The project follows a **pragmatic layered architecture** with strong component-b
             └──────────────┘
 ```
 
-**Note**: There is a circular dependency between `core` and `tools`:
-- `core` imports tool functions for agent configuration
-- Some tools import from `core` for state management and delegation
+**Note**: Dependency direction is one-way here:
+- `core` imports tool functions for orchestration
+- tools do not import from `core`
 
 ---
 
@@ -417,9 +417,8 @@ Level 3 (Application):
 ### Import Flow Analysis
 
 **Tightly Coupled**:
-- `core` ↔ `tools` (circular dependency)
-  - `core` imports tool functions for agent configuration
-  - `tools` imports from `core` for state management and delegation
+- `core` -> `tools` (one-way orchestration dependency)
+  - `core` imports tool functions for agent configuration and dispatch
 
 **Loosely Coupled**:
 - `configuration` - Standalone, only depends on foundation types
@@ -751,7 +750,7 @@ Precedence: `explicit setting > local_mode default > standard default`
 
 | File | Role |
 |------|------|
-| `core/limits.py` | Central mode detection (`is_local_mode()`) |
+| `utils/limits.py` | Central mode detection (`is_local_mode()`) |
 | `core/compaction.py` | Pruning with mode-aware thresholds |
 | `core/agents/agent_config.py` | Template/tool selection |
 | `core/prompting/templates.py` | LOCAL_TEMPLATE vs MAIN_TEMPLATE |
@@ -797,7 +796,7 @@ With 10k context window:
 
 ## Conclusion
 
-Tunacode demonstrates a well-structured, modular architecture with clear separation of concerns. The primary architectural strength is the UI/Core decoupling, enabling multiple UI implementations and headless operation. The main technical debt is the circular dependency between core and tools, which should be addressed in future refactoring.
+Tunacode demonstrates a well-structured, modular architecture with clear separation of concerns. The primary architectural strength is the UI/Core decoupling, enabling multiple UI implementations and headless operation. Core-to-tools dependencies are now one-way, keeping the tool layer isolated from core internals.
 
 The callback-based communication pattern, centralized state management, and composable system prompts all contribute to a maintainable and extensible codebase.
 

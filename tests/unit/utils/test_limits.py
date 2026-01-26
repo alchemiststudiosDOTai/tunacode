@@ -17,7 +17,7 @@ from tunacode.constants import (
     MAX_FILES_IN_DIR,
     MAX_LINE_LENGTH,
 )
-from tunacode.core.limits import (
+from tunacode.utils.limits import (
     clear_cache,
     get_command_limit,
     get_max_files_in_dir,
@@ -41,13 +41,13 @@ class TestIsLocalMode:
 
     def test_returns_false_when_not_set(self):
         """Default is False when local_mode not in settings."""
-        with patch("tunacode.core.limits._load_settings", return_value={}):
+        with patch("tunacode.utils.limits._load_settings", return_value={}):
             assert is_local_mode() is False
 
     def test_returns_true_when_enabled(self):
         """Returns True when local_mode is True."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True},
         ):
             assert is_local_mode() is True
@@ -55,7 +55,7 @@ class TestIsLocalMode:
     def test_returns_false_when_disabled(self):
         """Returns False when local_mode is explicitly False."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": False},
         ):
             assert is_local_mode() is False
@@ -66,13 +66,13 @@ class TestGetReadLimit:
 
     def test_returns_standard_default(self):
         """Returns standard default when no settings."""
-        with patch("tunacode.core.limits._load_settings", return_value={}):
+        with patch("tunacode.utils.limits._load_settings", return_value={}):
             assert get_read_limit() == DEFAULT_READ_LIMIT
 
     def test_returns_local_default_in_local_mode(self):
         """Returns local default when local_mode enabled."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True},
         ):
             assert get_read_limit() == LOCAL_DEFAULT_READ_LIMIT
@@ -80,7 +80,7 @@ class TestGetReadLimit:
     def test_explicit_setting_overrides_standard(self):
         """Explicit setting wins over standard default."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"read_limit": 500},
         ):
             assert get_read_limit() == 500
@@ -88,7 +88,7 @@ class TestGetReadLimit:
     def test_explicit_setting_overrides_local_mode(self):
         """Explicit setting wins even in local_mode."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True, "read_limit": 300},
         ):
             assert get_read_limit() == 300
@@ -99,13 +99,13 @@ class TestGetMaxLineLength:
 
     def test_returns_standard_default(self):
         """Returns standard default when no settings."""
-        with patch("tunacode.core.limits._load_settings", return_value={}):
+        with patch("tunacode.utils.limits._load_settings", return_value={}):
             assert get_max_line_length() == MAX_LINE_LENGTH
 
     def test_returns_local_default_in_local_mode(self):
         """Returns local default when local_mode enabled."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True},
         ):
             assert get_max_line_length() == LOCAL_MAX_LINE_LENGTH
@@ -113,7 +113,7 @@ class TestGetMaxLineLength:
     def test_explicit_setting_overrides(self):
         """Explicit setting wins."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"max_line_length": 1000},
         ):
             assert get_max_line_length() == 1000
@@ -124,13 +124,13 @@ class TestGetCommandLimit:
 
     def test_returns_standard_default(self):
         """Returns standard default when no settings."""
-        with patch("tunacode.core.limits._load_settings", return_value={}):
+        with patch("tunacode.utils.limits._load_settings", return_value={}):
             assert get_command_limit() == MAX_COMMAND_OUTPUT
 
     def test_returns_local_default_in_local_mode(self):
         """Returns local default when local_mode enabled."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True},
         ):
             assert get_command_limit() == LOCAL_MAX_COMMAND_OUTPUT
@@ -138,7 +138,7 @@ class TestGetCommandLimit:
     def test_explicit_setting_overrides(self):
         """Explicit setting wins."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"max_command_output": 2000},
         ):
             assert get_command_limit() == 2000
@@ -149,13 +149,13 @@ class TestGetMaxFilesInDir:
 
     def test_returns_standard_default(self):
         """Returns standard default when no settings."""
-        with patch("tunacode.core.limits._load_settings", return_value={}):
+        with patch("tunacode.utils.limits._load_settings", return_value={}):
             assert get_max_files_in_dir() == MAX_FILES_IN_DIR
 
     def test_returns_local_default_in_local_mode(self):
         """Returns local default when local_mode enabled."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True},
         ):
             assert get_max_files_in_dir() == LOCAL_MAX_FILES_IN_DIR
@@ -163,7 +163,7 @@ class TestGetMaxFilesInDir:
     def test_explicit_setting_overrides(self):
         """Explicit setting wins."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"max_files_in_dir": 100},
         ):
             assert get_max_files_in_dir() == 100
@@ -174,13 +174,13 @@ class TestGetMaxTokens:
 
     def test_returns_none_when_not_set(self):
         """Returns None when no limit configured."""
-        with patch("tunacode.core.limits._load_settings", return_value={}):
+        with patch("tunacode.utils.limits._load_settings", return_value={}):
             assert get_max_tokens() is None
 
     def test_returns_local_default_in_local_mode(self):
         """Returns 1000 by default in local_mode."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True},
         ):
             assert get_max_tokens() == 1000
@@ -188,7 +188,7 @@ class TestGetMaxTokens:
     def test_returns_custom_local_max_tokens(self):
         """Returns custom local_max_tokens in local_mode."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True, "local_max_tokens": 2000},
         ):
             assert get_max_tokens() == 2000
@@ -196,7 +196,7 @@ class TestGetMaxTokens:
     def test_explicit_max_tokens_overrides(self):
         """Explicit max_tokens wins over local_mode."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"local_mode": True, "max_tokens": 500},
         ):
             assert get_max_tokens() == 500
@@ -204,7 +204,7 @@ class TestGetMaxTokens:
     def test_explicit_max_tokens_without_local_mode(self):
         """Can set max_tokens without local_mode."""
         with patch(
-            "tunacode.core.limits._load_settings",
+            "tunacode.utils.limits._load_settings",
             return_value={"max_tokens": 4000},
         ):
             assert get_max_tokens() == 4000

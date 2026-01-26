@@ -9,6 +9,7 @@ from textual.widgets import RichLog
 
 from tunacode.indexing import CodeIndex
 from tunacode.indexing.constants import QUICK_INDEX_THRESHOLD
+
 from tunacode.ui.styles import STYLE_MUTED, STYLE_SUCCESS
 
 

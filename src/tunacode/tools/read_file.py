@@ -8,8 +8,9 @@ from tunacode.constants import (
     MAX_FILE_SIZE,
     MSG_FILE_SIZE_LIMIT,
 )
-from tunacode.core.limits import get_max_line_length, get_read_limit
 from tunacode.exceptions import ToolExecutionError
+from tunacode.utils.limits import get_max_line_length, get_read_limit
+
 from tunacode.tools.decorators import file_tool
 
 DEFAULT_FILE_ENCODING = "utf-8"

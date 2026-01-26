@@ -13,6 +13,7 @@ from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,

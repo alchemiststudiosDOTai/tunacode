@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from tunacode.core.logging import get_logger
 from tunacode.types import ToolCallId
 from tunacode.utils.messaging import (
     _get_attr,
@@ -15,6 +14,8 @@ from tunacode.utils.messaging import (
     get_tool_call_ids,
     get_tool_return_ids,
 )
+
+from tunacode.core.logging import get_logger
 
 from .sanitize import (
     PART_KIND_ATTR,

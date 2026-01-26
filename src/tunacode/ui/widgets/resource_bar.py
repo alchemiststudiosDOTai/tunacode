@@ -7,6 +7,7 @@ from textual.widgets import Static
 
 from tunacode.constants import RESOURCE_BAR_COST_FORMAT, RESOURCE_BAR_SEPARATOR
 from tunacode.types import UserConfig
+
 from tunacode.ui.styles import (
     STYLE_ERROR,
     STYLE_MUTED,

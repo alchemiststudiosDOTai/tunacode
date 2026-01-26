@@ -106,6 +106,35 @@ exclude = [
     "*.egg-info",
 ]
 
+[tool.ruff.lint.isort]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "tunacode-shared",
+    "tunacode-tools",
+    "tunacode-core",
+    "tunacode-ui",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"tunacode-shared" = [
+    "tunacode.configuration*",
+    "tunacode.constants*",
+    "tunacode.exceptions*",
+    "tunacode.indexing*",
+    "tunacode.lsp*",
+    "tunacode.prompts*",
+    "tunacode.templates*",
+    "tunacode.types*",
+    "tunacode.utils*",
+]
+"tunacode-tools" = ["tunacode.tools*"]
+"tunacode-core" = ["tunacode.core*"]
+"tunacode-ui" = ["tunacode.ui*"]
+
 [tool.vulture]
 min_confidence = 80
 paths = ["src", "tests"]

@@ -137,7 +137,7 @@ Defined as `PRUNE_PLACEHOLDER` at line 21.
 
 | Component | File | Integration |
 |-----------|------|-------------|
-| Mode detection | `core/limits.py` | `is_local_mode()` for threshold selection |
+| Mode detection | `utils/limits.py` | `is_local_mode()` for threshold selection |
 | Trigger point | `core/agents/main.py:369` | Called at request start |
 | Token counting | `utils/messaging/token_counter.py` | `estimate_tokens()` |
 | Message types | `types/pydantic_ai.py` | `ToolReturnPart`, `ModelRequest` |

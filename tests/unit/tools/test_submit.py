@@ -3,14 +3,15 @@ import inspect
 import pytest
 from pydantic_ai.messages import ToolCallPart
 
-from tunacode.core.agents.agent_components.orchestrator.tool_dispatcher import dispatch_tools
-from tunacode.core.agents.agent_components.response_state import ResponseState
-from tunacode.core.state import StateManager
 from tunacode.tools.submit import (
     SUBMIT_SUCCESS_MESSAGE,
     SUBMIT_SUMMARY_LABEL,
     submit,
 )
+
+from tunacode.core.agents.agent_components.orchestrator.tool_dispatcher import dispatch_tools
+from tunacode.core.agents.agent_components.response_state import ResponseState
+from tunacode.core.state import StateManager
 
 
 @pytest.fixture

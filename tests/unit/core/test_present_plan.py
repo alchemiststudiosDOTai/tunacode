@@ -5,13 +5,15 @@ from pathlib import Path
 import pytest
 
 from tunacode.constants import EXIT_PLAN_MODE_SENTINEL
-from tunacode.core.state import StateManager
+
 from tunacode.tools.present_plan import (
     PLAN_APPROVED_MESSAGE,
     PLAN_EXITED_MESSAGE,
     PLAN_NOT_IN_PLAN_MODE,
     create_present_plan_tool,
 )
+
+from tunacode.core.state import StateManager
 
 
 @pytest.fixture

@@ -31,6 +31,7 @@ from tunacode.constants import (
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
+
 from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 
 

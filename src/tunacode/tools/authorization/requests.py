@@ -4,8 +4,9 @@ import difflib
 import os
 
 from tunacode.constants import MAX_CALLBACK_CONTENT, MAX_LINE_LENGTH
-from tunacode.tools.utils.text_match import replace
 from tunacode.types import ToolArgs, ToolConfirmationRequest, ToolName
+
+from tunacode.tools.utils.text_match import replace
 
 MAX_PREVIEW_LINES: int = 100
 MAX_PREVIEW_LINE_LENGTH: int = MAX_LINE_LENGTH

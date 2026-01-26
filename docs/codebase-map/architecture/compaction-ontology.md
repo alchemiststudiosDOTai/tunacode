@@ -7,7 +7,7 @@ depth: 2
 seams: [A, M, D]
 ontological_relations:
   - relates_to: [[core-compaction]]
-  - relates_to: [[core-limits]]
+  - relates_to: [[utils-limits]]
   - relates_to: [[core-state]]
   - relates_to: [[core-agents]]
   - affects: [[session-messages]]
@@ -275,7 +275,7 @@ OUTPUT:
 | Document | Relationship |
 |----------|--------------|
 | [[core-compaction]] | Implementation details |
-| [[core-limits]] | Mode detection |
+| [[utils-limits]] | Mode detection |
 | [[core-state]] | Session/message storage |
 | [[core-agents]] | Integration point |
 | [[conversation-turns]] | Message structure |

@@ -10,6 +10,7 @@ from typing import Any
 from rich.console import Console
 
 from tunacode.constants import MIN_TOOL_PANEL_LINE_WIDTH, TOOL_PANEL_HORIZONTAL_INSET
+
 from tunacode.ui.renderers.panels import tool_panel_smart
 
 DEFAULT_WIDTH = 92

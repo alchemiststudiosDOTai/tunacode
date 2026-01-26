@@ -18,7 +18,6 @@ from tunacode.constants import (
     TOOL_RETRY_BASE_DELAY,
     TOOL_RETRY_MAX_DELAY,
 )
-from tunacode.core.logging import get_logger
 from tunacode.exceptions import (
     ConfigurationError,
     FileOperationError,
@@ -27,6 +26,8 @@ from tunacode.exceptions import (
     ValidationError,
 )
 from tunacode.types import ToolCallback
+
+from tunacode.core.logging import get_logger
 
 # Errors that should NOT be retried - they represent user intent or unrecoverable states
 NON_RETRYABLE_ERRORS = (

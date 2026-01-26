@@ -202,7 +202,7 @@ See `main.py:577-601` for the abort handling logic and `main.py:626-653` for the
 | Component | File | Integration |
 |-----------|------|-------------|
 | State | `core/state.py` | Session state, message history |
-| Limits | `core/limits.py` | `is_local_mode()`, `get_max_tokens()` |
+| Limits | `utils/limits.py` | `is_local_mode()`, `get_max_tokens()` |
 | Compaction | `core/compaction.py` | `prune_old_tool_outputs()` |
 | Prompting | `core/prompting/` | System prompt composition |
 | Tools | `tools/` | Tool function registry |

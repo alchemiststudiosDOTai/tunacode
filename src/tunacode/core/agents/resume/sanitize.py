@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import is_dataclass, replace
 from typing import Any
 
-from tunacode.core.logging import get_logger
 from tunacode.types import ToolCallId
 from tunacode.types.canonical import CanonicalMessage, MessageRole, SystemPromptPart
 from tunacode.types.tool_registry import ToolCallRegistry
@@ -25,6 +24,8 @@ from tunacode.utils.messaging import (
     find_dangling_tool_calls,
     to_canonical_list,
 )
+
+from tunacode.core.logging import get_logger
 
 PART_KIND_ATTR: str = "part_kind"
 TOOL_CALL_ID_ATTR: str = "tool_call_id"

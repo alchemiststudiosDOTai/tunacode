@@ -19,8 +19,9 @@ from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import FileOperationError, ToolExecutionError
-from tunacode.tools.xml_helper import load_prompt_from_xml
 from tunacode.utils.config.user_configuration import load_config
+
+from tunacode.tools.xml_helper import load_prompt_from_xml
 
 P = ParamSpec("P")
 R = TypeVar("R")

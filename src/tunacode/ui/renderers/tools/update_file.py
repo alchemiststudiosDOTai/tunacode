@@ -15,6 +15,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+
 from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,

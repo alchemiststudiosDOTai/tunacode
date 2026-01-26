@@ -13,7 +13,8 @@ from tunacode.constants import (
     COMMAND_OUTPUT_START_INDEX,
     COMMAND_OUTPUT_THRESHOLD,
 )
-from tunacode.core.limits import get_command_limit
+from tunacode.utils.limits import get_command_limit
+
 from tunacode.tools.decorators import base_tool
 
 # Enhanced dangerous patterns from run_command.py

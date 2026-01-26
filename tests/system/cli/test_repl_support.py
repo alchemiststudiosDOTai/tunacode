@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tunacode.constants import MAX_CALLBACK_CONTENT
+
 from tunacode.ui import repl_support
 
 DIAGNOSTICS_LINE: str = "Error (line 10): type mismatch"

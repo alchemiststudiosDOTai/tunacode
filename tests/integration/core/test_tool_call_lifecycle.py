@@ -26,6 +26,9 @@ from tunacode.constants import (
     WRITE_TOOLS,
     ToolName,
 )
+from tunacode.exceptions import StateError
+from tunacode.types import AgentState
+
 from tunacode.core.agents.agent_components.orchestrator.tool_dispatcher import (
     _extract_fallback_tool_calls,
     consume_tool_call_args,
@@ -37,8 +40,6 @@ from tunacode.core.agents.agent_components.response_state import ResponseState
 from tunacode.core.agents.agent_components.tool_executor import execute_tools_parallel
 from tunacode.core.agents.resume.sanitize import remove_dangling_tool_calls
 from tunacode.core.state import SessionState, StateManager
-from tunacode.exceptions import StateError
-from tunacode.types import AgentState
 
 # Mark all tests in this module as hypothesis property tests
 pytestmark = pytest.mark.hypothesis

@@ -10,8 +10,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from tunacode.constants import EXIT_PLAN_MODE_SENTINEL
-from tunacode.tools.xml_helper import load_prompt_from_xml
 from tunacode.types import StateManagerProtocol
+
+from tunacode.tools.xml_helper import load_prompt_from_xml
 
 PLAN_APPROVED_MESSAGE = (
     "Plan approved and saved to PLAN.md. Plan mode exited. You may now use write tools."

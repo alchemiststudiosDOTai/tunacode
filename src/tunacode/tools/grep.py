@@ -22,6 +22,7 @@ from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.exceptions import TooBroadPatternError, ToolExecutionError
+
 from tunacode.tools.decorators import base_tool
 from tunacode.tools.grep_components import (
     FileFilter,

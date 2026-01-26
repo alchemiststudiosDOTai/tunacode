@@ -4,3 +4,4 @@
 [2026-01-21] [bug] cleanup attempted to set read-only ModelResponse.tool_calls; fix by only mutating dict-backed tool_calls.
 [2026-01-21] [bug] model request streaming could hang before stream open; add stream watchdog and log outgoing request parts for debug.
 [2026-01-26] [bug] ReAct removal left forced_calls/guidance access in agents/main.py, triggering AttributeError on ReActState.
+2026-01-25 [smell] tools importing core limits forced allowlist; moved limits to utils to preserve dependency direction.

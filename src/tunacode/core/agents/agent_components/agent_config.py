@@ -20,22 +20,10 @@ from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.models import load_models_registry
 from tunacode.constants import ENV_OPENAI_BASE_URL
+from tunacode.types import ModelName, PydanticAgent
+from tunacode.utils.config.user_configuration import load_config
+from tunacode.utils.limits import get_max_tokens, is_local_mode
 
-# TODO: Re-enable research_codebase subagent after fixing parameter name mismatch
-# See: memory-bank/research/2026-01-25_limited-read-file-parameter-mismatch.md
-# from tunacode.core.agents.delegation_tools import create_research_codebase_tool
-from tunacode.core.limits import get_max_tokens, is_local_mode
-from tunacode.core.logging import get_logger
-from tunacode.core.prompting import (
-    LOCAL_TEMPLATE,
-    MAIN_TEMPLATE,
-    TEMPLATE_OVERRIDES,
-    SectionLoader,
-    SystemPromptSection,
-    compose_prompt,
-    resolve_prompt,
-)
-from tunacode.core.state import StateManager
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
 from tunacode.tools.grep import grep
@@ -47,8 +35,21 @@ from tunacode.tools.todo import create_todoclear_tool, create_todoread_tool, cre
 from tunacode.tools.update_file import update_file
 from tunacode.tools.web_fetch import web_fetch
 from tunacode.tools.write_file import write_file
-from tunacode.types import ModelName, PydanticAgent
-from tunacode.utils.config.user_configuration import load_config
+
+# TODO: Re-enable research_codebase subagent after fixing parameter name mismatch
+# See: memory-bank/research/2026-01-25_limited-read-file-parameter-mismatch.md
+# from tunacode.core.agents.delegation_tools import create_research_codebase_tool
+from tunacode.core.logging import get_logger
+from tunacode.core.prompting import (
+    LOCAL_TEMPLATE,
+    MAIN_TEMPLATE,
+    TEMPLATE_OVERRIDES,
+    SectionLoader,
+    SystemPromptSection,
+    compose_prompt,
+    resolve_prompt,
+)
+from tunacode.core.state import StateManager
 
 # Module-level cache for AGENTS.md context
 _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}

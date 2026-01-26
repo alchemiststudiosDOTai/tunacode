@@ -7,6 +7,7 @@ especially for `write_file` where the preview is rendered using Rich `Syntax`.
 from __future__ import annotations
 
 from tunacode.constants import MAX_CALLBACK_CONTENT
+
 from tunacode.tools.authorization.requests import (
     MAX_PREVIEW_LINES,
     TRUNCATION_NOTICE,

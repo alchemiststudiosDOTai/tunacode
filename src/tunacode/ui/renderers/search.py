@@ -13,6 +13,7 @@ from rich.style import Style
 from rich.text import Text
 
 from tunacode.constants import UI_COLORS
+
 from tunacode.ui.renderers.panels import RichPanelRenderer, SearchResultData
 
 T = TypeVar("T")

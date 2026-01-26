@@ -9,12 +9,15 @@ import typer
 
 from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import ENV_OPENAI_BASE_URL
-from tunacode.core.state import StateManager
 from tunacode.exceptions import UserAbortError
+from tunacode.utils.system import check_for_updates
+
 from tunacode.tools.authorization.handler import ToolHandler
+
+from tunacode.core.state import StateManager
+
 from tunacode.ui.headless import resolve_output
 from tunacode.ui.repl_support import run_textual_repl
-from tunacode.utils.system import check_for_updates
 
 DEFAULT_TIMEOUT_SECONDS = 600
 BASE_URL_HELP_TEXT = "API base URL (e.g., https://openrouter.ai/api/v1)"
