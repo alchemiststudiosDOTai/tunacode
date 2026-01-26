@@ -1,0 +1,48 @@
+digraph tunacode_deps {
+  rankdir=TB;
+  node [shape=box, style=filled, fontname="Arial"];
+
+  subgraph cluster_utils_level {
+    label="utils-level";
+    style=dashed;
+    color="#888888";
+    utils [label="utils", fillcolor="#ffd93d"];
+    types [label="types", fillcolor="#9d4edd"];
+    configuration [label="configuration", fillcolor="#ffd93d"];
+    constants [label="constants", fillcolor="#ffd93d"];
+  }
+
+  ui [label="ui", fillcolor="#ff6b6b"];
+  core [label="core", fillcolor="#4d96ff"];
+  tools [label="tools", fillcolor="#6bcb77"];
+  indexing [label="indexing", fillcolor="#ff922b"];
+  lsp [label="lsp", fillcolor="#e599f7"];
+  templates [label="templates", fillcolor="#20c997"];
+
+  configuration -> constants [label="3", penwidth=1.8, color="#888888"];
+  configuration -> types [label="3", penwidth=1.8, color="#888888"];
+  core -> configuration [label="4", penwidth=2.0, color="#888888"];
+  core -> constants [label="4", penwidth=2.0, color="#888888"];
+  core -> indexing [label="2", penwidth=1.6];
+  core -> tools [label="18", penwidth=4.8];
+  core -> types [label="22", penwidth=5.0, color="#888888"];
+  core -> utils [label="13", penwidth=3.8, color="#888888"];
+  indexing -> utils [label="1", penwidth=1.4, color="#888888"];
+  lsp -> utils [label="1", penwidth=1.4, color="#888888"];
+  tools -> configuration [label="2", penwidth=1.6, color="#888888"];
+  tools -> constants [label="5", penwidth=2.2, color="#888888"];
+  tools -> indexing [label="1", penwidth=1.4];
+  tools -> lsp [label="1", penwidth=1.4];
+  tools -> templates [label="2", penwidth=1.6];
+  tools -> types [label="8", penwidth=2.8, color="#888888"];
+  tools -> utils [label="4", penwidth=2.0, color="#888888"];
+  ui -> configuration [label="8", penwidth=2.8, color="#888888"];
+  ui -> constants [label="24", penwidth=5.0, color="#888888"];
+  ui -> core [label="9", penwidth=3.0];
+  ui -> lsp [label="1", penwidth=1.4];
+  ui -> types [label="6", penwidth=2.4, color="#888888"];
+  ui -> utils [label="11", penwidth=3.4, color="#888888"];
+  utils -> configuration [label="2", penwidth=1.6, color="#888888"];
+  utils -> constants [label="6", penwidth=2.4, color="#888888"];
+  utils -> types [label="4", penwidth=2.0, color="#888888"];
+}
