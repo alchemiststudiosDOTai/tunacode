@@ -2,35 +2,53 @@ digraph tunacode_layers {
   rankdir=TB;
   node [shape=box, style=filled, fontname="Arial"];
 
+  // Application layers (top to bottom)
   ui [label="ui", fillcolor="#ff6b6b"];
   core [label="core", fillcolor="#4d96ff"];
   tools [label="tools", fillcolor="#6bcb77"];
-  utils [label="utils", fillcolor="#ffd93d"];
-  types [label="types", fillcolor="#9d4edd"];
-  configuration [label="configuration", fillcolor="#adb5bd"];
+
+  // Utils-level modules (can be imported by any layer)
+  // These contain read-only static data or pure utilities
+  subgraph cluster_utils_level {
+    label="utils-level (valid from any layer)";
+    style=dashed;
+    color="#888888";
+    utils [label="utils", fillcolor="#ffd93d"];
+    types [label="types", fillcolor="#9d4edd"];
+    configuration [label="configuration\n(static data)", fillcolor="#ffd93d"];
+  }
+
+  // Infrastructure modules
   indexing [label="indexing", fillcolor="#ff922b"];
   lsp [label="lsp", fillcolor="#e599f7"];
   templates [label="templates", fillcolor="#20c997"];
 
-  configuration -> types [label="3", penwidth=1.6];
-  core -> configuration [label="4", penwidth=1.8];
+  // Utils-level internal dependencies (valid)
+  configuration -> types [label="3", penwidth=1.6, color="#888888"];
+  utils -> configuration [label="2", penwidth=1.4, color="#888888"];
+  utils -> types [label="4", penwidth=1.8, color="#888888"];
+
+  // Application layer dependencies
   core -> indexing [label="2", penwidth=1.4];
   core -> tools [label="18", penwidth=4.6];
-  core -> types [label="22", penwidth=5];
-  core -> utils [label="13", penwidth=3.6];
   indexing -> tools [label="1", penwidth=1.2];
-  tools -> configuration [label="2", penwidth=1.4];
   tools -> indexing [label="1", penwidth=1.2];
   tools -> lsp [label="1", penwidth=1.2];
   tools -> templates [label="2", penwidth=1.4];
-  tools -> types [label="8", penwidth=2.6];
-  tools -> utils [label="4", penwidth=1.8];
-  ui -> configuration [label="8", penwidth=2.6];
   ui -> core [label="9", penwidth=2.8];
   ui -> lsp [label="2", penwidth=1.4];
-  ui -> tools [label="3", penwidth=1.6];
-  ui -> types [label="6", penwidth=2.2];
-  ui -> utils [label="10", penwidth=3.0];
-  utils -> configuration [label="2", penwidth=1.4];
-  utils -> types [label="4", penwidth=1.8];
+
+  // Utils-level imports (always valid, shown in gray)
+  core -> configuration [label="4", penwidth=1.8, color="#888888"];
+  core -> types [label="22", penwidth=5, color="#888888"];
+  core -> utils [label="13", penwidth=3.6, color="#888888"];
+  tools -> configuration [label="2", penwidth=1.4, color="#888888"];
+  tools -> types [label="8", penwidth=2.6, color="#888888"];
+  tools -> utils [label="4", penwidth=1.8, color="#888888"];
+  ui -> configuration [label="8", penwidth=2.6, color="#888888"];
+  ui -> types [label="6", penwidth=2.2, color="#888888"];
+  ui -> utils [label="10", penwidth=3.0, color="#888888"];
+
+  // VIOLATION: ui -> tools (should not exist)
+  ui -> tools [label="3", penwidth=1.6, color="red", style=dashed];
 }

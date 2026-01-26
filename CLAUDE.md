@@ -280,12 +280,18 @@ ui → core → tools → utils/types
 infrastructure (filesystem, shell, network)
 ```
 
+**Utils-level modules** (can be imported by any layer):
+- `utils/` - helper functions, no business logic
+- `types/` - type definitions, no behavior
+- `configuration/` - read-only static data (models, providers, defaults)
+- `constants.py` - module-level constants
+
 **Rules:**
 
 - Inner layers know nothing about outer layers
   - core/ never imports from ui/
   - tools/ never imports from ui/
-  - utils/ and types/ import from nothing
+  - utils/, types/, configuration/ import from nothing (except each other)
 - Infrastructure is a plugin
   - Filesystem, shell, network = details
   - Core logic doesn't know or care which system provider
