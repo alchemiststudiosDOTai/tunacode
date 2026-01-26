@@ -249,7 +249,7 @@ class ReActScratchpad:
         return {
             "timeline": [e.to_dict() for e in self.timeline],
             "forced_calls": self.forced_calls,
-            "guidance": list(self.guidance),
+            "guidance": self.guidance,
         }
 
 

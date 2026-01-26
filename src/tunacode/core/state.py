@@ -397,15 +397,15 @@ class StateManager:
             )
             default_total_tokens = self._session.conversation.total_tokens
             self._session.conversation.total_tokens = data.get("total_tokens", default_total_tokens)
-            usage_data = data.get("session_total_usage")
-            if usage_data:
-                self._session.usage.session_total_usage = UsageMetrics.from_dict(usage_data)
+            self._session.usage.session_total_usage = UsageMetrics.from_dict(
+                data.get("session_total_usage", {})
+            )
             tool_ignore = data.get("tool_ignore", [])
             self._session.tool_ignore = tool_ignore
             self._session.yolo = data.get("yolo", False)
-            scratchpad_data = data.get("react_scratchpad")
-            if scratchpad_data:
-                self._session.react.scratchpad = ReActScratchpad.from_dict(scratchpad_data)
+            self._session.react.scratchpad = ReActScratchpad.from_dict(
+                data.get("react_scratchpad", {})
+            )
             todos_data = data.get("todos", [])
             deserialized_todos = self._deserialize_todos(todos_data)
             self._session.task.todos = deserialized_todos

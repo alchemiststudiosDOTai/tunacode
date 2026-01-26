@@ -75,7 +75,6 @@ from tunacode.ui.widgets import (
 
 # Throttle streaming display updates to reduce visual churn
 STREAM_THROTTLE_MS: float = 100.0
-DEFAULT_COMPLETION_TOKENS = 0
 
 
 class TextualReplApp(App[None]):
@@ -255,8 +254,7 @@ class TextualReplApp(App[None]):
 
                 duration_ms = (time.monotonic() - self._request_start_time) * 1000
                 session = self.state_manager.session
-                last_usage = session.usage.last_call_usage
-                tokens = last_usage.completion_tokens if last_usage else DEFAULT_COMPLETION_TOKENS
+                tokens = session.usage.last_call_usage.completion_tokens
                 model = session.current_model or ""
 
                 panel = render_agent_response(
