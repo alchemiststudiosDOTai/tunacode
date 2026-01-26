@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-MAX_DIAGNOSTIC_MESSAGE_LENGTH = 40
+MAX_DIAGNOSTIC_MESSAGE_LENGTH = 80
 
 
 def truncate_diagnostic_message(
