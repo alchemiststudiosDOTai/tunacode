@@ -1,53 +1,48 @@
-digraph tunacode_layers {
+digraph tunacode_deps {
   rankdir=TB;
   node [shape=box, style=filled, fontname="Arial"];
 
-  // Application layers (top to bottom)
-  ui [label="ui", fillcolor="#ff6b6b"];
-  core [label="core", fillcolor="#4d96ff"];
-  tools [label="tools", fillcolor="#6bcb77"];
-
-  // Utils-level modules (can be imported by any layer)
-  // These contain read-only static data or pure utilities
   subgraph cluster_utils_level {
-    label="utils-level (valid from any layer)";
+    label="utils-level";
     style=dashed;
     color="#888888";
     utils [label="utils", fillcolor="#ffd93d"];
     types [label="types", fillcolor="#9d4edd"];
-    configuration [label="configuration\n(static data)", fillcolor="#ffd93d"];
+    configuration [label="configuration", fillcolor="#ffd93d"];
+    constants [label="constants", fillcolor="#ffd93d"];
   }
 
-  // Infrastructure modules
+  ui [label="ui", fillcolor="#ff6b6b"];
+  core [label="core", fillcolor="#4d96ff"];
+  tools [label="tools", fillcolor="#6bcb77"];
   indexing [label="indexing", fillcolor="#ff922b"];
   lsp [label="lsp", fillcolor="#e599f7"];
   templates [label="templates", fillcolor="#20c997"];
 
-  // Utils-level internal dependencies (valid)
-  configuration -> types [label="3", penwidth=1.6, color="#888888"];
-  utils -> configuration [label="2", penwidth=1.4, color="#888888"];
-  utils -> types [label="4", penwidth=1.8, color="#888888"];
-
-  // Application layer dependencies
-  core -> indexing [label="2", penwidth=1.4];
-  core -> tools [label="18", penwidth=4.6];
-  indexing -> tools [label="1", penwidth=1.2];
-  tools -> indexing [label="1", penwidth=1.2];
-  tools -> lsp [label="1", penwidth=1.2];
-  tools -> templates [label="2", penwidth=1.4];
-  ui -> core [label="9", penwidth=2.8];
-  ui -> lsp [label="2", penwidth=1.4];
-
-  // Utils-level imports (always valid, shown in gray)
-  core -> configuration [label="4", penwidth=1.8, color="#888888"];
-  core -> types [label="22", penwidth=5, color="#888888"];
-  core -> utils [label="13", penwidth=3.6, color="#888888"];
-  tools -> configuration [label="2", penwidth=1.4, color="#888888"];
-  tools -> types [label="8", penwidth=2.6, color="#888888"];
-  tools -> utils [label="4", penwidth=1.8, color="#888888"];
-  ui -> configuration [label="8", penwidth=2.6, color="#888888"];
-  ui -> types [label="6", penwidth=2.2, color="#888888"];
-  ui -> utils [label="10", penwidth=3.0, color="#888888"];
-
-  // ui -> tools: FIXED (was 3 imports, now 0)
+  configuration -> constants [label="3", penwidth=1.8, color="#888888"];
+  configuration -> types [label="3", penwidth=1.8, color="#888888"];
+  core -> configuration [label="4", penwidth=2.0, color="#888888"];
+  core -> constants [label="4", penwidth=2.0, color="#888888"];
+  core -> indexing [label="2", penwidth=1.6];
+  core -> tools [label="18", penwidth=4.8];
+  core -> types [label="22", penwidth=5.0, color="#888888"];
+  core -> utils [label="13", penwidth=3.8, color="#888888"];
+  indexing -> tools [label="1", penwidth=1.4];
+  lsp -> utils [label="1", penwidth=1.4, color="#888888"];
+  tools -> configuration [label="2", penwidth=1.6, color="#888888"];
+  tools -> constants [label="5", penwidth=2.2, color="#888888"];
+  tools -> indexing [label="1", penwidth=1.4];
+  tools -> lsp [label="1", penwidth=1.4];
+  tools -> templates [label="2", penwidth=1.6];
+  tools -> types [label="8", penwidth=2.8, color="#888888"];
+  tools -> utils [label="4", penwidth=2.0, color="#888888"];
+  ui -> configuration [label="8", penwidth=2.8, color="#888888"];
+  ui -> constants [label="24", penwidth=5.0, color="#888888"];
+  ui -> core [label="9", penwidth=3.0];
+  ui -> lsp [label="1", penwidth=1.4];
+  ui -> types [label="6", penwidth=2.4, color="#888888"];
+  ui -> utils [label="11", penwidth=3.4, color="#888888"];
+  utils -> configuration [label="2", penwidth=1.6, color="#888888"];
+  utils -> constants [label="6", penwidth=2.4, color="#888888"];
+  utils -> types [label="4", penwidth=2.0, color="#888888"];
 }
