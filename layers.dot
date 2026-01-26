@@ -27,7 +27,7 @@ digraph tunacode_deps {
   core -> tools [label="18", penwidth=4.8];
   core -> types [label="22", penwidth=5.0, color="#888888"];
   core -> utils [label="13", penwidth=3.8, color="#888888"];
-  indexing -> tools [label="1", penwidth=1.4];
+  indexing -> utils [label="1", penwidth=1.4, color="#888888"];
   lsp -> utils [label="1", penwidth=1.4, color="#888888"];
   tools -> configuration [label="2", penwidth=1.6, color="#888888"];
   tools -> constants [label="5", penwidth=2.2, color="#888888"];
