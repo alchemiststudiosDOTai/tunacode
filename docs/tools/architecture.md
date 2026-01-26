@@ -209,7 +209,8 @@ src/tunacode/tools/
 ├── read_file.py
 ├── write_file.py
 ├── update_file.py
-├── react.py             # Factory pattern (stateful)
+├── todo.py              # Task management
+├── submit.py            # Completion signaling
 └── prompts/
     ├── bash_prompt.xml
     ├── glob_prompt.xml

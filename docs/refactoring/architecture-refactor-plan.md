@@ -13,7 +13,7 @@ TunaCode has clean dependency direction (ui → core → tools) but suffers from
 1. **SessionState mega-dataclass** (40+ fields mixing unrelated concerns)
 2. **Message format polymorphism** (4+ formats requiring defensive accessors everywhere)
 3. **Tool call tracking duplication** (resolved via tool registry)
-4. **Ad-hoc dicts** where typed structures would prevent bugs (todos resolved; react_scratchpad, usage pending)
+4. **Ad-hoc dicts** where typed structures would prevent bugs (todos resolved; usage pending)
 
 The rowing codebase refactor principles translate as follows:
 
@@ -100,27 +100,6 @@ class ToolCall:
     completed_at: datetime | None = None
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ReAct Types (replace dict[str, Any])
-# ─────────────────────────────────────────────────────────────────────────────
-
-class ReActEntryKind(Enum):
-    THINK = "think"
-    ACT = "act"
-    OBSERVE = "observe"
-
-@dataclass(frozen=True, slots=True)
-class ReActEntry:
-    kind: ReActEntryKind
-    content: str
-    timestamp: datetime
-
-@dataclass(slots=True)
-class ReActScratchpad:
-    timeline: list[ReActEntry]
-    forced_calls: int = 0
-    guidance: list[str] | None = None
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Todo Types (replace list[dict[str, Any]])
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -181,7 +160,6 @@ The adapter provides:
 
 **Current `SessionState`** mixes:
 - **Conversation state**: messages, thoughts, tool_calls
-- **ReAct state**: react_scratchpad, react_forced_calls, react_guidance
 - **Task state**: todos, task_hierarchy, recursive_context_stack
 - **Runtime state**: spinner, is_streaming_active, streaming_panel
 - **Usage state**: total_tokens, last_call_usage, session_total_usage
@@ -195,11 +173,6 @@ class ConversationState:
     messages: list[Message]  # canonical type
     thoughts: list[str]
     tool_calls: dict[str, ToolCall]  # keyed by tool_call_id
-
-@dataclass
-class ReActState:
-    scratchpad: ReActScratchpad
-    # No more separate react_forced_calls, react_guidance
 
 @dataclass
 class TaskState:
@@ -228,7 +201,6 @@ class UsageState:
 class SessionState:
     """Composed state - delegates to focused sub-states."""
     conversation: ConversationState
-    react: ReActState
     task: TaskState
     runtime: RuntimeState
     usage: UsageState
@@ -240,10 +212,10 @@ class SessionState:
 ```
 
 **Deliverables**:
-- [ ] Create sub-dataclasses in `types/state_components.py`
-- [ ] Update `SessionState` to compose them
-- [ ] Update `StateManager` accessors (e.g., `session.react.scratchpad`)
-- [ ] Migrate callers incrementally (shim old accessors temporarily)
+- [x] Create sub-dataclasses in `types/state_structures.py`
+- [x] Update `SessionState` to compose them
+- [x] Update `StateManager` accessors
+- [x] Migrate callers incrementally
 
 ---
 
@@ -357,32 +329,7 @@ class ToolCallRegistry:
 
 ---
 
-## Chunk 6: Migrate ReAct to Typed Structure
-
-**Goal**: Replace `react_scratchpad: dict[str, Any]` with `ReActScratchpad`.
-
-**Previous**:
-```python
-react_scratchpad: dict[str, Any] = field(default_factory=lambda: {"timeline": []})
-react_forced_calls: int = 0
-react_guidance: list[str] = field(default_factory=list)
-```
-
-**Target**:
-```python
-react: ReActState = field(default_factory=ReActState)
-# Where ReActState contains ReActScratchpad, forced_calls, guidance
-```
-
-**Deliverables**:
-- [ ] Update `StateManager.append_react_entry()` to use typed `ReActEntry`
-- [ ] Update `create_react_tool()` to work with typed scratchpad
-- [ ] Update serialization in `save_session()`/`load_session()`
-- [ ] Remove the three separate fields
-
----
-
-## Chunk 7: Migrate Todos to Typed Structure
+## Chunk 6: Migrate Todos to Typed Structure
 
 **Goal**: Replace `todos: list[dict[str, Any]]` with `list[TodoItem]`.
 
@@ -495,9 +442,9 @@ After each chunk achieves parity:
 - Prove message parity
 - Port sanitize
 
-### Phase 3: Consolidation (Chunks 5-8)
+### Phase 3: Consolidation (Chunks 5-7)
 - Tool call registry
-- Typed ReAct/Todos/Usage
+- Typed Todos/Usage
 - Remove shims
 
 ### Phase 4: Enforcement (Chunks 9-10)

@@ -23,8 +23,8 @@
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │                       SessionState                                   │    │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │    │
-│  │  │  messages    │  │ tool_calls   │  │ react_pad    │  ... 40 fields│    │
-│  │  │ (polymorphic)│  │ (duplicated) │  │ (dict)       │               │    │
+│  │  │  messages    │  │ tool_calls   │  │   todos      │  ... 35 fields│    │
+│  │  │ (polymorphic)│  │ (duplicated) │  │ (typed)      │               │    │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘               │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -33,7 +33,7 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                  TOOLS                                      │
 │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐ │
-│  │   bash    │  │   glob    │  │   grep    │  │ read_file │  │   react   │ │
+│  │   bash    │  │   glob    │  │   grep    │  │ read_file │  │   todo    │ │
 │  └───────────┘  └───────────┘  └───────────┘  └───────────┘  └───────────┘ │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
@@ -72,8 +72,8 @@
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │                   SessionState (composed)                            │    │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐         │    │
-│  │  │ ConversationSt │  │   ReActState   │  │   TaskState    │         │    │
-│  │  │  - messages:   │  │  - scratchpad  │  │  - todos       │         │    │
+│  │  │ ConversationSt │  │   TaskState    │  │  RuntimeState  │         │    │
+│  │  │  - messages:   │  │  - todos       │  │  - tool_reg    │         │    │
 │  │  │    Message[]   │  │    (typed)     │  │    (typed)     │         │    │
 │  │  └────────────────┘  └────────────────┘  └────────────────┘         │    │
 │  │  ┌────────────────┐  ┌────────────────┐                             │    │
@@ -95,7 +95,7 @@
 │  ┌───────────────────────────────────────────────────────────────────────┐ │
 │  │                       canonical.py (NEW)                              │ │
 │  │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐          │ │
-│  │  │  Message  │  │ ToolCall  │  │ TodoItem  │  │ ReActEntry│          │ │
+│  │  │  Message  │  │ ToolCall  │  │ TodoItem  │  │UsageMetric│          │ │
 │  │  │ (frozen)  │  │ (frozen)  │  │ (frozen)  │  │ (frozen)  │          │ │
 │  │  └───────────┘  └───────────┘  └───────────┘  └───────────┘          │ │
 │  └───────────────────────────────────────────────────────────────────────┘ │
@@ -196,10 +196,10 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                      SessionState (Current: 40+ fields)                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ CONVERSATION           │ REACT             │ TASK                          │
-│  messages              │  react_scratchpad │  todos                        │
-│  thoughts              │  react_forced     │  task_hierarchy               │
-│                        │  react_guidance   │  recursive_context_stack      │
+│ CONVERSATION           │ TASK                          │ RUNTIME             │
+│  messages              │  todos                        │  tool_registry      │
+│  thoughts              │  task_hierarchy               │  iteration_count    │
+│                        │  recursive_context_stack      │                     │
 │                        │                   │  max_recursion_depth          │
 │                        │                   │  parent_task_id               │
 │                        │                   │  iteration_budgets            │
@@ -229,7 +229,6 @@
 │  class SessionState:                                                        │
 │      # Composed sub-states (each ~5 fields)                                 │
 │      conversation: ConversationState                                        │
-│      react: ReActState                                                      │
 │      task: TaskState                                                        │
 │      runtime: RuntimeState                                                  │
 │      usage: UsageState                                                      │
