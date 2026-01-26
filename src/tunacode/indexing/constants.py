@@ -1,6 +1,6 @@
 """Configuration constants for code indexing."""
 
-from tunacode.tools.ignore import DEFAULT_EXCLUDE_DIRS
+from tunacode.utils.system.ignore_patterns import DEFAULT_EXCLUDE_DIRS
 
 IGNORE_DIRS = DEFAULT_EXCLUDE_DIRS
 
