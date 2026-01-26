@@ -34,6 +34,8 @@ from tunacode.utils.messaging import estimate_tokens, get_content
 if TYPE_CHECKING:
     from tunacode.tools.authorization.handler import ToolHandler
 
+    from tunacode.core.indexing_service import IndexingService
+
 
 ERROR_SESSION_TODOS_NOT_LIST = "Session todos must be a list, got {todo_type}"
 ERROR_SESSION_TODO_ITEM_NOT_DICT = (
@@ -114,6 +116,7 @@ class StateManager:
     def __init__(self) -> None:
         self._session = SessionState()
         self._tool_handler: ToolHandler | None = None
+        self._indexing_service: IndexingService | None = None
         self._load_user_configuration()
 
     def _load_user_configuration(self) -> None:
@@ -162,6 +165,15 @@ class StateManager:
 
     def set_tool_handler(self, handler: "ToolHandler") -> None:
         self._tool_handler = handler
+
+    @property
+    def indexing_service(self) -> "IndexingService":
+        """Get or create the indexing service (lazy initialization)."""
+        if self._indexing_service is None:
+            from tunacode.core.indexing_service import IndexingService
+
+            self._indexing_service = IndexingService()
+        return self._indexing_service
 
     def push_recursive_context(self, context: dict[str, Any]) -> None:
         """Push a new context onto the recursive execution stack."""
