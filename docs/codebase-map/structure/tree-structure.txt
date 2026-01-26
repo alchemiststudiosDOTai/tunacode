@@ -96,7 +96,6 @@ src/tunacode/
 │   ├── update_file.py           # * File editing
 │   ├── list_dir.py              # Directory listing
 │   ├── web_fetch.py             # HTTP requests
-│   ├── react.py                 # User input prompts
 │   ├── todo.py                  # TODO list management
 │   ├── decorators.py            # * Tool decorators (retry, logging)
 │   ├── xml_helper.py            # XML parsing

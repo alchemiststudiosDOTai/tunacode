@@ -166,7 +166,7 @@ The adapter provides:
 2. `from_canonical(msg) -> pydantic_ai.messages.ModelMessage`
 3. `get_content(msg_or_dict) -> str` (replaces 4-branch accessor)
 
-**Key insight**: The current `message_utils.py` and `sanitize.py` show the pain of polymorphic access. With a single canonical type, these 300+ lines collapse to ~50.
+**Key insight**: The legacy message content extraction (removed) and `sanitize.py` show the pain of polymorphic access. With a single canonical type, these 300+ lines collapse to ~50.
 
 **Deliverables**:
 - [ ] Create `adapter.py` with bidirectional conversion
@@ -477,7 +477,7 @@ After each chunk achieves parity:
 3. Update imports
 
 **Candidates for deletion** (after migration):
-- `message_utils.py` polymorphic accessors (replace with adapter)
+- Legacy message content extraction (removed; replaced by adapter)
 - Duplicate tracking in `session.runtime.tool_calls` (replace with registry)
 - Ad-hoc dict factories in SessionState (replace with typed defaults)
 

@@ -120,7 +120,7 @@
         │          │                  │                  │               │
         │          ▼                  ▼                  ▼               │
         │  ┌─────────────────────────────────────────────────────────┐   │
-        │  │            get_message_content() - 4 branches           │   │
+        │  │            get_content() - canonical conversion         │   │
         │  │                                                         │   │
         │  │  if dict and "content"  → str(content)                  │   │
         │  │  if dict and "parts"    → join(parts)                   │   │
@@ -131,7 +131,7 @@
         └─────────────────────────────────────────────────────────────────┘
                                      │
                                      │ SCATTERED across:
-                                     │  - message_utils.py
+                                     │  - adapter.py
                                      │  - sanitize.py (300+ lines!)
                                      │  - serialization in state.py
                                      ▼

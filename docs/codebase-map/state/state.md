@@ -21,7 +21,6 @@ state_manager = StateManager()
 The `SessionState` class encapsulates the entire user session runtime state:
 
 - **Conversation State:** `conversation` (messages, thoughts, token counts)
-- **ReAct State:** `react` (scratchpad, guidance, forced calls)
 - **Task State:** `task` (todos, original query)
 - **Runtime State:** `runtime` (iteration counters, request_id, tool registry, streaming flags)
 - **Usage State:** `usage` (per-call and cumulative metrics)
@@ -42,7 +41,6 @@ Several state classes manage agent behavior:
 - **`RequestContext` (dataclass):** Holds request-specific context (e.g., `request_id`)
 - **`EmptyResponseHandler`:** Manages state for consecutive empty responses
 - **`IterationManager`:** Tracks agent iteration progress
-- **`ReactSnapshotManager`:** Manages ReAct snapshots and guidance
 - **`RequestOrchestrator`:** Composes and manages the above state classes
 
 ### 1.3 UI State Containers

@@ -58,7 +58,6 @@ src/tunacode/
 │   ├── update_file.py     # File editing (fuzzy matching)
 │   ├── list_dir.py        # Directory listing
 │   ├── web_fetch.py       # HTTP requests
-│   ├── react.py           # ReAct pattern support
 │   ├── todo.py            # TODO management
 │   ├── decorators.py      # @base_tool, @file_tool
 │   ├── authorization/     # Permission system
@@ -211,7 +210,6 @@ USER INPUT → UI Capture → Request Queue → process_request()
 - Agent components: agent_config, node_processor, tool_executor, tool_buffer
 - Delegation system: research_agent with read-only tools
 - State machine: AgentStateMachine with valid transitions
-- ReAct pattern: ReactSnapshotManager for thought process
 
 **UI Module:**
 - TextualReplApp with screens, widgets, renderers
@@ -226,7 +224,6 @@ USER INPUT → UI Capture → Request Queue → process_request()
 - Tool implementations: bash, grep (4 strategies), glob, read_file, write_file, update_file
 - Fuzzy matching: line-trimmed, indentation-flexible, block-anchor
 - Todo tools: todowrite, todoread, todoclear
-- ReAct tools: scratchpad management
 
 ### State Summary
 

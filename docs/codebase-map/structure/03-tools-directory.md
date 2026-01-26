@@ -20,7 +20,6 @@ Implements the **tool system** that gives the AI agent real-world capabilities:
 - **Directory Operations**: `list_dir.py` for filesystem navigation
 - **Ignore Management**: `ignore.py` for shared ignore rules
 - **Web Operations**: `web_fetch.py` for HTTP requests
-- **Reaction**: `react.py` for user response prompts
 - **Task Management**: `todo.py` for TODO list tracking
 - **Authorization**: `authorization/` for permission handling
 - **Decorators**: `decorators.py` for tool wrapping and retry logic
@@ -38,7 +37,6 @@ tools/
 ├── list_dir.py             # Directory listing
 ├── ignore.py               # Shared ignore rules
 ├── web_fetch.py            # HTTP requests
-├── react.py                # User input prompts
 ├── todo.py                 # TODO list management
 ├── decorators.py           # Tool decorators (retry, logging)
 ├── xml_helper.py           # XML parsing utilities
@@ -115,12 +113,6 @@ Tools are wrapped with cross-cutting concerns:
   - Working directory management
   - Background execution support
   - stdout/stderr capture
-
-#### Interactive Tools
-- **`react`**: Prompts user for input
-  - Blocks until user response
-  - Validation and type conversion
-  - Used for confirmation and clarification
 
 ### Authorization System (`authorization/`)
 Manages user consent for tool execution:

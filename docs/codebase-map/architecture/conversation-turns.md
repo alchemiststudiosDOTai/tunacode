@@ -51,7 +51,6 @@ USER INPUT
 │            ├─ Stream tokens via streaming_callback              │
 │            ├─ process_node(node, ...)                           │
 │            ├─ Track iteration count                             │
-│            ├─ Capture ReAct snapshots (every 2 iterations)      │
 │            └─ Check early completion                            │
 └─────────────────────────────────────────────────────────────────┘
     │
@@ -316,13 +315,6 @@ The agent loop naturally maintains this. Violations indicate a bug.
 - After 1+ consecutive empty: `empty_handler.should_intervene()`
 - Calls `handle_empty_response()` to synthesize guidance
 - Prevents infinite loops of no-op iterations
-
-### ReAct Snapshots
-
-- Triggered at configured intervals (default every 2 iterations)
-- Limited to 5 forced calls per request
-- Injects synthetic `SystemPromptPart` with guidance
-- Helps agent stay on track
 
 ### Tool Call Resolution
 

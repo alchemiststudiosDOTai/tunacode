@@ -12,7 +12,7 @@ import inspect
 from pathlib import Path
 
 # Support modules that are NOT tools
-EXCLUDED_MODULES = {"__init__", "decorators", "xml_helper", "react"}
+EXCLUDED_MODULES = {"__init__", "decorators", "xml_helper"}
 
 
 def discover_tools():

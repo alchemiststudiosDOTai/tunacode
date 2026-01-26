@@ -3,10 +3,7 @@
 These tests verify that:
 1. All legacy message formats are correctly converted to canonical
 2. Round-trip conversion preserves content
-3. get_content() produces the same output as legacy get_message_content()
 """
-
-import pytest
 
 from tunacode.types.canonical import (
     CanonicalMessage,
@@ -26,7 +23,6 @@ from tunacode.utils.messaging.adapter import (
     get_tool_return_ids,
     to_canonical,
 )
-from tunacode.utils.messaging.message_utils import get_message_content
 
 
 class TestToCanonical:
@@ -298,22 +294,8 @@ class TestRoundTrip:
         assert restored["parts"][0]["args"] == {"filepath": "/path/to/file"}
 
 
-class TestGetContentParity:
-    """Tests verifying get_content() matches legacy get_message_content()."""
-
-    @pytest.mark.parametrize(
-        "message",
-        [
-            {"content": "Simple content"},
-            {"thought": "A thought"},
-            {"content": "Multiple", "other": "ignored"},
-        ],
-    )
-    def test_dict_parity(self, message: dict) -> None:
-        """get_content() should match get_message_content() for dicts."""
-        legacy_result = get_message_content(message)
-        new_result = get_content(message)
-        assert new_result == legacy_result
+class TestGetContent:
+    """Tests for get_content() behavior."""
 
     def test_canonical_message(self) -> None:
         """get_content() works directly on CanonicalMessage."""

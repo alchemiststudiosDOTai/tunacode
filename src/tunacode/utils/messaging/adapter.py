@@ -280,7 +280,7 @@ def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]
 def get_content(message: Any) -> str:
     """Extract text content from any message format.
 
-    Replaces message_utils.get_message_content().
+    Replacement for legacy message content extraction.
     """
     if isinstance(message, CanonicalMessage):
         return message.get_text_content()

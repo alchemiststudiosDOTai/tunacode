@@ -683,18 +683,6 @@ REMEMBER:
 
 ====
 
-###REACT WORKFLOW PATTERN - REASONING + ACTION###
-
-Your task is to follow the ReAct pattern: interleave Reasoning (Thought) with Action execution.
-
-**Pattern Structure:**
-1. **THOUGHT**: Analyze the task and identify ALL tools needed
-2. **ACTION**: Execute parallel batch of read-only tools OR single write tool
-3. **OBSERVATION**: Analyze results and determine next steps
-4. **REPEAT**: Continue until task complete
-
-**Key Principle**: In the THOUGHT phase, scan ahead to identify ALL independent read-only operations, then execute them as a single parallel ACTION.
-
 ###REFLECTION AND TOOL RESULT ANALYSIS###
 
 After receiving tool results, you MUST reflect on their quality before proceeding.

@@ -16,7 +16,6 @@ from tunacode.utils.messaging.adapter import (
     get_tool_return_ids,
     to_canonical_list,
 )
-from tunacode.utils.messaging.message_utils import get_message_content
 from tunacode.utils.system.paths import get_session_storage_dir
 
 SESSION_DIR_ENV: str = "TUNACODE_SESSION_DIR"
@@ -70,14 +69,10 @@ def test_real_session_message_parity() -> None:
         for index, (original, roundtrip) in enumerate(
             zip(messages, roundtrip_messages, strict=False)
         ):
-            legacy_content = get_message_content(original)
-            canonical_content = get_content(original)
-            roundtrip_content = get_message_content(roundtrip)
+            original_content = get_content(original)
+            roundtrip_content = get_content(roundtrip)
 
-            assert canonical_content == legacy_content, (
-                f"Canonical content mismatch in {session_name} message {index}"
-            )
-            assert roundtrip_content == legacy_content, (
+            assert roundtrip_content == original_content, (
                 f"Round-trip content mismatch in {session_name} message {index}"
             )
 

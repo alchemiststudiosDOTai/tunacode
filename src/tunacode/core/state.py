@@ -18,7 +18,6 @@ from tunacode.types import (
     ConversationState,
     InputSessions,
     ModelName,
-    ReActState,
     RuntimeState,
     SessionId,
     TaskState,
@@ -28,7 +27,7 @@ from tunacode.types import (
     UsageState,
     UserConfig,
 )
-from tunacode.types.canonical import ReActEntryKind, ReActScratchpad, UsageMetrics
+from tunacode.types.canonical import UsageMetrics
 from tunacode.utils.messaging import estimate_tokens, get_content
 
 if TYPE_CHECKING:
@@ -64,8 +63,6 @@ class SessionState:
     undo_initialized: bool = False
     show_thoughts: bool = False
     conversation: ConversationState = field(default_factory=ConversationState)
-    # CLAUDE_ANCHOR[react-scratchpad]: Session scratchpad for ReAct tooling
-    react: ReActState = field(default_factory=ReActState)
     # CLAUDE_ANCHOR[todos]: Session todo list for task tracking
     task: TaskState = field(default_factory=TaskState)
     runtime: RuntimeState = field(default_factory=RuntimeState)
@@ -147,10 +144,6 @@ class StateManager:
         return self._session.conversation
 
     @property
-    def react(self) -> ReActState:
-        return self._session.react
-
-    @property
     def task(self) -> TaskState:
         return self._session.task
 
@@ -202,16 +195,6 @@ class StateManager:
         self._session.task_hierarchy.clear()
         self._session.iteration_budgets.clear()
         self._session.recursive_context_stack.clear()
-
-    # React scratchpad helpers
-    def get_react_scratchpad(self) -> ReActScratchpad:
-        return self._session.react.scratchpad
-
-    def append_react_entry(self, kind: ReActEntryKind, content: str) -> None:
-        self._session.react.scratchpad.append(kind, content)
-
-    def clear_react_scratchpad(self) -> None:
-        self._session.react.scratchpad.clear()
 
     # Todo list helpers
     def get_todos(self) -> list[TodoItem]:
@@ -350,7 +333,6 @@ class StateManager:
             "session_total_usage": self._session.usage.session_total_usage.to_dict(),
             "tool_ignore": self._session.tool_ignore,
             "yolo": self._session.yolo,
-            "react_scratchpad": self._session.react.scratchpad.to_dict(),
             "todos": self._serialize_todos(),
             "thoughts": self._session.conversation.thoughts,
             "messages": self._serialize_messages(),
@@ -403,9 +385,6 @@ class StateManager:
             tool_ignore = data.get("tool_ignore", [])
             self._session.tool_ignore = tool_ignore
             self._session.yolo = data.get("yolo", False)
-            self._session.react.scratchpad = ReActScratchpad.from_dict(
-                data.get("react_scratchpad", {})
-            )
             todos_data = data.get("todos", [])
             deserialized_todos = self._deserialize_todos(todos_data)
             self._session.task.todos = deserialized_todos

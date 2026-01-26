@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from tunacode.types.canonical import ReActScratchpad, TodoItem, UsageMetrics
+from tunacode.types.canonical import TodoItem, UsageMetrics
 from tunacode.types.pydantic_ai import MessageHistory
 from tunacode.types.tool_registry import ToolCallRegistry
 
@@ -28,13 +28,6 @@ class ConversationState:
     total_tokens: int = DEFAULT_TOTAL_TOKENS
     max_tokens: int = DEFAULT_MAX_TOKENS
     files_in_context: set[str] = field(default_factory=set)
-
-
-@dataclass(slots=True)
-class ReActState:
-    """ReAct scratchpad and guidance tracking."""
-
-    scratchpad: ReActScratchpad = field(default_factory=ReActScratchpad)
 
 
 @dataclass(slots=True)
@@ -70,7 +63,6 @@ class UsageState:
 
 __all__ = [
     "ConversationState",
-    "ReActState",
     "RuntimeState",
     "TaskState",
     "UsageState",

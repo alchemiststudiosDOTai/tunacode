@@ -47,7 +47,6 @@ Centralizes global constants, magic strings, UI text, error messages, and applic
 - todowrite
 - todoread
 - todoclear
-- react
 
 ### UI Constants
 

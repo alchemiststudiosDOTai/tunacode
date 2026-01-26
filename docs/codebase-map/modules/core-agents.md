@@ -118,35 +118,26 @@ agent.iter() -> Provider HTTP Request
 #### iteration_manager.py (in main.py)
 - **IterationManager** - Tracks iteration counters in session state
 
-### ReAct Pattern Support
-
-#### ReactSnapshotManager
-- Captures agent thought process snapshots
-- Injects structured guidance into context
-- Nudges agent toward next logical step
-
 ## Configuration
 
 **AgentConfig** dataclass:
 - **max_iterations** (default: 15) - Configured per-request iteration limit value
-- **forced_react_interval** (default: 2) - Iteration interval for forced ReAct snapshots
-- **forced_react_limit** (default: 5) - Max forced ReAct snapshots per request
 
 ## Tool Categories
 
-### Standard Mode (11 tools)
+### Standard Mode
 
 Full tool set with detailed descriptions:
 
 | Category | Tools |
 |----------|-------|
-| Read-Only | glob, grep, list_dir, read_file, react, web_fetch |
+| Read-Only | glob, grep, list_dir, read_file, web_fetch |
 | Write/Execute | bash, write_file, update_file |
 | Completion | submit |
 | Todo | todowrite, todoread, todoclear |
 | Delegation | research_codebase |
 
-### Local Mode (6 tools)
+### Local Mode
 
 Minimal tool set for small context windows (8k-16k tokens):
 
@@ -158,7 +149,6 @@ Minimal tool set for small context windows (8k-16k tokens):
 | write_file | "Write" | Full multi-paragraph description |
 | glob | "Find" | Full multi-paragraph description |
 | list_dir | "List" | Full multi-paragraph description |
-| react | "React" | Full multi-paragraph description |
 | submit | "Submit" | Full multi-paragraph description |
 
 **Excluded in local mode:** grep, web_fetch, todo tools, research_codebase

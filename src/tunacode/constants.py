@@ -75,7 +75,6 @@ class ToolName(str, Enum):
     GREP = "grep"
     LIST_DIR = "list_dir"
     GLOB = "glob"
-    REACT = "react"
     RESEARCH_CODEBASE = "research_codebase"
     WEB_FETCH = "web_fetch"
     PRESENT_PLAN = "present_plan"
@@ -87,7 +86,6 @@ READ_ONLY_TOOLS = [
     ToolName.GREP,
     ToolName.LIST_DIR,
     ToolName.GLOB,
-    ToolName.REACT,
     ToolName.RESEARCH_CODEBASE,
     ToolName.WEB_FETCH,
     ToolName.PRESENT_PLAN,

@@ -1,6 +1,6 @@
-"""Messaging utilities: content extraction and token counting."""
+"""Messaging utilities: canonical adapters and token counting."""
 
-# Canonical message adapter (new - see architecture-refactor-plan.md)
+# Canonical message adapter
 from tunacode.utils.messaging.adapter import (
     _get_attr,
     _get_parts,
@@ -13,12 +13,9 @@ from tunacode.utils.messaging.adapter import (
     to_canonical,
     to_canonical_list,
 )
-from tunacode.utils.messaging.message_utils import get_message_content
 from tunacode.utils.messaging.token_counter import estimate_tokens
 
 __all__ = [
-    # Legacy (will be replaced by get_content)
-    "get_message_content",
     "estimate_tokens",
     # Canonical adapter
     "to_canonical",

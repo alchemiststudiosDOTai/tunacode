@@ -184,12 +184,6 @@ Task management for agents:
 - `in_progress` - Currently working
 - `completed` - Finished
 
-### react.py
-ReAct pattern support:
-- Manages agent scratchpad
-- Tracks thought process
-- Structured reasoning guidance
-
 ### submit.py
 Completion signaling tool:
 - `submit` marks the task as complete for the orchestrator

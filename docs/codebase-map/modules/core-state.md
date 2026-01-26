@@ -18,7 +18,6 @@ Central singleton managing all session data including conversation history, user
 ### SessionState
 Dataclass container for all session data with decomposed sub-structures:
 - **conversation** - Messages, thoughts, token totals, context tracking
-- **react** - Scratchpad timeline, forced call counter, guidance entries
 - **task** - Typed todo tracking and original query
 - **runtime** - Iteration counters, tool call registry, request metadata, streaming flags
 - **usage** - Per-call and cumulative usage metrics
@@ -32,7 +31,7 @@ Dataclass container for all session data with decomposed sub-structures:
 ### StateManager
 Singleton class with global instance access:
 - **session** - Retrieve SessionState instance
-- **conversation/react/task/runtime/usage** - Typed sub-state accessors
+- **conversation/task/runtime/usage** - Typed sub-state accessors
 - **update_token_count()** - Track token usage
 - **save_session()** - Persist session to disk
 - **load_session()** - Restore session from disk

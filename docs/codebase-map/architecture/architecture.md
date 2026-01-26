@@ -605,7 +605,6 @@ Level 3 (Application):
 
 **Tools → Core**:
 - `/Users/tuna/Desktop/tunacode/src/tunacode/tools/authorization/`
-- `/Users/tuna/Desktop/tunacode/src/tunacode/tools/react.py`
 - `/Users/tuna/Desktop/tunacode/src/tunacode/tools/todo.py`
 
 ---

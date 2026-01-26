@@ -7,7 +7,6 @@ Handles agent creation, configuration, and request processing.
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -31,7 +30,6 @@ from tunacode.core.agents.resume.sanitize import (
 from tunacode.core.logging import get_logger
 from tunacode.core.state import StateManager
 from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
-from tunacode.tools.react import ReactTool
 from tunacode.types import (
     AgentRun,
     ModelName,
@@ -56,8 +54,6 @@ class AgentConfig:
     """Configuration for agent behavior."""
 
     max_iterations: int = 15
-    forced_react_interval: int = 2
-    forced_react_limit: int = 5
     debug_metrics: bool = False
 
 
@@ -128,114 +124,6 @@ class IterationManager:
         runtime.iteration_count = iteration
 
 
-class ReactSnapshotManager:
-    """Manages forced react snapshots and guidance injection."""
-
-    def __init__(
-        self, state_manager: StateManager, react_tool: ReactTool, config: AgentConfig
-    ) -> None:
-        self.state_manager = state_manager
-        self.react_tool = react_tool
-        self.config = config
-
-    def should_snapshot(self, iteration: int) -> bool:
-        """Check if snapshot should be taken."""
-        if iteration < self.config.forced_react_interval:
-            return False
-        if iteration % self.config.forced_react_interval != 0:
-            return False
-
-        forced_calls = self.state_manager.session.react.forced_calls
-        return forced_calls < self.config.forced_react_limit
-
-    async def capture_snapshot(
-        self, iteration: int, agent_run_ctx: Any, _show_debug: bool = False
-    ) -> None:
-        """Capture react snapshot and inject guidance."""
-        logger = get_logger()
-        if not self.should_snapshot(iteration):
-            return
-
-        try:
-            await self.react_tool.execute(
-                action="think",
-                thoughts=f"Auto snapshot after iteration {iteration}",
-                next_action="continue",
-            )
-
-            # Increment forced calls counter
-            react_state = self.state_manager.session.react
-            forced_calls = react_state.forced_calls
-            react_state.forced_calls = forced_calls + 1
-
-            # Build guidance from last tool call
-            scratchpad = react_state.scratchpad
-            timeline = scratchpad.get("timeline", [])
-            latest = timeline[-1] if timeline else {"thoughts": "?", "next_action": "?"}
-            summary = latest.get("thoughts", "")
-
-            tool_registry = self.state_manager.session.runtime.tool_registry
-            last_tool_call = tool_registry.latest_call()
-            if last_tool_call:
-                tool_name = last_tool_call.tool_name
-                args = last_tool_call.args
-                if isinstance(args, str):
-                    try:
-                        args = json.loads(args)
-                    except (ValueError, TypeError):
-                        args = {}
-
-                detail = ""
-                if tool_name == "grep" and isinstance(args, dict):
-                    pattern = args.get("pattern")
-                    detail = (
-                        f"Review grep results for pattern '{pattern}'"
-                        if pattern
-                        else "Review grep results"
-                    )
-                elif tool_name == "read_file" and isinstance(args, dict):
-                    path = args.get("file_path") or args.get("filepath")
-                    detail = (
-                        f"Extract key notes from {path}" if path else "Summarize read_file output"
-                    )
-                else:
-                    detail = f"Act on {tool_name} findings"
-            else:
-                detail = "Plan your first lookup"
-
-            guidance_entry = (
-                f"React snapshot {forced_calls + 1}/{self.config.forced_react_limit} "
-                f"at iteration {iteration}: {summary}. Next: {detail}"
-            )
-
-            # Append and trim guidance
-            guidance = react_state.guidance
-            guidance.append(guidance_entry)
-            if len(guidance) > self.config.forced_react_limit:
-                react_state.guidance = guidance[-self.config.forced_react_limit :]
-
-            # CRITICAL: Inject into agent_run.ctx.messages so next LLM call sees guidance
-            if agent_run_ctx is not None:
-                ctx_messages = getattr(agent_run_ctx, "messages", None)
-                if ctx_messages is None:
-                    state = getattr(agent_run_ctx, "state", None)
-                    if state and hasattr(state, "message_history"):
-                        ctx_messages = state.message_history
-
-                if isinstance(ctx_messages, list):
-                    ModelRequest, _, SystemPromptPart = ac.get_model_messages()
-                    system_part = SystemPromptPart(
-                        content=f"[React Guidance] {guidance_entry}",
-                        part_kind="system-prompt",
-                    )
-                    # CLAUDE_ANCHOR[react-system-injection]
-                    # Append synthetic system message so LLM receives react guidance next turn
-                    ctx_messages.append(ModelRequest(parts=[system_part], kind="request"))
-
-        except Exception as e:
-            logger.debug(f"React snapshot failed: {e}")
-
-
 class RequestOrchestrator:
     """Orchestrates the main request processing loop."""
 
@@ -263,17 +151,12 @@ class RequestOrchestrator:
         settings = user_config.get("settings", {})
         self.config = AgentConfig(
             max_iterations=int(settings.get("max_iterations", 15)),
-            forced_react_interval=2,
-            forced_react_limit=5,
             debug_metrics=bool(settings.get("debug_metrics", False)),
         )
 
         # Initialize managers
         self.empty_handler = EmptyResponseHandler(state_manager, notice_callback)
         self.iteration_manager = IterationManager(state_manager)
-        self.react_manager = ReactSnapshotManager(
-            state_manager, ReactTool(state_manager=state_manager), self.config
-        )
 
     def _init_request_context(self) -> RequestContext:
         """Initialize request context with ID and config."""
@@ -290,14 +173,11 @@ class RequestOrchestrator:
         """Reset/initialize fields needed for a new run."""
         session = self.state_manager.session
         runtime = session.runtime
-        react_state = session.react
         task_state = session.task
 
         runtime.current_iteration = 0
         runtime.iteration_count = 0
         runtime.tool_registry.clear()
-        react_state.forced_calls = 0
-        react_state.guidance = []
 
         runtime.batch_counter = 0
 
@@ -525,12 +405,6 @@ class RequestOrchestrator:
                     # Track whether we produced visible user output this iteration
                     if getattr(getattr(node, "result", None), "output", None):
                         response_state.has_user_response = True
-
-                    # Force react snapshot
-                    show_thoughts = bool(
-                        getattr(self.state_manager.session, "show_thoughts", False)
-                    )
-                    await self.react_manager.capture_snapshot(i, run_handle.ctx, show_thoughts)
 
                     # Early completion
                     if response_state.task_completed:

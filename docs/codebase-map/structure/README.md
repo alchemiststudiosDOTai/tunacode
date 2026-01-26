@@ -103,7 +103,6 @@ src/tunacode/
 │   ├── update_file.py      # File editing
 │   ├── list_dir.py         # Directory listing
 │   ├── web_fetch.py        # HTTP requests
-│   ├── react.py            # User prompts
 │   ├── todo.py             # TODO management
 │   ├── decorators.py       # Tool decorators
 │   ├── authorization/      # Permission system

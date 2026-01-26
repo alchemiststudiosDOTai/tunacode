@@ -39,7 +39,6 @@ State-related types:
 ### state_structures.py
 SessionState sub-structures:
 - **ConversationState** - Messages, thoughts, token tracking
-- **ReActState** - Scratchpad and guidance
 - **TaskState** - Todos and original query
 - **RuntimeState** - Iteration counters, tool registry, request metadata
 - **UsageState** - Per-call and cumulative usage metrics

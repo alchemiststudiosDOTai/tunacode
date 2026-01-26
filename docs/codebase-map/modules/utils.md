@@ -25,10 +25,10 @@ Provides shared utility functions across configuration, messaging, parsing, and 
 
 ### Messaging (utils/messaging/)
 
-**message_utils.py**
-- Message content extraction
-- Message formatting
-- Message type detection
+**adapter.py**
+- Canonical message conversions (to/from canonical)
+- **get_content()** - Content extraction for dicts and canonical messages
+- Tool call ID extraction helpers
 
 **token_counter.py**
 - **estimate_tokens()** - Token counting for messages
@@ -94,8 +94,8 @@ Provides shared utility functions across configuration, messaging, parsing, and 
 
 ### Messaging Utilities
 - Token estimation
-- Message formatting
 - Content extraction
+- Canonical message conversion
 
 ### Parsing Utilities
 - JSON parsing

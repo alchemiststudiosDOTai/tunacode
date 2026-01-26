@@ -16,8 +16,8 @@ from typing import Any
 # =============================================================================
 # Message Types
 # =============================================================================
-# These replace the polymorphic message handling in message_utils.py and
-# sanitize.py. One type, one accessor, no branching.
+# These replace the polymorphic message handling in the legacy content
+# extraction and sanitize.py. One type, one accessor, no branching.
 
 
 class MessageRole(Enum):
@@ -175,85 +175,6 @@ class CanonicalToolCall:
 
 
 # =============================================================================
-# ReAct Types
-# =============================================================================
-# These replace react_scratchpad: dict[str, Any]
-
-
-class ReActEntryKind(Enum):
-    """Type of ReAct reasoning entry."""
-
-    THINK = "think"
-    ACT = "act"
-    OBSERVE = "observe"
-
-
-@dataclass(frozen=True, slots=True)
-class ReActEntry:
-    """Single entry in the ReAct reasoning timeline."""
-
-    kind: ReActEntryKind
-    content: str
-    timestamp: datetime
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ReActEntry":
-        """Convert from dict (serialization only)."""
-        return cls(
-            kind=ReActEntryKind(data["kind"]),
-            content=data["content"],
-            timestamp=datetime.fromisoformat(data["timestamp"]),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dict for serialization."""
-        return {
-            "kind": self.kind.value,
-            "content": self.content,
-            "timestamp": self.timestamp.isoformat(),
-        }
-
-
-@dataclass(slots=True)
-class ReActScratchpad:
-    """Structured ReAct scratchpad.
-
-    Replaces: react_scratchpad: dict[str, Any] = {"timeline": []}
-    """
-
-    timeline: list[ReActEntry] = field(default_factory=list)
-    forced_calls: int = 0
-    guidance: list[str] = field(default_factory=list)
-
-    def append(self, kind: ReActEntryKind, content: str) -> None:
-        """Add an entry to the timeline."""
-        self.timeline.append(ReActEntry(kind=kind, content=content, timestamp=datetime.now()))
-
-    def clear(self) -> None:
-        """Reset the scratchpad."""
-        self.timeline.clear()
-        self.forced_calls = 0
-        self.guidance.clear()
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ReActScratchpad":
-        """Convert from dict (serialization only)."""
-        return cls(
-            timeline=[ReActEntry.from_dict(e) for e in data.get("timeline", [])],
-            forced_calls=data.get("forced_calls", 0),
-            guidance=data.get("guidance", []),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dict for serialization."""
-        return {
-            "timeline": [e.to_dict() for e in self.timeline],
-            "forced_calls": self.forced_calls,
-            "guidance": self.guidance,
-        }
-
-
-# =============================================================================
 # Todo Types
 # =============================================================================
 # These replace todos: list[dict[str, Any]]
@@ -386,10 +307,6 @@ __all__ = [
     # Tool call types
     "ToolCallStatus",
     "CanonicalToolCall",
-    # ReAct types
-    "ReActEntryKind",
-    "ReActEntry",
-    "ReActScratchpad",
     # Todo types
     "TodoStatus",
     "TodoItem",

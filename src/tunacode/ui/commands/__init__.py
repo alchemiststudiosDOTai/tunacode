@@ -84,9 +84,6 @@ class ClearCommand(Command):
         session.runtime.tool_registry.clear()
         session.conversation.files_in_context = set()
 
-        # Clear ReAct scratchpad (includes forced_calls and guidance)
-        app.state_manager.clear_react_scratchpad()
-
         app.state_manager.clear_todos()
 
         session.runtime.iteration_count = 0
