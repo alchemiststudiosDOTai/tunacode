@@ -12,8 +12,6 @@ from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.exceptions import UserAbortError
 from tunacode.utils.system import check_for_updates
 
-from tunacode.tools.authorization.handler import ToolHandler
-
 from tunacode.core.state import StateManager
 
 from tunacode.ui.headless import resolve_output
@@ -72,8 +70,8 @@ async def _run_textual_app(*, model: str | None, show_setup: bool) -> None:
         state_manager.session.current_model = model
 
     try:
-        tool_handler = ToolHandler(state_manager)
-        state_manager.set_tool_handler(tool_handler)
+        # Touch tool_handler to trigger lazy initialization
+        _ = state_manager.tool_handler
 
         await run_textual_repl(state_manager, show_setup=show_setup)
     except (KeyboardInterrupt, UserAbortError):
@@ -193,9 +191,8 @@ def run_headless(
         if auto_approve:
             state_manager.session.yolo = True
 
-        # Initialize tool handler
-        tool_handler = ToolHandler(state_manager)
-        state_manager.set_tool_handler(tool_handler)
+        # Touch tool_handler to trigger lazy initialization
+        _ = state_manager.tool_handler
 
         try:
             agent_run = await asyncio.wait_for(

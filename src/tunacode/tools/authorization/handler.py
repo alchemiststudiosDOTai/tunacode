@@ -34,9 +34,6 @@ class ToolHandler:
         self._notifier = notifier or ToolRejectionNotifier()
         self._factory = factory or ConfirmationRequestFactory()
 
-        if state_manager.tool_handler is None:
-            state_manager.set_tool_handler(self)
-
     def set_active_template(self, template: Template | None) -> None:
         self.active_template = template
 

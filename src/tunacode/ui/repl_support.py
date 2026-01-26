@@ -29,8 +29,6 @@ from tunacode.types import (
     ToolStartCallback,
 )
 
-from tunacode.tools.authorization.handler import ToolHandler
-
 from tunacode.core.state import StateManager
 
 from tunacode.ui.widgets import ToolResultDisplay
@@ -148,8 +146,7 @@ def build_textual_tool_callback(
         part: ToolCallPart,
         _node: StreamedRunResult[None, str],
     ) -> None:
-        tool_handler = state_manager.tool_handler or ToolHandler(state_manager)
-        state_manager.set_tool_handler(tool_handler)
+        tool_handler = state_manager.tool_handler
 
         if not tool_handler.should_confirm(part.tool_name):
             return

@@ -6,7 +6,7 @@ creating circular imports with the concrete implementation.
 
 from typing import TYPE_CHECKING, Any, Protocol
 
-from tunacode.types.base import ToolName
+from tunacode.types.base import ToolArgs, ToolName
 from tunacode.types.canonical import TodoItem
 from tunacode.types.state_structures import (
     ConversationState,
@@ -17,6 +17,7 @@ from tunacode.types.state_structures import (
 
 if TYPE_CHECKING:
     from tunacode.types.callbacks import PlanApprovalCallback, ToolProgressCallback
+    from tunacode.types.dataclasses import ToolConfirmationRequest, ToolConfirmationResponse
 
 
 class TodoProtocol(Protocol):
@@ -71,9 +72,25 @@ class AuthorizationSessionProtocol(Protocol):
 
 
 class AuthorizationToolHandlerProtocol(Protocol):
-    """Protocol for tool handlers exposing template context."""
+    """Protocol for tool handlers exposing template context and authorization."""
 
     active_template: TemplateProtocol | None
+
+    def should_confirm(self, tool_name: ToolName) -> bool:
+        """Check if tool needs user confirmation."""
+        ...
+
+    def create_confirmation_request(
+        self, tool_name: ToolName, args: ToolArgs
+    ) -> "ToolConfirmationRequest":
+        """Create a confirmation request for user approval."""
+        ...
+
+    def process_confirmation(
+        self, response: "ToolConfirmationResponse", tool_name: ToolName
+    ) -> bool:
+        """Process user confirmation response. Returns True if approved."""
+        ...
 
 
 class AuthorizationProtocol(Protocol):
