@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Issue #313: Core → Utils Layer Violation Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 40px;
+        }
+        h1 {
+            color: #fff;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        .issue-link {
+            color: #4a9eff;
+            text-decoration: none;
+        }
+        .issue-link:hover {
+            text-decoration: underline;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .chart {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            flex: 1;
+            min-width: 450px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #ff6b6b;
+        }
+        .after h2 {
+            color: #69db7c;
+        }
+        .violation {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        .fixed {
+            color: #69db7c;
+            font-weight: bold;
+        }
+        .migration {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 40px;
+        }
+        .migration h2 {
+            color: #ffd43b;
+        }
+        .phase {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #333;
+        }
+        .phase-header {
+            font-weight: bold;
+            color: #4a9eff;
+            margin-bottom: 8px;
+        }
+        .move {
+            padding: 4px 0;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .arrow {
+            color: #69db7c;
+        }
+        .delete {
+            color: #ff6b6b;
+            text-decoration: line-through;
+        }
+        code {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .summary-box {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .summary-box.bad {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+        }
+        .summary-box.good {
+            background: rgba(105, 219, 124, 0.2);
+            border: 1px solid #69db7c;
+        }
+        .summary-number {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        th {
+            color: #ffd43b;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Issue <a class="issue-link" href="https://github.com/alchemiststudiosDOTai/tunacode/issues/313">#313</a>: Core → Utils Layer Violation</h1>
+    <p>The <code>core</code> layer (Layer 1) imports directly from <code>utils</code> (Layer 3), skipping Layer 2 (tools/indexing/lsp).</p>
+
+    <div class="summary">
+        <div class="summary-box bad">
+            <div class="summary-number violation">24</div>
+            <div class="summary-label">imports from core → utils</div>
+        </div>
+        <div class="summary-box bad">
+            <div class="summary-number violation">13</div>
+            <div class="summary-label">files affected</div>
+        </div>
+        <div class="summary-box good">
+            <div class="summary-number fixed">0</div>
+            <div class="summary-label">target violations</div>
+        </div>
+    </div>
+
+    <div class="container" style="margin-top: 40px;">
+        <div class="chart before">
+            <h2>BEFORE (Current State)</h2>
+            <div class="mermaid">
+graph TD
+    ui[ui Layer 0]-->|51|core[core Layer 1]
+    core-->|10|tools[tools]
+    core-->|2|indexing[indexing]
+    core-->|18|lsp[lsp]
+    core-.->|24 imports|utils[utils Layer 3]
+    tools-->|1|utils
+    indexing-->|1|utils
+    lsp-->|1|utils
+
+    subgraph layer2 [Layer 2]
+        tools
+        indexing
+        lsp
+    end
+
+    subgraph foundation [Foundation - exempt]
+        types[types]
+        configuration[configuration]
+    end
+
+    core-->|24|types
+    core-->|8|configuration
+
+    linkStyle 4 stroke:#ff6b6b,stroke-width:3px,stroke-dasharray:5
+
+    style ui fill:#f66,stroke:#333
+    style core fill:#4a9eff,stroke:#333
+    style tools fill:#4ade80,stroke:#333
+    style indexing fill:#fb923c,stroke:#333
+    style lsp fill:#c084fc,stroke:#333
+    style utils fill:#facc15,stroke:#333
+    style types fill:#a855f7,stroke:#333
+    style configuration fill:#94a3b8,stroke:#333
+    style layer2 fill:none,stroke:#4ade80,stroke-width:2px,stroke-dasharray:5
+    style foundation fill:none,stroke:#a855f7,stroke-width:2px,stroke-dasharray:5
+            </div>
+            <p class="violation">Problem: core skips Layer 2 and imports directly from utils</p>
+        </div>
+
+        <div class="chart after">
+            <h2>AFTER (Target State)</h2>
+            <div class="mermaid">
+graph TD
+    ui[ui Layer 0]-->|51|core[core Layer 1]
+    core-->|10+msg|tools[tools]
+    core-->|2|indexing[indexing]
+    core-->|18|lsp[lsp]
+    tools-->|parsing,msg|utils[utils Layer 3]
+    indexing-->|1|utils
+    lsp-->|1|utils
+
+    subgraph layer2 [Layer 2]
+        tools
+        indexing
+        lsp
+    end
+
+    subgraph foundation [Foundation - exempt]
+        types[types]
+        configuration[configuration]
+    end
+
+    core-->types
+    core-->configuration
+
+    style ui fill:#f66,stroke:#333
+    style core fill:#4a9eff,stroke:#333
+    style tools fill:#4ade80,stroke:#333
+    style indexing fill:#fb923c,stroke:#333
+    style lsp fill:#c084fc,stroke:#333
+    style utils fill:#facc15,stroke:#333
+    style types fill:#a855f7,stroke:#333
+    style configuration fill:#94a3b8,stroke:#333
+    style layer2 fill:none,stroke:#4ade80,stroke-width:2px,stroke-dasharray:5
+    style foundation fill:none,stroke:#a855f7,stroke-width:2px,stroke-dasharray:5
+            </div>
+            <p class="fixed">Fixed: core imports only from Layer 2 or Foundation (types/ has no behavior)</p>
+        </div>
+    </div>
+
+    <div class="migration">
+        <h2>Migration Plan</h2>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #a855f7;"></div>
+                <span>Move to Foundation</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ade80;"></div>
+                <span>Move/Facade to Layer 2</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4a9eff;"></div>
+                <span>Inline into Core</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b6b;"></div>
+                <span>Delete</span>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">Phase 1: Inline Tiny Modules (2 modules)</div>
+            <div class="move"><code>utils/formatting.py</code> <span class="arrow">→</span> inline into <code>core/formatting.py</code> (6 lines)</div>
+            <div class="move"><code>utils/ui/helpers.py</code> DotDict <span class="arrow">→</span> inline into <code>core/agents/main.py</code> (14 lines)</div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">Phase 2: Move to Foundation - configuration/ (4 modules)</div>
+            <div class="move"><code>utils/system/ignore_patterns.py</code> <span class="arrow">→</span> <code>configuration/ignore_patterns.py</code></div>
+            <div class="move"><code>utils/config/user_configuration.py</code> <span class="arrow">→</span> <code>configuration/user_config.py</code></div>
+            <div class="move"><code>utils/limits.py</code> <span class="arrow">→</span> <code>configuration/limits.py</code></div>
+            <div class="move"><code>utils/system/paths.py</code> <span class="arrow">→</span> <code>configuration/paths.py</code></div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">Phase 3: Route through Layer 2 - tools/messaging/ (facade)</div>
+            <div class="move"><code>core/*</code> <span class="arrow">→</span> imports from <code>tools/messaging/</code> <span class="arrow">→</span> re-exports from <code>utils/messaging/</code></div>
+            <div style="font-size: 12px; color: #888; margin-top: 5px;">Facade pattern: tools/messaging/__init__.py re-exports estimate_tokens, get_content, find_dangling_tool_calls. utils/messaging/ stays in Layer 3. types/ has no behavior.</div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">Phase 4: Create Infrastructure Layer (1 module)</div>
+            <div class="move"><code>utils/ui/file_filter.py</code> <span class="arrow">→</span> <code>infrastructure/file_filter.py</code></div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">Phase 5: Move to Layer 2 - tools/ (1 module)</div>
+            <div class="move"><code>utils/parsing/</code> <span class="arrow">→</span> <code>tools/parsing/</code></div>
+            <div style="font-size: 12px; color: #888; margin-top: 5px;">Tool-specific parsing (Qwen2 XML, Hermes, JSON formats)</div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-header">Phase 6: Cleanup</div>
+            <div class="move"><span class="delete">utils/formatting.py</span></div>
+            <div class="move"><span class="delete">utils/ui/helpers.py</span></div>
+            <div class="move"><span class="delete">utils/config/</span> (empty after moves)</div>
+            <div class="move"><span class="delete">utils/system/</span> (empty after moves)</div>
+            <div class="move"><span class="delete">utils/parsing/</span> (moved to tools/parsing)</div>
+            <div class="move" style="color: #4ade80;"><code>utils/messaging/</code> stays in Layer 3 (accessed via tools/messaging/ facade)</div>
+        </div>
+    </div>
+
+    <div class="migration">
+        <h2>Import Changes by Core File</h2>
+        <table>
+            <tr>
+                <th>Core File</th>
+                <th>Before (utils)</th>
+                <th>After</th>
+            </tr>
+            <tr>
+                <td><code>core/state.py</code></td>
+                <td><code>utils.messaging</code>, <code>utils.config</code>, <code>utils.system.paths</code></td>
+                <td><code>tools.messaging</code>, <code>configuration.user_config</code>, <code>configuration.paths</code></td>
+            </tr>
+            <tr>
+                <td><code>core/agents/resume/sanitize.py</code></td>
+                <td><code>utils.messaging</code></td>
+                <td><code>tools.messaging</code></td>
+            </tr>
+            <tr>
+                <td><code>core/agents/resume/prune.py</code></td>
+                <td><code>utils.messaging</code></td>
+                <td><code>tools.messaging</code></td>
+            </tr>
+            <tr>
+                <td><code>core/agents/resume/summary.py</code></td>
+                <td><code>utils.messaging</code></td>
+                <td><code>tools.messaging</code></td>
+            </tr>
+            <tr>
+                <td><code>core/agents/.../tool_dispatcher.py</code></td>
+                <td><code>utils.parsing</code></td>
+                <td><code>tools.parsing</code></td>
+            </tr>
+            <tr>
+                <td><code>core/agents/.../agent_config.py</code></td>
+                <td><code>utils.config</code>, <code>utils.limits</code></td>
+                <td><code>configuration.user_config</code>, <code>configuration.limits</code></td>
+            </tr>
+            <tr>
+                <td><code>core/agents/main.py</code></td>
+                <td><code>utils.ui.DotDict</code></td>
+                <td>(inlined)</td>
+            </tr>
+            <tr>
+                <td><code>core/formatting.py</code></td>
+                <td><code>utils.formatting</code></td>
+                <td>(inlined)</td>
+            </tr>
+            <tr>
+                <td><code>core/user_configuration.py</code></td>
+                <td><code>utils.config</code></td>
+                <td><code>configuration.user_config</code></td>
+            </tr>
+            <tr>
+                <td><code>core/system_paths.py</code></td>
+                <td><code>utils.system.paths</code></td>
+                <td><code>configuration.paths</code></td>
+            </tr>
+            <tr>
+                <td><code>core/file_filter.py</code></td>
+                <td><code>utils.ui.file_filter</code></td>
+                <td><code>infrastructure.file_filter</code></td>
+            </tr>
+            <tr>
+                <td><code>core/messaging.py</code></td>
+                <td><code>utils.messaging</code></td>
+                <td><code>tools.messaging</code></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="migration">
+        <h2>Validation</h2>
+        <p>After migration, run:</p>
+        <pre style="background: #333; padding: 15px; border-radius: 8px;">
+# Verify no core → utils imports remain
+grep -rn "from tunacode.utils" src/tunacode/core/
+grep -rn "import tunacode.utils" src/tunacode/core/
+
+# Run import-linter (once configured)
+uv run lint-imports
+
+# Run tests
+uv run pytest</pre>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            flowchart: {
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html>
