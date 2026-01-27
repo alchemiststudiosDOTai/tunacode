@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG  # noqa: F401 (re-export)
 from tunacode.configuration.models import (
     get_model_context_window as _get_model_context_window,
 )
@@ -27,7 +27,7 @@ from tunacode.configuration.pricing import (
 from tunacode.configuration.pricing import (
     get_model_pricing as _get_model_pricing,
 )
-from tunacode.configuration.settings import ApplicationSettings
+from tunacode.configuration.settings import ApplicationSettings  # noqa: F401 (re-export)
 from tunacode.types import ModelPricing
 
 __all__: list[str] = [
