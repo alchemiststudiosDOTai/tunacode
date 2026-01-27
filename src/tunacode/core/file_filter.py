@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from tunacode.utils.ui.file_filter import FileFilter
+from tunacode.infrastructure.file_filter import FileFilter
 
 __all__: list[str] = ["FileFilter"]

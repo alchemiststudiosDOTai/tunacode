@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from tunacode.configuration.paths import get_session_storage_dir
 from tunacode.utils.messaging.adapter import (
     from_canonical_list,
     get_content,
@@ -16,7 +17,6 @@ from tunacode.utils.messaging.adapter import (
     get_tool_return_ids,
     to_canonical_list,
 )
-from tunacode.utils.system.paths import get_session_storage_dir
 
 SESSION_DIR_ENV: str = "TUNACODE_SESSION_DIR"
 SESSION_FILE_GLOB: str = "*.json"

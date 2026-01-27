@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from tunacode.utils.system.paths import (
+from tunacode.configuration.paths import (
     check_for_updates as _check_for_updates,
 )
-from tunacode.utils.system.paths import (
+from tunacode.configuration.paths import (
     delete_session_file as _delete_session_file,
 )
-from tunacode.utils.system.paths import (
+from tunacode.configuration.paths import (
     get_project_id as _get_project_id,
 )
 

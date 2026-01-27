@@ -18,11 +18,11 @@ from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_
 from pydantic_ai.settings import ModelSettings
 from tenacity import retry_if_exception_type, stop_after_attempt
 
+from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import load_models_registry
+from tunacode.configuration.user_config import load_config
 from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.types import ModelName, PydanticAgent
-from tunacode.utils.config.user_configuration import load_config
-from tunacode.utils.limits import get_max_tokens
 
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob

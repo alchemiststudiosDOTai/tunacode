@@ -105,7 +105,7 @@ class ToolDispatchResult:
 
 async def normalize_tool_args(raw_args: Any) -> ToolArgs:
     """Parse raw tool args into a normalized structure."""
-    from tunacode.utils.parsing.command_parser import parse_args
+    from tunacode.tools.parsing.command_parser import parse_args
 
     parsed_args = await parse_args(raw_args)
     return parsed_args
@@ -146,7 +146,7 @@ async def _extract_fallback_tool_calls(
     """Extract tool calls from text parts using fallback parsing."""
     from pydantic_ai.messages import ToolCallPart
 
-    from tunacode.utils.parsing.tool_parser import (
+    from tunacode.tools.parsing.tool_parser import (
         has_potential_tool_call,
         parse_tool_calls_from_text,
     )

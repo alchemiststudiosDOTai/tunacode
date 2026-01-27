@@ -16,7 +16,8 @@ from typing import TYPE_CHECKING, Any
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
 from tunacode.types.canonical import UsageMetrics
-from tunacode.utils.messaging import estimate_tokens, get_content
+
+from tunacode.tools.messaging import estimate_tokens, get_content
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 
@@ -95,7 +96,7 @@ class StateManager:
         """Load user configuration from file and merge with defaults."""
         from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
         from tunacode.configuration.models import get_model_context_window
-        from tunacode.utils.config import load_config_with_defaults
+        from tunacode.configuration.user_config import load_config_with_defaults
 
         # No config file - setup will be shown and replace this reference
         default_user_config = DEFAULT_USER_CONFIG
@@ -182,7 +183,7 @@ class StateManager:
 
     def _get_session_file_path(self) -> Path:
         """Get the file path for current session."""
-        from tunacode.utils.system.paths import get_session_storage_dir
+        from tunacode.configuration.paths import get_session_storage_dir
 
         storage_dir = get_session_storage_dir()
         return storage_dir / f"{self._session.project_id}_{self._session.session_id}.json"
@@ -288,7 +289,7 @@ class StateManager:
     def load_session(self, session_id: str) -> bool:
         """Load a session from disk."""
         from tunacode.configuration.models import get_model_context_window
-        from tunacode.utils.system.paths import get_session_storage_dir
+        from tunacode.configuration.paths import get_session_storage_dir
 
         storage_dir = get_session_storage_dir()
 
@@ -334,7 +335,7 @@ class StateManager:
 
     def list_sessions(self) -> list[dict]:
         """List available sessions for current project."""
-        from tunacode.utils.system.paths import get_session_storage_dir
+        from tunacode.configuration.paths import get_session_storage_dir
 
         storage_dir = get_session_storage_dir()
         sessions: list[dict[str, Any]] = []

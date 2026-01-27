@@ -7,8 +7,8 @@ import json
 
 import pytest
 
-import tunacode.utils.parsing.tool_parser as tool_parser
-from tunacode.utils.parsing.tool_parser import (
+import tunacode.tools.parsing.tool_parser as tool_parser
+from tunacode.tools.parsing.tool_parser import (
     ParseDiagnostics,
     ParsedToolCall,
     _normalize_tool_object,

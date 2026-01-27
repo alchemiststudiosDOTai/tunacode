@@ -8,7 +8,7 @@ Inspired by OpenCode's compaction strategy.
 
 from typing import Any
 
-from tunacode.utils.messaging import estimate_tokens
+from tunacode.tools.messaging import estimate_tokens
 
 # Pruning thresholds
 PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens

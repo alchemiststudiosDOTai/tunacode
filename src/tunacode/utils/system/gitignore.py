@@ -6,7 +6,7 @@ Provides gitignore pattern matching and file listing with ignore support.
 
 import os
 
-from tunacode.utils.system.ignore_patterns import (
+from tunacode.configuration.ignore_patterns import (
     DEFAULT_IGNORE_PATTERNS,
     GIT_DIR_PATTERN,
     is_ignored,

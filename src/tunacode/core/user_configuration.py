@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from tunacode.types import UserConfig
-from tunacode.utils.config import load_config_with_defaults as _load_config_with_defaults
-from tunacode.utils.config.user_configuration import (
+from tunacode.configuration.user_config import (
     UserConfigStateManager,
 )
-from tunacode.utils.config.user_configuration import (
+from tunacode.configuration.user_config import (
+    load_config_with_defaults as _load_config_with_defaults,
+)
+from tunacode.configuration.user_config import (
     save_config as _save_config,
 )
+from tunacode.types import UserConfig
 
 __all__: list[str] = ["load_config_with_defaults", "save_config"]
 

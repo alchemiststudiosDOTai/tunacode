@@ -28,7 +28,6 @@ from tunacode.types import (
     ToolResultCallback,
     ToolStartCallback,
 )
-from tunacode.utils.ui import DotDict
 
 from tunacode.core.agents.resume import log_message_history_debug, prune_old_tool_outputs
 from tunacode.core.agents.resume.sanitize import (
@@ -42,6 +41,15 @@ from tunacode.core.logging import get_logger
 from tunacode.core.types import StateManagerProtocol
 
 from . import agent_components as ac
+
+
+class DotDict(dict):
+    """dot.notation access to dictionary attributes."""
+
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__  # type: ignore[assignment]
+    __delattr__ = dict.__delitem__  # type: ignore[assignment]
+
 
 colors = DotDict(UI_COLORS)
 

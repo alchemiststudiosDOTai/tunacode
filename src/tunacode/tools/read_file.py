@@ -3,13 +3,13 @@
 import asyncio
 import os
 
+from tunacode.configuration.limits import get_max_line_length, get_read_limit
 from tunacode.constants import (
     ERROR_FILE_TOO_LARGE,
     MAX_FILE_SIZE,
     MSG_FILE_SIZE_LIMIT,
 )
 from tunacode.exceptions import ToolExecutionError
-from tunacode.utils.limits import get_max_line_length, get_read_limit
 
 from tunacode.tools.decorators import file_tool
 

@@ -8,7 +8,10 @@ from pathlib import Path
 
 import pathspec
 
-from tunacode.utils.system.ignore_patterns import DEFAULT_EXCLUDE_DIRS, DEFAULT_IGNORE_PATTERNS
+from tunacode.configuration.ignore_patterns import (
+    DEFAULT_EXCLUDE_DIRS,
+    DEFAULT_IGNORE_PATTERNS,
+)
 
 GITIGNORE_FILE_NAME = ".gitignore"
 GITIGNORE_STYLE = "gitwildmatch"
