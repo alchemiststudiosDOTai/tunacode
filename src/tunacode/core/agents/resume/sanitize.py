@@ -17,7 +17,6 @@ from typing import Any
 
 from tunacode.types import ToolCallId
 from tunacode.types.canonical import CanonicalMessage, MessageRole, SystemPromptPart
-
 from tunacode.utils.messaging import (
     _get_attr,
     _get_parts,

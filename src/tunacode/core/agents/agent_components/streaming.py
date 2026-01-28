@@ -328,7 +328,9 @@ async def stream_model_request_node(
             logger.lifecycle(f"Stream: {debug_event_count} events, {stream_elapsed_ms:.0f}ms")
             if debug_mode:
                 raw_stream = state_manager.session._debug_raw_stream_accum
-                raw_preview, raw_len = format_debug_preview(raw_stream, DEBUG_STREAM_TEXT_PREVIEW_LEN)
+                raw_preview, raw_len = format_debug_preview(
+                    raw_stream, DEBUG_STREAM_TEXT_PREVIEW_LEN
+                )
                 logger.debug(
                     f"Stream done: events={debug_event_count} "
                     f"raw_len={raw_len} preview={raw_preview}"

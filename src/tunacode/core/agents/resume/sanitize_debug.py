@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import Any
 
 from tunacode.types import ToolCallId
-
 from tunacode.utils.messaging import (
     _get_attr,
     _get_parts,

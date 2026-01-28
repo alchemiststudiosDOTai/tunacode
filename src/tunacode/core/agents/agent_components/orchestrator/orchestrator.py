@@ -10,8 +10,6 @@ from tunacode.types.callbacks import (
 )
 
 from tunacode.core.agents.debug_utils import (
-    DEBUG_NEWLINE_REPLACEMENT,
-    DEBUG_PREVIEW_SUFFIX,
     format_debug_preview,
     format_part_debug,
 )

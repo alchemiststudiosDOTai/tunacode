@@ -184,8 +184,6 @@ async def _glob_filesystem(
                         if should_skip_hidden:
                             continue
 
-                        entry_path = Path(entry.path)
-
                         should_ignore = traverse_gitignore(entry, ignore_manager, recursive, stack)
                         if should_ignore:
                             continue

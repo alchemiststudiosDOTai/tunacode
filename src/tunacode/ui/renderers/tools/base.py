@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
-from rich.console import Group, RenderableType, ConsoleRenderable, RichCast
+from rich.console import ConsoleRenderable, Group, RenderableType, RichCast
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
@@ -99,7 +99,8 @@ def parse_match_line(match_line: Any) -> dict[str, Any]:
     }
 
 
-def pad_lines(lines: list[ConsoleRenderable | RichCast | str], min_lines: int = MIN_VIEWPORT_LINES
+def pad_lines(
+    lines: list[ConsoleRenderable | RichCast | str], min_lines: int = MIN_VIEWPORT_LINES
 ) -> list[ConsoleRenderable | RichCast | str]:
     """Pad a list of lines to minimum height.
 
@@ -509,5 +510,5 @@ class BaseToolRenderer(ABC, Generic[T]):
         content_parts.extend([separator, viewport, separator, status])
 
         content = Group(*content_parts)
-        
+
         return self.build_panel(content, data, max_line_width)

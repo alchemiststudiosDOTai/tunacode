@@ -4,19 +4,15 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
 from tunacode.core.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
-from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,

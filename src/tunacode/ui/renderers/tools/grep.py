@@ -12,15 +12,15 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.core.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.core.constants import TOOL_VIEWPORT_LINES
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
-    tool_renderer,
     pad_lines,
     parse_match_line,
+    tool_renderer,
 )
 
 

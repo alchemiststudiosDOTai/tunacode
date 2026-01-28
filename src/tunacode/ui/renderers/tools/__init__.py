@@ -30,8 +30,8 @@ from tunacode.ui.renderers.tools.syntax_utils import (
     EXTENSION_LEXERS,
     SYNTAX_THEME,
     detect_code_lexer,
-    get_lexer,
     get_color,
+    get_lexer,
     syntax_or_text,
 )
 from tunacode.ui.renderers.tools.update_file import render_update_file

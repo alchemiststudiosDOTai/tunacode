@@ -13,16 +13,16 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.core.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.core.constants import TOOL_VIEWPORT_LINES
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
-    tool_renderer,
     pad_lines,
+    tool_renderer,
 )
-from tunacode.ui.renderers.tools.syntax_utils import get_lexer, get_color
+from tunacode.ui.renderers.tools.syntax_utils import get_color, get_lexer
 
 
 @dataclass

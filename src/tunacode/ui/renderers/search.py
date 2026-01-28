@@ -207,9 +207,11 @@ class SearchDisplayRenderer:
 
                 results.append(
                     {
-                        "title": f"{current_file}:{parsed_data["line_num"]}",
+                        "title": f"{current_file}:{parsed_data['line_num']}",
                         "file": current_file,
-                        "snippet": f"{parsed_data["before"]}[{parsed_data["match_text"]}]{parsed_data["after"]}",
+                        "snippet": f"{parsed_data['before']}[{parsed_data['match_text']}]{
+                            parsed_data['after']
+                        }",
                         "line_number": parsed_data["line_num"],
                     }
                 )
