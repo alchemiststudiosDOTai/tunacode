@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from os import DirEntry
 
 import pathspec
 
@@ -168,6 +169,28 @@ def get_ignore_manager(root: Path) -> IgnoreManager:
     ignore_manager = IgnoreManager(resolved_root, ignore_patterns, DEFAULT_EXCLUDE_DIRS)
     IGNORE_MANAGER_CACHE[resolved_root] = IgnoreCacheEntry(gitignore_mtime, ignore_manager)
     return ignore_manager
+
+
+def traverse_gitignore(entry: DirEntry, ignore_manager: IgnoreManager, recursive: bool, stack: list[Path]) -> bool:
+    """Bypass the gitignore filtering directory"""
+    entry_path = Path(entry.path)
+
+    if entry.is_dir(follow_symlinks=False):
+        if not recursive:
+            return True
+        is_ignored_dir = ignore_manager.should_ignore_dir(entry_path)
+        if is_ignored_dir:
+            return True
+        stack.append(entry_path)
+        return True
+
+    if not entry.is_file(follow_symlinks=False):
+        return True
+
+    is_ignored_file = ignore_manager.should_ignore(entry_path)
+    if is_ignored_file:
+        return True
+    return False
 
 
 __all__ = [

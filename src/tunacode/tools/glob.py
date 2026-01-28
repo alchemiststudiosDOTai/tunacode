@@ -10,7 +10,7 @@ from pathlib import Path
 from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.tools.decorators import base_tool
-from tunacode.tools.ignore import IgnoreManager, get_ignore_manager
+from tunacode.tools.ignore import IgnoreManager, get_ignore_manager, traverse_gitignore
 
 MAX_RESULTS = 5000
 EXCLUDE_DIR_SUFFIX = "/"
@@ -186,20 +186,8 @@ async def _glob_filesystem(
 
                         entry_path = Path(entry.path)
 
-                        if entry.is_dir(follow_symlinks=False):
-                            if not recursive:
-                                continue
-                            is_ignored_dir = ignore_manager.should_ignore_dir(entry_path)
-                            if is_ignored_dir:
-                                continue
-                            stack.append(entry_path)
-                            continue
-
-                        if not entry.is_file(follow_symlinks=False):
-                            continue
-
-                        is_ignored_file = ignore_manager.should_ignore(entry_path)
-                        if is_ignored_file:
+                        should_ignore = traverse_gitignore(entry, ignore_manager, recursive, stack)
+                        if should_ignore:
                             continue
 
                         rel_path = os.path.relpath(entry.path, root)
