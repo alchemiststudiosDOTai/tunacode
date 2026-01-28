@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
-from rich.console import Group, RenderableType
+from rich.console import ConsoleRenderable, Group, RenderableType, RichCast
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
@@ -76,7 +76,32 @@ def truncate_content(
     return "\n".join(truncated), max_lines, total
 
 
-def pad_lines(lines: list[str], min_lines: int = MIN_VIEWPORT_LINES) -> list[str]:
+def parse_match_line(match_line: Any) -> dict[str, Any]:
+    """Parse a match line into its components.
+
+    Args:
+        match_line: The regex match object for a match line.
+
+    Returns:
+        Dictionary with keys: 'line_num', 'before', 'match', 'after'.
+    """
+
+    line_num = int(match_line.group(1))
+    before = match_line.group(2)
+    match_text = match_line.group(3)
+    after = match_line.group(4)
+
+    return {
+        "line_num": line_num,
+        "before": before,
+        "match": match_text,
+        "after": after,
+    }
+
+
+def pad_lines(
+    lines: list[ConsoleRenderable | RichCast | str], min_lines: int = MIN_VIEWPORT_LINES
+) -> list[ConsoleRenderable | RichCast | str]:
     """Pad a list of lines to minimum height.
 
     Args:
@@ -419,6 +444,27 @@ class BaseToolRenderer(ABC, Generic[T]):
             result.append("")
         return result
 
+    def build_panel(
+        self,
+        content: RenderableType,
+        data: T,
+        max_line_width: int,
+    ) -> Panel:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        border_color = self.get_border_color(data)
+        status_text = self.get_status_text(data)
+
+        frame_width = tool_panel_frame_width(max_line_width)
+
+        return Panel(
+            content,
+            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
+            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
+            border_style=Style(color=border_color),
+            padding=(0, 1),
+            width=frame_width,
+        )
+
     def render(
         self,
         args: dict[str, Any] | None,
@@ -465,17 +511,4 @@ class BaseToolRenderer(ABC, Generic[T]):
 
         content = Group(*content_parts)
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        border_color = self.get_border_color(data)
-        status_text = self.get_status_text(data)
-
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
-            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
-            border_style=Style(color=border_color),
-            padding=(0, 1),
-            width=frame_width,
-        )
+        return self.build_panel(content, data, max_line_width)

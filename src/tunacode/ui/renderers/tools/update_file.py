@@ -4,19 +4,15 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
 from tunacode.core.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
-from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
@@ -242,20 +238,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
 
         content = Group(*content_parts)
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        border_color = self.get_border_color(data)
-        status_text = self.get_status_text(data)
-
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
-            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
-            border_style=Style(color=border_color),
-            padding=(0, 1),
-            width=frame_width,
-        )
+        return self.build_panel(content, data, max_line_width)
 
 
 # Module-level renderer instance

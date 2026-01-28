@@ -30,6 +30,7 @@ from tunacode.ui.renderers.tools.syntax_utils import (
     EXTENSION_LEXERS,
     SYNTAX_THEME,
     detect_code_lexer,
+    get_color,
     get_lexer,
     syntax_or_text,
 )
@@ -49,11 +50,13 @@ __all__ = [
     "pad_lines",
     "truncate_content",
     "truncate_line",
+    "parse_match_line",
     # Syntax utilities
     "EXTENSION_LEXERS",
     "SYNTAX_THEME",
     "detect_code_lexer",
     "get_lexer",
+    "get_color",
     "syntax_or_text",
     # Registry functions
     "get_renderer",

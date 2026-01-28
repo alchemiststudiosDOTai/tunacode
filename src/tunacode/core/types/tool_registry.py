@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
 
-from tunacode.types.base import ToolArgs, ToolCallId, ToolName
+from tunacode.types import ToolArgs, ToolCallId, ToolName
 from tunacode.types.canonical import CanonicalToolCall, ToolCallStatus
 
 ERROR_TOOL_CALL_ID_REQUIRED = "tool_call_id is required"

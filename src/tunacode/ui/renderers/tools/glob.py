@@ -13,15 +13,16 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.core.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.core.constants import TOOL_VIEWPORT_LINES
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
+    pad_lines,
     tool_renderer,
 )
-from tunacode.ui.renderers.tools.syntax_utils import get_lexer
+from tunacode.ui.renderers.tools.syntax_utils import get_color, get_lexer
 
 
 @dataclass
@@ -140,17 +141,9 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
         lexer = get_lexer(filepath)
         path = Path(filepath)
 
-        # Color by type
-        if lexer == "python":
-            return "bright_blue"
-        if lexer in ("javascript", "typescript", "jsx", "tsx"):
-            return "yellow"
-        if lexer in ("json", "yaml", "toml"):
-            return "green"
-        if lexer in ("markdown", "rst"):
-            return "cyan"
-        if lexer in ("bash", "zsh"):
-            return "magenta"
+        color = get_color(lexer)
+        if color:
+            return color
         if path.suffix in (".test.py", ".spec.ts", ".test.ts", ".spec.js", ".test.js"):
             return "bright_green"
 
@@ -183,9 +176,7 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
             lines_used += 1
 
         # Pad to minimum height
-        while lines_used < MIN_VIEWPORT_LINES:
-            viewport_parts.append(Text(""))
-            lines_used += 1
+        viewport_parts = pad_lines(viewport_parts)
 
         return Group(*viewport_parts)
 

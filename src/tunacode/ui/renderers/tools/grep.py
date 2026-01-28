@@ -12,12 +12,14 @@ from typing import Any
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.core.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.core.constants import TOOL_VIEWPORT_LINES
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
     build_hook_params_prefix,
+    pad_lines,
+    parse_match_line,
     tool_renderer,
 )
 
@@ -86,18 +88,15 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
 
             match_line = match_pattern.search(line)
             if match_line and current_file:
-                line_num = int(match_line.group(1))
-                before = match_line.group(2)
-                match_text = match_line.group(3)
-                after = match_line.group(4)
+                parsed_data = parse_match_line(match_line)
 
                 matches.append(
                     {
                         "file": current_file,
-                        "line": line_num,
-                        "before": before,
-                        "match": match_text,
-                        "after": after,
+                        "line": parsed_data["line_num"],
+                        "before": parsed_data["before"],
+                        "match": parsed_data["match_text"],
+                        "after": parsed_data["after"],
                     }
                 )
 
@@ -194,9 +193,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
             lines_used += 1
 
         # Pad to minimum height
-        while lines_used < MIN_VIEWPORT_LINES:
-            viewport_parts.append(Text(""))
-            lines_used += 1
+        viewport_parts = pad_lines(viewport_parts)
 
         return Group(*viewport_parts)
 

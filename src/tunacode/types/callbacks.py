@@ -14,7 +14,7 @@ Callback contracts (preconditions/postconditions):
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, TypeAlias
 
-from tunacode.types.base import ToolArgs, ToolName
+from tunacode.types import ToolArgs, ToolName
 
 if TYPE_CHECKING:
     from pydantic_ai.messages import ToolCallPart  # noqa: F401
