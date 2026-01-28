@@ -242,20 +242,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
 
         content = Group(*content_parts)
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        border_color = self.get_border_color(data)
-        status_text = self.get_status_text(data)
-
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
-            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
-            border_style=Style(color=border_color),
-            padding=(0, 1),
-            width=frame_width,
-        )
+        return self.build_panel(content, data, max_line_width)
 
 
 # Module-level renderer instance
