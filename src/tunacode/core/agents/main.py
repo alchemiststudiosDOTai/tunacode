@@ -59,6 +59,187 @@ __all__ = [
     "check_query_satisfaction",
 ]
 
+ERROR_CHAIN_SEPARATOR = " -> "
+MAX_ERROR_CHAIN_DEPTH = 6
+MAX_ERROR_BODY_CHARS = 2000
+UNKNOWN_REQUEST_ID = "unknown"
+HEADER_CONTENT_TYPE = "content-type"
+HEADER_REQUEST_ID = "x-request-id"
+NON_LOGGED_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    UserAbortError,
+    asyncio.CancelledError,
+)
+
+
+def _format_exception_summary(error: BaseException) -> str:
+    error_type = type(error)
+    module_name = error_type.__module__
+    type_name = error_type.__name__
+    message = str(error)
+    return f"{module_name}.{type_name}: {message}"
+
+
+def _truncate_error_body(value: str) -> str:
+    if len(value) <= MAX_ERROR_BODY_CHARS:
+        return value
+    return f"{value[:MAX_ERROR_BODY_CHARS]}..."
+
+
+def _get_bytes_length(value: Any) -> int | None:
+    if isinstance(value, (bytes, bytearray)):
+        return len(value)
+    return None
+
+
+def _get_header_value(headers: Any, key: str) -> str | None:
+    if headers is None:
+        return None
+    if not hasattr(headers, "get"):
+        return None
+    value = headers.get(key)
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def _format_error_body(body: Any) -> str | None:
+    if body is None:
+        return None
+    if isinstance(body, str):
+        if not body.strip():
+            return None
+        return _truncate_error_body(body)
+    try:
+        import json
+
+        encoded = json.dumps(body, ensure_ascii=False)
+    except Exception:
+        return None
+    if not encoded.strip():
+        return None
+    return _truncate_error_body(encoded)
+
+
+def _extract_response_body(response: Any) -> str | None:
+    try:
+        response_text = getattr(response, "text", None)
+    except Exception:
+        response_text = None
+
+    if isinstance(response_text, str) and response_text.strip():
+        return _truncate_error_body(response_text)
+
+    response_content = getattr(response, "content", None)
+    content_length = _get_bytes_length(response_content)
+    if content_length is None:
+        return None
+    if content_length == 0:
+        return None
+
+    decoded = bytes(response_content).decode(errors="replace")
+    if not decoded.strip():
+        return None
+
+    return _truncate_error_body(decoded)
+
+
+def _format_exception_details(error: BaseException) -> str | None:
+    details: list[str] = []
+
+    status_code = getattr(error, "status_code", None)
+    if status_code is not None:
+        details.append(f"status_code={status_code}")
+
+    request = getattr(error, "request", None)
+    if request is not None:
+        method = getattr(request, "method", None)
+        url = getattr(request, "url", None)
+        if method and url:
+            details.append(f"request={method} {url}")
+
+        request_content = getattr(request, "content", None)
+        request_body_size = _get_bytes_length(request_content)
+        if request_body_size is not None:
+            details.append(f"request_body_bytes={request_body_size}")
+
+    error_body = _format_error_body(getattr(error, "body", None))
+    if error_body is not None:
+        details.append(f"error_body={error_body}")
+
+    response = getattr(error, "response", None)
+    if response is not None:
+        response_status = getattr(response, "status_code", None)
+        if response_status is not None:
+            details.append(f"response_status={response_status}")
+
+        response_headers = getattr(response, "headers", None)
+        response_content_type = _get_header_value(response_headers, HEADER_CONTENT_TYPE)
+        if response_content_type is not None:
+            details.append(f"response_content_type={response_content_type}")
+
+        response_request_id = _get_header_value(response_headers, HEADER_REQUEST_ID)
+        if response_request_id is not None:
+            details.append(f"response_request_id={response_request_id}")
+
+        response_body = _extract_response_body(response)
+        if response_body is None:
+            response_read = getattr(response, "read", None)
+            if callable(response_read):
+                try:
+                    response_read()
+                except Exception:
+                    response_body = None
+                else:
+                    response_body = _extract_response_body(response)
+
+        if response_body is not None:
+            details.append(f"response_body={response_body}")
+
+    if not details:
+        return None
+
+    return ", ".join(details)
+
+
+def _collect_exception_chain(error: BaseException) -> list[BaseException]:
+    chain: list[BaseException] = []
+    seen_ids: set[int] = set()
+    current: BaseException | None = error
+
+    while current is not None and id(current) not in seen_ids:
+        if len(chain) >= MAX_ERROR_CHAIN_DEPTH:
+            break
+
+        chain.append(current)
+        seen_ids.add(id(current))
+        current = current.__cause__ or current.__context__
+
+    return chain
+
+
+def _log_request_failure(
+    error: BaseException,
+    model: ModelName,
+    state_manager: StateManagerProtocol,
+) -> None:
+    logger = get_logger()
+    chain = _collect_exception_chain(error)
+    summaries = [_format_exception_summary(entry) for entry in chain]
+    chain_summary = ERROR_CHAIN_SEPARATOR.join(summaries)
+
+    request_id = state_manager.session.runtime.request_id or UNKNOWN_REQUEST_ID
+    model_name = getattr(error, "model_name", None)
+    model_label = model_name or str(model)
+    logger.error(
+        f"Request failed (request_id={request_id}, model={model_label}): {chain_summary}"
+    )
+
+    for index, entry in enumerate(chain):
+        detail = _format_exception_details(entry)
+        if detail is None:
+            continue
+        logger.error(f"Request failure detail[{index}]: {detail}")
+
 
 @dataclass
 class AgentConfig:
@@ -220,10 +401,10 @@ class RequestOrchestrator:
         )
 
         timeout = _coerce_global_request_timeout(self.state_manager.session)
-        if timeout is None:
-            return await self._run_impl()
 
         try:
+            if timeout is None:
+                return await self._run_impl()
             return await asyncio.wait_for(self._run_impl(), timeout=timeout)
         except TimeoutError as e:
             # Invalidate agent cache - HTTP client may be in bad state after timeout
@@ -232,6 +413,11 @@ class RequestOrchestrator:
             if invalidated:
                 logger.lifecycle("Agent cache invalidated after timeout")
             raise GlobalRequestTimeoutError(timeout) from e
+        except Exception as e:
+            if isinstance(e, NON_LOGGED_EXCEPTIONS):
+                raise
+            _log_request_failure(e, self.model, self.state_manager)
+            raise
 
     async def _run_impl(self) -> AgentRun:
         """Internal implementation of request processing loop."""

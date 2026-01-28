@@ -26,7 +26,7 @@ Implements the terminal user interface using the Textual framework, following Ne
 - **compose()** - Declarative UI layout definition
 - **on_mount()** - Initialization (themes, config, workers)
 - **watch_theme()** - Dynamic theme switching
-- **streaming_callback()** - Real-time response streaming
+- **streaming_callback()** - Real-time response streaming (disabled when `settings.enable_streaming` is false)
 - **on_tool_result_display()** - Tool output rendering
 
 **Layout Components:**
@@ -171,6 +171,10 @@ process_request() → streaming_callback() → streaming_output widget
   → Tool calls → execute_tools_parallel()
   → Tool results → on_tool_result_display() → tool_panel_smart() → RichLog
 ```
+
+When `settings.enable_streaming` is false, `process_request()` runs without a
+streaming callback and the final response is rendered after completion using
+`ui.headless.resolve_output()`.
 
 ## NeXTSTEP Design Principles
 

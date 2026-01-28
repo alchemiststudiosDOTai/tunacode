@@ -1,11 +1,13 @@
 """Agent configuration and creation utilities."""
 
 import asyncio
+import platform
+import socket
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from httpx import AsyncClient, HTTPStatusError, Request
+from httpx import AsyncClient, HTTPStatusError, Request, Response
 from pydantic_ai import Agent
 
 if TYPE_CHECKING:
@@ -16,13 +18,13 @@ from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from pydantic_ai.settings import ModelSettings
-from tenacity import retry_if_exception_type, stop_after_attempt
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import load_models_registry
 from tunacode.configuration.paths import get_device_id
 from tunacode.configuration.user_config import load_config
-from tunacode.constants import ENV_OPENAI_BASE_URL
+from tunacode.constants import ENV_OPENAI_BASE_URL, KIMI_CLI_USER_AGENT, KIMI_CLI_VERSION
 from tunacode.types import ModelName, PydanticAgent
 
 from tunacode.tools.bash import bash
@@ -45,6 +47,29 @@ _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
 # Module-level cache for agents to persist across requests
 _AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
 _AGENT_CACHE_VERSION: dict[ModelName, int] = {}
+
+HTTP_ERROR_STATUS_MIN = 400
+
+
+class _LoggedAsyncTenacityTransport(AsyncTenacityTransport):
+    async def handle_async_request(self, request: Request) -> Response:
+        @retry(**self.config)
+        async def _handle_async_request(req: Request) -> Response:
+            response = await self.wrapped.handle_async_request(req)
+            response.request = req
+
+            if response.status_code >= HTTP_ERROR_STATUS_MIN:
+                await response.aread()
+
+            if self.validate_response:
+                try:
+                    self.validate_response(response)
+                except Exception:
+                    await response.aclose()
+                    raise
+            return response
+
+        return await _handle_async_request(request)
 
 
 async def _sleep_with_delay(total_delay: float) -> None:
@@ -119,23 +144,55 @@ def _build_request_hooks(
     return {"request": [_delay_before_request]}
 
 
+def _get_device_model() -> str:
+    """Get device model string for X-Msh-Device-Model header."""
+    system = platform.system()
+    arch = platform.machine() or ""
+    if system == "Darwin":
+        version = platform.mac_ver()[0] or platform.release()
+        if version and arch:
+            return f"macOS {version} {arch}"
+        if version:
+            return f"macOS {version}"
+        return f"macOS {arch}".strip()
+    if system == "Windows":
+        release = platform.release()
+        if arch:
+            return f"Windows {release} {arch}"
+        return f"Windows {release}"
+    # Linux and others
+    if arch:
+        return f"{system} {arch}"
+    return system
+
+
 def _build_client_headers() -> dict[str, str]:
     """Build HTTP headers for client identification.
 
     Returns headers that identify tunacode to LLM providers.
     Used for provider whitelisting (e.g., Kimi For Coding).
 
-    Headers follow the pattern established by other coding agents:
+    Headers match kimi-cli's implementation exactly:
     - User-Agent: Client name and version
     - X-Msh-Platform: Platform identifier (for Moonshot/Kimi)
     - X-Msh-Version: Version string (for Moonshot/Kimi)
+    - X-Msh-Device-Name: Machine hostname
+    - X-Msh-Device-Model: OS and architecture info
+    - X-Msh-Os-Version: OS version string
     - X-Msh-Device-Id: Persistent device UUID (for Moonshot/Kimi)
     """
     device_id = get_device_id()
+    device_name = platform.node() or socket.gethostname()
+    device_model = _get_device_model()
+    os_version = platform.version()
+    user_agent = KIMI_CLI_USER_AGENT
     return {
-        "User-Agent": "KimiCLI/1.0.0",
+        "User-Agent": user_agent,
         "X-Msh-Platform": "kimi_cli",
-        "X-Msh-Version": "1.0.0",
+        "X-Msh-Version": KIMI_CLI_VERSION,
+        "X-Msh-Device-Name": device_name,
+        "X-Msh-Device-Model": device_model,
+        "X-Msh-Os-Version": os_version,
         "X-Msh-Device-Id": device_id,
     }
 
@@ -382,6 +439,8 @@ def _create_model_with_retry(
     if user_headers:
         client_headers.update(user_headers)
 
+    extra_body = provider_settings.get("extra_body")
+
     openai_client = AsyncOpenAI(
         api_key=api_key,
         base_url=base_url,
@@ -393,6 +452,7 @@ def _create_model_with_retry(
     # Return model and headers - headers must be passed via model_settings.extra_headers
     # to override pydantic-ai's default User-Agent
     model._tunacode_extra_headers = client_headers  # type: ignore[attr-defined]
+    model._tunacode_extra_body = extra_body  # type: ignore[attr-defined]
     return model
 
 
@@ -463,7 +523,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         # This handles retries BEFORE node creation, avoiding pydantic-ai's
         # single-stream-per-node constraint violations
         # https://ai.pydantic.dev/api/retries/#pydantic_ai.retries.wait_retry_after
-        transport = AsyncTenacityTransport(
+        transport = _LoggedAsyncTenacityTransport(
             config=RetryConfig(
                 retry=retry_if_exception_type(HTTPStatusError),
                 wait=wait_retry_after(max_wait=60),
@@ -494,11 +554,14 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         # Build model_settings with extra_headers to override pydantic-ai's User-Agent
         max_tokens = get_max_tokens()
         extra_headers = getattr(model_instance, "_tunacode_extra_headers", None)
+        extra_body = getattr(model_instance, "_tunacode_extra_body", None)
         model_settings_kwargs: dict[str, Any] = {}
         if max_tokens is not None:
             model_settings_kwargs["max_tokens"] = max_tokens
         if extra_headers:
             model_settings_kwargs["extra_headers"] = extra_headers
+        if extra_body is not None:
+            model_settings_kwargs["extra_body"] = extra_body
 
         if model_settings_kwargs:
             agent = Agent(

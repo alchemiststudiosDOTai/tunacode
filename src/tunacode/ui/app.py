@@ -28,6 +28,7 @@ from tunacode.core.constants import (
 from tunacode.core.shared_types import ModelName
 from tunacode.core.state import StateManager
 
+from tunacode.ui.headless import resolve_output
 from tunacode.ui.renderers.agent_response import render_agent_streaming
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
@@ -190,10 +191,15 @@ class TextualReplApp(App[None]):
                 self.request_queue.task_done()
 
     async def _process_request(self, message: str) -> None:
+        session = self.state_manager.session
+        settings = session.user_config.get("settings", {})
+        streaming_enabled = bool(settings.get("enable_streaming", True))
+
         self.current_stream_text = ""
         self._last_display_update = 0.0
         self._streaming_cancelled = False
-        self.query_one("#viewport").add_class(RICHLOG_CLASS_STREAMING)
+        if streaming_enabled:
+            self.query_one("#viewport").add_class(RICHLOG_CLASS_STREAMING)
 
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
@@ -201,11 +207,13 @@ class TextualReplApp(App[None]):
         self._request_start_time = time.monotonic()
 
         # Start stream tracking for tool panel insertion
-        self.chat_container.start_stream()
+        if streaming_enabled:
+            self.chat_container.start_stream()
 
+        agent_run: Any | None = None
         try:
-            session = self.state_manager.session
             model_name = session.current_model or "openai/gpt-4o"
+            streaming_callback = self.streaming_callback if streaming_enabled else None
 
             self._current_request_task = asyncio.create_task(
                 process_request(
@@ -213,13 +221,13 @@ class TextualReplApp(App[None]):
                     model=ModelName(model_name),
                     state_manager=self.state_manager,
                     tool_callback=build_textual_tool_callback(),
-                    streaming_callback=self.streaming_callback,
+                    streaming_callback=streaming_callback,
                     tool_result_callback=build_tool_result_callback(self),
                     tool_start_callback=build_tool_start_callback(self),
                     notice_callback=self._show_system_notice,
                 )
             )
-            await self._current_request_task
+            agent_run = await self._current_request_task
         except asyncio.CancelledError:
             self.notify("Cancelled")
         except Exception as e:
@@ -236,18 +244,28 @@ class TextualReplApp(App[None]):
 
             # End stream tracking before writing final response
             # This sets the insertion anchor for any late-arriving tool panels
-            self.chat_container.end_stream()
+            if streaming_enabled:
+                self.chat_container.end_stream()
 
-            if self.current_stream_text and not self._streaming_cancelled:
+            output_text: str | None = None
+            if not self._streaming_cancelled and agent_run is not None:
+                if self.current_stream_text:
+                    output_text = self.current_stream_text
+                else:
+                    output_text = resolve_output(
+                        agent_run,
+                        session.conversation.messages,
+                    )
+
+            if output_text:
                 from tunacode.ui.renderers.agent_response import render_agent_response
 
                 duration_ms = (time.monotonic() - self._request_start_time) * 1000
-                session = self.state_manager.session
                 tokens = session.usage.last_call_usage.completion_tokens
                 model = session.current_model or ""
 
                 panel = render_agent_response(
-                    content=self.current_stream_text,
+                    content=output_text,
                     tokens=tokens,
                     duration_ms=duration_ms,
                     model=model,

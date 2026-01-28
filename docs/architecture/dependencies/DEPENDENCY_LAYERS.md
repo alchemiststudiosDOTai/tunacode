@@ -23,7 +23,7 @@ types
 | configuration | constants | 6 |
 | configuration | exceptions | 1 |
 | configuration | types | 4 |
-| core | configuration | 15 |
+| core | configuration | 16 |
 | core | constants | 6 |
 | core | exceptions | 4 |
 | core | infrastructure | 1 |
