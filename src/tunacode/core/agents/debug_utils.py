@@ -1,6 +1,6 @@
 from typing import Any
 
-from tunacode.tools.messaging import _get_attr
+from tunacode.utils.messaging import _get_attr
 
 from tunacode.core.agents.resume.sanitize import (
     PART_KIND_ATTR,

@@ -17,7 +17,7 @@ from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
 from tunacode.types.canonical import UsageMetrics
 
-from tunacode.tools.messaging import estimate_tokens, get_content
+from tunacode.utils.messaging import estimate_tokens, get_content
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 

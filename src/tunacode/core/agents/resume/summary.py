@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from tunacode.tools.messaging import estimate_tokens
+from tunacode.utils.messaging import estimate_tokens
 
 from tunacode.core.logging import get_logger
 

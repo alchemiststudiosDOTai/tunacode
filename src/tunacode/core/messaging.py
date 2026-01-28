@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tunacode.tools.messaging import get_content as _get_content
+from tunacode.utils.messaging import get_content as _get_content
 
 __all__: list[str] = ["get_content"]
 
