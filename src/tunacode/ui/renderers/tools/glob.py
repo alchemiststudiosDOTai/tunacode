@@ -22,7 +22,7 @@ from tunacode.ui.renderers.tools.base import (
     tool_renderer,
     pad_lines,
 )
-from tunacode.ui.renderers.tools.syntax_utils import get_lexer
+from tunacode.ui.renderers.tools.syntax_utils import get_lexer, get_color
 
 
 @dataclass
@@ -141,17 +141,9 @@ class GlobRenderer(BaseToolRenderer[GlobData]):
         lexer = get_lexer(filepath)
         path = Path(filepath)
 
-        # Color by type
-        if lexer == "python":
-            return "bright_blue"
-        if lexer in ("javascript", "typescript", "jsx", "tsx"):
-            return "yellow"
-        if lexer in ("json", "yaml", "toml"):
-            return "green"
-        if lexer in ("markdown", "rst"):
-            return "cyan"
-        if lexer in ("bash", "zsh"):
-            return "magenta"
+        color = get_color(lexer)
+        if color:
+            return color
         if path.suffix in (".test.py", ".spec.ts", ".test.ts", ".spec.js", ".test.js"):
             return "bright_green"
 

@@ -31,6 +31,7 @@ from tunacode.ui.renderers.tools.syntax_utils import (
     SYNTAX_THEME,
     detect_code_lexer,
     get_lexer,
+    get_color,
     syntax_or_text,
 )
 from tunacode.ui.renderers.tools.update_file import render_update_file
@@ -54,6 +55,7 @@ __all__ = [
     "SYNTAX_THEME",
     "detect_code_lexer",
     "get_lexer",
+    "get_color",
     "syntax_or_text",
     # Registry functions
     "get_renderer",

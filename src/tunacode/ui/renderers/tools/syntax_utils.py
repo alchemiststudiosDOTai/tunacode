@@ -132,6 +132,28 @@ def get_lexer(filepath: str) -> str:
     return EXTENSION_LEXERS.get(ext, "text")
 
 
+def get_color(lexer: str) -> str:
+    """Map pygments lexer name to color.
+
+    Args:
+        lexer: lexer name for syntax highlighting
+
+    Returns:
+        Color by type, or "" if unknown
+    """
+    if lexer == "python":
+        return "bright_blue"
+    if lexer in ("javascript", "typescript", "jsx", "tsx"):
+        return "yellow"
+    if lexer in ("json", "yaml", "toml"):
+        return "green"
+    if lexer in ("markdown", "rst"):
+        return "cyan"
+    if lexer in ("bash", "zsh"):
+        return "magenta"
+    return ""
+
+
 def syntax_or_text(
     content: str,
     filepath: str | None = None,
