@@ -441,6 +441,18 @@ class RequestOrchestrator:
             session = self.state_manager.session
             conversation = session.conversation
             runtime = session.runtime
+
+            # Capture partial response before cleanup
+            partial_text = session._debug_raw_stream_accum
+            if partial_text.strip():
+                from pydantic_ai.messages import ModelResponse, TextPart
+
+                partial_msg = ModelResponse(
+                    parts=[TextPart(content=f"[INTERRUPTED]\n\n{partial_text}")]
+                )
+                conversation.messages.append(partial_msg)
+                session.update_token_count()
+
             cleanup_applied = remove_dangling_tool_calls(
                 conversation.messages,
                 runtime.tool_registry,
