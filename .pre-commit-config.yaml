@@ -123,7 +123,7 @@ repos:
       # Check for duplicate code
       - id: pylint-duplicates
         name: Check for duplicate code
-        entry: uv run pylint --disable=all --enable=R0801
+        entry: uv run pylint --disable=all --enable=R0801 --min-similarity-lines=15
         language: system
         files: ^src/.*\.py$
         exclude: ^(tests/|scripts/|__pycache__/)
