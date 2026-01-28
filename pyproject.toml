@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tunacode-cli"
 
-version = "0.1.48"
+version = "0.1.49"
 description = "Your agentic CLI developer."
 keywords = ["cli", "agent", "development", "automation"]
 readme = "README.md"

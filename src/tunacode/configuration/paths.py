@@ -3,11 +3,14 @@
 import hashlib
 import os
 import subprocess
+import uuid
 from pathlib import Path
 from typing import Any
 
 from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import SESSIONS_SUBDIR, TUNACODE_HOME_DIR
+
+DEVICE_ID_FILE = "device_id"
 
 
 def get_tunacode_home() -> Path:
@@ -21,6 +24,26 @@ def get_tunacode_home() -> Path:
     home = Path.home() / TUNACODE_HOME_DIR
     home.mkdir(exist_ok=True)
     return home
+
+
+def get_device_id() -> str:
+    """
+    Get or create a persistent device identifier.
+
+    Creates a UUID on first call and stores it in ~/.tunacode/device_id.
+    Returns the same UUID on subsequent calls for consistent client identification.
+
+    Returns:
+        str: A UUID string identifying this device/installation.
+    """
+    device_id_path = get_tunacode_home() / DEVICE_ID_FILE
+
+    if device_id_path.exists():
+        return device_id_path.read_text().strip()
+
+    device_id = str(uuid.uuid4())
+    device_id_path.write_text(device_id)
+    return device_id
 
 
 def get_session_dir(state_manager: Any) -> Path:

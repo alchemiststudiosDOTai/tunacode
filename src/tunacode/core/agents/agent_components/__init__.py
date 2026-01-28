@@ -1,6 +1,6 @@
 """Agent components package for modular agent functionality."""
 
-from .agent_config import get_or_create_agent, invalidate_agent_cache
+from .agent_config import get_or_create_agent, get_resolved_api_url, invalidate_agent_cache
 from .agent_helpers import (
     create_empty_response_message,
     get_recent_tools_context,
@@ -17,6 +17,7 @@ from .tool_executor import execute_tools_parallel
 
 __all__ = [
     "get_or_create_agent",
+    "get_resolved_api_url",
     "invalidate_agent_cache",
     "get_model_messages",
     "process_node",

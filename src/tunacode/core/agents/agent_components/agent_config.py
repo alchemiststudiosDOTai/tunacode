@@ -20,6 +20,7 @@ from tenacity import retry_if_exception_type, stop_after_attempt
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import load_models_registry
+from tunacode.configuration.paths import get_device_id
 from tunacode.configuration.user_config import load_config
 from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.types import ModelName, PydanticAgent
@@ -116,6 +117,27 @@ def _build_request_hooks(
         await _sleep_with_delay(request_delay)
 
     return {"request": [_delay_before_request]}
+
+
+def _build_client_headers() -> dict[str, str]:
+    """Build HTTP headers for client identification.
+
+    Returns headers that identify tunacode to LLM providers.
+    Used for provider whitelisting (e.g., Kimi For Coding).
+
+    Headers follow the pattern established by other coding agents:
+    - User-Agent: Client name and version
+    - X-Msh-Platform: Platform identifier (for Moonshot/Kimi)
+    - X-Msh-Version: Version string (for Moonshot/Kimi)
+    - X-Msh-Device-Id: Persistent device UUID (for Moonshot/Kimi)
+    """
+    device_id = get_device_id()
+    return {
+        "User-Agent": "KimiCLI/1.0.0",
+        "X-Msh-Platform": "kimi_cli",
+        "X-Msh-Version": "1.0.0",
+        "X-Msh-Device-Id": device_id,
+    }
 
 
 def clear_all_caches() -> None:
@@ -264,6 +286,45 @@ def _get_provider_config_from_registry(provider_name: str) -> _ProviderConfig:
     )
 
 
+def get_resolved_api_url(model_string: str, session: SessionStateProtocol) -> str | None:
+    """Get the resolved API URL for a model string.
+
+    Returns the base_url that will be used for API calls, accounting for:
+    - User config overrides (settings.providers.<provider>.base_url)
+    - Environment variable overrides (OPENAI_BASE_URL)
+    - Registry defaults
+    """
+    env = session.user_config.get("env", {})
+    settings = session.user_config.get("settings", {})
+
+    # Parse model string
+    if ":" in model_string:
+        provider_name, _ = model_string.split(":", 1)
+    else:
+        model_name = model_string
+        if model_name.startswith("claude"):
+            provider_name = "anthropic"
+        elif model_name.startswith(("gpt", "o1", "o3")):
+            provider_name = "openai"
+        else:
+            return None
+
+    # Get config from registry
+    registry_config = _get_provider_config_from_registry(provider_name)
+
+    # Resolve base_url: user override > registry default
+    provider_settings = settings.get("providers", {}).get(provider_name, {})
+    base_url = provider_settings.get("base_url") or registry_config.api
+
+    # OpenAI-compatible: also check OPENAI_BASE_URL env var as escape hatch
+    if provider_name != "anthropic":
+        env_base_url = _coerce_optional_str(env.get(ENV_OPENAI_BASE_URL), ENV_OPENAI_BASE_URL)
+        if env_base_url:
+            base_url = env_base_url
+
+    return base_url
+
+
 def _create_model_with_retry(
     model_string: str, http_client: AsyncClient, session: SessionStateProtocol
 ) -> AnthropicModel | OpenAIChatModel | str:
@@ -311,8 +372,28 @@ def _create_model_with_retry(
     if env_base_url:
         base_url = env_base_url
 
-    openai_provider = OpenAIProvider(api_key=api_key, base_url=base_url, http_client=http_client)
-    return OpenAIChatModel(model_name, provider=openai_provider)
+    # Create AsyncOpenAI client with default_headers for API compatibility
+    # The openai library ignores httpx client headers, so we must use default_headers
+    from openai import AsyncOpenAI
+
+    # Merge default headers with user-configured headers (user headers take precedence)
+    client_headers = _build_client_headers()
+    user_headers = provider_settings.get("headers", {})
+    if user_headers:
+        client_headers.update(user_headers)
+
+    openai_client = AsyncOpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        default_headers=client_headers,
+        http_client=http_client,
+    )
+    openai_provider = OpenAIProvider(openai_client=openai_client)
+    model = OpenAIChatModel(model_name, provider=openai_provider)
+    # Return model and headers - headers must be passed via model_settings.extra_headers
+    # to override pydantic-ai's default User-Agent
+    model._tunacode_extra_headers = client_headers  # type: ignore[attr-defined]
+    return model
 
 
 def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -> PydanticAgent:
@@ -393,6 +474,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         )
 
         event_hooks = _build_request_hooks(request_delay)
+        client_headers = _build_client_headers()
 
         # Set HTTP timeout: connect=10s, read=60s, write=30s, pool=5s
         # This prevents hanging forever if provider doesn't respond
@@ -400,20 +482,30 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
 
         http_timeout = Timeout(10.0, read=60.0, write=30.0, pool=5.0)
         http_client = AsyncClient(
-            transport=transport, event_hooks=event_hooks, timeout=http_timeout
+            transport=transport,
+            event_hooks=event_hooks,
+            timeout=http_timeout,
+            headers=client_headers,
         )
 
         # Create model instance with retry-enabled HTTP client
         model_instance = _create_model_with_retry(model, http_client, state_manager.session)
 
-        # Apply max_tokens if configured
+        # Build model_settings with extra_headers to override pydantic-ai's User-Agent
         max_tokens = get_max_tokens()
+        extra_headers = getattr(model_instance, "_tunacode_extra_headers", None)
+        model_settings_kwargs: dict[str, Any] = {}
         if max_tokens is not None:
+            model_settings_kwargs["max_tokens"] = max_tokens
+        if extra_headers:
+            model_settings_kwargs["extra_headers"] = extra_headers
+
+        if model_settings_kwargs:
             agent = Agent(
                 model=model_instance,
                 system_prompt=system_prompt,
                 tools=tools_list,
-                model_settings=ModelSettings(max_tokens=max_tokens),
+                model_settings=ModelSettings(**model_settings_kwargs),
             )
         else:
             agent = Agent(

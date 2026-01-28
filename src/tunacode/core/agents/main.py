@@ -432,7 +432,11 @@ class RequestOrchestrator:
 
                 # Return wrapper that carries response_state
                 self._persist_run_messages(run_handle, baseline_message_count)
-                logger.lifecycle("Request complete")
+                if debug_mode:
+                    api_url = ac.get_resolved_api_url(self.model, session)
+                    logger.lifecycle(f"Request complete ({api_url})")
+                else:
+                    logger.lifecycle("Request complete")
                 return ac.AgentRunWithState(run_handle, response_state)
 
         except (UserAbortError, asyncio.CancelledError):
