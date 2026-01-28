@@ -15,13 +15,12 @@ from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
 from tunacode.types.callbacks import StreamingCallback
 
+from tunacode.core.agents.debug_utils import format_debug_preview, format_part_debug
 from tunacode.core.logging import get_logger
 from tunacode.core.types import StateManagerProtocol
 
 DEBUG_STREAM_EVENT_LOG_LIMIT: int = 5
 DEBUG_STREAM_TEXT_PREVIEW_LEN: int = 120
-DEBUG_STREAM_NEWLINE_REPLACEMENT: str = "\\n"
-DEBUG_STREAM_PREVIEW_SUFFIX: str = "..."
 
 
 def _find_overlap_length(pre_text: str, delta_text: str) -> int:
@@ -43,47 +42,6 @@ def _find_overlap_length(pre_text: str, delta_text: str) -> int:
     return 0
 
 
-def _format_stream_preview(value: Any) -> tuple[str, int]:
-    """Return a truncated preview for debug logging."""
-    if value is None:
-        return "", 0
-
-    value_text = value if isinstance(value, str) else str(value)
-    value_len = len(value_text)
-    preview_len = min(DEBUG_STREAM_TEXT_PREVIEW_LEN, value_len)
-    preview = value_text[:preview_len]
-    if value_len > preview_len:
-        preview = f"{preview}{DEBUG_STREAM_PREVIEW_SUFFIX}"
-    preview = preview.replace("\n", DEBUG_STREAM_NEWLINE_REPLACEMENT)
-    return preview, value_len
-
-
-def _format_request_part_debug(part: Any) -> str:
-    """Format a model request part for debug logging."""
-    part_kind_value = getattr(part, "part_kind", None)
-    part_kind = part_kind_value if part_kind_value is not None else "unknown"
-    tool_name = getattr(part, "tool_name", None)
-    tool_call_id = getattr(part, "tool_call_id", None)
-    content = getattr(part, "content", None)
-    args = getattr(part, "args", None)
-
-    segments = [f"kind={part_kind}"]
-    if tool_name:
-        segments.append(f"tool={tool_name}")
-    if tool_call_id:
-        segments.append(f"id={tool_call_id}")
-
-    content_preview, content_len = _format_stream_preview(content)
-    if content_preview:
-        segments.append(f"content={content_preview} ({content_len} chars)")
-
-    args_preview, args_len = _format_stream_preview(args)
-    if args_preview:
-        segments.append(f"args={args_preview} ({args_len} chars)")
-
-    return " ".join(segments)
-
-
 def _log_stream_request_parts(node: Any, debug_mode: bool) -> None:
     """Log the request parts just before opening a stream."""
     if not debug_mode:
@@ -101,7 +59,7 @@ def _log_stream_request_parts(node: Any, debug_mode: bool) -> None:
         logger.debug(f"Stream request parts: count=0 type={request_type} parts=None")
         return
     if not isinstance(request_parts, list):
-        preview, preview_len = _format_stream_preview(request_parts)
+        preview, preview_len = format_debug_preview(request_parts, DEBUG_STREAM_TEXT_PREVIEW_LEN)
         logger.debug(
             f"Stream request parts: type={request_type} "
             f"parts_type={type(request_parts).__name__} preview={preview} "
@@ -115,7 +73,7 @@ def _log_stream_request_parts(node: Any, debug_mode: bool) -> None:
     request_part_count = len(request_parts)
     logger.debug(f"Stream request parts: count={request_part_count} type={request_type}")
     for part_index, part in enumerate(request_parts):
-        part_summary = _format_request_part_debug(part)
+        part_summary = format_part_debug(part, DEBUG_STREAM_TEXT_PREVIEW_LEN)
         logger.debug(f"Stream request part[{part_index}]: {part_summary}")
 
 
@@ -370,7 +328,7 @@ async def stream_model_request_node(
             logger.lifecycle(f"Stream: {debug_event_count} events, {stream_elapsed_ms:.0f}ms")
             if debug_mode:
                 raw_stream = state_manager.session._debug_raw_stream_accum
-                raw_preview, raw_len = _format_stream_preview(raw_stream)
+                raw_preview, raw_len = format_debug_preview(raw_stream, DEBUG_STREAM_TEXT_PREVIEW_LEN)
                 logger.debug(
                     f"Stream done: events={debug_event_count} "
                     f"raw_len={raw_len} preview={raw_preview}"

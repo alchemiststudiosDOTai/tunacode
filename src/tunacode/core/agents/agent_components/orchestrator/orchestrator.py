@@ -9,9 +9,11 @@ from tunacode.types.callbacks import (
     ToolStartCallback,
 )
 
-from tunacode.core.agents.resume.sanitize_debug import (
+from tunacode.core.agents.debug_utils import (
     DEBUG_NEWLINE_REPLACEMENT,
     DEBUG_PREVIEW_SUFFIX,
+    format_debug_preview,
+    format_part_debug,
 )
 from tunacode.core.logging import get_logger
 from tunacode.core.types import AgentState, StateManagerProtocol
@@ -85,47 +87,6 @@ def _emit_tool_returns(
             logger.debug(debug_summary)
 
 
-def _format_debug_preview(value: Any) -> tuple[str, int]:
-    """Return a trimmed preview string and its original length."""
-    if value is None:
-        return "", 0
-
-    value_text = value if isinstance(value, str) else str(value)
-    value_len = len(value_text)
-    preview_len = min(DEBUG_PART_PREVIEW_LENGTH, value_len)
-    preview_text = value_text[:preview_len]
-    if value_len > preview_len:
-        preview_text = f"{preview_text}{DEBUG_PREVIEW_SUFFIX}"
-    preview_text = preview_text.replace("\n", DEBUG_NEWLINE_REPLACEMENT)
-    return preview_text, value_len
-
-
-def _format_part_debug(part: Any) -> str:
-    """Format a request/response part for debug logging."""
-    part_kind_value = getattr(part, "part_kind", None)
-    part_kind = part_kind_value if part_kind_value is not None else "unknown"
-    tool_name = getattr(part, "tool_name", None)
-    tool_call_id = getattr(part, "tool_call_id", None)
-    content = getattr(part, "content", None)
-    args = getattr(part, "args", None)
-
-    segments = [f"kind={part_kind}"]
-    if tool_name:
-        segments.append(f"tool={tool_name}")
-    if tool_call_id:
-        segments.append(f"id={tool_call_id}")
-
-    content_preview, content_len = _format_debug_preview(content)
-    if content_preview:
-        segments.append(f"content={content_preview} ({content_len} chars)")
-
-    args_preview, args_len = _format_debug_preview(args)
-    if args_preview:
-        segments.append(f"args={args_preview} ({args_len} chars)")
-
-    return " ".join(segments)
-
-
 def _log_model_request_parts(request: Any, debug_mode: bool) -> None:
     """Log the outgoing model request parts when debug is enabled."""
     if not debug_mode:
@@ -138,7 +99,7 @@ def _log_model_request_parts(request: Any, debug_mode: bool) -> None:
         logger.debug(f"Model request parts: count=0 type={request_type} parts=None")
         return
     if not isinstance(request_parts, list):
-        preview, preview_len = _format_debug_preview(request_parts)
+        preview, preview_len = format_debug_preview(request_parts, DEBUG_PART_PREVIEW_LENGTH)
         logger.debug(
             f"Model request parts: type={request_type} parts_type={type(request_parts).__name__} "
             f"preview={preview} ({preview_len} chars)"
@@ -151,7 +112,7 @@ def _log_model_request_parts(request: Any, debug_mode: bool) -> None:
     request_part_count = len(request_parts)
     logger.debug(f"Model request parts: count={request_part_count} type={request_type}")
     for part_index, part in enumerate(request_parts):
-        part_summary = _format_part_debug(part)
+        part_summary = format_part_debug(part, DEBUG_PART_PREVIEW_LENGTH)
         logger.debug(f"Model request part[{part_index}]: {part_summary}")
 
 
@@ -166,11 +127,11 @@ def _format_tool_return_debug(
     if tool_call_id:
         segments.append(f"id={tool_call_id}")
 
-    args_preview, args_len = _format_debug_preview(tool_args)
+    args_preview, args_len = format_debug_preview(tool_args, DEBUG_PART_PREVIEW_LENGTH)
     if args_preview:
         segments.append(f"args={args_preview} ({args_len} chars)")
 
-    result_preview, result_len = _format_debug_preview(content)
+    result_preview, result_len = format_debug_preview(content, DEBUG_PART_PREVIEW_LENGTH)
     if result_preview:
         segments.append(f"result={result_preview} ({result_len} chars)")
 
@@ -240,7 +201,7 @@ async def process_node(
             response_part_count = len(response_parts)
             logger.debug(f"Model response parts: count={response_part_count}")
             for part_index, part in enumerate(response_parts):
-                part_summary = _format_part_debug(part)
+                part_summary = format_part_debug(part, DEBUG_PART_PREVIEW_LENGTH)
                 logger.debug(f"Model response part[{part_index}]: {part_summary}")
         if response_state:
             has_structured_tools = has_tool_calls(response_parts)

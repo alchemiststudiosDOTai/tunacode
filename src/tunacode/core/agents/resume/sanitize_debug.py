@@ -16,60 +16,17 @@ from tunacode.tools.messaging import (
     get_tool_return_ids,
 )
 
+from tunacode.core.agents.debug_utils import format_debug_preview, format_part_debug
 from tunacode.core.logging import get_logger
 
 from .sanitize import (
-    PART_KIND_ATTR,
     TOOL_CALL_ID_ATTR,
 )
 
 __all__ = ["log_message_history_debug"]
 
-DEBUG_PREVIEW_SUFFIX: str = "..."
-DEBUG_NEWLINE_REPLACEMENT: str = "\\n"
 DEBUG_HISTORY_MESSAGE_PREVIEW_LEN: int = 160
 DEBUG_HISTORY_PART_PREVIEW_LEN: int = 120
-
-
-def _format_debug_preview(value: Any, max_len: int) -> tuple[str, int]:
-    """Format a debug preview with length metadata."""
-    if value is None:
-        return "", 0
-
-    value_text = value if isinstance(value, str) else str(value)
-    value_len = len(value_text)
-    preview_len = min(max_len, value_len)
-    preview_text = value_text[:preview_len]
-    if value_len > preview_len:
-        preview_text = f"{preview_text}{DEBUG_PREVIEW_SUFFIX}"
-    preview_text = preview_text.replace("\n", DEBUG_NEWLINE_REPLACEMENT)
-    return preview_text, value_len
-
-
-def _format_part_debug(part: Any, max_len: int) -> str:
-    """Format a single part for debug logging."""
-    part_kind_value = _get_attr(part, PART_KIND_ATTR)
-    part_kind = part_kind_value if part_kind_value is not None else "unknown"
-    tool_name = _get_attr(part, "tool_name")
-    tool_call_id = _get_attr(part, TOOL_CALL_ID_ATTR)
-    content = _get_attr(part, "content")
-    args = _get_attr(part, "args")
-
-    segments = [f"kind={part_kind}"]
-    if tool_name:
-        segments.append(f"tool={tool_name}")
-    if tool_call_id:
-        segments.append(f"id={tool_call_id}")
-
-    content_preview, content_len = _format_debug_preview(content, max_len)
-    if content_preview:
-        segments.append(f"content={content_preview} ({content_len} chars)")
-
-    args_preview, args_len = _format_debug_preview(args, max_len)
-    if args_preview:
-        segments.append(f"args={args_preview} ({args_len} chars)")
-
-    return " ".join(segments)
 
 
 def _format_tool_call_debug(tool_call: Any, max_len: int) -> str:
@@ -84,7 +41,7 @@ def _format_tool_call_debug(tool_call: Any, max_len: int) -> str:
     if tool_call_id:
         segments.append(f"id={tool_call_id}")
 
-    args_preview, args_len = _format_debug_preview(args, max_len)
+    args_preview, args_len = format_debug_preview(args, max_len)
     if args_preview:
         segments.append(f"args={args_preview} ({args_len} chars)")
 
@@ -110,7 +67,7 @@ def log_message_history_debug(
         logger.debug(f"History dangling tool_call_ids: {dangling_sorted}")
 
     if user_message:
-        preview, msg_len = _format_debug_preview(
+        preview, msg_len = format_debug_preview(
             user_message,
             DEBUG_HISTORY_MESSAGE_PREVIEW_LEN,
         )
@@ -142,7 +99,7 @@ def log_message_history_debug(
         logger.debug(summary)
 
         for part_index, part in enumerate(parts):
-            part_summary = _format_part_debug(part, DEBUG_HISTORY_PART_PREVIEW_LEN)
+            part_summary = format_part_debug(part, DEBUG_HISTORY_PART_PREVIEW_LEN)
             logger.debug(f"history[{msg_index}].part[{part_index}] {part_summary}")
 
         for tool_index, tool_call in enumerate(tool_calls):
