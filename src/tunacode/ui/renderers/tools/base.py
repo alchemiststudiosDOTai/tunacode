@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
-from rich.console import Group, RenderableType
+from rich.console import Group, RenderableType, ConsoleRenderable, RichCast
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
@@ -76,7 +76,8 @@ def truncate_content(
     return "\n".join(truncated), max_lines, total
 
 
-def pad_lines(lines: list[str], min_lines: int = MIN_VIEWPORT_LINES) -> list[str]:
+def pad_lines(lines: list[ConsoleRenderable | RichCast | str], min_lines: int = MIN_VIEWPORT_LINES
+) -> list[ConsoleRenderable | RichCast | str]:
     """Pad a list of lines to minimum height.
 
     Args:
