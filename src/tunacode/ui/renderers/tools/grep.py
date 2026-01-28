@@ -19,6 +19,7 @@ from tunacode.ui.renderers.tools.base import (
     RendererConfig,
     build_hook_params_prefix,
     tool_renderer,
+    pad_lines,
 )
 
 
@@ -194,9 +195,7 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
             lines_used += 1
 
         # Pad to minimum height
-        while lines_used < MIN_VIEWPORT_LINES:
-            viewport_parts.append(Text(""))
-            lines_used += 1
+        viewport_parts = pad_lines(viewport_parts)
 
         return Group(*viewport_parts)
 
