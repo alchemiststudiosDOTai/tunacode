@@ -15,6 +15,7 @@ from rich.text import Text
 from tunacode.core.constants import UI_COLORS
 
 from tunacode.ui.renderers.panels import RichPanelRenderer, SearchResultData
+from tunacode.ui.renderers.tools.base import parse_match_line
 
 T = TypeVar("T")
 
@@ -202,17 +203,14 @@ class SearchDisplayRenderer:
 
             match_line = match_pattern.search(line)
             if match_line and current_file:
-                line_num = int(match_line.group(1))
-                before = match_line.group(2)
-                match_text = match_line.group(3)
-                after = match_line.group(4)
+                parsed_data = parse_match_line(match_line)
 
                 results.append(
                     {
-                        "title": f"{current_file}:{line_num}",
+                        "title": f"{current_file}:{parsed_data["line_num"]}",
                         "file": current_file,
-                        "snippet": f"{before}[{match_text}]{after}",
-                        "line_number": line_num,
+                        "snippet": f"{parsed_data["before"]}[{parsed_data["match_text"]}]{parsed_data["after"]}",
+                        "line_number": parsed_data["line_num"],
                     }
                 )
 

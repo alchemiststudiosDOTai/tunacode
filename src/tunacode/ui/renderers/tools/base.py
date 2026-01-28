@@ -76,6 +76,29 @@ def truncate_content(
     return "\n".join(truncated), max_lines, total
 
 
+def parse_match_line(match_line: Any) -> dict[str, Any]:
+    """Parse a match line into its components.
+
+    Args:
+        match_line: The regex match object for a match line.
+
+    Returns:
+        Dictionary with keys: 'line_num', 'before', 'match', 'after'.
+    """
+
+    line_num = int(match_line.group(1))
+    before = match_line.group(2)
+    match_text = match_line.group(3)
+    after = match_line.group(4)
+
+    return {
+        "line_num": line_num,
+        "before": before,
+        "match": match_text,
+        "after": after,
+    }
+
+
 def pad_lines(lines: list[ConsoleRenderable | RichCast | str], min_lines: int = MIN_VIEWPORT_LINES
 ) -> list[ConsoleRenderable | RichCast | str]:
     """Pad a list of lines to minimum height.

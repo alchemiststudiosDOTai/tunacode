@@ -50,6 +50,7 @@ __all__ = [
     "pad_lines",
     "truncate_content",
     "truncate_line",
+    "parse_match_line",
     # Syntax utilities
     "EXTENSION_LEXERS",
     "SYNTAX_THEME",

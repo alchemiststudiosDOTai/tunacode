@@ -20,6 +20,7 @@ from tunacode.ui.renderers.tools.base import (
     build_hook_params_prefix,
     tool_renderer,
     pad_lines,
+    parse_match_line,
 )
 
 
@@ -87,18 +88,15 @@ class GrepRenderer(BaseToolRenderer[GrepData]):
 
             match_line = match_pattern.search(line)
             if match_line and current_file:
-                line_num = int(match_line.group(1))
-                before = match_line.group(2)
-                match_text = match_line.group(3)
-                after = match_line.group(4)
+                parsed_data = parse_match_line(match_line)
 
                 matches.append(
                     {
                         "file": current_file,
-                        "line": line_num,
-                        "before": before,
-                        "match": match_text,
-                        "after": after,
+                        "line": parsed_data["line_num"],
+                        "before": parsed_data["before"],
+                        "match": parsed_data["match_text"],
+                        "after": parsed_data["after"],
                     }
                 )
 
