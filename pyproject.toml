@@ -39,6 +39,7 @@ dependencies = [
     "html2text>=2024.2.26",
     "python-Levenshtein>=0.21.0",
     "ruff>=0.14.0",
+    "semver>=3.0.4",
 ]
 
 [project.scripts]

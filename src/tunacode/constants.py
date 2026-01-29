@@ -117,6 +117,9 @@ RICHLOG_CLASS_PAUSED = "paused"
 RICHLOG_CLASS_STREAMING = "streaming"
 
 
+PULLING_VERSIONS_TIMEOUT_SECONDS = 10
+
+
 def build_tunacode_theme() -> Theme:
     """Build and return the TunaCode Textual theme.
 
