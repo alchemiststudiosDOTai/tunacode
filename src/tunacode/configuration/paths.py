@@ -9,7 +9,7 @@ from typing import Any
 import semver
 
 from tunacode.configuration.settings import ApplicationSettings
-from tunacode.constants import SESSIONS_SUBDIR, TUNACODE_HOME_DIR, PULLING_VERSIONS_TIMEOUT_SECONDS
+from tunacode.constants import PULLING_VERSIONS_TIMEOUT_SECONDS, SESSIONS_SUBDIR, TUNACODE_HOME_DIR
 
 
 def get_tunacode_home() -> Path:
@@ -140,7 +140,7 @@ def check_for_updates() -> tuple[bool, str]:
             - latest_version (str): The latest version available
     """
     app_settings = ApplicationSettings()
-    current_version = str(semver.Version.parse(app_settings.version))
+    current_version = semver.Version.parse(app_settings.version)
     try:
         result = subprocess.run(
             ["pip", "index", "versions", "tunacode-cli"],
@@ -154,11 +154,11 @@ def check_for_updates() -> tuple[bool, str]:
         if "Available versions:" in output:
             versions_line = output.split("Available versions:")[1].strip()
             versions = versions_line.split(", ")
-            latest_version = str(semver.Version.parse(versions[0]))
+            latest_version = semver.Version.parse(versions[0])
 
-            if semver.compare(latest_version, current_version) > 0:
-                return True, latest_version
+            if latest_version.compare(current_version) > 0:
+                return True, str(latest_version)
 
-        return False, current_version
+        return False, str(current_version)
     except Exception:
-        return False, current_version
+        return False, str(current_version)
