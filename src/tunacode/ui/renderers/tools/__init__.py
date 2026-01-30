@@ -17,6 +17,7 @@ from tunacode.ui.renderers.tools.base import (
     get_renderer,
     list_renderers,
     pad_lines,
+    parse_match_line,
     tool_renderer,
     truncate_content,
     truncate_line,
