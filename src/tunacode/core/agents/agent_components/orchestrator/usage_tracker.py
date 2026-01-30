@@ -3,8 +3,7 @@
 from typing import Any
 
 from tunacode.configuration.pricing import calculate_cost, get_model_pricing
-from tunacode.types.canonical import UsageMetrics
-from tunacode.types.pydantic_ai import normalize_request_usage
+from tunacode.types.canonical import UsageMetrics, normalize_request_usage
 
 from tunacode.core.logging import get_logger
 from tunacode.core.types import SessionStateProtocol

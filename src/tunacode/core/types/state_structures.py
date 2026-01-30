@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tunacode.types.canonical import UsageMetrics
-from tunacode.types.pydantic_ai import MessageHistory
+
+from tunacode.infrastructure.llm_types import MessageHistory
 
 from tunacode.core.types.tool_registry import ToolCallRegistry
 

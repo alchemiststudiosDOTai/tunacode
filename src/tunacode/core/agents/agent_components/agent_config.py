@@ -22,7 +22,7 @@ from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import load_models_registry
 from tunacode.configuration.user_config import load_config
 from tunacode.constants import ENV_OPENAI_BASE_URL
-from tunacode.types import ModelName, PydanticAgent
+from tunacode.types import ModelName
 
 from tunacode.tools.bash import bash
 from tunacode.tools.glob import glob
@@ -33,6 +33,8 @@ from tunacode.tools.submit import submit
 from tunacode.tools.update_file import update_file
 from tunacode.tools.web_fetch import web_fetch
 from tunacode.tools.write_file import write_file
+
+from tunacode.infrastructure.llm_types import PydanticAgent
 
 from tunacode.core.logging import get_logger
 from tunacode.core.prompting import resolve_prompt

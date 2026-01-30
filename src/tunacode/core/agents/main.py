@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 from tunacode.constants import UI_COLORS
 from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
 from tunacode.types import (
-    AgentRun,
     ModelName,
     NoticeCallback,
     StreamingCallback,
@@ -28,6 +27,8 @@ from tunacode.types import (
     ToolResultCallback,
     ToolStartCallback,
 )
+
+from tunacode.infrastructure.llm_types import AgentRun
 
 from tunacode.core.agents.resume import log_message_history_debug, prune_old_tool_outputs
 from tunacode.core.agents.resume.sanitize import (

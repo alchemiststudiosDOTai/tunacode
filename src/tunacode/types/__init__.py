@@ -48,7 +48,9 @@ from tunacode.types.callbacks import (
     AsyncVoidFunc,
     NoticeCallback,
     StreamingCallback,
+    StreamResultProtocol,
     ToolCallback,
+    ToolCallPartProtocol,
     ToolResultCallback,
     ToolStartCallback,
     UICallback,
@@ -61,6 +63,7 @@ from tunacode.types.canonical import (
     CanonicalPart,
     CanonicalToolCall,
     MessageRole,
+    NormalizedUsage,
     PartKind,
     RecursiveContext,
     RetryPromptPart,
@@ -69,6 +72,7 @@ from tunacode.types.canonical import (
     ThoughtPart,
     ToolCallStatus,
     UsageMetrics,
+    normalize_request_usage,
 )
 from tunacode.types.canonical import (
     ToolCallPart as CanonicalToolCallPart,
@@ -84,19 +88,6 @@ from tunacode.types.dataclasses import (
     ModelPricing,
     ModelRegistry,
     TokenUsage,
-)
-
-# Pydantic-AI wrappers
-from tunacode.types.pydantic_ai import (
-    AgentResponse,
-    AgentRun,
-    MessageHistory,
-    MessagePart,
-    ModelRequest,
-    ModelResponse,
-    NormalizedUsage,
-    PydanticAgent,
-    normalize_request_usage,
 )
 
 __all__ = [
@@ -132,25 +123,17 @@ __all__ = [
     "UserConfig",
     "ValidationResult",
     "Validator",
-    # Pydantic-AI
-    "AgentResponse",
-    "AgentRun",
-    "MessageHistory",
-    "MessagePart",
-    "ModelRequest",
-    "ModelResponse",
-    "NormalizedUsage",
-    "PydanticAgent",
-    "normalize_request_usage",
-    # Callbacks
+    # Callbacks and protocols
     "AsyncFunc",
     "AsyncToolFunc",
     "AsyncVoidFunc",
+    "NoticeCallback",
     "StreamingCallback",
+    "StreamResultProtocol",
     "ToolCallback",
+    "ToolCallPartProtocol",
     "ToolResultCallback",
     "ToolStartCallback",
-    "NoticeCallback",
     "UICallback",
     "UIInputCallback",
     # Dataclasses
@@ -159,13 +142,14 @@ __all__ = [
     "ModelPricing",
     "ModelRegistry",
     "TokenUsage",
-    # Canonical types (new)
+    # Canonical types
     "CanonicalMessage",
     "CanonicalPart",
     "CanonicalToolCall",
     "CanonicalToolCallPart",
     "CanonicalToolReturnPart",
     "MessageRole",
+    "NormalizedUsage",
     "PartKind",
     "RecursiveContext",
     "RetryPromptPart",
@@ -174,4 +158,5 @@ __all__ = [
     "ThoughtPart",
     "ToolCallStatus",
     "UsageMetrics",
+    "normalize_request_usage",
 ]
