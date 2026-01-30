@@ -114,6 +114,7 @@ section-order = [
     "third-party",
     "tunacode-shared",
     "tunacode-tools",
+    "tunacode-infrastructure",
     "tunacode-core",
     "tunacode-ui",
     "first-party",
@@ -133,6 +134,7 @@ section-order = [
     "tunacode.utils*",
 ]
 "tunacode-tools" = ["tunacode.tools*"]
+"tunacode-infrastructure" = ["tunacode.infrastructure*"]
 "tunacode-core" = ["tunacode.core*"]
 "tunacode-ui" = ["tunacode.ui*"]
 
