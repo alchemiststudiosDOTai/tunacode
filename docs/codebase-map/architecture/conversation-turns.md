@@ -66,8 +66,7 @@ USER INPUT
 │    ├─ Phase 3: Record thoughts (session.conversation.thoughts)  │
 │    ├─ Phase 4: Update usage tracking (tokens)                   │
 │    ├─ Phase 5: Dispatch tools (categorize → execute)            │
-│    ├─ Phase 6: Detect truncation/emptiness                      │
-│    └─ Phase 7: Transition to RESPONSE state                     │
+│    └─ Phase 6: Transition to RESPONSE state                     │
 └─────────────────────────────────────────────────────────────────┘
     │
     ▼

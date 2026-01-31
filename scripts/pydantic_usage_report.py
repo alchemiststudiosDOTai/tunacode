@@ -236,6 +236,8 @@ def scan_repository(
     }
     file_paths = list_repo_files(root)
     for path in file_paths:
+        if not path.exists():
+            continue
         if is_binary_file(path):
             continue
         file_contents = read_text_file(path)

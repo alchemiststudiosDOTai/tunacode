@@ -129,7 +129,7 @@ WRONG:
    - Do this immediately when the task objective is achieved
    - Do not call submit if you have queued tools in the same response
 
-6. TRUNCATION HANDLING: If your response is cut off or truncated, you'll be prompted to continue - complete your action.
+6. EMPTY RESPONSE HANDLING: If you return an empty response, you'll be prompted to continue - complete your action.
 
 7. NO EMOJIS: You MUST NOT USE ANY EMOJIS. You will be penalized for emoji use.
 
