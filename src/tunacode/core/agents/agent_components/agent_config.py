@@ -53,18 +53,6 @@ async def _sleep_with_delay(total_delay: float) -> None:
     await asyncio.sleep(total_delay)
 
 
-def _coerce_request_delay(session: SessionStateProtocol) -> float:
-    """Return validated request_delay from session config."""
-    settings = session.user_config.get("settings", {})
-    request_delay_raw = settings.get("request_delay", 0.0)
-    request_delay = float(request_delay_raw)
-
-    if request_delay < 0.0 or request_delay > 60.0:
-        raise ValueError(f"request_delay must be between 0.0 and 60.0 seconds, got {request_delay}")
-
-    return request_delay
-
-
 def _coerce_global_request_timeout(session: SessionStateProtocol) -> float | None:
     """Return validated global_request_timeout from session config, or None if disabled."""
     settings = session.user_config.get("settings", {})
@@ -237,6 +225,7 @@ def load_tunacode_context() -> str:
 
     except FileNotFoundError:
         return ""
+        return ""
     except Exception as e:
         logger.error(f"Unexpected error loading guide file: {e}")
         raise
@@ -320,8 +309,8 @@ def _create_model_with_retry(
 def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -> PydanticAgent:
     """Get existing agent or create new one for the specified model."""
     logger = get_logger()
-    request_delay = _coerce_request_delay(state_manager.session)
-    settings = state_manager.session.user_config.get("settings", {})
+    settings = state_manager.session.user_config["settings"]
+    request_delay = settings["request_delay"]
     agent_version = _compute_agent_version(settings, request_delay)
 
     # Check session-level cache first (for backward compatibility with tests)

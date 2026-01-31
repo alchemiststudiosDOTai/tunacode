@@ -1,109 +1,69 @@
 {
-  "generated_at": "2026-01-31T01:53:25.998048+00:00",
-  "root": ".",
+  "generated_at": "2026-01-31T02:19:49.488936+00:00",
+  "root": "src",
   "groups": {
     "pydantic_ai_imports": {
       "name": "pydantic_ai_imports",
       "description": "Imports that reference pydantic_ai.",
       "pattern": "\\bfrom\\s+pydantic_ai\\b|\\bimport\\s+pydantic_ai\\b",
-      "match_count": 47,
-      "file_count": 24,
+      "match_count": 33,
+      "file_count": 14,
       "files": [
         {
-          "path": "docs/tools/architecture.md",
-          "match_count": 1
-        },
-        {
-          "path": "memory-bank/research/2026-01-27_alchemy-rs-migration.md",
-          "match_count": 4
-        },
-        {
-          "path": "scripts/utils/vulture_whitelist.py",
-          "match_count": 2
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/agent_config.py",
+          "path": "tunacode/core/agents/agent_components/agent_config.py",
           "match_count": 9
         },
         {
-          "path": "src/tunacode/core/agents/agent_components/message_handler.py",
+          "path": "tunacode/core/agents/agent_components/message_handler.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py",
+          "path": "tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/core/agents/agent_components/streaming.py",
+          "path": "tunacode/core/agents/agent_components/streaming.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/core/agents/agent_components/tool_executor.py",
+          "path": "tunacode/core/agents/agent_components/tool_executor.py",
           "match_count": 3
         },
         {
-          "path": "src/tunacode/core/agents/main.py",
+          "path": "tunacode/core/agents/main.py",
           "match_count": 5
         },
         {
-          "path": "src/tunacode/core/agents/resume/summary.py",
+          "path": "tunacode/core/agents/resume/summary.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/core/state.py",
+          "path": "tunacode/core/state.py",
           "match_count": 2
         },
         {
-          "path": "src/tunacode/infrastructure/llm_types.py",
+          "path": "tunacode/infrastructure/llm_types.py",
           "match_count": 3
         },
         {
-          "path": "src/tunacode/tools/decorators.py",
+          "path": "tunacode/tools/decorators.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/types/canonical.py",
+          "path": "tunacode/types/canonical.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/ui/app.py",
+          "path": "tunacode/ui/app.py",
           "match_count": 2
         },
         {
-          "path": "src/tunacode/ui/headless/output.py",
+          "path": "tunacode/ui/headless/output.py",
           "match_count": 1
         },
         {
-          "path": "src/tunacode/ui/repl_support.py",
+          "path": "tunacode/ui/repl_support.py",
           "match_count": 2
-        },
-        {
-          "path": "tests/integration/core/test_tool_call_lifecycle.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/integration/tools/test_glob_grep_path_validation.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/integration/tools/test_tool_dispatcher_coverage.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/integration/tools/test_tool_retry.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/unit/core/test_text_match.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/unit/tools/test_submit.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/unit/tools/test_tool_decorators.py",
-          "match_count": 1
         }
       ]
     },
@@ -111,27 +71,11 @@
       "name": "pydantic_imports",
       "description": "Imports that reference pydantic.",
       "pattern": "\\bfrom\\s+pydantic\\b|\\bimport\\s+pydantic\\b",
-      "match_count": 6,
-      "file_count": 5,
+      "match_count": 2,
+      "file_count": 1,
       "files": [
         {
-          "path": "memory-bank/research/2026-01-27_alchemy-rs-migration.md",
-          "match_count": 1
-        },
-        {
-          "path": "memory-bank/research/2026-01-28_00-25-00_api-error-logging-gaps.md",
-          "match_count": 1
-        },
-        {
-          "path": "problem_statement_model_api_error_logging.md",
-          "match_count": 1
-        },
-        {
-          "path": "pytest.ini",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/core/state.py",
+          "path": "tunacode/core/state.py",
           "match_count": 2
         }
       ]
@@ -148,31 +92,15 @@
       "name": "field",
       "description": "Field usage.",
       "pattern": "\\bField\\b",
-      "match_count": 6,
-      "file_count": 6,
+      "match_count": 2,
+      "file_count": 2,
       "files": [
         {
-          "path": "docs/codebase-map/modules/constants.md",
+          "path": "tunacode/ui/renderers/errors.py",
           "match_count": 1
         },
         {
-          "path": "docs/configuration/README.md",
-          "match_count": 1
-        },
-        {
-          "path": "memory-bank/research/2026-01-26_17-34-12_permission-system-removal-map.md",
-          "match_count": 1
-        },
-        {
-          "path": "memory-bank/research/2026-01-27_streaming-abort-context-loss.md",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/ui/renderers/errors.py",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/ui/styles/theme-nextstep.tcss",
+          "path": "tunacode/ui/styles/theme-nextstep.tcss",
           "match_count": 1
         }
       ]
@@ -181,15 +109,11 @@
       "name": "type_adapter",
       "description": "TypeAdapter usage.",
       "pattern": "\\bTypeAdapter\\b",
-      "match_count": 5,
-      "file_count": 2,
+      "match_count": 4,
+      "file_count": 1,
       "files": [
         {
-          "path": ".claude/debug_history/2026-01-21_resume-hang-investigation.md",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/core/state.py",
+          "path": "tunacode/core/state.py",
           "match_count": 4
         }
       ]
@@ -198,16 +122,12 @@
       "name": "validator",
       "description": "validator/model_validator usage.",
       "pattern": "\\bmodel_validator\\b|\\bvalidator\\b",
-      "match_count": 3,
-      "file_count": 2,
+      "match_count": 1,
+      "file_count": 1,
       "files": [
         {
-          "path": "src/tunacode/prompts/system_prompt.md",
+          "path": "tunacode/prompts/system_prompt.md",
           "match_count": 1
-        },
-        {
-          "path": "uv.lock",
-          "match_count": 2
         }
       ]
     },
@@ -223,15 +143,11 @@
       "name": "agent_call",
       "description": "Agent(...) constructor usage.",
       "pattern": "\\bAgent\\(",
-      "match_count": 3,
-      "file_count": 2,
+      "match_count": 2,
+      "file_count": 1,
       "files": [
         {
-          "path": "docs/codebase-map/architecture/architecture.md",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/agent_config.py",
+          "path": "tunacode/core/agents/agent_components/agent_config.py",
           "match_count": 2
         }
       ]
@@ -246,7 +162,7 @@
     }
   },
   "totals": {
-    "match_count": 70,
-    "file_count": 37
+    "match_count": 44,
+    "file_count": 17
   }
 }
