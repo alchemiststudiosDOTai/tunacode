@@ -64,21 +64,27 @@ Several state classes manage agent behavior:
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/core/agents/agent_components/agent_config.py`
 
-Three module-level dictionaries serve as global in-memory caches:
+One module-level dictionary serves as a global in-memory cache:
 
 ```python
 _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
-_AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
-_AGENT_CACHE_VERSION: dict[ModelName, int] = {}
 ```
 
 - **`_TUNACODE_CACHE`:** Caches `AGENTS.md` content with modification time
-- **`_AGENT_CACHE`:** Stores `PydanticAgent` instances across requests
-- **`_AGENT_CACHE_VERSION`:** Manages cache versioning for invalidation
 
-> **Note:** System prompts are now composed from section files via `SectionLoader` in `src/tunacode/core/prompting/loader.py`, which uses instance-level caching.
+### 2.2 Session-Level Agent Cache
 
-### 2.2 Models Registry Cache
+**Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/core/state.py`
+
+Agent instances are cached per session to avoid cross-session leakage:
+
+- **`session.agents`:** Stores `PydanticAgent` instances for the active session
+- **`session.agent_versions`:** Version tracking for cache invalidation
+
+Agents are invalidated on abort/timeout via `invalidate_agent_cache()` in
+`src/tunacode/core/agents/agent_components/agent_config.py`.
+
+### 2.3 Models Registry Cache
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/configuration/models.py`
 
@@ -96,7 +102,7 @@ def load_models_registry() -> dict:
 
 The models registry is cached in memory to avoid repeated file reads.
 
-### 2.3 Token Counter Heuristic
+### 2.4 Token Counter Heuristic
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/utils/messaging/token_counter.py`
 
@@ -111,14 +117,14 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
     return len(text) // CHARS_PER_TOKEN
 ```
 
-### 2.4 Tool Buffer
+### 2.5 Tool Buffer
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/core/agents/agent_components/tool_buffer.py`
 
 - **`ToolBuffer`:** Buffers read-only tool calls (`self.read_only_tasks`) for parallel execution
 - Acts as a transient data store for tool calls awaiting batched execution
 
-### 2.5 Progress Tracker
+### 2.6 Progress Tracker
 
 **Location:** `/Users/tuna/Desktop/tunacode/src/tunacode/core/agents/research_agent.py`
 

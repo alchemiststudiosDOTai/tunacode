@@ -3,18 +3,14 @@
 Bug: When user hits ESC to abort a request, the HTTP client in the cached agent
 may have a broken connection. The next request reuses this broken agent and hangs.
 
-Fix: Invalidate agent cache (both module-level and session-level) on abort.
+Fix: Invalidate session-level agent cache on abort.
 """
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from tunacode.core.agents.agent_components.agent_config import (
-    _AGENT_CACHE,
-    _AGENT_CACHE_VERSION,
-    clear_all_caches,
-)
+from tunacode.core.agents.agent_components.agent_config import clear_all_caches
 
 
 @pytest.fixture
@@ -56,23 +52,18 @@ def test_abort_should_invalidate_agent_cache(clean_caches, mock_state_manager):
     mock_agent = MagicMock()
     version = 12345
 
-    # Populate both caches (simulating normal agent creation)
-    _AGENT_CACHE[model] = mock_agent
-    _AGENT_CACHE_VERSION[model] = version
+    # Populate session cache (simulating normal agent creation)
     mock_state_manager.session.agents[model] = mock_agent
     mock_state_manager.session.agent_versions[model] = version
 
-    # Verify caches are populated
-    assert model in _AGENT_CACHE
+    # Verify cache is populated
     assert model in mock_state_manager.session.agents
 
-    # Simulate abort - this should clear the caches
+    # Simulate abort - this should clear the cache
     invalidated = invalidate_agent_cache(model, mock_state_manager)
 
-    # Verify caches are cleared
+    # Verify cache is cleared
     assert invalidated is True
-    assert model not in _AGENT_CACHE, "Module cache should be cleared after abort"
-    assert model not in _AGENT_CACHE_VERSION, "Module version cache should be cleared"
     assert model not in mock_state_manager.session.agents, "Session cache should be cleared"
     assert model not in mock_state_manager.session.agent_versions, (
         "Session version should be cleared"
@@ -88,7 +79,8 @@ def test_invalidate_returns_false_when_not_cached(clean_caches, mock_state_manag
     model = "uncached:model"
 
     # Cache is empty
-    assert model not in _AGENT_CACHE
+    assert model not in mock_state_manager.session.agents
+    assert model not in mock_state_manager.session.agent_versions
 
     # Should return False (nothing to invalidate)
     invalidated = invalidate_agent_cache(model, mock_state_manager)
