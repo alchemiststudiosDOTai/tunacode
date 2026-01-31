@@ -21,12 +21,14 @@ BASELINE_PATH = REPO_ROOT / "scripts" / "pydantic_usage_baseline.json"
 REPORT_SCRIPT = REPO_ROOT / "scripts" / "pydantic_usage_report.py"
 
 # Groups that matter for the ratchet
-RATCHET_GROUPS = frozenset({
-    "pydantic_ai_imports",
-    "pydantic_imports",
-    "type_adapter",
-    "agent_call",
-})
+RATCHET_GROUPS = frozenset(
+    {
+        "pydantic_ai_imports",
+        "pydantic_imports",
+        "type_adapter",
+        "agent_call",
+    }
+)
 
 
 def _run_report() -> dict:
@@ -69,9 +71,7 @@ class TestPydanticRatchet:
             "--root src > scripts/pydantic_usage_baseline.json"
         )
 
-    def test_total_match_count_not_increased(
-        self, current_report: dict, baseline: dict
-    ) -> None:
+    def test_total_match_count_not_increased(self, current_report: dict, baseline: dict) -> None:
         """Total pydantic matches must not increase."""
         current_total = current_report["totals"]["match_count"]
         baseline_total = baseline["totals"]["match_count"]
@@ -81,9 +81,7 @@ class TestPydanticRatchet:
             "You added pydantic imports. Remove them or update the baseline if justified."
         )
 
-    def test_total_file_count_not_increased(
-        self, current_report: dict, baseline: dict
-    ) -> None:
+    def test_total_file_count_not_increased(self, current_report: dict, baseline: dict) -> None:
         """Total files with pydantic must not increase."""
         current_files = current_report["totals"]["file_count"]
         baseline_files = baseline["totals"]["file_count"]
@@ -109,9 +107,7 @@ class TestPydanticRatchet:
             "Remove the new pydantic usage or update baseline if justified."
         )
 
-    def test_print_progress_if_improved(
-        self, current_report: dict, baseline: dict
-    ) -> None:
+    def test_print_progress_if_improved(self, current_report: dict, baseline: dict) -> None:
         """Report progress when pydantic usage decreases."""
         current_total = current_report["totals"]["match_count"]
         baseline_total = baseline["totals"]["match_count"]
@@ -120,5 +116,7 @@ class TestPydanticRatchet:
             delta = baseline_total - current_total
             print(f"\n🎉 Pydantic usage decreased by {delta} matches!")
             print("Consider updating the baseline to lock in progress:")
-            print("  uv run python scripts/pydantic_usage_report.py "
-                  "--root src > scripts/pydantic_usage_baseline.json")
+            print(
+                "  uv run python scripts/pydantic_usage_report.py "
+                "--root src > scripts/pydantic_usage_baseline.json"
+            )

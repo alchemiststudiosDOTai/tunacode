@@ -15,7 +15,6 @@ from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest as _ModelRequest
 from pydantic_ai.messages import ToolReturnPart
 
-
 # provide stable names for pydantic-ai types used throughout the codebase.
 
 # Agent type

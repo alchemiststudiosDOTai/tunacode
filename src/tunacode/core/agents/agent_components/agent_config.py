@@ -18,6 +18,7 @@ from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_
 from pydantic_ai.settings import ModelSettings
 from tenacity import retry_if_exception_type, stop_after_attempt
 
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import load_models_registry
 from tunacode.configuration.user_config import load_config
@@ -42,6 +43,8 @@ from tunacode.core.types import SessionStateProtocol, StateManagerProtocol
 
 # Module-level cache for AGENTS.md context
 _TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
+
+DEFAULT_REQUEST_DELAY_SECONDS: float = DEFAULT_USER_CONFIG["settings"]["request_delay"]
 
 
 async def _sleep_with_delay(total_delay: float) -> None:
@@ -297,7 +300,8 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
     logger = get_logger()
     session = state_manager.session
     settings = session.user_config["settings"]
-    request_delay = settings["request_delay"]
+    request_delay_setting = settings.get("request_delay", DEFAULT_REQUEST_DELAY_SECONDS)
+    request_delay = float(request_delay_setting)
     agent_version = _compute_agent_version(settings, request_delay)
 
     session_agent = session.agents.get(model)
