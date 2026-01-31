@@ -27,6 +27,8 @@ from tunacode.types import (
     ToolResultCallback,
     ToolStartCallback,
 )
+from tunacode.types.canonical import CanonicalMessage, MessageRole, TextPart
+from tunacode.utils.messaging import to_wire_message, to_wire_messages
 
 from tunacode.infrastructure.llm_types import AgentRun
 
@@ -209,7 +211,9 @@ class RequestOrchestrator:
         run_messages = list(agent_run.all_messages())
         conversation = self.state_manager.session.conversation
         external_messages = conversation.messages[baseline_message_count:]
-        merged_messages = [*run_messages, *external_messages]
+        serialized_run_messages = to_wire_messages(run_messages)
+        serialized_external_messages = to_wire_messages(external_messages)
+        merged_messages = [*serialized_run_messages, *serialized_external_messages]
 
         conversation.messages = merged_messages
         self.state_manager.session.update_token_count()
@@ -446,12 +450,12 @@ class RequestOrchestrator:
             # Capture partial response before cleanup
             partial_text = session._debug_raw_stream_accum
             if partial_text.strip():
-                from pydantic_ai.messages import ModelResponse, TextPart
-
-                partial_msg = ModelResponse(
-                    parts=[TextPart(content=f"[INTERRUPTED]\n\n{partial_text}")]
+                interrupted_content = f"[INTERRUPTED]\n\n{partial_text}"
+                partial_message = CanonicalMessage(
+                    role=MessageRole.ASSISTANT,
+                    parts=(TextPart(content=interrupted_content),),
                 )
-                conversation.messages.append(partial_msg)
+                conversation.messages.append(to_wire_message(partial_message))
                 session.update_token_count()
 
             cleanup_applied = remove_dangling_tool_calls(

@@ -16,6 +16,13 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import LoadingIndicator, Static
 
+from tunacode.utils.messaging import _get_attr, _get_parts
+from tunacode.utils.messaging.adapter import (
+    PYDANTIC_MESSAGE_KIND_REQUEST,
+    PYDANTIC_MESSAGE_KIND_RESPONSE,
+    PYDANTIC_PART_KIND_USER_PROMPT,
+)
+
 from tunacode.core.agents.main import process_request
 from tunacode.core.constants import (
     MIN_TOOL_PANEL_LINE_WIDTH,
@@ -243,13 +250,12 @@ class TextualReplApp(App[None]):
             self.state_manager.save_session()
 
     def _get_latest_response_text(self) -> str | None:
-        from pydantic_ai.messages import ModelResponse
-
         from tunacode.core.messaging import get_content
 
         messages = self.state_manager.session.conversation.messages
         for message in reversed(messages):
-            if not isinstance(message, ModelResponse):
+            message_kind = _get_attr(message, "kind")
+            if message_kind != PYDANTIC_MESSAGE_KIND_RESPONSE:
                 continue
 
             raw_content = get_content(message)
@@ -311,16 +317,14 @@ class TextualReplApp(App[None]):
         self.rich_log.write(notice_text)
 
     def _is_user_prompt_request(self, message: Any) -> bool:
-        parts = getattr(message, "parts", None)
+        parts = _get_parts(message)
         if not parts:
             return False
 
-        return any(getattr(part, "part_kind", None) == "user-prompt" for part in parts)
+        return any(_get_attr(part, "part_kind") == PYDANTIC_PART_KIND_USER_PROMPT for part in parts)
 
     def _replay_session_messages(self) -> None:
         """Render loaded session messages to RichLog."""
-        from pydantic_ai.messages import ModelRequest, ModelResponse
-
         from tunacode.core.messaging import get_content
 
         conversation = self.state_manager.session.conversation
@@ -329,14 +333,17 @@ class TextualReplApp(App[None]):
             if not content:
                 continue
 
-            if isinstance(msg, ModelRequest):
+            message_kind = _get_attr(msg, "kind")
+            if message_kind == PYDANTIC_MESSAGE_KIND_REQUEST:
                 if not self._is_user_prompt_request(msg):
                     continue
                 user_block = Text()
                 user_block.append(f"| {content}\n", style=STYLE_PRIMARY)
                 user_block.append("| (restored)", style=f"dim {STYLE_PRIMARY}")
                 self.rich_log.write(user_block)
-            elif isinstance(msg, ModelResponse):
+                continue
+
+            if message_kind == PYDANTIC_MESSAGE_KIND_RESPONSE:
                 self.rich_log.write(Text("agent:", style="accent"))
                 self.rich_log.write(Markdown(content))
 

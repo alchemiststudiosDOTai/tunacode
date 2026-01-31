@@ -16,7 +16,7 @@ from typing import Any
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
 from tunacode.types.canonical import UsageMetrics
-from tunacode.utils.messaging import estimate_tokens, get_content
+from tunacode.utils.messaging import estimate_tokens, get_content, to_wire_messages
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 
@@ -174,58 +174,23 @@ class StateManager:
         storage_dir = get_session_storage_dir()
         return storage_dir / f"{self._session.project_id}_{self._session.session_id}.json"
 
-    def _serialize_messages(self) -> list[dict]:
-        """Serialize mixed message list to JSON-compatible dicts."""
-        msg_adapter: Any | None = None
-        try:
-            from pydantic import TypeAdapter
-            from pydantic_ai.messages import ModelMessage
+    def _serialize_messages(self) -> list[dict[str, Any]]:
+        """Serialize message history into canonical wire dicts."""
+        messages = self._session.conversation.messages
+        return to_wire_messages(messages)
 
-            msg_adapter = TypeAdapter(ModelMessage)
-        except ImportError:
-            msg_adapter = None
+    def _deserialize_messages(self, data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Normalize persisted messages into canonical wire dicts."""
+        if not isinstance(data, list):
+            raise TypeError("Session messages payload must be a list of dicts.")
 
-        serialized_messages: list[dict] = []
-        for msg in self._session.conversation.messages:
-            if isinstance(msg, dict):
-                serialized_messages.append(msg)
-                continue
-
-            if msg_adapter is None:
-                message_type = type(msg).__name__
-                raise TypeError(
-                    f"Cannot serialize non-dict message without pydantic adapter: {message_type}"
-                )
-
-            serialized_message = msg_adapter.dump_python(msg, mode="json")
-            serialized_messages.append(serialized_message)
-        return serialized_messages
-
-    def _deserialize_messages(self, data: list[dict]) -> list:
-        """Deserialize JSON dicts back to message objects."""
-        msg_adapter: Any | None = None
-        try:
-            from pydantic import TypeAdapter
-            from pydantic_ai.messages import ModelMessage
-
-            msg_adapter = TypeAdapter(ModelMessage)
-        except ImportError:
-            return data
-
-        result = []
         for item in data:
-            if not isinstance(item, dict):
-                result.append(item)
+            if isinstance(item, dict):
                 continue
+            item_type = type(item).__name__
+            raise TypeError(f"Session message entries must be dicts, got {item_type}.")
 
-            if item.get("kind") in ("request", "response"):
-                try:
-                    result.append(msg_adapter.validate_python(item))
-                except Exception:
-                    result.append(item)
-            else:
-                result.append(item)
-        return result
+        return to_wire_messages(data)
 
     def _split_thought_messages(self, messages: list[Any]) -> tuple[list[str], list[Any]]:
         """Separate thought entries from message history."""

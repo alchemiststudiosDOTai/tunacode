@@ -27,6 +27,7 @@ Provides shared utility functions across configuration, messaging, parsing, and 
 
 **adapter.py**
 - Canonical message conversions (to/from canonical)
+- Wire-format normalization for persistence (`to_wire_message`, `to_wire_messages`)
 - **get_content()** - Content extraction for dicts and canonical messages
 - Tool call ID extraction helpers
 

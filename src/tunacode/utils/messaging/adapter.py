@@ -138,6 +138,15 @@ def _determine_role(message: Any) -> MessageRole:
     return MessageRole.USER
 
 
+def _text_part_kind_for_role(role: MessageRole) -> str:
+    """Select the wire part kind for text-like parts based on role."""
+    if role == MessageRole.USER:
+        return PYDANTIC_PART_KIND_USER_PROMPT
+    if role == MessageRole.SYSTEM:
+        return PYDANTIC_PART_KIND_SYSTEM_PROMPT
+    return PYDANTIC_PART_KIND_TEXT
+
+
 # =============================================================================
 # Message Conversion: pydantic-ai -> Canonical
 # =============================================================================
@@ -213,14 +222,15 @@ def to_canonical_list(messages: list[Any]) -> list[CanonicalMessage]:
 
 
 def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
-    """Convert a canonical message back to dict format for pydantic-ai."""
+    """Convert a canonical message into the canonical wire dict format."""
     parts: list[dict[str, Any]] = []
+    text_part_kind = _text_part_kind_for_role(message.role)
 
     for part in message.parts:
         if isinstance(part, (TextPart, ThoughtPart)):
             parts.append(
                 {
-                    "part_kind": PYDANTIC_PART_KIND_TEXT,
+                    "part_kind": text_part_kind,
                     "content": part.content,
                 }
             )
@@ -270,6 +280,17 @@ def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
 def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]]:
     """Convert a list of canonical messages back to dict format."""
     return [from_canonical(msg) for msg in messages]
+
+
+def to_wire_message(message: Any) -> dict[str, Any]:
+    """Normalize any message into the canonical wire dict format."""
+    canonical_message = to_canonical(message)
+    return from_canonical(canonical_message)
+
+
+def to_wire_messages(messages: list[Any]) -> list[dict[str, Any]]:
+    """Normalize a list of messages into the canonical wire dict format."""
+    return [to_wire_message(message) for message in messages]
 
 
 # =============================================================================
@@ -328,6 +349,8 @@ __all__ = [
     "to_canonical_list",
     "from_canonical",
     "from_canonical_list",
+    "to_wire_message",
+    "to_wire_messages",
     # Content extraction
     "get_content",
     "get_tool_call_ids",

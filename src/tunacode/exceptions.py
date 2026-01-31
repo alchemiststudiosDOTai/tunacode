@@ -99,7 +99,6 @@ class ConfigurationError(TunaCodeError):
         super().__init__(full_message)
 
 
-# User Interaction Exceptions
 class UserAbortError(TunaCodeError):
     """Raised when user aborts an operation."""
 
@@ -127,7 +126,6 @@ class ValidationError(TunaCodeError):
         super().__init__(full_message)
 
 
-# Tool and Agent Exceptions
 class ToolExecutionError(TunaCodeError):
     """Raised when a tool fails to execute."""
 
@@ -174,14 +172,12 @@ class AgentError(TunaCodeError):
         super().__init__(full_message)
 
 
-# State Management Exceptions
 class StateError(TunaCodeError):
     """Raised when there's an issue with application state."""
 
     pass
 
 
-# External Service Exceptions
 class ServiceError(TunaCodeError):
     """Base exception for external service failures."""
 
@@ -197,7 +193,6 @@ class GitOperationError(ServiceError):
         super().__init__(f"Git {operation} failed: {message}")
 
 
-# File System Exceptions
 class FileOperationError(TunaCodeError):
     """Raised when file system operations fail."""
 
@@ -307,8 +302,8 @@ class ToolBatchingJSONError(TunaCodeError):
 class ToolRetryError(TunaCodeError):
     """Raised when a tool needs to signal the agent to retry with a hint.
 
-    This exception is caught by the tool decorator and converted to the
-    framework-specific retry exception (e.g., pydantic_ai.ModelRetry).
+    This exception is intended to bubble to the agent loop and is treated as
+    non-retryable by the tool executor.
     """
 
     def __init__(self, message: str, original_error: OriginalError = None):

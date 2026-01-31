@@ -8,7 +8,7 @@ Inspired by OpenCode's compaction strategy.
 
 from typing import Any
 
-from tunacode.utils.messaging import estimate_tokens
+from tunacode.utils.messaging import _get_attr, _get_parts, estimate_tokens
 
 # Pruning thresholds
 PRUNE_PROTECT_TOKENS: int = 40_000  # Protect last 40k tokens
@@ -47,13 +47,11 @@ def is_tool_return_part(part: Any) -> bool:
     Returns:
         True if part has part_kind == "tool-return" and content attribute
     """
-    if not hasattr(part, "part_kind"):
+    part_kind = _get_attr(part, "part_kind")
+    if part_kind != PART_KIND_TOOL_RETURN:
         return False
-    if part.part_kind != PART_KIND_TOOL_RETURN:
-        return False
-    if not hasattr(part, "content"):  # noqa: SIM103
-        return False
-    return True
+    content = _get_attr(part, "content")
+    return content is not None
 
 
 def is_user_prompt_part(part: Any) -> bool:
@@ -65,9 +63,8 @@ def is_user_prompt_part(part: Any) -> bool:
     Returns:
         True if part has part_kind == "user-prompt"
     """
-    if not hasattr(part, "part_kind"):
-        return False
-    return bool(part.part_kind == PART_KIND_USER_PROMPT)
+    part_kind = _get_attr(part, "part_kind")
+    return bool(part_kind == PART_KIND_USER_PROMPT)
 
 
 def count_user_turns(messages: list[Any]) -> int:
@@ -83,17 +80,19 @@ def count_user_turns(messages: list[Any]) -> int:
     """
     count = 0
     for message in messages:
-        # Check for pydantic-ai message with parts
-        if hasattr(message, "parts"):
-            for part in message.parts:
+        parts = _get_parts(message)
+        if parts:
+            for part in parts:
                 if is_user_prompt_part(part):
                     count += 1
                     break  # Count each message only once
-        # Check for dict-style user message
-        elif isinstance(message, dict) and "content" in message:
+            continue
+
+        if isinstance(message, dict) and "content" in message:
             role = message.get("role", "")
             if role == "user":
                 count += 1
+
     return count
 
 
@@ -107,15 +106,12 @@ def estimate_part_tokens(part: Any, model_name: str) -> int:
     Returns:
         Estimated token count; 0 if content not extractable
     """
-    if not hasattr(part, "content"):
+    content = _get_attr(part, "content")
+    if content is None:
         return 0
 
-    content = part.content
-    if not isinstance(content, str):
-        # Non-string content, estimate based on repr
-        content = repr(content)
-
-    return estimate_tokens(content, model_name)
+    content_text = content if isinstance(content, str) else repr(content)
+    return estimate_tokens(content_text, model_name)
 
 
 def prune_part_content(part: Any, model_name: str) -> int:
@@ -130,10 +126,9 @@ def prune_part_content(part: Any, model_name: str) -> int:
     Returns:
         Number of tokens reclaimed (original - placeholder); 0 if cannot prune
     """
-    if not hasattr(part, "content"):
+    content = _get_attr(part, "content")
+    if content is None:
         return 0
-
-    content = part.content
 
     # Skip already-pruned content
     if content == PRUNE_PLACEHOLDER:
@@ -147,6 +142,10 @@ def prune_part_content(part: Any, model_name: str) -> int:
 
     # Calculate placeholder tokens
     placeholder_tokens = estimate_tokens(PRUNE_PLACEHOLDER, model_name)
+
+    if isinstance(part, dict):
+        part["content"] = PRUNE_PLACEHOLDER
+        return max(0, original_tokens - placeholder_tokens)
 
     # Try to replace content
     try:
@@ -191,10 +190,10 @@ def prune_old_tool_outputs(
 
     for msg_idx in range(len(messages) - 1, -1, -1):
         message = messages[msg_idx]
-        if not hasattr(message, "parts"):
+        parts = _get_parts(message)
+        if not parts:
             continue
 
-        parts = message.parts
         for part_idx in range(len(parts) - 1, -1, -1):
             part = parts[part_idx]
             if is_tool_return_part(part):

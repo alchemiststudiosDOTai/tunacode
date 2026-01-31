@@ -81,10 +81,10 @@ class TestTextMatchReplacers:
         filepath = tmp_path / "large.py"
         filepath.write_text(code)
 
-        from pydantic_ai.exceptions import ModelRetry
+        from tunacode.exceptions import ToolRetryError
 
         start = time.perf_counter()
-        with pytest.raises(ModelRetry, match="not found"):
+        with pytest.raises(ToolRetryError, match="not found"):
             await update_file(str(filepath), "def nonexistent():\n    pass", "x")
         elapsed = time.perf_counter() - start
 

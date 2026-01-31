@@ -18,7 +18,8 @@ DEFAULT_FORMAT = "json"
 FORMAT_JSON = "json"
 FORMAT_TEXT = "text"
 SUPPORTED_FORMATS = (FORMAT_JSON, FORMAT_TEXT)
-DEFAULT_ROOT = Path(".")
+DEFAULT_ROOT = Path("src")
+PYTHON_FILE_SUFFIXES = (".py",)
 GIT_LS_FILES_COMMAND = ("git", "ls-files")
 BINARY_SNIFF_SIZE = 1024
 NULL_BYTE = b"\x00"
@@ -56,7 +57,7 @@ RUN_CONTEXT_PATTERN = r"\bRunContext\b"
 REGEX_FLAGS = re.MULTILINE
 
 SCRIPT_DESCRIPTION = "Report pydantic/pydantic_ai usage and enforce guardrails."
-ROOT_HELP = "Repository root to scan."
+ROOT_HELP = f"Repository root to scan (default: {DEFAULT_ROOT.as_posix()})."
 FORMAT_HELP = "Report output format."
 OUTPUT_HELP = "Write the report to a file instead of stdout."
 BASELINE_HELP = "Baseline JSON report to compare against."
@@ -215,6 +216,11 @@ def list_repo_files(root: Path) -> list[Path]:
     return [root / path for path in raw_paths if path]
 
 
+def is_python_file(path: Path) -> bool:
+    suffix = path.suffix
+    return suffix in PYTHON_FILE_SUFFIXES
+
+
 def is_binary_file(path: Path) -> bool:
     with path.open("rb") as handle:
         sample = handle.read(BINARY_SNIFF_SIZE)
@@ -237,6 +243,8 @@ def scan_repository(
     file_paths = list_repo_files(root)
     for path in file_paths:
         if not path.exists():
+            continue
+        if not is_python_file(path):
             continue
         if is_binary_file(path):
             continue

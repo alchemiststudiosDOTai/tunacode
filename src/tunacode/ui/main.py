@@ -244,6 +244,8 @@ def run_headless(
 
 def _serialize_message(msg: object) -> dict:
     """Serialize a message object to a dictionary."""
+    if isinstance(msg, dict):
+        return msg
     if hasattr(msg, "model_dump"):
         return msg.model_dump()
     if hasattr(msg, "__dict__"):

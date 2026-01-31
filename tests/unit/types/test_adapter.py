@@ -183,7 +183,7 @@ class TestFromCanonical:
 
         assert result["kind"] == "request"
         assert len(result["parts"]) == 1
-        assert result["parts"][0]["part_kind"] == "text"
+        assert result["parts"][0]["part_kind"] == "user-prompt"
         assert result["parts"][0]["content"] == "Hello"
 
     def test_assistant_message(self) -> None:

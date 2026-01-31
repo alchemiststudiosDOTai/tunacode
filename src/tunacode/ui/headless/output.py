@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from pydantic_ai.messages import ModelResponse
+from tunacode.utils.messaging import _get_attr
+from tunacode.utils.messaging.adapter import PYDANTIC_MESSAGE_KIND_RESPONSE
 
 from tunacode.core.messaging import get_content
 
@@ -42,9 +43,10 @@ def _extract_from_result(agent_run: object) -> str | None:
 
 
 def _extract_from_messages(messages: list[Any]) -> str | None:
-    """Extract text from the latest ModelResponse in messages."""
+    """Extract text from the latest response message in history."""
     for message in reversed(messages):
-        if not isinstance(message, ModelResponse):
+        message_kind = _get_attr(message, "kind")
+        if message_kind != PYDANTIC_MESSAGE_KIND_RESPONSE:
             continue
 
         content = get_content(message)
@@ -60,7 +62,7 @@ def resolve_output(agent_run: object, messages: list[Any]) -> str | None:
 
     Priority:
     1. agent_run.result (direct result)
-    2. Latest ModelResponse content (fallback)
+    2. Latest response message content (fallback)
 
     Returns:
         Extracted text or None if no output found.

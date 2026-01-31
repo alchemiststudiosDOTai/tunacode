@@ -7,8 +7,6 @@ import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from pydantic_ai import ModelRetry
-
 if TYPE_CHECKING:
     from pydantic_ai.messages import ToolCallPart
     from pydantic_ai.result import StreamedRunResult
@@ -22,6 +20,7 @@ from tunacode.exceptions import (
     ConfigurationError,
     FileOperationError,
     ToolExecutionError,
+    ToolRetryError,
     UserAbortError,
     ValidationError,
 )
@@ -32,7 +31,7 @@ from tunacode.core.logging import get_logger
 # Errors that should NOT be retried - they represent user intent or unrecoverable states
 NON_RETRYABLE_ERRORS = (
     UserAbortError,
-    ModelRetry,
+    ToolRetryError,
     KeyboardInterrupt,
     SystemExit,
     ValidationError,

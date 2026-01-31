@@ -6,13 +6,13 @@ Tests automatic retry behavior in execute_tools_parallel with exponential backof
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
 
 from tunacode.constants import TOOL_MAX_RETRIES
 from tunacode.exceptions import (
     ConfigurationError,
     FileOperationError,
     ToolExecutionError,
+    ToolRetryError,
     UserAbortError,
     ValidationError,
 )
@@ -61,9 +61,9 @@ class TestNonRetryableErrors:
         """UserAbortError should not be retried."""
         assert UserAbortError in NON_RETRYABLE_ERRORS
 
-    def test_model_retry_not_retried(self):
-        """ModelRetry should not be retried (pydantic-ai handles)."""
-        assert ModelRetry in NON_RETRYABLE_ERRORS
+    def test_tool_retry_error_not_retried(self):
+        """ToolRetryError should not be retried (agent handles)."""
+        assert ToolRetryError in NON_RETRYABLE_ERRORS
 
     def test_validation_error_not_retried(self):
         """ValidationError should not be retried."""
@@ -158,12 +158,12 @@ class TestExecuteToolsParallel:
 
         assert callback.call_count == 1
 
-    async def test_model_retry_not_retried(self, mock_part, mock_node):
-        """ModelRetry propagates immediately without retry."""
-        callback = AsyncMock(side_effect=ModelRetry("model wants retry"))
+    async def test_tool_retry_error_not_retried(self, mock_part, mock_node):
+        """ToolRetryError propagates immediately without retry."""
+        callback = AsyncMock(side_effect=ToolRetryError("model wants retry"))
         tool_calls = [(mock_part, mock_node)]
 
-        with pytest.raises(ModelRetry):
+        with pytest.raises(ToolRetryError):
             await execute_tools_parallel(tool_calls, callback)
 
         assert callback.call_count == 1

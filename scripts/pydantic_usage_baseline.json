@@ -1,21 +1,17 @@
 {
-  "generated_at": "2026-01-31T02:19:49.488936+00:00",
+  "generated_at": "2026-01-31T15:56:07.974315+00:00",
   "root": "src",
   "groups": {
     "pydantic_ai_imports": {
       "name": "pydantic_ai_imports",
       "description": "Imports that reference pydantic_ai.",
       "pattern": "\\bfrom\\s+pydantic_ai\\b|\\bimport\\s+pydantic_ai\\b",
-      "match_count": 33,
-      "file_count": 14,
+      "match_count": 32,
+      "file_count": 13,
       "files": [
         {
           "path": "tunacode/core/agents/agent_components/agent_config.py",
           "match_count": 9
-        },
-        {
-          "path": "tunacode/core/agents/agent_components/message_handler.py",
-          "match_count": 1
         },
         {
           "path": "tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py",
@@ -92,15 +88,11 @@
       "name": "field",
       "description": "Field usage.",
       "pattern": "\\bField\\b",
-      "match_count": 2,
-      "file_count": 2,
+      "match_count": 1,
+      "file_count": 1,
       "files": [
         {
           "path": "tunacode/ui/renderers/errors.py",
-          "match_count": 1
-        },
-        {
-          "path": "tunacode/ui/styles/theme-nextstep.tcss",
           "match_count": 1
         }
       ]
@@ -122,14 +114,9 @@
       "name": "validator",
       "description": "validator/model_validator usage.",
       "pattern": "\\bmodel_validator\\b|\\bvalidator\\b",
-      "match_count": 1,
-      "file_count": 1,
-      "files": [
-        {
-          "path": "tunacode/prompts/system_prompt.md",
-          "match_count": 1
-        }
-      ]
+      "match_count": 0,
+      "file_count": 0,
+      "files": []
     },
     "agent_tool_decorator": {
       "name": "agent_tool_decorator",
@@ -162,7 +149,7 @@
     }
   },
   "totals": {
-    "match_count": 44,
-    "file_count": 17
+    "match_count": 41,
+    "file_count": 14
   }
 }

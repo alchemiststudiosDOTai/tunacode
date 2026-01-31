@@ -12,8 +12,6 @@ from collections.abc import Callable, Coroutine
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 
-from pydantic_ai.exceptions import ModelRetry
-
 from tunacode.exceptions import FileOperationError, ToolExecutionError, ToolRetryError
 
 from tunacode.tools.xml_helper import load_prompt_from_xml
@@ -30,7 +28,7 @@ def base_tool(
     """Wrap tool with error handling.
 
     Converts uncaught exceptions to ToolExecutionError while preserving
-    ModelRetry and ToolExecutionError pass-through.
+    ToolRetryError, ToolExecutionError, and FileOperationError pass-through.
 
     Args:
         func: Async tool function to wrap
@@ -43,9 +41,7 @@ def base_tool(
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
             return await func(*args, **kwargs)
-        except ToolRetryError as e:
-            raise ModelRetry(str(e)) from e
-        except ModelRetry:
+        except ToolRetryError:
             raise
         except ToolExecutionError:
             raise
@@ -71,7 +67,7 @@ def file_tool(
     """Wrap file tool with path-specific error handling.
 
     Provides specialized handling for common file operation errors:
-    - FileNotFoundError -> ModelRetry (allows LLM to correct path)
+    - FileNotFoundError -> ToolRetryError (allows LLM to correct path)
     - PermissionError -> FileOperationError
     - UnicodeDecodeError -> FileOperationError
     - IOError/OSError -> FileOperationError
@@ -95,7 +91,7 @@ def file_tool(
         try:
             return await func(filepath, *args, **kwargs)
         except FileNotFoundError as err:
-            raise ModelRetry(f"File not found: {filepath}. Check the path.") from err
+            raise ToolRetryError(f"File not found: {filepath}. Check the path.") from err
         except PermissionError as e:
             raise FileOperationError(
                 operation="access", path=filepath, message=str(e), original_error=e

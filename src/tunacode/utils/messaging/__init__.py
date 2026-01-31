@@ -12,6 +12,8 @@ from tunacode.utils.messaging.adapter import (
     get_tool_return_ids,
     to_canonical,
     to_canonical_list,
+    to_wire_message,
+    to_wire_messages,
 )
 from tunacode.utils.messaging.token_counter import estimate_tokens
 
@@ -22,6 +24,8 @@ __all__ = [
     "to_canonical_list",
     "from_canonical",
     "from_canonical_list",
+    "to_wire_message",
+    "to_wire_messages",
     "get_content",
     "get_tool_call_ids",
     "get_tool_return_ids",

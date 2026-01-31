@@ -36,8 +36,10 @@ Singleton class with global instance access:
 
 ## Persistence Contract
 
-- Messages must be dicts or pydantic-ai `ModelMessage` instances; serialization
-  raises on unsupported types to prevent silent data loss.
+- Messages are normalized into canonical wire dicts (kind/parts) via the
+  `tunacode.utils.messaging` adapter before persisting.
+- `load_session()` returns message history as canonical wire dicts (no
+  pydantic-ai model rehydration).
 - `save_session()` stamps `last_modified` and writes JSON to the session store.
 
 ## State Transitions
