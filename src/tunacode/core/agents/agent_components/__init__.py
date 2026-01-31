@@ -7,7 +7,6 @@ from .agent_helpers import (
     get_tool_description,
     handle_empty_response,
 )
-from .message_handler import get_model_messages
 from .orchestrator import process_node
 from .response_state import ResponseState
 from .result_wrapper import AgentRunWithState, AgentRunWrapper, SimpleResult
@@ -18,7 +17,6 @@ from .tool_executor import execute_tools_parallel
 __all__ = [
     "get_or_create_agent",
     "invalidate_agent_cache",
-    "get_model_messages",
     "process_node",
     "ResponseState",
     "AgentRunWithState",

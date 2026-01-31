@@ -8,7 +8,6 @@ from .agent_components import (
     SimpleResult,
     ToolBuffer,
     execute_tools_parallel,
-    get_model_messages,
     get_or_create_agent,
     process_node,
 )
@@ -21,7 +20,6 @@ from .main import (
 __all__ = [
     "process_request",
     "get_or_create_agent",
-    "get_model_messages",
     "process_node",
     "ResponseState",
     "SimpleResult",
