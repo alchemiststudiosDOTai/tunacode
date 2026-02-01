@@ -213,18 +213,18 @@ async def stream_model_request_node(
                     return None
                 return None
 
-            # Mark stream open
-            try:
-                import time as _t
-
-                _append_debug_event(
-                    state_manager,
-                    f"[src] stream_opened ts_ns={_t.perf_counter_ns()}",
-                )
-            except Exception:
-                pass
-
             if debug_mode:
+                # Mark stream open
+                try:
+                    import time as _t
+
+                    _append_debug_event(
+                        state_manager,
+                        f"[src] stream_opened ts_ns={_t.perf_counter_ns()}",
+                    )
+                except Exception:
+                    pass
+
                 logger.debug(
                     f"Stream opened: node={node_type} request_id={request_id} "
                     f"iteration={iteration_index}"
@@ -233,7 +233,7 @@ async def stream_model_request_node(
             async for event in request_stream:
                 debug_event_count += 1
                 # Log first few raw event types for diagnosis
-                if debug_event_count <= DEBUG_STREAM_EVENT_LOG_LIMIT:
+                if debug_mode and debug_event_count <= DEBUG_STREAM_EVENT_LOG_LIMIT:
                     try:
                         etype = type(event).__name__
                         d = getattr(event, "delta", None)
@@ -285,8 +285,7 @@ async def stream_model_request_node(
                             f"pkind={pkind} pprev={ppreview} plen={pplen}"
                         )
                         _append_debug_event(state_manager, event_info)
-                        if debug_mode:
-                            logger.debug(event_info)
+                        logger.debug(event_info)
                     except Exception:
                         pass
 
@@ -329,13 +328,14 @@ async def stream_model_request_node(
                                         if prefix_to_emit.strip():
                                             await streaming_callback(prefix_to_emit)
                                             seeded_prefix_sent = True
-                                            preview_msg = (
-                                                f"[src] seeded_prefix overlap={overlap_len} "
-                                                f"len={len(prefix_to_emit)} "
-                                                f"preview={repr(prefix_to_emit[:20])}"
-                                            )
-                                            _append_debug_event(state_manager, preview_msg)
-                                        else:
+                                            if debug_mode:
+                                                preview_msg = (
+                                                    f"[src] seeded_prefix overlap={overlap_len} "
+                                                    f"len={len(prefix_to_emit)} "
+                                                    f"preview={repr(prefix_to_emit[:20])}"
+                                                )
+                                                _append_debug_event(state_manager, preview_msg)
+                                        elif debug_mode:
                                             skip_msg = (
                                                 f"[src] seed_skip overlap={overlap_len} "
                                                 f"delta_len={len(delta_text)} "
@@ -348,7 +348,7 @@ async def stream_model_request_node(
                                     pre_first_delta_text = None
 
                             # Record first-delta instrumentation
-                            if not first_delta_logged:
+                            if debug_mode and not first_delta_logged:
                                 try:
                                     import time as _t
 
@@ -375,15 +375,16 @@ async def stream_model_request_node(
                             await streaming_callback(delta_text)
                     else:
                         # Log empty or non-text deltas encountered
-                        _append_debug_event(
-                            state_manager,
-                            "[src] empty_or_nontext_delta_skipped",
-                        )
+                        if debug_mode:
+                            _append_debug_event(
+                                state_manager,
+                                "[src] empty_or_nontext_delta_skipped",
+                            )
                 else:
                     # Capture any final result text for diagnostics
                     try:
                         final_text = _extract_text(getattr(event, "result", None))
-                        if final_text:
+                        if debug_mode and final_text:
                             final_msg = (
                                 f"[src] final_text_preview len={len(final_text)} "
                                 f"preview={repr(final_text[:20])}"
