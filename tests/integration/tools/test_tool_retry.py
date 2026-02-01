@@ -27,7 +27,6 @@ MAX_PARALLEL_ENV = "TUNACODE_MAX_PARALLEL"
 SINGLE_PARALLEL_LIMIT = 1
 TOOL_NAME = "test_tool"
 NON_RETRYABLE_MESSAGE = "abort"
-CALLBACK_RESULT = "unused"
 
 
 class TestCalculateBackoff:
