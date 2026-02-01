@@ -90,10 +90,10 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
 
 
 def estimate_tokens_from_length(text_length: int) -> int:
-    """Estimate token count from a precomputed character length."""
-    if text_length <= EMPTY_TEXT_LENGTH:
-        return EMPTY_TOKEN_COUNT
+    """Estimate token count from a precomputed character length.
 
+    Precondition: text_length >= 0.
+    """
     return text_length // CHARS_PER_TOKEN
 
 
