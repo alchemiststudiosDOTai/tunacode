@@ -134,7 +134,7 @@ class TextualReplApp(App[None]):
 
     async def on_unmount(self) -> None:
         """Save session before app exits."""
-        self.state_manager.save_session()
+        await self.state_manager.save_session()
 
     def watch_theme(self, old_theme: str, new_theme: str) -> None:
         """Toggle CSS class when theme changes for theme-specific styling."""
@@ -240,7 +240,7 @@ class TextualReplApp(App[None]):
             self._update_resource_bar()
 
             # Auto-save session after processing
-            self.state_manager.save_session()
+            await self.state_manager.save_session()
 
     def _get_latest_response_text(self) -> str | None:
         from pydantic_ai.messages import ModelResponse

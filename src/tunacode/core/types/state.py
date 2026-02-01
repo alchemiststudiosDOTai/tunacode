@@ -90,11 +90,11 @@ class StateManagerProtocol(Protocol):
         ...
 
     # Session persistence methods
-    def save_session(self) -> bool:
+    async def save_session(self) -> bool:
         """Save current session to disk."""
         ...
 
-    def load_session(self, session_id: str) -> bool:
+    async def load_session(self, session_id: str) -> bool:
         """Load a session from disk by ID."""
         ...
 

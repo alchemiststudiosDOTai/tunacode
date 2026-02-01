@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -106,7 +107,7 @@ class ClearCommand(Command):
 
         app._update_resource_bar()
         app.notify("Cleared agent state (messages preserved for /resume)")
-        app.state_manager.save_session()
+        await app.state_manager.save_session()
 
 
 class DebugCommand(Command):
@@ -306,7 +307,7 @@ class ResumeCommand(Command):
             def on_session_selected(session_id: str | None) -> None:
                 if not session_id:
                     return
-                self._load_session(app, session_id, sessions)
+                asyncio.create_task(self._load_session(app, session_id, sessions))
 
             app.push_screen(
                 SessionPickerScreen(sessions, current_session_id),
@@ -329,7 +330,7 @@ class ResumeCommand(Command):
                 app.notify("Multiple sessions match, be more specific", severity="warning")
                 return
 
-            self._load_session(app, matching[0]["session_id"], sessions)
+            await self._load_session(app, matching[0]["session_id"], sessions)
 
         elif subcommand == "delete":
             if len(parts) < 2:
@@ -361,7 +362,12 @@ class ResumeCommand(Command):
         else:
             app.notify(f"Unknown subcommand: {subcommand}", severity="warning")
 
-    def _load_session(self, app: TextualReplApp, session_id: str, sessions: list[dict]) -> None:
+    async def _load_session(
+        self,
+        app: TextualReplApp,
+        session_id: str,
+        sessions: list[dict],
+    ) -> None:
         """Load a session by ID."""
         from rich.text import Text
 
@@ -370,9 +376,9 @@ class ResumeCommand(Command):
             app.notify("Session not found", severity="error")
             return
 
-        app.state_manager.save_session()
+        await app.state_manager.save_session()
 
-        if app.state_manager.load_session(session_id):
+        if await app.state_manager.load_session(session_id):
             app.rich_log.clear()
             app._replay_session_messages()
             app._update_resource_bar()
