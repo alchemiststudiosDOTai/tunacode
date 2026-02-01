@@ -9,9 +9,6 @@ from tunacode.types.canonical import CanonicalMessage
 from tunacode.utils.messaging.adapter import to_canonical
 
 CHARS_PER_TOKEN: int = 4
-EMPTY_TEXT: str = ""
-EMPTY_TEXT_LENGTH: int = 0
-EMPTY_TOKEN_COUNT: int = 0
 SPACE_SEPARATOR: str = " "
 SPACE_SEPARATOR_LENGTH: int = len(SPACE_SEPARATOR)
 SPACE_SEPARATOR_COUNT_OFFSET: int = 1
@@ -33,7 +30,7 @@ class MessageTokenCache:
 
     def rebuild_total(self, messages: list[Any]) -> int:
         """Recompute total tokens, reusing cached entries when possible."""
-        total_tokens = EMPTY_TOKEN_COUNT
+        total_tokens = 0
         active_message_ids: set[int] = set()
 
         for message in messages:
@@ -83,7 +80,7 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
         The estimated number of tokens.
     """
     if not text:
-        return EMPTY_TOKEN_COUNT
+        return 0
 
     text_length = len(text)
     return estimate_tokens_from_length(text_length)
@@ -91,8 +88,8 @@ def estimate_tokens(text: str, model_name: str | None = None) -> int:
 
 def estimate_tokens_from_length(text_length: int) -> int:
     """Estimate token count from a precomputed character length."""
-    if text_length <= EMPTY_TEXT_LENGTH:
-        return EMPTY_TOKEN_COUNT
+    if text_length <= 0:
+        return 0
 
     return text_length // CHARS_PER_TOKEN
 
@@ -112,11 +109,11 @@ def _canonicalize_message(message: Any) -> CanonicalMessage:
 def _canonical_text_length(message: CanonicalMessage) -> int:
     parts = message.parts
     if not parts:
-        return EMPTY_TEXT_LENGTH
+        return 0
 
-    content_length = EMPTY_TEXT_LENGTH
+    content_length = 0
     for part in parts:
-        content_value = getattr(part, "content", EMPTY_TEXT)
+        content_value = getattr(part, "content", "")
         content_text = _normalize_segment(content_value)
         content_length += len(content_text)
 
@@ -126,5 +123,5 @@ def _canonical_text_length(message: CanonicalMessage) -> int:
 
 def _normalize_segment(value: Any) -> str:
     if value is None:
-        return EMPTY_TEXT
+        return ""
     return str(value)
