@@ -19,6 +19,8 @@ from tunacode.core.logging import get_logger
 from tunacode.core.types import StateManagerProtocol
 
 DEBUG_STREAM_EVENT_LOG_LIMIT: int = 5
+DEBUG_STREAM_EVENT_HISTORY_LIMIT: int = 200
+DEBUG_STREAM_RAW_STREAM_MAX_CHARS: int = 20_000
 DEBUG_STREAM_TEXT_PREVIEW_LEN: int = 120
 DEBUG_STREAM_NEWLINE_REPLACEMENT: str = "\\n"
 DEBUG_STREAM_PREVIEW_SUFFIX: str = "..."
@@ -119,6 +121,27 @@ def _log_stream_request_parts(node: Any, debug_mode: bool) -> None:
         logger.debug(f"Stream request part[{part_index}]: {part_summary}")
 
 
+def _append_debug_event(state_manager: StateManagerProtocol, entry: str) -> None:
+    debug_events = state_manager.session._debug_events
+    debug_events.append(entry)
+    if len(debug_events) <= DEBUG_STREAM_EVENT_HISTORY_LIMIT:
+        return
+    overflow = len(debug_events) - DEBUG_STREAM_EVENT_HISTORY_LIMIT
+    del debug_events[:overflow]
+
+
+def _append_raw_stream(state_manager: StateManagerProtocol, delta_text: str) -> None:
+    if not delta_text:
+        return
+
+    session = state_manager.session
+    current_stream = session._debug_raw_stream_accum
+    updated_stream = f"{current_stream}{delta_text}"
+    if len(updated_stream) > DEBUG_STREAM_RAW_STREAM_MAX_CHARS:
+        updated_stream = updated_stream[-DEBUG_STREAM_RAW_STREAM_MAX_CHARS:]
+    session._debug_raw_stream_accum = updated_stream
+
+
 async def stream_model_request_node(
     node: Any,
     agent_run_ctx: Any,
@@ -194,8 +217,9 @@ async def stream_model_request_node(
             try:
                 import time as _t
 
-                state_manager.session._debug_events.append(
-                    f"[src] stream_opened ts_ns={_t.perf_counter_ns()}"
+                _append_debug_event(
+                    state_manager,
+                    f"[src] stream_opened ts_ns={_t.perf_counter_ns()}",
                 )
             except Exception:
                 pass
@@ -260,7 +284,7 @@ async def stream_model_request_node(
                             f"rprev={rpreview} rlen={rplen} ptype={ptype} "
                             f"pkind={pkind} pprev={ppreview} plen={pplen}"
                         )
-                        state_manager.session._debug_events.append(event_info)
+                        _append_debug_event(state_manager, event_info)
                         if debug_mode:
                             logger.debug(event_info)
                     except Exception:
@@ -310,14 +334,14 @@ async def stream_model_request_node(
                                                 f"len={len(prefix_to_emit)} "
                                                 f"preview={repr(prefix_to_emit[:20])}"
                                             )
-                                            state_manager.session._debug_events.append(preview_msg)
+                                            _append_debug_event(state_manager, preview_msg)
                                         else:
                                             skip_msg = (
                                                 f"[src] seed_skip overlap={overlap_len} "
                                                 f"delta_len={len(delta_text)} "
                                                 f"pre_len={len(pre_first_delta_text)}"
                                             )
-                                            state_manager.session._debug_events.append(skip_msg)
+                                            _append_debug_event(state_manager, skip_msg)
                                 except Exception:
                                     pass
                                 finally:
@@ -342,17 +366,18 @@ async def stream_model_request_node(
                                     f"[src] first_delta_received ts_ns={ts_ns} "
                                     f"chunk_repr={chunk_preview} len={chunk_len}"
                                 )
-                                state_manager.session._debug_events.append(delta_msg)
+                                _append_debug_event(state_manager, delta_msg)
                                 first_delta_logged = True
 
                             # Accumulate full raw stream for comparison and forward delta
                             delta_text = event.delta.content_delta or ""
-                            state_manager.session._debug_raw_stream_accum += delta_text
+                            _append_raw_stream(state_manager, delta_text)
                             await streaming_callback(delta_text)
                     else:
                         # Log empty or non-text deltas encountered
-                        state_manager.session._debug_events.append(
-                            "[src] empty_or_nontext_delta_skipped"
+                        _append_debug_event(
+                            state_manager,
+                            "[src] empty_or_nontext_delta_skipped",
                         )
                 else:
                     # Capture any final result text for diagnostics
@@ -363,7 +388,7 @@ async def stream_model_request_node(
                                 f"[src] final_text_preview len={len(final_text)} "
                                 f"preview={repr(final_text[:20])}"
                             )
-                            state_manager.session._debug_events.append(final_msg)
+                            _append_debug_event(state_manager, final_msg)
                     except Exception:
                         pass
             stream_elapsed_ms = (time.perf_counter() - stream_start) * 1000
