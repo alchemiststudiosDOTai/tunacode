@@ -17,7 +17,7 @@ from typing import Any
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
 from tunacode.types.canonical import UsageMetrics
-from tunacode.utils.messaging import estimate_tokens, get_content
+from tunacode.utils.messaging import MessageTokenCache
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 
@@ -38,6 +38,8 @@ class SessionState:
     undo_initialized: bool = False
     show_thoughts: bool = False
     conversation: ConversationState = field(default_factory=ConversationState)
+    # Cached per-message token lengths to avoid full rescans
+    _message_token_cache: MessageTokenCache = field(default_factory=MessageTokenCache)
     task: TaskState = field(default_factory=TaskState)
     runtime: RuntimeState = field(default_factory=RuntimeState)
     usage: UsageState = field(default_factory=UsageState)
@@ -61,18 +63,10 @@ class SessionState:
     _debug_raw_stream_accum: str = ""
 
     def update_token_count(self) -> None:
-        """Calculate total token count from conversation messages."""
+        """Calculate total token count from conversation messages using cached lengths."""
         messages = self.conversation.messages
-        model_name = self.current_model
-        total_tokens = 0
-
-        for msg in messages:
-            content = get_content(msg)
-            if not content:
-                continue
-            token_count = estimate_tokens(content, model_name)
-            total_tokens += token_count
-
+        token_cache = self._message_token_cache
+        total_tokens = token_cache.rebuild_total(messages)
         self.conversation.total_tokens = total_tokens
 
     def adjust_token_count(self, delta: int) -> None:

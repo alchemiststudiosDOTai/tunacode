@@ -4,7 +4,7 @@ path: src/tunacode/utils
 type: directory
 depth: 1
 description: Shared utility functions and helpers
-exports: [estimate_tokens, parse_json]
+exports: [estimate_tokens, MessageTokenCache, get_message_text_length, parse_json]
 seams: [M]
 ---
 
@@ -31,7 +31,9 @@ Provides shared utility functions across configuration, messaging, parsing, and 
 - Tool call ID extraction helpers
 
 **token_counter.py**
-- **estimate_tokens()** - Token counting for messages
+- **estimate_tokens()** - Token counting for messages (length heuristic)
+- **MessageTokenCache** - Cached per-message lengths for fast total recompute
+- **get_message_text_length()** - Length calculation without building full strings
 - Supports multiple models (Claude, GPT, etc.)
 - Used for context window management
 

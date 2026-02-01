@@ -18,6 +18,7 @@ Central singleton managing all session data including conversation history, user
 ### SessionState
 Dataclass container for all session data with decomposed sub-structures:
 - **conversation** - Messages, thoughts, token totals, context tracking
+- **_message_token_cache** - Cached per-message token lengths to avoid rescans
 - **task** - Typed todo tracking and original query
 - **runtime** - Iteration counters, tool call registry, request metadata, streaming flags
 - **usage** - Per-call and cumulative usage metrics
@@ -32,7 +33,7 @@ Dataclass container for all session data with decomposed sub-structures:
 Singleton class with global instance access:
 - **session** - Retrieve SessionState instance
 - **conversation/task/runtime/usage** - Typed sub-state accessors
-- **update_token_count()** - Track token usage
+- **update_token_count()** - Recompute total tokens using cached per-message lengths
 - **save_session()** - Persist session to disk
 - **load_session()** - Restore session from disk
 

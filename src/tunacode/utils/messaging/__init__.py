@@ -13,10 +13,16 @@ from tunacode.utils.messaging.adapter import (
     to_canonical,
     to_canonical_list,
 )
-from tunacode.utils.messaging.token_counter import estimate_tokens
+from tunacode.utils.messaging.token_counter import (
+    MessageTokenCache,
+    estimate_tokens,
+    get_message_text_length,
+)
 
 __all__ = [
+    "MessageTokenCache",
     "estimate_tokens",
+    "get_message_text_length",
     # Canonical adapter
     "to_canonical",
     "to_canonical_list",
