@@ -10,10 +10,6 @@ class TestEstimateTokens:
         """Empty string returns 0 tokens."""
         assert estimate_tokens("") == 0
 
-    def test_none_text_returns_zero(self):
-        """Falsy text returns 0 tokens."""
-        assert estimate_tokens("") == 0
-
     def test_short_text(self):
         """Short text uses character heuristic."""
         # 4 chars = 1 token with CHARS_PER_TOKEN = 4
@@ -70,10 +66,11 @@ class TestEstimateTokens:
 
     def test_realistic_code_snippet(self):
         """Realistic code produces plausible token count."""
-        code = """def hello():
-    print("Hello, World!")
-"""
-        # 44 chars // 4 = 11 tokens
+        code = """
+            def hello():
+                print("Hello, World!")
+        """
+        # 73 chars // 4 = 18 tokens
         result = estimate_tokens(code)
         assert result == len(code) // CHARS_PER_TOKEN
         assert 5 < result < 20  # Sanity check for code
