@@ -25,6 +25,8 @@ Dataclass container for all session data with decomposed sub-structures:
 - **agents** - Cached pydantic-ai Agent instances
 - **agent_versions** - Version tracking for cache invalidation
 - **current_model** - Active model name
+- **_debug_events** - Capped list of streaming debug events (max 200)
+- **_debug_raw_stream_accum** - Capped raw stream accumulator (max 20K chars)
 
 ### StateManager
 Singleton class with global instance access:
@@ -39,6 +41,15 @@ Singleton class with global instance access:
 - Messages must be dicts or pydantic-ai `ModelMessage` instances; serialization
   raises on unsupported types to prevent silent data loss.
 - `save_session()` stamps `last_modified` and writes JSON to the session store.
+
+### Async I/O
+
+Session persistence uses **async file I/O** via `asyncio.to_thread()` to avoid blocking the event loop during disk operations:
+
+- **`save_session()`** - Serializes session data, then writes via `_write_session_file()` in a thread pool
+- **`load_session()`** - Reads via `_read_session_data()` in a thread pool, then deserializes
+
+This prevents UI stalls during auto-save and session restoration, especially on slower storage.
 
 ## State Transitions
 

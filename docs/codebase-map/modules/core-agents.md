@@ -82,6 +82,14 @@ agent.iter() -> Provider HTTP Request
 - Handles empty/truncated response edge cases
 - Detects submit tool calls for completion
 
+#### streaming.py
+- **stream_model_request_node()** - Streams token deltas with debug instrumentation
+- Short-circuits when `debug_mode` is False to minimize overhead
+- Capped debug accumulators prevent memory growth:
+  - `DEBUG_STREAM_EVENT_HISTORY_LIMIT` (200) - max stored events
+  - `DEBUG_STREAM_RAW_STREAM_MAX_CHARS` (20,000) - max raw stream size
+  - `DEBUG_STREAM_EVENT_LOG_LIMIT` (5) - events logged per stream
+
 #### tool_executor.py
 - **execute_tools_parallel()** - Concurrent read-only tool execution
 - Implements exponential backoff retry logic
