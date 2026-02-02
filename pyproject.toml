@@ -92,6 +92,7 @@ ignore = [
     "E203",
     "TD002",  # Don't require author in TODOs
     "TD003",  # Don't require issue link in TODOs
+    "FIX002",  # Allow TODO comments
 ]
 # TODO format: TODO(scope): description [TUN-XXXX]
 # Example: TODO(core): refactor message handling [TUN-1234]
