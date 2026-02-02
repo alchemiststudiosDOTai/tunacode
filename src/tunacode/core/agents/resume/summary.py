@@ -115,12 +115,12 @@ def should_compact(messages: list[Any], model_name: str) -> bool:
         if isinstance(message, dict):
             content = message.get("content", "")
             if isinstance(content, str):
-                total_tokens += estimate_tokens(content, model_name)
+                total_tokens += estimate_tokens(content)
         elif hasattr(message, "parts"):
             for part in message.parts:
                 content = getattr(part, "content", None)
                 if isinstance(content, str):
-                    total_tokens += estimate_tokens(content, model_name)
+                    total_tokens += estimate_tokens(content)
 
     return total_tokens > threshold
 
@@ -192,7 +192,7 @@ Summary:"""
         retained_count = min(3, len(content_parts))
         summary_text = f"[Summary generation failed. Last {retained_count} messages retained.]"
 
-    token_count = estimate_tokens(summary_text, model_name)
+    token_count = estimate_tokens(summary_text)
 
     return SummaryMessage(
         content=summary_text,

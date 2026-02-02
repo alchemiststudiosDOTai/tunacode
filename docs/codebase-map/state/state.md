@@ -105,7 +105,7 @@ Uses a lightweight character heuristic:
 ```python
 CHARS_PER_TOKEN: int = 4
 
-def estimate_tokens(text: str, model_name: str | None = None) -> int:
+def estimate_tokens(text: str) -> int:
     if not text:
         return 0
     return len(text) // CHARS_PER_TOKEN

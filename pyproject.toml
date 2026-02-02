@@ -120,8 +120,7 @@ exclude = [
 ]
 
 [tool.ruff.lint.mccabe]
-# Temporary threshold while we refactor legacy orchestration paths.
-max-complexity = 25  # TODO(quality): reduce to 15 as we simplify functions [TUN-XXXX]
+max-complexity = 20
 
 [tool.ruff.lint.isort]
 section-order = [

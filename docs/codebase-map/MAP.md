@@ -124,7 +124,7 @@ src/tunacode/
 |--------|---------|-------------|-------|
 | **configuration/** | Settings & models | load_user_config, ModelRegistry, get_pricing | M |
 | **types/** | Type definitions | UserConfig, MessageHistory, ModelName, ToolCallback | M |
-| **utils/** | Shared utilities | estimate_tokens, parse_json | M |
+| **utils/** | Shared utilities | estimate_tokens, estimate_message_tokens, parse_json | M |
 | **lsp/** | Language Server Protocol | LSPClient, get_diagnostics | M |
 | **prompts/** | Prompt templates | agent_role.md, critical_rules.md | M |
 | **cli/** | Command-line interface | REPL commands, slash commands | M, D |

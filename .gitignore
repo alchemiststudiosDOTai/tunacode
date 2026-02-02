@@ -87,3 +87,6 @@ TODO.md
 TASK.md
 detective_verdict.md
 deps.dot
+
+# Tickets directory (CLI tool uses this, should not be committed)
+.tickets/

@@ -115,7 +115,7 @@ def estimate_part_tokens(part: Any, model_name: str) -> int:
         # Non-string content, estimate based on repr
         content = repr(content)
 
-    return estimate_tokens(content, model_name)
+    return estimate_tokens(content)
 
 
 def prune_part_content(part: Any, model_name: str) -> int:
@@ -141,12 +141,12 @@ def prune_part_content(part: Any, model_name: str) -> int:
 
     # Calculate original tokens
     if isinstance(content, str):
-        original_tokens = estimate_tokens(content, model_name)
+        original_tokens = estimate_tokens(content)
     else:
-        original_tokens = estimate_tokens(repr(content), model_name)
+        original_tokens = estimate_tokens(repr(content))
 
     # Calculate placeholder tokens
-    placeholder_tokens = estimate_tokens(PRUNE_PLACEHOLDER, model_name)
+    placeholder_tokens = estimate_tokens(PRUNE_PLACEHOLDER)
 
     # Try to replace content
     try:
