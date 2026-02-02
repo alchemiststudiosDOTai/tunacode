@@ -41,6 +41,9 @@ ENV/
 *.swo
 *.bak
 
+# Local agent settings
+.claude/settings.local.json
+
 # PyPI config (contains secrets)
 .pypirc
 
