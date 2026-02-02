@@ -9,6 +9,7 @@ import pytest
 
 from tunacode.ui.app import TextualReplApp
 from tunacode.ui.commands import handle_command
+from tunacode.ui.esc.handler import EscHandler
 from tunacode.ui.widgets.editor import Editor
 
 
@@ -16,6 +17,7 @@ from tunacode.ui.widgets.editor import Editor
 class _FakeEditor:
     value: str
     cleared: bool = False
+    has_paste_buffer: bool = False
 
     def clear_input(self) -> None:
         self.value = ""
@@ -60,6 +62,7 @@ def test_escape_clears_editor_when_no_streaming_or_shell_running() -> None:
         (),
         {
             "_current_request_task": None,
+            "_esc_handler": EscHandler(),
             "_shell_command_task": None,
             "editor": _FakeEditor("! ls"),
         },

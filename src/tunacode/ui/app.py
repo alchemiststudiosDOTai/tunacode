@@ -27,6 +27,7 @@ from tunacode.core.constants import (
 from tunacode.core.shared_types import ModelName
 from tunacode.core.state import StateManager
 
+from tunacode.ui.esc.handler import EscHandler
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
@@ -74,6 +75,7 @@ class TextualReplApp(App[None]):
         self._current_request_task: asyncio.Task | None = None
         self._loading_indicator_shown: bool = False
         self._request_start_time: float = 0.0
+        self._esc_handler: EscHandler = EscHandler()
 
         self.shell_runner = ShellRunner(self)
 
@@ -342,17 +344,16 @@ class TextualReplApp(App[None]):
 
     def action_cancel_request(self) -> None:
         """Cancel the current request, shell command, or clear editor input."""
-        if self._current_request_task is not None:
-            self._current_request_task.cancel()
-            return
-
+        esc_handler = self._esc_handler
+        current_request_task = self._current_request_task
         shell_runner = getattr(self, "shell_runner", None)
-        if shell_runner is not None and shell_runner.is_running():
-            shell_runner.cancel()
-            return
+        editor = self.editor
 
-        if self.editor.value or self.editor.has_paste_buffer:
-            self.editor.clear_input()
+        esc_handler.handle_escape(
+            current_request_task=current_request_task,
+            shell_runner=shell_runner,
+            editor=editor,
+        )
 
     def start_shell_command(self, raw_cmd: str) -> None:
         self.shell_runner.start(raw_cmd)
