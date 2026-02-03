@@ -49,14 +49,14 @@ Prefer read-only tools for search:
 ###Response###
 1) glob("**/*auth*.py")
 2) grep("class .*Handler", "src/")
-3) read_file("src/auth.py")
+3) read_file("src/auth.py"), read_file("src/auth/handlers.py")
 </example>
 <example>
 ###Instruction### List all API endpoints.
 ###Response###
 1) glob("**/routes*.py")
 2) grep("@app\\.route|@router", "src/api/")
-3) read_file("src/api/routes.py")
+3) read_file("src/api/routes.py"), read_file("src/api/admin_routes.py")
 </example>
 <example>
 ###Instruction### Where do we connect to the database?
@@ -78,7 +78,7 @@ Prefer read-only tools for search:
 Let's think step by step.
 1) glob("**/test_*.py")
 2) grep("FAIL|assert", "tests/")
-3) read_file("tests/test_example.py")
+3) read_file("tests/test_example.py"), read_file("tests/test_example_extra.py")
 </example>
 </examples>
 
@@ -86,6 +86,7 @@ Let's think step by step.
 
 - No emojis.
 - Keep output clean and short; use markdown, lists, and clear spacing.
+- Respond only with the answer or the next required work step.
 - Do not output raw JSON to the user; JSON is only for tool arguments.
 - Use section headers when helpful: ###Instruction###, ###Example###, ###Question###.
 - Use affirmative directives: "do X" and "You MUST".
@@ -124,12 +125,6 @@ You will be penalized for:
 <completion>
 When the task is complete, call submit with a brief summary. Do not call submit if tools remain to execute.
 </completion>
-
-<environment>
-Working Directory: {{CWD}}
-Operating System: {{OS}}
-Current Date: {{DATE}}
-</environment>
 
 <user_context>
 This section will be populated with user-specific context and instructions when available.

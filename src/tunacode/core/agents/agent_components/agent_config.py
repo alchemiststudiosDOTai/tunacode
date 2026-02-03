@@ -40,7 +40,6 @@ from tunacode.core.agents.agent_components.openai_response_validation import (
     validate_openai_chat_completion_response,
 )
 from tunacode.core.logging import get_logger
-from tunacode.core.prompting import resolve_prompt
 from tunacode.core.types import SessionStateProtocol, StateManagerProtocol
 
 REQUEST_HOOK_KEY: str = "request"
@@ -211,7 +210,7 @@ def load_system_prompt(base_path: Path, model: str | None = None) -> str:
         model: Optional model name (reserved for future use)
 
     Returns:
-        System prompt with dynamic placeholders resolved
+        System prompt contents from system_prompt.md
 
     Raises:
         FileNotFoundError: If system_prompt.md does not exist.
@@ -221,8 +220,7 @@ def load_system_prompt(base_path: Path, model: str | None = None) -> str:
     if not prompt_file.exists():
         raise FileNotFoundError(f"Required prompt file not found: {prompt_file}")
 
-    content = prompt_file.read_text(encoding="utf-8")
-    return resolve_prompt(content)
+    return prompt_file.read_text(encoding="utf-8")
 
 
 def load_tunacode_context() -> str:
