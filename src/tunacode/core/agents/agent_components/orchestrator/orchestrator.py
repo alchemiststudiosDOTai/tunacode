@@ -17,7 +17,6 @@ from tunacode.core.logging import get_logger
 from tunacode.core.types import AgentState, StateManagerProtocol
 
 from ..response_state import ResponseState
-from ..truncation_checker import check_for_truncation
 from .message_recorder import record_thought
 from .tool_dispatcher import consume_tool_call_args, dispatch_tools, has_tool_calls
 from .usage_tracker import update_usage
@@ -27,7 +26,6 @@ UNKNOWN_TOOL_NAME = "unknown"
 
 CONTENT_JOINER = " "
 EMPTY_RESPONSE_REASON_EMPTY = "empty"
-EMPTY_RESPONSE_REASON_TRUNCATED = "truncated"
 
 TOOL_RESULT_STATUS_COMPLETED = "completed"
 
@@ -198,11 +196,10 @@ async def process_node(
 
     Returns:
         Tuple of (is_empty, reason) where is_empty indicates a problematic
-        response and reason is "empty" or "truncated".
+        response and reason is "empty".
     """
     empty_response_detected = False
     has_non_empty_content = False
-    appears_truncated = False
     session = state_manager.session
     logger = get_logger()
     debug_mode = bool(getattr(state_manager.session, "debug_mode", False))
@@ -254,7 +251,6 @@ async def process_node(
 
             if content_parts:
                 combined_content = CONTENT_JOINER.join(content_parts).strip()
-                appears_truncated = check_for_truncation(combined_content)
 
                 # Log response preview for debug visibility
                 preview_len = min(RESPONSE_PREVIEW_LENGTH, len(combined_content))
@@ -267,8 +263,7 @@ async def process_node(
 
             no_tools = not has_structured_tools
             empty_without_tools = not has_non_empty_content and no_tools
-            truncated_without_tools = appears_truncated and no_tools
-            if empty_without_tools or truncated_without_tools:
+            if empty_without_tools:
                 empty_response_detected = True
 
         await dispatch_tools(
@@ -289,9 +284,6 @@ async def process_node(
         response_state.transition_to(AgentState.RESPONSE)
 
     if empty_response_detected:
-        reason = (
-            EMPTY_RESPONSE_REASON_TRUNCATED if appears_truncated else EMPTY_RESPONSE_REASON_EMPTY
-        )
-        return True, reason
+        return True, EMPTY_RESPONSE_REASON_EMPTY
 
     return False, None
