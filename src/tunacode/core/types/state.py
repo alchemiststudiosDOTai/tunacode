@@ -35,10 +35,6 @@ class SessionStateProtocol(Protocol):
     created_at: str
     working_directory: str
 
-    def update_token_count(self) -> None:
-        """Calculate total token count from conversation messages."""
-        ...
-
 
 class StateManagerProtocol(Protocol):
     """Protocol defining the StateManager interface.

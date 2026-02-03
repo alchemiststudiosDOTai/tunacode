@@ -371,12 +371,12 @@ class TextualReplApp(App[None]):
         session = self.state_manager.session
         conversation = session.conversation
 
-        # Use actual context window tokens, not cumulative API usage
-        context_tokens = conversation.total_tokens
+        # Use accumulated API usage totals for token display
+        usage_total_tokens = session.usage.session_total_usage.total_tokens
 
         self.resource_bar.update_stats(
             model=session.current_model or "No model selected",
-            tokens=context_tokens,
+            tokens=usage_total_tokens,
             max_tokens=conversation.max_tokens or 200000,
         )
 

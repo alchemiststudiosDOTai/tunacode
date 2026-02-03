@@ -219,7 +219,6 @@ class RequestOrchestrator:
         merged_messages = [*run_messages, *external_messages]
 
         conversation.messages = merged_messages
-        self.state_manager.session.update_token_count()
 
     async def run(self) -> AgentRun:
         """Run the main request processing loop with optional global timeout."""
@@ -289,16 +288,9 @@ class RequestOrchestrator:
 
         debug_mode = bool(getattr(session, "debug_mode", False))
 
-        total_cleanup_applied, dangling_tool_call_ids = run_cleanup_loop(
-            session_messages, tool_registry
-        )
+        _, dangling_tool_call_ids = run_cleanup_loop(session_messages, tool_registry)
 
-        dropped_trailing = self._drop_trailing_request_if_needed(session_messages, logger)
-        if dropped_trailing:
-            total_cleanup_applied = True
-
-        if total_cleanup_applied:
-            session.update_token_count()
+        self._drop_trailing_request_if_needed(session_messages, logger)
 
         if debug_mode:
             log_message_history_debug(
@@ -345,7 +337,6 @@ class RequestOrchestrator:
 
         logger.lifecycle("Dropping trailing request to avoid consecutive requests")
         session_messages.pop()
-        self.state_manager.session.update_token_count()
         return True
 
     def _log_history_state(
@@ -568,22 +559,10 @@ class RequestOrchestrator:
             interrupted_text = f"[INTERRUPTED]\n\n{partial_text}"
             partial_msg = ModelResponse(parts=[TextPart(content=interrupted_text)])
             conversation.messages.append(partial_msg)
-            session.update_token_count()
 
-        cleanup_applied = remove_dangling_tool_calls(
-            conversation.messages,
-            runtime.tool_registry,
-        )
-        if cleanup_applied:
-            session.update_token_count()
-
-        empty_cleanup = remove_empty_responses(conversation.messages)
-        if empty_cleanup:
-            session.update_token_count()
-
-        consecutive_cleanup = remove_consecutive_requests(conversation.messages)
-        if consecutive_cleanup:
-            session.update_token_count()
+        remove_dangling_tool_calls(conversation.messages, runtime.tool_registry)
+        remove_empty_responses(conversation.messages)
+        remove_consecutive_requests(conversation.messages)
 
         invalidated = ac.invalidate_agent_cache(self.model, self.state_manager)
         if invalidated:
