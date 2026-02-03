@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic_ai.messages import ToolCallPart
 
-from tunacode.constants import ToolName
 from tunacode.exceptions import UserAbortError
 
 from tunacode.core.agents.agent_components.orchestrator import tool_dispatcher
@@ -43,7 +42,6 @@ CALLBACK_RETURN = None
 RESULT_LABEL = "result"
 EXPECTED_JOINER = tool_dispatcher.TOOL_NAME_JOINER
 EXPECTED_SUFFIX = tool_dispatcher.TOOL_NAME_SUFFIX
-SUBMIT_TOOL_NAME = ToolName.SUBMIT.value
 
 TOOL_SEQUENCE = [
     NORMAL_TOOL_NAME,
@@ -57,10 +55,6 @@ READ_TOOL_CALL_TEXT = json.dumps(
 )
 READ_TOOL_CALL_TAGGED = f"<tool_call>{READ_TOOL_CALL_TEXT}</tool_call>"
 INVALID_TOOL_CALL_TAGGED = "<tool_call>{}</tool_call>"
-SUBMIT_TOOL_CALL_TEXT = json.dumps(
-    {"name": SUBMIT_TOOL_NAME, "arguments": {}},
-)
-SUBMIT_TOOL_CALL_TAGGED = f"<tool_call>{SUBMIT_TOOL_CALL_TEXT}</tool_call>"
 
 
 # =============================================================================
@@ -320,29 +314,3 @@ async def test_dispatch_sets_user_response_from_node_result(
     )
 
     assert response_state.has_user_response is True
-
-
-@pytest.mark.asyncio
-async def test_dispatch_fallback_submit_marks_task_completed(
-    state_manager: StateManager, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    response_state = _make_response_state()
-    parts = [TextPart(part_kind=PART_KIND_TEXT, content=SUBMIT_TOOL_CALL_TAGGED)]
-
-    monkeypatch.setattr(
-        "tunacode.core.agents.agent_components.tool_executor.execute_tools_parallel",
-        _capture_parallel_exec,
-    )
-
-    await tool_dispatcher.dispatch_tools(
-        parts=parts,
-        node=DummyNode(result=None),
-        state_manager=state_manager,
-        tool_callback=AsyncMock(),
-        _tool_result_callback=None,
-        tool_start_callback=None,
-        response_state=response_state,
-    )
-
-    # NOTE: submit tool no longer sets task_completed - pydantic-ai loop ends naturally
-    # assert response_state.task_completed is True

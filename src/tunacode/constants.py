@@ -63,7 +63,6 @@ class ToolName(str, Enum):
     LIST_DIR = "list_dir"
     GLOB = "glob"
     WEB_FETCH = "web_fetch"
-    SUBMIT = "submit"
 
 
 TUNACODE_HOME_DIR = ".tunacode"
