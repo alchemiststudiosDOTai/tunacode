@@ -29,7 +29,7 @@ types
 | core | infrastructure | 4 |
 | core | tools | 12 |
 | core | types | 21 |
-| core | utils | 6 |
+| core | utils | 5 |
 | exceptions | types | 1 |
 | tools | configuration | 4 |
 | tools | exceptions | 10 |

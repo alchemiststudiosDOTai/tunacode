@@ -255,7 +255,6 @@ class StateManager:
             "last_modified": self._session.last_modified,
             "working_directory": self._session.working_directory,
             "current_model": self._session.current_model,
-            "total_tokens": self._session.conversation.total_tokens,
             "session_total_usage": self._session.usage.session_total_usage.to_dict(),
             "thoughts": self._session.conversation.thoughts,
             "messages": self._serialize_messages(),
@@ -303,8 +302,6 @@ class StateManager:
             self._session.conversation.max_tokens = get_model_context_window(
                 self._session.current_model
             )
-            default_total_tokens = self._session.conversation.total_tokens
-            self._session.conversation.total_tokens = data.get("total_tokens", default_total_tokens)
             self._session.usage.session_total_usage = UsageMetrics.from_dict(
                 data.get("session_total_usage", {})
             )
