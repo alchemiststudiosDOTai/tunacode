@@ -14,7 +14,6 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
-from textual.timer import Timer
 from textual.widgets import LoadingIndicator, Static
 
 from tunacode.core.agents.main import process_request
@@ -53,7 +52,6 @@ from tunacode.ui.widgets import (
     ToolResultDisplay,
 )
 
-TOOL_CALL_BATCH_DEBOUNCE_SECONDS: float = 0.05
 TOOL_CALL_STACK_THRESHOLD: int = 3
 TOOL_CALL_STACK_MAX_VISIBLE: int = 3
 
@@ -84,7 +82,7 @@ class TextualReplApp(App[None]):
         self._esc_handler: EscHandler = EscHandler()
 
         self._pending_tool_calls: list[ToolResultDisplay] = []
-        self._pending_tool_call_timer: Timer | None = None
+        self._tool_call_stack: ToolCallStack | None = None
         self._suppressed_tool_result_signatures: set[str] = set()
 
         self.shell_runner = ShellRunner(self)
@@ -199,10 +197,7 @@ class TextualReplApp(App[None]):
 
         self._suppressed_tool_result_signatures.clear()
         self._pending_tool_calls.clear()
-        pending_timer = self._pending_tool_call_timer
-        if pending_timer is not None:
-            pending_timer.stop()
-        self._pending_tool_call_timer = None
+        self._tool_call_stack = None
 
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
@@ -319,44 +314,56 @@ class TextualReplApp(App[None]):
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         if message.status == "running":
-            self._buffer_tool_call(message)
+            self._handle_tool_call_start(message)
             return
 
         signature = self._tool_call_signature(message)
         if signature in self._suppressed_tool_result_signatures:
+            from tunacode.core.logging import get_logger
+
+            get_logger().lifecycle(
+                "Tool result suppressed (stacked tool call batch)",
+                tool=str(message.tool_name),
+            )
             self._suppressed_tool_result_signatures.discard(signature)
             return
 
         self._render_tool_result(message)
 
-    def _buffer_tool_call(self, message: ToolResultDisplay) -> None:
-        self._pending_tool_calls.append(message)
+    def _handle_tool_call_start(self, message: ToolResultDisplay) -> None:
+        from tunacode.core.logging import get_logger
 
-        timer = self._pending_tool_call_timer
-        if timer is not None:
-            timer.stop()
-
-        self._pending_tool_call_timer = self.set_timer(
-            TOOL_CALL_BATCH_DEBOUNCE_SECONDS,
-            self._flush_tool_calls,
-            name="tool-call-batch",
-        )
-
-    def _flush_tool_calls(self) -> None:
-        batch = list(self._pending_tool_calls)
-        self._pending_tool_calls.clear()
-        self._pending_tool_call_timer = None
-
-        if len(batch) <= TOOL_CALL_STACK_THRESHOLD:
+        tool_call_stack = self._tool_call_stack
+        if tool_call_stack is not None:
+            tool_call_stack.append_call(message)
+            self._suppressed_tool_result_signatures.add(self._tool_call_signature(message))
             return
+
+        self._pending_tool_calls.append(message)
+        pending_count = len(self._pending_tool_calls)
+
+        if pending_count <= TOOL_CALL_STACK_THRESHOLD:
+            get_logger().lifecycle(
+                "Tool call buffered (below stack threshold)",
+                pending_count=pending_count,
+                tool=str(message.tool_name),
+            )
+            return
+
+        get_logger().lifecycle(
+            "Tool call stack mounted",
+            pending_count=pending_count,
+        )
 
         stack = ToolCallStack(max_visible_calls=TOOL_CALL_STACK_MAX_VISIBLE)
         stack.add_class("chat-message")
-        stack.set_calls(batch)
+        stack.set_calls(self._pending_tool_calls)
         self.chat_container.mount(stack)
         self.chat_container.scroll_end(animate=False)
 
-        for call in batch:
+        self._tool_call_stack = stack
+
+        for call in self._pending_tool_calls:
             self._suppressed_tool_result_signatures.add(self._tool_call_signature(call))
 
     def _tool_call_signature(self, message: ToolResultDisplay) -> str:

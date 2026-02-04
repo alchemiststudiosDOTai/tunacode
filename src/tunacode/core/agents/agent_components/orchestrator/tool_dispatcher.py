@@ -324,6 +324,10 @@ async def dispatch_tools(
             tool_start_callback(TOOL_NAME_JOINER.join(preview_names) + suffix)
 
         if _tool_result_callback:
+            logger.lifecycle(
+                "Emitting tool-call running events",
+                count=len(tool_call_records),
+            )
             for part, tool_args in tool_call_records:
                 tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
                 _tool_result_callback(
