@@ -25,12 +25,17 @@ from tunacode.constants import (
 )
 from tunacode.exceptions import StateError
 
-from tunacode.core.agents.agent_components.orchestrator.tool_dispatcher import (
+from tunacode.tools.parsing.command_parser import parse_args as normalize_tool_args
+
+from tunacode.core.agents.agent_components.orchestrator.tool_dispatch import (
     _extract_fallback_tool_calls,
-    consume_tool_call_args,
     dispatch_tools,
-    normalize_tool_args,
-    record_tool_call_args,
+)
+from tunacode.core.agents.agent_components.orchestrator.tool_registry_ops import (
+    get_tool_args as consume_tool_call_args,
+)
+from tunacode.core.agents.agent_components.orchestrator.tool_registry_ops import (
+    parse_and_register_args as record_tool_call_args,
 )
 from tunacode.core.agents.agent_components.response_state import ResponseState
 from tunacode.core.agents.agent_components.tool_executor import execute_tools_parallel
@@ -824,7 +829,8 @@ async def test_extract_fallback_tool_calls_records_args(
     text_part = TextPart(part_kind=TEXT_PART_KIND, content=tool_text)
     parts = [text_part]
 
-    results = await _extract_fallback_tool_calls(parts, state_manager, response_state)
+    debug_mode = getattr(state_manager.session, "debug_mode", False)
+    results = await _extract_fallback_tool_calls(parts, state_manager, response_state, debug_mode)
 
     assert len(results) == 1
     result_part, result_args = results[0]

@@ -10,7 +10,7 @@ from pydantic_ai.messages import ToolCallPart
 
 from tunacode.exceptions import UserAbortError
 
-from tunacode.core.agents.agent_components.orchestrator import tool_dispatcher
+from tunacode.core.agents.agent_components.orchestrator import tool_dispatch, tool_registry_ops
 from tunacode.core.agents.agent_components.response_state import ResponseState
 from tunacode.core.state import StateManager
 from tunacode.core.types import AgentState
@@ -29,19 +29,19 @@ WRITE_TOOL_NAME = "write_file"
 GREP_TOOL_NAME = "grep"
 GLOB_TOOL_NAME = "glob"
 LIST_DIR_TOOL_NAME = "list_dir"
-PART_KIND_TEXT = tool_dispatcher.PART_KIND_TEXT
-PART_KIND_TOOL_CALL = tool_dispatcher.PART_KIND_TOOL_CALL
+PART_KIND_TEXT = tool_dispatch.PART_KIND_TEXT
+PART_KIND_TOOL_CALL = tool_dispatch.PART_KIND_TOOL_CALL
 TOOL_CALL_ID = "call_dispatcher_1"
 TOOL_CALL_ID_SECOND = "call_dispatcher_2"
 EMPTY_TEXT = ""
 NO_INDICATOR_TEXT = "just text"
 USER_ABORT_MESSAGE = "stop"
-TOOL_CALL_COUNT = tool_dispatcher.TOOL_BATCH_PREVIEW_COUNT + 1
+TOOL_CALL_COUNT = tool_dispatch.TOOL_BATCH_PREVIEW_COUNT + 1
 RESPONSE_OUTPUT = "done"
 CALLBACK_RETURN = None
 RESULT_LABEL = "result"
-EXPECTED_JOINER = tool_dispatcher.TOOL_NAME_JOINER
-EXPECTED_SUFFIX = tool_dispatcher.TOOL_NAME_SUFFIX
+EXPECTED_JOINER = tool_dispatch.TOOL_NAME_JOINER
+EXPECTED_SUFFIX = tool_dispatch.TOOL_NAME_SUFFIX
 
 TOOL_SEQUENCE = [
     NORMAL_TOOL_NAME,
@@ -117,10 +117,10 @@ def test_is_suspicious_tool_name_flags_invalid_cases() -> None:
     long_tool_name = LONG_TOOL_NAME_CHAR * TOO_LONG_TOOL_NAME_LEN
     empty_tool_name = EMPTY_TEXT
 
-    assert tool_dispatcher._is_suspicious_tool_name(empty_tool_name) is True
-    assert tool_dispatcher._is_suspicious_tool_name(long_tool_name) is True
-    assert tool_dispatcher._is_suspicious_tool_name(SUSPICIOUS_TOOL_NAME) is True
-    assert tool_dispatcher._is_suspicious_tool_name(NORMAL_TOOL_NAME) is False
+    assert tool_registry_ops.is_suspicious_tool_name(empty_tool_name) is True
+    assert tool_registry_ops.is_suspicious_tool_name(long_tool_name) is True
+    assert tool_registry_ops.is_suspicious_tool_name(SUSPICIOUS_TOOL_NAME) is True
+    assert tool_registry_ops.is_suspicious_tool_name(NORMAL_TOOL_NAME) is False
 
 
 def test_has_tool_calls_detects_structured_parts() -> None:
@@ -131,8 +131,8 @@ def test_has_tool_calls_detects_structured_parts() -> None:
         tool_call_id=TOOL_CALL_ID,
     )
 
-    assert tool_dispatcher.has_tool_calls([text_part]) is False
-    assert tool_dispatcher.has_tool_calls([text_part, tool_part]) is True
+    assert tool_dispatch.has_tool_calls([text_part]) is False
+    assert tool_dispatch.has_tool_calls([text_part, tool_part]) is True
 
 
 @pytest.mark.asyncio
@@ -142,7 +142,9 @@ async def test_extract_fallback_skips_non_text_parts(state_manager: StateManager
         TextPart(part_kind=PART_KIND_TEXT, content=EMPTY_TEXT),
     ]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(parts, state_manager, None)
+    results = await tool_dispatch._extract_fallback_tool_calls(
+        parts, state_manager, None, debug_mode=False
+    )
 
     assert results == []
 
@@ -152,7 +154,9 @@ async def test_extract_fallback_debug_no_indicator(state_manager: StateManager) 
     state_manager.session.debug_mode = True
     parts = [TextPart(part_kind=PART_KIND_TEXT, content=NO_INDICATOR_TEXT)]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(parts, state_manager, None)
+    results = await tool_dispatch._extract_fallback_tool_calls(
+        parts, state_manager, None, debug_mode=True
+    )
 
     assert results == []
 
@@ -165,8 +169,8 @@ async def test_extract_fallback_debug_with_diagnostics_success(
     response_state = _make_response_state()
     parts = [TextPart(part_kind=PART_KIND_TEXT, content=READ_TOOL_CALL_TAGGED)]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(
-        parts, state_manager, response_state
+    results = await tool_dispatch._extract_fallback_tool_calls(
+        parts, state_manager, response_state, debug_mode=True
     )
 
     assert len(results) == 1
@@ -180,7 +184,9 @@ async def test_extract_fallback_debug_with_indicators_no_calls(
     state_manager.session.debug_mode = True
     parts = [TextPart(part_kind=PART_KIND_TEXT, content=INVALID_TOOL_CALL_TAGGED)]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(parts, state_manager, None)
+    results = await tool_dispatch._extract_fallback_tool_calls(
+        parts, state_manager, None, debug_mode=True
+    )
 
     assert results == []
 
@@ -204,7 +210,7 @@ async def test_dispatch_debug_logging_and_skips_callbacks(
         ),
     ]
 
-    result = await tool_dispatcher.dispatch_tools(
+    result = await tool_dispatch.dispatch_tools(
         parts=parts,
         node=DummyNode(result=None),
         state_manager=state_manager,
@@ -240,7 +246,7 @@ async def test_dispatch_preview_suffix(
         _capture_parallel_exec,
     )
 
-    await tool_dispatcher.dispatch_tools(
+    await tool_dispatch.dispatch_tools(
         parts=parts,
         node=DummyNode(result=None),
         state_manager=state_manager,
@@ -250,7 +256,7 @@ async def test_dispatch_preview_suffix(
         response_state=response_state,
     )
 
-    preview_names = TOOL_SEQUENCE[: tool_dispatcher.TOOL_BATCH_PREVIEW_COUNT]
+    preview_names = TOOL_SEQUENCE[: tool_dispatch.TOOL_BATCH_PREVIEW_COUNT]
     expected_label = EXPECTED_JOINER.join(preview_names) + EXPECTED_SUFFIX
     assert len(TOOL_SEQUENCE) == TOOL_CALL_COUNT
     assert started_labels[0] == expected_label
@@ -276,7 +282,7 @@ async def test_dispatch_write_tool_start_and_user_abort(
     ]
 
     with pytest.raises(UserAbortError):
-        await tool_dispatcher.dispatch_tools(
+        await tool_dispatch.dispatch_tools(
             parts=parts,
             node=DummyNode(result=None),
             state_manager=state_manager,
@@ -303,7 +309,7 @@ async def test_dispatch_sets_user_response_from_node_result(
         )
     ]
 
-    await tool_dispatcher.dispatch_tools(
+    await tool_dispatch.dispatch_tools(
         parts=parts,
         node=node,
         state_manager=state_manager,
