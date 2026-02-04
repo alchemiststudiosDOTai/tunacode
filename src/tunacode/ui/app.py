@@ -14,6 +14,7 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
+from textual.timer import Timer
 from textual.widgets import LoadingIndicator, Static
 
 from tunacode.core.agents.main import process_request
@@ -51,6 +52,9 @@ from tunacode.ui.widgets import (
     ToolResultDisplay,
 )
 
+TOOL_BATCH_DEBOUNCE_SECONDS: float = 0.05
+TOOL_BATCH_STACK_THRESHOLD: int = 3
+
 
 class TextualReplApp(App[None]):
     TITLE = "TunaCode"
@@ -76,6 +80,9 @@ class TextualReplApp(App[None]):
         self._loading_indicator_shown: bool = False
         self._request_start_time: float = 0.0
         self._esc_handler: EscHandler = EscHandler()
+
+        self._tool_result_buffer: list[ToolResultDisplay] = []
+        self._tool_batch_timer: Timer | None = None
 
         self.shell_runner = ShellRunner(self)
 
@@ -281,17 +288,57 @@ class TextualReplApp(App[None]):
         user_block.append(f"│ you {timestamp}", style=f"dim {STYLE_PRIMARY}")
         self.rich_log.write(user_block)
 
-    def on_tool_result_display(self, message: ToolResultDisplay) -> None:
-        max_line_width = self.tool_panel_max_width()
+    def _render_tool_result(
+        self,
+        message: ToolResultDisplay,
+        *,
+        max_line_width: int | None = None,
+    ) -> None:
+        resolved_max_line_width = (
+            max_line_width if max_line_width is not None else self.tool_panel_max_width()
+        )
         panel = tool_panel_smart(
             name=message.tool_name,
             status=message.status,
             args=message.args,
             result=message.result,
             duration_ms=message.duration_ms,
-            max_line_width=max_line_width,
+            max_line_width=resolved_max_line_width,
         )
         self.chat_container.write(panel)
+
+    def on_tool_result_display(self, message: ToolResultDisplay) -> None:
+        self._tool_result_buffer.append(message)
+
+        batch_timer = self._tool_batch_timer
+        if batch_timer is not None:
+            batch_timer.stop()
+
+        self._tool_batch_timer = self.set_timer(
+            TOOL_BATCH_DEBOUNCE_SECONDS,
+            self._flush_tool_results,
+            name="tool-result-batch",
+        )
+
+    def _flush_tool_results(self) -> None:
+        batch = list(self._tool_result_buffer)
+        self._tool_result_buffer.clear()
+        self._tool_batch_timer = None
+
+        if not batch:
+            return
+
+        max_line_width = self.tool_panel_max_width()
+
+        if len(batch) > TOOL_BATCH_STACK_THRESHOLD:
+            from tunacode.ui.renderers.tools import render_stacked_tools
+
+            panel = render_stacked_tools(batch, max_line_width=max_line_width)
+            self.chat_container.write(panel)
+            return
+
+        for message in batch:
+            self._render_tool_result(message, max_line_width=max_line_width)
 
     def tool_panel_max_width(self) -> int:
         viewport = self.query_one("#viewport")
