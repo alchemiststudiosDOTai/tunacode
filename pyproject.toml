@@ -252,8 +252,43 @@ exclude = "tests/*,build/*,dist/*,.venv/*"
 # Unused dependencies detection
 extend_exclude = ["tests", "scripts", "docs"]
 ignore_notebooks = true
-# Note: Dev dependencies show as unused (expected - they're not imported in source)
-# We accept these false positives since dev tools are used externally
+
+[tool.deptry.per_rule_ignores]
+# DEP002: Dependencies not imported in source code (but used externally)
+# Runtime deps used by Rich/Textual internally or as CLI tools
+DEP002 = [
+    "click",           # Used by typer internally
+    "prompt_toolkit",  # Used by textual internally
+    "pygments",        # Used by rich.syntax internally
+    "python-Levenshtein",  # Used by rapidfuzz as optional speedup
+    "ruff",            # CLI tool, not imported
+    # Dev dependencies (test/lint/build tools - all CLI tools)
+    "pytest",
+    "pytest-cov",
+    "pytest-asyncio",
+    "pytest-randomly",
+    "pytest-timeout",
+    "pytest-json-report",
+    "hypothesis",
+    "mypy",
+    "bandit",
+    "pylint",
+    "radon",
+    "deptry",
+    "grimp",
+    "vulture",
+    "unimport",
+    "autoflake",
+    "dead",
+    "pre-commit",
+    "textual-dev",
+    "build",
+    "twine",
+]
+# DEP003: Transitive dependencies that we import directly
+DEP003 = [
+    "Levenshtein",  # Imported directly, installed via python-Levenshtein
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tunacode"]
