@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-02-04T04:12:29.269806+00:00",
+  "root": ".",
+  "todo": {
+    "count": 0,
+    "file_count": 0,
+    "files": []
+  },
+  "fixme": {
+    "count": 0,
+    "file_count": 0,
+    "files": []
+  },
+  "hack": {
+    "count": 0,
+    "file_count": 0,
+    "files": []
+  },
+  "xxx": {
+    "count": 0,
+    "file_count": 0,
+    "files": []
+  },
+  "totals": {
+    "todo_count": 0,
+    "fixme_count": 0,
+    "hack_count": 0,
+    "xxx_count": 0,
+    "total_count": 0,
+    "file_count": 0
+  }
+}

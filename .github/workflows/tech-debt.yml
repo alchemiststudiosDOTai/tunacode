@@ -1,0 +1,108 @@
+name: Tech Debt
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  schedule:
+    # Run weekly on Sundays at 00:00 UTC
+    - cron: '0 0 * * 0'
+
+jobs:
+  todo-scan:
+    name: Scan TODO/FIXME
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v4
+      - name: Install dependencies
+        run: uv sync --extra dev --frozen
+
+      - name: Run TODO/FIXME scanner
+        run: uv run python scripts/todo_scanner.py --baseline scripts/todo_baseline.json --fail-on-increase
+
+      - name: Generate report
+        if: always()
+        run: uv run python scripts/todo_scanner.py --format text
+
+  tech-debt-report:
+    name: Generate Tech Debt Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v4
+      - name: Install dependencies
+        run: uv sync --extra dev --frozen
+
+      - name: Generate debt report
+        run: uv run python scripts/todo_scanner.py --format json --output tech-debt-report.json
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-debt-report
+          path: tech-debt-report.json
+
+      - name: Check for critical debt
+        id: check_debt
+        run: |
+          uv run python scripts/todo_scanner.py --baseline scripts/todo_baseline.json || echo "has_debt=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create issue if debt increased
+        if: steps.check_debt.outputs.has_debt == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('tech-debt-report.json', 'utf8'));
+
+            const title = 'Tech Debt Alert: ' + report.totals.total_count + ' items found';
+            let body = '## Technical Debt Report\n\n';
+            body += 'Generated at: ' + (report.totals.generated_at || new Date().toISOString()) + '\n\n';
+            body += '### Summary\n';
+            body += '| Type | Count |\n';
+            body += '|------|-------|\n';
+            body += '| TODO | ' + report.totals.todo_count + ' |\n';
+            body += '| FIXME | ' + report.totals.fixme_count + ' |\n';
+            body += '| HACK | ' + report.totals.hack_count + ' |\n';
+            body += '| XXX | ' + report.totals.xxx_count + ' |\n';
+            body += '| **Total** | **' + report.totals.total_count + '** |\n\n';
+            body += 'This issue was auto-generated because technical debt items were found.\n';
+            body += 'Please review and either:\n';
+            body += '1. Address the debt items\n';
+            body += '2. Update the baseline if these items are intentional\n';
+
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'tech-debt,automated',
+              state: 'open'
+            });
+
+            const existing = issues.data.find(i => i.title.includes('Tech Debt Alert'));
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['tech-debt', 'automated']
+              });
+            }
