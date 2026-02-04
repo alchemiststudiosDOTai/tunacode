@@ -78,34 +78,6 @@ def get_session_storage_dir() -> Path:
     return storage_dir
 
 
-def cleanup_session(state_manager: Any) -> bool:
-    """
-    Clean up temporary session runtime files after the CLI exits.
-    Session data is preserved in XDG_DATA_HOME for persistence.
-
-    Args:
-        state_manager: The StateManager instance containing session info.
-
-    Returns:
-        bool: True if cleanup was successful, False otherwise.
-    """
-    try:
-        if state_manager.session.session_id is None:
-            return True
-
-        session_dir = get_session_dir(state_manager)
-
-        if session_dir.exists():
-            import shutil
-
-            shutil.rmtree(session_dir)
-
-        return True
-    except Exception as e:
-        print(f"Error cleaning up session: {e}")
-        return False
-
-
 def delete_session_file(project_id: str, session_id: str) -> bool:
     """
     Delete a persisted session file.
