@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from rich.console import Group, RenderableType
+from rich.console import RenderableType
 from rich.text import Text
 from textual.widgets import Static
 
@@ -43,17 +43,17 @@ class ToolCallStack(Static):
 
     def set_calls(self, calls: list[ToolResultDisplay]) -> None:
         self._calls = list(calls)
-        self.update(self._render())
+        self.update(self._build_renderable())
 
     def append_calls(self, calls: list[ToolResultDisplay]) -> None:
         self._calls.extend(calls)
-        self.update(self._render())
+        self.update(self._build_renderable())
 
     def append_call(self, call: ToolResultDisplay) -> None:
         self._calls.append(call)
-        self.update(self._render())
+        self.update(self._build_renderable())
 
-    def _render(self) -> RenderableType:
+    def _build_renderable(self) -> RenderableType:
         visible_count = self._max_visible_calls
         total = len(self._calls)
 
@@ -67,7 +67,13 @@ class ToolCallStack(Static):
         for call in call_slice:
             lines.append(_format_tool_call_row(call))
 
-        return Group(*lines)
+        block = Text()
+        for index, line in enumerate(lines):
+            block.append_text(line)
+            if index != len(lines) - 1:
+                block.append("\n")
+
+        return block
 
 
 def _format_tool_call_row(call: ToolResultDisplay) -> Text:
