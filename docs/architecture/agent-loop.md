@@ -42,7 +42,7 @@ The agent loop is the core execution engine that processes user requests, coordi
 
 ## Entry Point
 
-**File:** `src/tunacode/core/agents/main.py:620-640`
+**File:** `src/tunacode/core/agents/main.py:369-389`
 **Function:** `process_request()`
 
 ```python
@@ -62,13 +62,13 @@ Called from the UI layer, this function creates a `RequestOrchestrator` instance
 
 ## Core Loop Structure
 
-**Class:** `RequestOrchestrator` (main.py:146-570)
+**Class:** `RequestOrchestrator` (main.py:115-348)
 
 The loop runs as an async context manager with four phases:
 
 ### Phase 1: Initialize Request
 
-**Function:** `_initialize_request()` (lines 271-276)
+**Function:** `_initialize_request()` (lines 190-195)
 
 - Sets up request ID
 - Resets session state
@@ -76,7 +76,8 @@ The loop runs as an async context manager with four phases:
 
 ### Phase 2: Prepare Message History
 
-**Function:** `_prepare_message_history()` (lines 278-308)
+**Class:** `HistoryPreparer` (history_preparer.py)
+**Function:** `HistoryPreparer.prepare()` (lines 31-62)
 
 - Sanitizes and validates conversation history
 - Prunes old tool outputs for token efficiency
@@ -86,7 +87,7 @@ The loop runs as an async context manager with four phases:
 
 ### Phase 3: Agent Iteration Loop
 
-**Function:** `_run_agent_iterations()` (lines 413-448)
+**Function:** `_run_agent_iterations()` (lines 231-268)
 
 ```python
 async with agent.iter(self.message, message_history=message_history) as run_handle:
@@ -112,12 +113,12 @@ Merges run messages with any external additions to the conversation history.
 
 | Step | File:Line | Function |
 |------|-----------|----------|
-| User message arrives | main.py:620 | `process_request()` |
-| Passed to orchestrator | main.py:146 | `RequestOrchestrator` |
-| History prepared | main.py:278-308 | `_prepare_message_history()` |
-| Sent to model | main.py:426 | `agent.iter()` |
-| Response nodes yielded | main.py:433 | `async for node in run_handle` |
-| Node processed | main.py:469-523 | `_handle_iteration_node()` |
+| User message arrives | main.py:369 | `process_request()` |
+| Passed to orchestrator | main.py:115 | `RequestOrchestrator` |
+| History prepared | history_preparer.py:31 | `HistoryPreparer.prepare()` |
+| Sent to model | main.py:245 | `agent.iter()` |
+| Response nodes yielded | main.py:253 | `async for node in run_handle` |
+| Node processed | main.py:270-326 | `_handle_iteration_node()` |
 
 ## Tool Execution
 
@@ -242,13 +243,13 @@ Before each run:
 
 ### _handle_iteration_node()
 
-**File:** `main.py:469-523`
+**File:** `main.py:270-326`
 
 The main coordination hub. Orchestrates:
-1. Logs iteration start
+1. Logs iteration start (via `log_node_details()` from `request_logger.py`)
 2. Calls `stream_model_request_node()` if streaming enabled
 3. Calls `process_node()` to handle node response
-4. Tracks empty responses
+4. Tracks empty responses via `EmptyResponseHandler`
 5. Updates response state from node output
 6. Checks for task completion
 7. Returns `should_stop` to break loop
@@ -280,7 +281,7 @@ Tool orchestration. Handles:
 
 ### EmptyResponseHandler
 
-**File:** `main.py:88-131`
+**File:** `main.py:73-112`
 
 Tracks consecutive empty responses and prompts user intervention when threshold exceeded (>= 1 consecutive empty).
 
@@ -321,6 +322,8 @@ RequestOrchestrator.run()
 | File | Role |
 |------|------|
 | `main.py` | Entry point, orchestrator, main loop |
+| `history_preparer.py` | Message history preparation and sanitization |
+| `request_logger.py` | Logging utilities for request processing |
 | `orchestrator/orchestrator.py` | Response node processing |
 | `orchestrator/tool_dispatcher.py` | Tool extraction and dispatch |
 | `tool_executor.py` | Parallel execution with retry |

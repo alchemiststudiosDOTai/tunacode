@@ -4,7 +4,7 @@ path: src/tunacode/core/agents
 type: directory
 depth: 1
 description: AI agent creation, execution, and delegation system
-exports: [process_request, RequestOrchestrator, AgentConfig, get_or_create_agent]
+exports: [process_request, RequestOrchestrator, AgentConfig, get_or_create_agent, HistoryPreparer]
 seams: [M, D]
 ---
 
@@ -123,8 +123,13 @@ agent.iter() -> Provider HTTP Request
 - Valid transitions: USER_INPUT → ASSISTANT → TOOL_EXECUTION → RESPONSE
 - Ensures proper state flow
 
-#### iteration_manager.py (in main.py)
-- **IterationManager** - Tracks iteration counters in session state
+#### history_preparer.py
+- **HistoryPreparer** - Prepares and sanitizes message history for agent runs
+- Handles pruning, cleanup, and sanitization of conversation history
+
+#### request_logger.py
+- Logging utilities for request processing
+- Functions: `log_history_state()`, `log_sanitized_history_state()`, `log_node_details()`
 
 ## Configuration
 
@@ -172,7 +177,7 @@ When aborting (e.g., ESC pressed during tool execution):
 - Only cleanups already in `session.conversation.messages` are applied (dangling tool calls, empty responses, consecutive requests)
 - This prevents 'Cannot provide a new user prompt when the message history contains unprocessed tool calls' errors
 
-See `main.py:577-601` for the abort handling logic and `main.py:626-653` for the improved `_message_has_tool_calls` helper.
+See `main.py:328-348` for the abort handling logic. The `message_has_tool_calls()` helper is now in `request_logger.py`.
 
 ## Integration Points
 
