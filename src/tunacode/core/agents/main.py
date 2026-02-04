@@ -103,9 +103,10 @@ class EmptyResponseHandler:
 
         @dataclass
         class StateView:
+            sm: StateManagerProtocol
             show_thoughts: bool
 
-        state_view = StateView(show_thoughts=show_thoughts)
+        state_view = StateView(sm=self.state_manager, show_thoughts=show_thoughts)
         notice = await ac.handle_empty_response(message, reason, iteration, state_view)
         if self.notice_callback:
             self.notice_callback(notice)
