@@ -5,44 +5,47 @@ scope: ui
 impact: medium
 ---
 
-# Stacked Tool Call UI (Debounced Tool Burst Rendering)
+# Stacked Tool Call UI (Tool-Call Burst Summary Widget)
 
 ## Summary
 
-Added a compact, NeXTSTEP-aligned "stacked" tool batch display to reduce vertical spam when many tool results arrive in a short burst.
+Implemented a compact "tool call stack" display to match the dream UI: when a model response dispatches many tools, the UI shows a short list of tool invocations (tool name + primary argument) instead of spamming full tool result panels.
 
-When more than 3 tool results are emitted back-to-back, the UI now renders a single panel containing one concise row per tool (instead of multiple full tool panels).
+This fixes the practical issue with return-based batching: tool *returns* arrive over time, so debouncing tool results does not reliably stack.
 
 ## Changes
 
-### UI batching in `src/tunacode/ui/app.py`
+### Emit tool-call start events (core)
 
-- Added a `ToolResultDisplay` buffer and a debounce timer (`App.set_timer`, `Timer.stop()`).
-- `on_tool_result_display()` now buffers results and schedules `_flush_tool_results()`.
-- `_flush_tool_results()` chooses:
-  - `render_stacked_tools()` when `len(batch) > 3`
-  - existing per-tool panel rendering when `len(batch) <= 3`
+`src/tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py`
 
-### New renderer: `src/tunacode/ui/renderers/tools/stacked.py`
+- When tools are dispatched for execution, we now emit a `tool_result_callback(..., status="running", args=...)` event for each tool call.
+- These "running" events arrive as a tight burst (because they are emitted at dispatch time), enabling reliable stacking.
 
-- Introduced `render_stacked_tools(tools, max_line_width)`.
-- Preserves explicit width verification via `tool_panel_frame_width(max_line_width)`.
-- Shows a primary argument per tool (e.g., `glob.pattern`, `read_file.filepath`, `bash.command`) with truncation.
-- Marks non-completed tools as failures with error styling and a `[FAILED]` suffix.
+### Tool call stack widget (UI)
 
-### Exports
+`src/tunacode/ui/widgets/tool_call_stack.py`
 
-- Exported `render_stacked_tools` from `src/tunacode/ui/renderers/tools/__init__.py`.
+- Added `ToolCallStack`, a Textual `Static` widget that renders compact rows:
+  - `▶ {tool_name:<12} {primary_arg}`
+- No timestamps.
+- When more than 3 tool calls are present, the widget caps to the last 3 visible calls and adds a dim indicator line (`… +N more`).
 
-## Documentation updates
+### App integration + suppression
 
-- Updated `docs/codebase-map/modules/ui-overview.md` to document:
-  - Debounced tool batching
-  - The new stacked renderer
-  - Updated AI response flow
+`src/tunacode/ui/app.py`
+
+- `on_tool_result_display()` now:
+  - buffers `status="running"` messages and flushes them after a short debounce
+  - mounts a `ToolCallStack` when the buffered tool-call count exceeds 3
+  - suppresses detailed per-tool result panels for that stacked batch
+- When <=3 tool calls are dispatched, we keep existing per-tool tool panels.
+
+### Documentation updates
+
+- Updated `docs/codebase-map/modules/ui-overview.md` to describe tool-call burst stacking and the new widget.
 
 ## Verification
 
-- `uv run ruff check --fix .`
+- `uv run ruff check .`
 - `uv run pytest`
-- Rich console smoke rendering confirmed stacked panel output shape and failure styling.

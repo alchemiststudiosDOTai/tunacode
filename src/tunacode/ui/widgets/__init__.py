@@ -11,6 +11,7 @@ from .messages import (
 )
 from .resource_bar import ResourceBar
 from .status_bar import StatusBar
+from .tool_call_stack import ToolCallStack
 
 __all__ = [
     "ChatContainer",
@@ -22,4 +23,5 @@ __all__ = [
     "ResourceBar",
     "StatusBar",
     "ToolResultDisplay",
+    "ToolCallStack",
 ]

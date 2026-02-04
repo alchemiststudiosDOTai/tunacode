@@ -26,8 +26,8 @@ Implements the terminal user interface using the Textual framework, following Ne
 - **compose()** - Declarative UI layout definition
 - **on_mount()** - Initialization (themes, config, workers)
 - **watch_theme()** - Dynamic theme switching
-- **on_tool_result_display()** - Buffer tool results for debounce batching
-- **_flush_tool_results()** - Render stacked batch panel (>3) or individual tool panels (<=3)
+- **on_tool_result_display()** - Buffer tool-call start events (running) for debounce stacking, render tool result panels on completion (unless suppressed)
+- **_flush_tool_calls()** - When >3 tool calls are dispatched, mount a compact ToolCallStack and suppress detailed tool result panels for that batch
 
 **Layout Components:**
 - ResourceBar - Token usage and session info
@@ -88,7 +88,7 @@ Specialized renderers for each tool:
 - **list_dir.py** - Directory tree view
 - **web_fetch.py** - Web content summary
 - **diagnostics.py** - LSP error display
-- **stacked.py** - Compressed "tool burst" batch display (>3 tools)
+- **ToolCallStack widget** - Compressed tool-call burst display (>3 tool calls)
 
 Tool renderers clamp content widths against the viewport and account for prefixes
 and line-number gutters so panels stay within narrow terminal widths.
@@ -170,8 +170,9 @@ Editor → EditorSubmitRequested → handle_command
 ### AI Response Flow
 ```
 process_request() → Tool calls → execute_tools_parallel()
-  → Tool results → on_tool_result_display() (buffer+debounce)
-      → _flush_tool_results() → (stacked batch panel or tool_panel_smart()) → ChatContainer
+  → Tool calls (running) → on_tool_result_display() (buffer+debounce)
+      → _flush_tool_calls() → mount ToolCallStack (>3) → ChatContainer
+  → Tool returns (completed) → on_tool_result_display() → tool_panel_smart() (unless suppressed)
   → Completion → _get_latest_response_text() → render_agent_response() → ChatContainer
 ```
 

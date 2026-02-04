@@ -21,6 +21,7 @@ PART_KIND_TEXT = "text"
 PART_KIND_TOOL_CALL = "tool-call"
 UNKNOWN_TOOL_NAME = "unknown"
 TOOL_BATCH_PREVIEW_COUNT = 3
+TOOL_RESULT_STATUS_RUNNING = "running"
 TEXT_PART_JOINER = "\n"
 TOOL_NAME_JOINER = ", "
 TOOL_NAME_SUFFIX = "..."
@@ -321,6 +322,17 @@ async def dispatch_tools(
             ]
             suffix = TOOL_NAME_SUFFIX if len(tool_tasks) > TOOL_BATCH_PREVIEW_COUNT else ""
             tool_start_callback(TOOL_NAME_JOINER.join(preview_names) + suffix)
+
+        if _tool_result_callback:
+            for part, tool_args in tool_call_records:
+                tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+                _tool_result_callback(
+                    tool_name,
+                    TOOL_RESULT_STATUS_RUNNING,
+                    tool_args,
+                    None,
+                    None,
+                )
 
         await execute_tools_parallel(
             tool_tasks,

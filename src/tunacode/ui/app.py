@@ -49,11 +49,13 @@ from tunacode.ui.widgets import (
     FileAutoComplete,
     ResourceBar,
     StatusBar,
+    ToolCallStack,
     ToolResultDisplay,
 )
 
-TOOL_BATCH_DEBOUNCE_SECONDS: float = 0.05
-TOOL_BATCH_STACK_THRESHOLD: int = 3
+TOOL_CALL_BATCH_DEBOUNCE_SECONDS: float = 0.05
+TOOL_CALL_STACK_THRESHOLD: int = 3
+TOOL_CALL_STACK_MAX_VISIBLE: int = 3
 
 
 class TextualReplApp(App[None]):
@@ -81,8 +83,9 @@ class TextualReplApp(App[None]):
         self._request_start_time: float = 0.0
         self._esc_handler: EscHandler = EscHandler()
 
-        self._tool_result_buffer: list[ToolResultDisplay] = []
-        self._tool_batch_timer: Timer | None = None
+        self._pending_tool_calls: list[ToolResultDisplay] = []
+        self._pending_tool_call_timer: Timer | None = None
+        self._suppressed_tool_result_signatures: set[str] = set()
 
         self.shell_runner = ShellRunner(self)
 
@@ -193,6 +196,13 @@ class TextualReplApp(App[None]):
         self._request_start_time = time.monotonic()
         self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
         self.chat_container.clear_insertion_anchor()
+
+        self._suppressed_tool_result_signatures.clear()
+        self._pending_tool_calls.clear()
+        pending_timer = self._pending_tool_call_timer
+        if pending_timer is not None:
+            pending_timer.stop()
+        self._pending_tool_call_timer = None
 
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
@@ -308,37 +318,51 @@ class TextualReplApp(App[None]):
         self.chat_container.write(panel)
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
-        self._tool_result_buffer.append(message)
+        if message.status == "running":
+            self._buffer_tool_call(message)
+            return
 
-        batch_timer = self._tool_batch_timer
-        if batch_timer is not None:
-            batch_timer.stop()
+        signature = self._tool_call_signature(message)
+        if signature in self._suppressed_tool_result_signatures:
+            self._suppressed_tool_result_signatures.discard(signature)
+            return
 
-        self._tool_batch_timer = self.set_timer(
-            TOOL_BATCH_DEBOUNCE_SECONDS,
-            self._flush_tool_results,
-            name="tool-result-batch",
+        self._render_tool_result(message)
+
+    def _buffer_tool_call(self, message: ToolResultDisplay) -> None:
+        self._pending_tool_calls.append(message)
+
+        timer = self._pending_tool_call_timer
+        if timer is not None:
+            timer.stop()
+
+        self._pending_tool_call_timer = self.set_timer(
+            TOOL_CALL_BATCH_DEBOUNCE_SECONDS,
+            self._flush_tool_calls,
+            name="tool-call-batch",
         )
 
-    def _flush_tool_results(self) -> None:
-        batch = list(self._tool_result_buffer)
-        self._tool_result_buffer.clear()
-        self._tool_batch_timer = None
+    def _flush_tool_calls(self) -> None:
+        batch = list(self._pending_tool_calls)
+        self._pending_tool_calls.clear()
+        self._pending_tool_call_timer = None
 
-        if not batch:
+        if len(batch) <= TOOL_CALL_STACK_THRESHOLD:
             return
 
-        max_line_width = self.tool_panel_max_width()
+        stack = ToolCallStack(max_visible_calls=TOOL_CALL_STACK_MAX_VISIBLE)
+        stack.add_class("chat-message")
+        stack.set_calls(batch)
+        self.chat_container.mount(stack)
+        self.chat_container.scroll_end(animate=False)
 
-        if len(batch) > TOOL_BATCH_STACK_THRESHOLD:
-            from tunacode.ui.renderers.tools import render_stacked_tools
+        for call in batch:
+            self._suppressed_tool_result_signatures.add(self._tool_call_signature(call))
 
-            panel = render_stacked_tools(batch, max_line_width=max_line_width)
-            self.chat_container.write(panel)
-            return
+    def _tool_call_signature(self, message: ToolResultDisplay) -> str:
+        from tunacode.ui.widgets.tool_call_stack import tool_call_signature
 
-        for message in batch:
-            self._render_tool_result(message, max_line_width=max_line_width)
+        return tool_call_signature(message)
 
     def tool_panel_max_width(self) -> int:
         viewport = self.query_one("#viewport")
