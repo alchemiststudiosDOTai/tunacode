@@ -76,7 +76,7 @@ repos:
 
       - id: vulture-changed
         name: Check for dead code in changed files
-        entry: uv run vulture --min-confidence 80
+        entry: uv run vulture --min-confidence 80 scripts/utils/vulture_whitelist.py
         language: system
         files: ^src/.*\.py$
         pass_filenames: true

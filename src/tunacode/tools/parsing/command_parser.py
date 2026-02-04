@@ -41,9 +41,7 @@ def _parse_json_args(args: str) -> dict[str, Any]:
         raise ValidationError(f"Invalid JSON: {_preview_json(args)}") from exc
 
     if not isinstance(parsed, dict):
-        raise ValidationError(
-            f"Invalid JSON: expected object, got {type(parsed).__name__}"
-        )
+        raise ValidationError(f"Invalid JSON: expected object, got {type(parsed).__name__}")
 
     return parsed
 
