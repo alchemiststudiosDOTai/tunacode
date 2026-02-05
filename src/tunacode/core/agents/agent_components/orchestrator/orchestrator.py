@@ -166,9 +166,7 @@ async def process_node(
     # Step 6: Detect empty response
     has_structured_tools = has_tool_calls(response_parts)
     is_empty = (
-        _detect_empty_response(has_content, has_structured_tools)
-        if response_state
-        else False
+        _detect_empty_response(has_content, has_structured_tools) if response_state else False
     )
 
     # Step 7: Dispatch tool calls (state transition callback keeps ownership here)

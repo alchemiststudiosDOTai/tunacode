@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-04T21:59:10.893518+00:00",
+  "generated_at": "2026-02-05T19:57:29.590826+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
@@ -103,8 +103,8 @@
       "name": "pydantic_imports",
       "description": "Imports that reference pydantic.",
       "pattern": "\\bfrom\\s+pydantic\\b|\\bimport\\s+pydantic\\b",
-      "match_count": 7,
-      "file_count": 6,
+      "match_count": 8,
+      "file_count": 7,
       "files": [
         {
           "path": ".claude/debug_history/2026-02-01_openai-chat-invalid-response.md",
@@ -124,6 +124,10 @@
         },
         {
           "path": "pytest.ini",
+          "match_count": 1
+        },
+        {
+          "path": "src/tunacode/core/agents/agent_components/orchestrator/orchestrator.py",
           "match_count": 1
         },
         {
@@ -305,7 +309,7 @@
     }
   },
   "totals": {
-    "match_count": 90,
-    "file_count": 39
+    "match_count": 91,
+    "file_count": 40
   }
 }
