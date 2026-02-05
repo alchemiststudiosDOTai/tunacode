@@ -82,6 +82,44 @@ class FileFilter:
         rel_path = path.relative_to(search_path)
         return any(self._is_fuzzy_match(fuzzy_search, name_prefix, part) for part in rel_path.parts)
 
+    def _collect_matching_dirs(
+        self,
+        dirs: list[str],
+        root_path: Path,
+        search_path: Path,
+        name_prefix: str,
+        current_depth: int,
+    ) -> list[tuple[int, str]]:
+        """Collect directory entries matching the prefix filter."""
+        results: list[tuple[int, str]] = []
+        for d in dirs:
+            dir_path = root_path / d
+            if not self._matches_prefix(dir_path, name_prefix, search_path):
+                continue
+            rel = dir_path.relative_to(self.root)
+            results.append((current_depth, f"{rel}/"))
+        return results
+
+    def _collect_matching_files(
+        self,
+        files: list[str],
+        root_path: Path,
+        search_path: Path,
+        name_prefix: str,
+        current_depth: int,
+    ) -> list[tuple[int, str]]:
+        """Collect file entries passing ignore and prefix filters."""
+        results: list[tuple[int, str]] = []
+        for f in sorted(files):
+            file_path = root_path / f
+            if self.is_ignored(file_path):
+                continue
+            if not self._matches_prefix(file_path, name_prefix, search_path):
+                continue
+            rel = file_path.relative_to(self.root)
+            results.append((current_depth, str(rel)))
+        return results
+
     def complete(
         self,
         prefix: str = "",
@@ -109,29 +147,14 @@ class FileFilter:
 
             dirs[:] = sorted(d for d in dirs if not self.is_ignored(root_path / d))
 
-            for d in dirs:
-                dir_path = root_path / d
-                if not self._matches_prefix(dir_path, name_prefix, search_path):
-                    continue
-
-                rel = dir_path.relative_to(self.root)
-                results_with_depth.append((current_depth, f"{rel}/"))
-
-                if len(results_with_depth) >= effective_limit:
-                    break
-
-            for f in sorted(files):
-                file_path = root_path / f
-                if self.is_ignored(file_path):
-                    continue
-                if not self._matches_prefix(file_path, name_prefix, search_path):
-                    continue
-
-                rel = file_path.relative_to(self.root)
-                results_with_depth.append((current_depth, str(rel)))
-
-                if len(results_with_depth) >= effective_limit:
-                    break
+            matched_dirs = self._collect_matching_dirs(
+                dirs, root_path, search_path, name_prefix, current_depth,
+            )
+            matched_files = self._collect_matching_files(
+                files, root_path, search_path, name_prefix, current_depth,
+            )
+            results_with_depth.extend(matched_dirs)
+            results_with_depth.extend(matched_files)
 
             if len(results_with_depth) >= effective_limit:
                 break

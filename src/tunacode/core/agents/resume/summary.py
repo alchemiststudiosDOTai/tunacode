@@ -60,38 +60,38 @@ class SummaryMessage:
         return f"{SUMMARY_MARKER}\n{self.content}"
 
 
+def _content_has_marker(content: Any) -> bool:
+    """Check if a content value contains the summary marker."""
+    return isinstance(content, str) and SUMMARY_MARKER in content
+
+
+def _dict_message_is_summary(message: dict[str, Any]) -> bool:
+    """Check if a dict-format message contains a summary marker."""
+    if _content_has_marker(message.get("content", "")):
+        return True
+    parts = message.get("parts", [])
+    return any(
+        _content_has_marker(part.get("content", ""))
+        for part in parts
+        if isinstance(part, dict)
+    )
+
+
+def _object_message_is_summary(message: Any) -> bool:
+    """Check if a pydantic-ai message contains a summary marker."""
+    if not hasattr(message, "parts"):
+        return False
+    return any(_content_has_marker(getattr(part, "content", None)) for part in message.parts)
+
+
 def is_summary_message(message: Any) -> bool:
     """Check if a message is a summary checkpoint.
 
     Looks for the SUMMARY_MARKER in text parts of the message.
-
-    Args:
-        message: A pydantic-ai message or dict
-
-    Returns:
-        True if message contains a summary checkpoint
     """
-    # Handle dict messages
     if isinstance(message, dict):
-        content = message.get("content", "")
-        if isinstance(content, str) and SUMMARY_MARKER in content:
-            return True
-        parts = message.get("parts", [])
-        for part in parts:
-            if isinstance(part, dict):
-                part_content = part.get("content", "")
-                if isinstance(part_content, str) and SUMMARY_MARKER in part_content:
-                    return True
-        return False
-
-    # Handle pydantic-ai messages
-    if hasattr(message, "parts"):
-        for part in message.parts:
-            content = getattr(part, "content", None)
-            if isinstance(content, str) and SUMMARY_MARKER in content:
-                return True
-
-    return False
+        return _dict_message_is_summary(message)
+    return _object_message_is_summary(message)
 
 
 def should_compact(messages: list[Any], model_name: str) -> bool:

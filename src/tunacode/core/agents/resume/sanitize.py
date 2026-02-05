@@ -292,21 +292,56 @@ def find_dangling_tool_call_ids(
     return find_dangling_tool_calls(canonical_cache)
 
 
+def _process_message_for_dangling(
+    message: Any,
+    dangling_tool_call_ids: set[ToolCallId],
+    logger: Any,
+) -> tuple[Any | None, bool]:
+    """Filter dangling tool call references from a single message.
+
+    Returns:
+        Tuple of (updated message or None if dropped, whether anything was removed).
+    """
+    parts = _get_parts(message)
+    tool_calls = _get_message_tool_calls(message)
+
+    filtered_parts, removed_parts = _filter_parts_by_tool_call_id(
+        parts, dangling_tool_call_ids, logger,
+    )
+    filtered_tool_calls, removed_tool_calls = _filter_tool_calls_by_tool_call_id(
+        tool_calls, dangling_tool_call_ids, logger,
+    )
+
+    removed_from_message = removed_parts or removed_tool_calls
+    if not removed_from_message:
+        return message, False
+
+    is_empty = not filtered_parts and not filtered_tool_calls
+    if is_empty:
+        return None, True
+
+    updates: dict[str, Any] = {}
+    if removed_parts:
+        updates[PARTS_ATTR] = filtered_parts
+    if removed_tool_calls and _can_update_tool_calls(message):
+        updates[TOOL_CALLS_ATTR] = filtered_tool_calls
+
+    return _apply_message_updates(message, updates), True
+
+
 def remove_dangling_tool_calls(
     messages: list[Any],
     tool_registry: ToolCallRegistry,
     dangling_tool_call_ids: set[ToolCallId] | None = None,
 ) -> bool:
     """Remove tool calls that never received tool returns and prune the registry."""
-    has_messages = bool(messages)
-    if not has_messages:
+    if not messages:
         return False
 
     if dangling_tool_call_ids is None:
         dangling_tool_call_ids = find_dangling_tool_call_ids(messages)
 
-    has_dangling_tool_calls = bool(dangling_tool_call_ids)
-    if not has_dangling_tool_calls:
+    if not dangling_tool_call_ids:
         return False
 
     logger = get_logger()
@@ -314,49 +349,19 @@ def remove_dangling_tool_calls(
     remaining_messages: list[Any] = []
 
     for message in messages:
-        parts = _get_parts(message)
-        tool_calls = _get_message_tool_calls(message)
-
-        filtered_parts, removed_parts = _filter_parts_by_tool_call_id(
-            parts,
-            dangling_tool_call_ids,
-            logger,
+        updated, was_removed = _process_message_for_dangling(
+            message, dangling_tool_call_ids, logger,
         )
-        filtered_tool_calls, removed_tool_calls = _filter_tool_calls_by_tool_call_id(
-            tool_calls,
-            dangling_tool_call_ids,
-            logger,
-        )
-
-        removed_from_message = removed_parts or removed_tool_calls
-        if removed_from_message:
+        if was_removed:
             removed_any = True
-
-        has_remaining_parts = bool(filtered_parts)
-        has_remaining_tool_calls = bool(filtered_tool_calls)
-        should_drop_message = removed_from_message and not (
-            has_remaining_parts or has_remaining_tool_calls
-        )
-        if should_drop_message:
-            continue
-
-        updates: dict[str, Any] = {}
-        if removed_parts:
-            updates[PARTS_ATTR] = filtered_parts
-
-        can_update_tool_calls = _can_update_tool_calls(message)
-        if removed_tool_calls and can_update_tool_calls:
-            updates[TOOL_CALLS_ATTR] = filtered_tool_calls
-
-        updated_message = _apply_message_updates(message, updates)
-        remaining_messages.append(updated_message)
+        if updated is not None:
+            remaining_messages.append(updated)
 
     if not removed_any:
         return False
 
     messages[:] = remaining_messages
     tool_registry.remove_many(dangling_tool_call_ids)
-
     return True
 
 
