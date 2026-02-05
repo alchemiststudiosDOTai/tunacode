@@ -102,6 +102,7 @@ These paths are excluded from scanning:
 - `.git/`, `__pycache__/`, `.venv/`
 - `build/`, `dist/`, `*.egg-info/`
 - `pyproject.toml`, `.pre-commit-config.yaml`
+- Markdown files (`*.md`)
 - Test files (unless `--include-tests` flag used)
 
 ## Related Tools

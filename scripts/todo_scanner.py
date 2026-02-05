@@ -64,6 +64,7 @@ REGEX_FLAGS = re.IGNORECASE | re.MULTILINE
 EXCLUDE_PATTERNS = [
     r"^\.git/",
     r"\.pyc$",
+    r"\.md$",
     r"__pycache__/",
     r"\.venv/",
     r"node_modules/",
