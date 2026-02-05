@@ -1,4 +1,21 @@
-"""Node orchestration for agent responses."""
+"""Node orchestration for agent responses.
+
+Thin coordinator that processes one node from pydantic-ai's agent loop.
+Each step is a single function call delegated to a focused module:
+
+  1. Transition to ASSISTANT state
+  2. Process inbound tool returns from request
+  3. Record agent thought
+  4. Track token usage from model response
+  5. Extract text content from response
+  6. Dispatch outbound tool calls
+  7. Check for node result (user response)
+  8. Transition to RESPONSE state
+
+All debug formatting lives in debug_format.py.
+All tool return processing lives in tool_returns.py.
+All tool dispatch logic lives in tool_dispatcher.py.
+"""
 
 from typing import Any
 
@@ -9,169 +26,87 @@ from tunacode.types.callbacks import (
     ToolStartCallback,
 )
 
-from tunacode.core.agents.resume.sanitize_debug import (
-    DEBUG_NEWLINE_REPLACEMENT,
-    DEBUG_PREVIEW_SUFFIX,
-)
 from tunacode.core.logging import get_logger
 from tunacode.core.types import AgentState, StateManagerProtocol
 
 from ..response_state import ResponseState
+from .debug_format import log_request_parts, log_response_parts
 from .message_recorder import record_thought
-from .tool_dispatcher import consume_tool_call_args, dispatch_tools, has_tool_calls
+from .tool_dispatcher import dispatch_tools, has_tool_calls
+from .tool_returns import emit_tool_returns
 from .usage_tracker import update_usage
 
-PART_KIND_TOOL_RETURN = "tool-return"
-UNKNOWN_TOOL_NAME = "unknown"
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
 CONTENT_JOINER = " "
-EMPTY_RESPONSE_REASON_EMPTY = "empty"
+EMPTY_RESPONSE_REASON = "empty"
 
-TOOL_RESULT_STATUS_COMPLETED = "completed"
-
-# Preview length limits for debug logging
 THOUGHT_PREVIEW_LENGTH = 80
 RESPONSE_PREVIEW_LENGTH = 100
-DEBUG_PART_PREVIEW_LENGTH = RESPONSE_PREVIEW_LENGTH
+
+# ---------------------------------------------------------------------------
+# Content extraction
+# ---------------------------------------------------------------------------
 
 
-def _emit_tool_returns(
-    request: Any,
-    state_manager: StateManagerProtocol,
-    tool_result_callback: ToolResultCallback | None,
-) -> None:
-    if not tool_result_callback:
-        return
+def _extract_text_content(parts: list[Any]) -> tuple[bool, str]:
+    """Extract and join text content from response parts.
 
-    request_parts = getattr(request, "parts", None)
-    if not request_parts:
-        return
-
-    debug_mode = bool(getattr(state_manager.session, "debug_mode", False))
-
-    for part in request_parts:
-        part_kind = getattr(part, "part_kind", None)
-        if part_kind != PART_KIND_TOOL_RETURN:
-            continue
-
-        logger = get_logger()
-        tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
-        logger.lifecycle(f"Tool return received (tool={tool_name})")
-        tool_call_id = getattr(part, "tool_call_id", None)
-        tool_args = consume_tool_call_args(part, state_manager)
+    Returns:
+        (has_content, combined_text) where has_content is True if any
+        non-empty text was found.
+    """
+    segments: list[str] = []
+    for part in parts:
         content = getattr(part, "content", None)
-        result_str = str(content) if content is not None else None
-        if tool_call_id:
-            tool_registry = state_manager.session.runtime.tool_registry
-            tool_registry.complete(tool_call_id, result_str)
-        tool_result_callback(
-            tool_name,
-            TOOL_RESULT_STATUS_COMPLETED,
-            tool_args,
-            result_str,
-            None,
-        )
+        if not isinstance(content, str):
+            continue
+        if content.strip():
+            segments.append(content)
 
-        if debug_mode:
-            debug_summary = _format_tool_return_debug(
-                tool_name,
-                tool_call_id,
-                tool_args,
-                content,
-            )
-            logger.debug(debug_summary)
+    if not segments:
+        return False, ""
+
+    return True, CONTENT_JOINER.join(segments).strip()
 
 
-def _format_debug_preview(value: Any) -> tuple[str, int]:
-    """Return a trimmed preview string and its original length."""
-    if value is None:
-        return "", 0
-
-    value_text = value if isinstance(value, str) else str(value)
-    value_len = len(value_text)
-    preview_len = min(DEBUG_PART_PREVIEW_LENGTH, value_len)
-    preview_text = value_text[:preview_len]
-    if value_len > preview_len:
-        preview_text = f"{preview_text}{DEBUG_PREVIEW_SUFFIX}"
-    preview_text = preview_text.replace("\n", DEBUG_NEWLINE_REPLACEMENT)
-    return preview_text, value_len
-
-
-def _format_part_debug(part: Any) -> str:
-    """Format a request/response part for debug logging."""
-    part_kind_value = getattr(part, "part_kind", None)
-    part_kind = part_kind_value if part_kind_value is not None else "unknown"
-    tool_name = getattr(part, "tool_name", None)
-    tool_call_id = getattr(part, "tool_call_id", None)
-    content = getattr(part, "content", None)
-    args = getattr(part, "args", None)
-
-    segments = [f"kind={part_kind}"]
-    if tool_name:
-        segments.append(f"tool={tool_name}")
-    if tool_call_id:
-        segments.append(f"id={tool_call_id}")
-
-    content_preview, content_len = _format_debug_preview(content)
-    if content_preview:
-        segments.append(f"content={content_preview} ({content_len} chars)")
-
-    args_preview, args_len = _format_debug_preview(args)
-    if args_preview:
-        segments.append(f"args={args_preview} ({args_len} chars)")
-
-    return " ".join(segments)
-
-
-def _log_model_request_parts(request: Any, debug_mode: bool) -> None:
-    """Log the outgoing model request parts when debug is enabled."""
-    if not debug_mode:
-        return
-
+def _log_response_preview(text: str) -> None:
+    """Log a truncated, escaped preview of response content."""
     logger = get_logger()
-    request_parts = getattr(request, "parts", None)
-    request_type = type(request).__name__
-    if request_parts is None:
-        logger.debug(f"Model request parts: count=0 type={request_type} parts=None")
-        return
-    if not isinstance(request_parts, list):
-        preview, preview_len = _format_debug_preview(request_parts)
-        logger.debug(
-            f"Model request parts: type={request_type} parts_type={type(request_parts).__name__} "
-            f"preview={preview} ({preview_len} chars)"
-        )
-        return
-    if not request_parts:
-        logger.debug(f"Model request parts: count=0 type={request_type}")
-        return
-
-    request_part_count = len(request_parts)
-    logger.debug(f"Model request parts: count={request_part_count} type={request_type}")
-    for part_index, part in enumerate(request_parts):
-        part_summary = _format_part_debug(part)
-        logger.debug(f"Model request part[{part_index}]: {part_summary}")
+    preview = text[:RESPONSE_PREVIEW_LENGTH]
+    if len(text) > RESPONSE_PREVIEW_LENGTH:
+        preview += "..."
+    preview = preview.replace("\n", "\\n")
+    logger.lifecycle(f"Response: {preview} ({len(text)} chars)")
 
 
-def _format_tool_return_debug(
-    tool_name: str,
-    tool_call_id: str | None,
-    tool_args: Any,
-    content: Any,
-) -> str:
-    """Format tool return debug output."""
-    segments = [f"tool={tool_name}"]
-    if tool_call_id:
-        segments.append(f"id={tool_call_id}")
+def _log_thought_preview(thought: str) -> None:
+    """Log a truncated, escaped preview of agent thought."""
+    logger = get_logger()
+    preview = thought[:THOUGHT_PREVIEW_LENGTH].replace("\n", "\\n")
+    if len(thought) > THOUGHT_PREVIEW_LENGTH:
+        preview += "..."
+    logger.lifecycle(f"Thought: {preview}")
 
-    args_preview, args_len = _format_debug_preview(tool_args)
-    if args_preview:
-        segments.append(f"args={args_preview} ({args_len} chars)")
 
-    result_preview, result_len = _format_debug_preview(content)
-    if result_preview:
-        segments.append(f"result={result_preview} ({result_len} chars)")
+# ---------------------------------------------------------------------------
+# Empty response detection
+# ---------------------------------------------------------------------------
 
-    return f"Tool return sent: {' '.join(segments)}"
+
+def _detect_empty_response(
+    has_content: bool,
+    has_structured_tools: bool,
+) -> bool:
+    """Return True if the response has neither text content nor tool calls."""
+    return not has_content and not has_structured_tools
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
 
 
 async def process_node(
@@ -185,97 +120,85 @@ async def process_node(
 ) -> tuple[bool, str | None]:
     """Process a single node from the agent response.
 
-    Args:
-        node: The agent response node to process.
-        tool_callback: Callback to execute tools.
-        state_manager: Session state manager.
-        _streaming_callback: Unused. Preserved for API compatibility.
-        response_state: State machine for response tracking.
-        tool_result_callback: Callback for tool result display.
-        tool_start_callback: Callback for tool start display.
-
     Returns:
         Tuple of (is_empty, reason) where is_empty indicates a problematic
         response and reason is "empty".
     """
-    empty_response_detected = False
-    has_non_empty_content = False
     session = state_manager.session
-    logger = get_logger()
-    debug_mode = bool(getattr(state_manager.session, "debug_mode", False))
+    debug_mode = bool(getattr(session, "debug_mode", False))
 
+    # Step 1: Transition to ASSISTANT
     if response_state and response_state.can_transition_to(AgentState.ASSISTANT):
         response_state.transition_to(AgentState.ASSISTANT)
 
+    # Step 2: Process inbound request (tool returns from previous iteration)
     request = getattr(node, "request", None)
     if request is not None:
-        _log_model_request_parts(request, debug_mode)
-        _emit_tool_returns(request, state_manager, tool_result_callback)
+        log_request_parts(request, debug_mode)
+        emit_tool_returns(request, state_manager, tool_result_callback)
 
+    # Step 3: Record agent thought
     thought = getattr(node, "thought", None)
     if thought:
         record_thought(session, thought)
-        # Log thought preview
-        thought_preview = thought[:THOUGHT_PREVIEW_LENGTH].replace("\n", "\\n")
-        if len(thought) > THOUGHT_PREVIEW_LENGTH:
-            thought_preview += "..."
-        logger.lifecycle(f"Thought: {thought_preview}")
+        _log_thought_preview(thought)
 
+    # Step 4-7: Process model response (if present)
     model_response = getattr(node, "model_response", None)
-    if model_response is not None:
-        update_usage(
-            session,
-            getattr(model_response, "usage", None),
-            session.current_model,
-        )
+    if model_response is None:
+        return _finalize(response_state, is_empty=False)
 
-        response_parts = model_response.parts
-        if debug_mode:
-            response_part_count = len(response_parts)
-            logger.debug(f"Model response parts: count={response_part_count}")
-            for part_index, part in enumerate(response_parts):
-                part_summary = _format_part_debug(part)
-                logger.debug(f"Model response part[{part_index}]: {part_summary}")
-        if response_state:
-            has_structured_tools = has_tool_calls(response_parts)
-            content_parts: list[str] = []
+    # Step 4: Track token usage
+    update_usage(
+        session,
+        getattr(model_response, "usage", None),
+        session.current_model,
+    )
 
-            for part in response_parts:
-                content = getattr(part, "content", None)
-                if not isinstance(content, str):
-                    continue
+    response_parts = model_response.parts
+    log_response_parts(response_parts, debug_mode)
 
-                if content.strip():
-                    has_non_empty_content = True
-                    content_parts.append(content)
+    # Step 5: Extract text content
+    has_content, combined_text = _extract_text_content(response_parts)
+    if combined_text:
+        _log_response_preview(combined_text)
 
-            if content_parts:
-                combined_content = CONTENT_JOINER.join(content_parts).strip()
+    # Step 6: Detect empty response
+    has_structured_tools = has_tool_calls(response_parts)
+    is_empty = (
+        _detect_empty_response(has_content, has_structured_tools)
+        if response_state
+        else False
+    )
 
-                # Log response preview for debug visibility
-                preview_len = min(RESPONSE_PREVIEW_LENGTH, len(combined_content))
-                preview = combined_content[:preview_len]
-                if len(combined_content) > preview_len:
-                    preview += "..."
-                # Escape newlines for single-line output
-                preview = preview.replace("\n", "\\n")
-                logger.lifecycle(f"Response: {preview} ({len(combined_content)} chars)")
+    # Step 7: Dispatch tool calls (state transition callback keeps ownership here)
+    def _transition_to_tool_execution() -> None:
+        if response_state and response_state.can_transition_to(AgentState.TOOL_EXECUTION):
+            response_state.transition_to(AgentState.TOOL_EXECUTION)
 
-            no_tools = not has_structured_tools
-            empty_without_tools = not has_non_empty_content and no_tools
-            if empty_without_tools:
-                empty_response_detected = True
+    await dispatch_tools(
+        response_parts,
+        node,
+        state_manager,
+        tool_callback,
+        tool_start_callback,
+        response_state_transition=_transition_to_tool_execution,
+    )
 
-        await dispatch_tools(
-            response_parts,
-            node,
-            state_manager,
-            tool_callback,
-            tool_result_callback,
-            tool_start_callback,
-            response_state,
-        )
+    # Step 8: Check for node result (user response detection)
+    if response_state:
+        result_output = getattr(getattr(node, "result", None), "output", None)
+        if result_output:
+            response_state.has_user_response = True
 
+    return _finalize(response_state, is_empty)
+
+
+def _finalize(
+    response_state: ResponseState | None,
+    is_empty: bool,
+) -> tuple[bool, str | None]:
+    """Transition to RESPONSE state and return the empty-detection result."""
     if (
         response_state
         and response_state.can_transition_to(AgentState.RESPONSE)
@@ -283,7 +206,7 @@ async def process_node(
     ):
         response_state.transition_to(AgentState.RESPONSE)
 
-    if empty_response_detected:
-        return True, EMPTY_RESPONSE_REASON_EMPTY
+    if is_empty:
+        return True, EMPTY_RESPONSE_REASON
 
     return False, None

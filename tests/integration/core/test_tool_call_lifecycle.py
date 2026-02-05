@@ -26,7 +26,7 @@ from tunacode.constants import (
 from tunacode.exceptions import StateError
 
 from tunacode.core.agents.agent_components.orchestrator.tool_dispatcher import (
-    _extract_fallback_tool_calls,
+    _collect_fallback_tool_calls,
     consume_tool_call_args,
     dispatch_tools,
     normalize_tool_args,
@@ -824,7 +824,7 @@ async def test_extract_fallback_tool_calls_records_args(
     text_part = TextPart(part_kind=TEXT_PART_KIND, content=tool_text)
     parts = [text_part]
 
-    results = await _extract_fallback_tool_calls(parts, state_manager, response_state)
+    results = await _collect_fallback_tool_calls(parts, state_manager)
 
     assert len(results) == 1
     result_part, result_args = results[0]
@@ -835,7 +835,6 @@ async def test_extract_fallback_tool_calls_records_args(
     assert result_args == expected_args
     assert cached_args == expected_args
     assert result_part.tool_name == expected_tool_name
-    assert response_state.current_state == AgentState.TOOL_EXECUTION
 
 
 # =============================================================================
@@ -884,14 +883,17 @@ async def test_dispatch_tools_batches_by_category(
         fake_execute_tools_parallel,
     )
 
+    def transition_to_tool_execution() -> None:
+        if response_state.can_transition_to(AgentState.TOOL_EXECUTION):
+            response_state.transition_to(AgentState.TOOL_EXECUTION)
+
     dispatch_result = await dispatch_tools(
         parts=parts,
         node=node,
         state_manager=state_manager,
         tool_callback=tool_callback,
-        _tool_result_callback=None,
         tool_start_callback=None,
-        response_state=response_state,
+        response_state_transition=transition_to_tool_execution,
     )
 
     parallel_batches = [name for batch in recorded_batches for name in batch]
@@ -902,7 +904,7 @@ async def test_dispatch_tools_batches_by_category(
     assert tool_callback.call_count == len(parts)
     unique_tool_call_ids = {part.tool_call_id for part in parts}
     assert len(tool_registry.list_calls()) == len(unique_tool_call_ids)
-    assert response_state.current_state == AgentState.RESPONSE
+    assert response_state.current_state == AgentState.TOOL_EXECUTION
     assert len(recorded_batches) == 1
 
     # NOTE: submit tool no longer sets task_completed - pydantic-ai loop ends naturally
@@ -948,20 +950,23 @@ async def test_dispatch_tools_uses_fallback_for_text_only_calls(
         fake_execute_tools_parallel,
     )
 
+    def transition_to_tool_execution() -> None:
+        if response_state.can_transition_to(AgentState.TOOL_EXECUTION):
+            response_state.transition_to(AgentState.TOOL_EXECUTION)
+
     dispatch_result = await dispatch_tools(
         parts=[text_part],
         node=node,
         state_manager=state_manager,
         tool_callback=tool_callback,
-        _tool_result_callback=None,
         tool_start_callback=None,
-        response_state=response_state,
+        response_state_transition=transition_to_tool_execution,
     )
 
     assert dispatch_result.used_fallback is True
     assert dispatch_result.has_tool_calls is True
     assert len(tool_registry.list_calls()) == 1
-    assert response_state.current_state == AgentState.RESPONSE
+    assert response_state.current_state == AgentState.TOOL_EXECUTION
 
     assert len(recorded_batches) == 1
 

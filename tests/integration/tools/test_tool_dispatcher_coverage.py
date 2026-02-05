@@ -142,7 +142,7 @@ async def test_extract_fallback_skips_non_text_parts(state_manager: StateManager
         TextPart(part_kind=PART_KIND_TEXT, content=EMPTY_TEXT),
     ]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(parts, state_manager, None)
+    results = await tool_dispatcher._collect_fallback_tool_calls(parts, state_manager)
 
     assert results == []
 
@@ -152,7 +152,7 @@ async def test_extract_fallback_debug_no_indicator(state_manager: StateManager) 
     state_manager.session.debug_mode = True
     parts = [TextPart(part_kind=PART_KIND_TEXT, content=NO_INDICATOR_TEXT)]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(parts, state_manager, None)
+    results = await tool_dispatcher._collect_fallback_tool_calls(parts, state_manager)
 
     assert results == []
 
@@ -162,15 +162,11 @@ async def test_extract_fallback_debug_with_diagnostics_success(
     state_manager: StateManager,
 ) -> None:
     state_manager.session.debug_mode = True
-    response_state = _make_response_state()
     parts = [TextPart(part_kind=PART_KIND_TEXT, content=READ_TOOL_CALL_TAGGED)]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(
-        parts, state_manager, response_state
-    )
+    results = await tool_dispatcher._collect_fallback_tool_calls(parts, state_manager)
 
     assert len(results) == 1
-    assert response_state.current_state == AgentState.TOOL_EXECUTION
 
 
 @pytest.mark.asyncio
@@ -180,7 +176,7 @@ async def test_extract_fallback_debug_with_indicators_no_calls(
     state_manager.session.debug_mode = True
     parts = [TextPart(part_kind=PART_KIND_TEXT, content=INVALID_TOOL_CALL_TAGGED)]
 
-    results = await tool_dispatcher._extract_fallback_tool_calls(parts, state_manager, None)
+    results = await tool_dispatcher._collect_fallback_tool_calls(parts, state_manager)
 
     assert results == []
 
@@ -190,7 +186,6 @@ async def test_dispatch_debug_logging_and_skips_callbacks(
     state_manager: StateManager,
 ) -> None:
     state_manager.session.debug_mode = True
-    response_state = _make_response_state()
     parts = [
         ToolCallPart(
             tool_name=SUSPICIOUS_TOOL_NAME,
@@ -209,9 +204,7 @@ async def test_dispatch_debug_logging_and_skips_callbacks(
         node=DummyNode(result=None),
         state_manager=state_manager,
         tool_callback=None,
-        _tool_result_callback=None,
         tool_start_callback=None,
-        response_state=response_state,
     )
 
     assert result.has_tool_calls is True
@@ -224,7 +217,6 @@ async def test_dispatch_debug_logging_and_skips_callbacks(
 async def test_dispatch_preview_suffix(
     state_manager: StateManager, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    response_state = _make_response_state()
     started_labels: list[str] = []
 
     def tool_start_callback(label: str) -> None:
@@ -245,9 +237,7 @@ async def test_dispatch_preview_suffix(
         node=DummyNode(result=None),
         state_manager=state_manager,
         tool_callback=AsyncMock(),
-        _tool_result_callback=None,
         tool_start_callback=tool_start_callback,
-        response_state=response_state,
     )
 
     preview_names = TOOL_SEQUENCE[: tool_dispatcher.TOOL_BATCH_PREVIEW_COUNT]
@@ -260,7 +250,6 @@ async def test_dispatch_preview_suffix(
 async def test_dispatch_write_tool_start_and_user_abort(
     state_manager: StateManager,
 ) -> None:
-    response_state = _make_response_state()
     started_labels: list[str] = []
 
     def tool_start_callback(label: str) -> None:
@@ -281,35 +270,51 @@ async def test_dispatch_write_tool_start_and_user_abort(
             node=DummyNode(result=None),
             state_manager=state_manager,
             tool_callback=tool_callback,
-            _tool_result_callback=None,
             tool_start_callback=tool_start_callback,
-            response_state=response_state,
         )
 
     assert started_labels == [WRITE_TOOL_NAME]
 
 
 @pytest.mark.asyncio
-async def test_dispatch_sets_user_response_from_node_result(
+async def test_process_node_sets_user_response_from_node_result(
     state_manager: StateManager,
 ) -> None:
-    response_state = _make_response_state()
-    node = DummyNode(result=DummyResult(output=RESPONSE_OUTPUT))
-    parts = [
-        ToolCallPart(
-            tool_name=WRITE_TOOL_NAME,
-            args={},
-            tool_call_id=TOOL_CALL_ID,
-        )
-    ]
+    """User response detection moved from dispatch_tools to process_node orchestrator."""
+    from tunacode.core.agents.agent_components.orchestrator.orchestrator import process_node
 
-    await tool_dispatcher.dispatch_tools(
-        parts=parts,
+    response_state = _make_response_state()
+
+    @dataclass(frozen=True, slots=True)
+    class DummyModelResponse:
+        parts: list[Any]
+        usage: None = None
+
+    @dataclass(frozen=True, slots=True)
+    class DummyNodeWithResponse:
+        result: DummyResult | None
+        model_response: DummyModelResponse | None = None
+        request: None = None
+        thought: None = None
+
+    model_response = DummyModelResponse(
+        parts=[
+            ToolCallPart(
+                tool_name=WRITE_TOOL_NAME,
+                args={},
+                tool_call_id=TOOL_CALL_ID,
+            )
+        ],
+    )
+    node = DummyNodeWithResponse(
+        result=DummyResult(output=RESPONSE_OUTPUT),
+        model_response=model_response,
+    )
+
+    await process_node(
         node=node,
-        state_manager=state_manager,
         tool_callback=AsyncMock(return_value=CALLBACK_RETURN),
-        _tool_result_callback=None,
-        tool_start_callback=None,
+        state_manager=state_manager,
         response_state=response_state,
     )
 
