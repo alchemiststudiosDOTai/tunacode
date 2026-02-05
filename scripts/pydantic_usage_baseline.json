@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-05T20:52:07.388341+00:00",
+  "generated_at": "2026-02-05T21:28:10.110877+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
@@ -30,7 +30,7 @@
           "match_count": 1
         },
         {
-          "path": "src/tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py",
+          "path": "src/tunacode/core/agents/agent_components/orchestrator/_tool_dispatcher_collection.py",
           "match_count": 2
         },
         {
