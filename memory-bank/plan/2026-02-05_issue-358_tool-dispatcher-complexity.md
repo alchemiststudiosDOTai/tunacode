@@ -142,7 +142,7 @@ Acceptance:
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| Circular imports when splitting modules | High | Medium | Keep deferred imports; move only leaf functions first; run import-time smoke test | 
+| Circular imports when splitting modules | High | Medium | Keep deferred imports; move only leaf functions first; run import-time smoke test |
 | Silent behavior change in fallback parser | High | Low | Keep logic identical; only replace asserts with explicit raises; rely on existing integration tests |
 | Refactor causes new type errors | Medium | Medium | Prefer explicit types; keep changes small; run targeted tests frequently |
 
