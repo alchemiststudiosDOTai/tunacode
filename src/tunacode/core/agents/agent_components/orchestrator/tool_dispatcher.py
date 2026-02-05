@@ -131,16 +131,27 @@ async def normalize_tool_args(raw_args: Any) -> ToolArgs:
     return await parse_args(raw_args)
 
 
-async def record_tool_call_args(part: Any, state_manager: StateManagerProtocol) -> ToolArgs:
-    """Parse tool args and register the tool call."""
+async def record_tool_call_args(
+    part: Any,
+    state_manager: StateManagerProtocol,
+    *,
+    normalized_tool_name: str | None = None,
+) -> ToolArgs:
+    """Parse tool args and register the tool call.
+
+    Notes:
+        pydantic-ai message parts may be frozen. Avoid mutating `part` in-place.
+        Instead, normalize the tool name for registry bookkeeping and let the
+        dispatcher construct a normalized execution part when needed.
+    """
     raw_args = getattr(part, "args", {})
     parsed_args = await normalize_tool_args(raw_args)
+
     tool_call_id: ToolCallId | None = getattr(part, "tool_call_id", None)
     raw_tool_name = getattr(part, "tool_name", None)
-    normalized_tool_name = _normalize_tool_name(raw_tool_name)
-    if raw_tool_name != normalized_tool_name:
-        part.tool_name = normalized_tool_name
-    _register_tool_call(state_manager, tool_call_id, normalized_tool_name, parsed_args)
+    tool_name = normalized_tool_name or _normalize_tool_name(raw_tool_name)
+
+    _register_tool_call(state_manager, tool_call_id, tool_name, parsed_args)
     return parsed_args
 
 
@@ -174,6 +185,34 @@ class ToolDispatchResult:
 
 
 # ---------------------------------------------------------------------------
+# Tool call part normalization
+# ---------------------------------------------------------------------------
+
+
+def _ensure_normalized_tool_call_part(part: Any, normalized_tool_name: str) -> Any:
+    """Return a tool-call part whose tool_name matches `normalized_tool_name`.
+
+    pydantic-ai parts may be frozen, so when normalization is required we
+    construct a new ToolCallPart for execution instead of mutating in-place.
+    """
+    raw_tool_name = getattr(part, "tool_name", None)
+    if raw_tool_name == normalized_tool_name:
+        return part
+
+    tool_call_id = getattr(part, "tool_call_id", None)
+    if tool_call_id is None:
+        return part
+
+    from pydantic_ai.messages import ToolCallPart
+
+    return ToolCallPart(
+        tool_name=normalized_tool_name,
+        args=getattr(part, "args", {}),
+        tool_call_id=tool_call_id,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Collection: structured tool calls
 # ---------------------------------------------------------------------------
 
@@ -193,10 +232,25 @@ async def _collect_structured_tool_calls(
         if getattr(part, "part_kind", None) != PART_KIND_TOOL_CALL:
             continue
 
-        tool_args = await record_tool_call_args(part, state_manager)
-        records.append((part, tool_args))
+        raw_tool_name = getattr(part, "tool_name", None)
+        normalized_tool_name = _normalize_tool_name(raw_tool_name)
 
-        tool_name = getattr(part, "tool_name", UNKNOWN_TOOL_NAME)
+        tool_args = await record_tool_call_args(
+            part,
+            state_manager,
+            normalized_tool_name=normalized_tool_name,
+        )
+        execution_part = _ensure_normalized_tool_call_part(part, normalized_tool_name)
+        records.append((execution_part, tool_args))
+
+        if debug_mode and raw_tool_name != normalized_tool_name:
+            logger.debug(
+                "[TOOL_DISPATCH] Normalized tool name",
+                raw_tool_name=raw_tool_name,
+                normalized_tool_name=normalized_tool_name,
+            )
+
+        tool_name = getattr(execution_part, "tool_name", UNKNOWN_TOOL_NAME)
         if debug_mode and _is_suspicious_tool_name(tool_name):
             logger.debug(
                 "[TOOL_DISPATCH] SUSPICIOUS tool_name detected",

@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-02-05T19:57:29.590826+00:00",
+  "generated_at": "2026-02-05T20:09:43.146253+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
       "name": "pydantic_ai_imports",
       "description": "Imports that reference pydantic_ai.",
       "pattern": "\\bfrom\\s+pydantic_ai\\b|\\bimport\\s+pydantic_ai\\b",
-      "match_count": 44,
+      "match_count": 45,
       "file_count": 22,
       "files": [
         {
@@ -31,7 +31,7 @@
         },
         {
           "path": "src/tunacode/core/agents/agent_components/orchestrator/tool_dispatcher.py",
-          "match_count": 1
+          "match_count": 2
         },
         {
           "path": "src/tunacode/core/agents/agent_components/streaming.py",
@@ -309,7 +309,7 @@
     }
   },
   "totals": {
-    "match_count": 91,
+    "match_count": 92,
     "file_count": 40
   }
 }
