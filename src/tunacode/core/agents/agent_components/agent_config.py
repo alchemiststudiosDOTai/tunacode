@@ -33,6 +33,13 @@ from tunacode.tools.update_file import update_file
 from tunacode.tools.web_fetch import web_fetch
 from tunacode.tools.write_file import write_file
 
+from tunacode.infrastructure.cache.manager import (
+    CACHE_AGENT_VERSIONS,
+    CACHE_AGENTS,
+    CACHE_PROMPTS,
+    MtimeStrategy,
+    get_cache_manager,
+)
 from tunacode.infrastructure.llm_types import PydanticAgent
 
 from tunacode.core.agents.agent_components.openai_response_validation import (
@@ -49,12 +56,16 @@ RequestHook = Callable[[Request], Awaitable[None]]
 ResponseHook = Callable[[Response], Awaitable[None]]
 EventHooks = dict[str, list[EventHook]]
 
-# Module-level cache for AGENTS.md context
-_TUNACODE_CACHE: dict[str, tuple[str, float]] = {}
+# Register caches with CacheManager
+_cm = get_cache_manager()
+_cm.register_cache(CACHE_PROMPTS, MtimeStrategy())
+_cm.register_cache(CACHE_AGENTS)
+_cm.register_cache(CACHE_AGENT_VERSIONS)
 
-# Module-level cache for agents to persist across requests
-_AGENT_CACHE: dict[ModelName, PydanticAgent] = {}
-_AGENT_CACHE_VERSION: dict[ModelName, int] = {}
+# Module-level references for backward compatibility (used by tests)
+_TUNACODE_CACHE: dict[str, tuple[str, float]] = _cm.get_cache(CACHE_PROMPTS)  # type: ignore[assignment]
+_AGENT_CACHE: dict[ModelName, PydanticAgent] = _cm.get_cache(CACHE_AGENTS)  # type: ignore[assignment]
+_AGENT_CACHE_VERSION: dict[ModelName, int] = _cm.get_cache(CACHE_AGENT_VERSIONS)  # type: ignore[assignment]
 
 
 async def _sleep_with_delay(total_delay: float) -> None:
@@ -147,10 +158,11 @@ def _build_event_hooks(request_delay: float) -> EventHooks:
 
 
 def clear_all_caches() -> None:
-    """Clear all module-level caches. Useful for testing."""
-    _TUNACODE_CACHE.clear()
-    _AGENT_CACHE.clear()
-    _AGENT_CACHE_VERSION.clear()
+    """Clear all agent-related caches. Delegates to CacheManager."""
+    cm = get_cache_manager()
+    cm.clear_cache(CACHE_PROMPTS)
+    cm.clear_cache(CACHE_AGENTS)
+    cm.clear_cache(CACHE_AGENT_VERSIONS)
 
 
 def invalidate_agent_cache(model: str, state_manager: StateManagerProtocol) -> bool:

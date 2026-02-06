@@ -1,7 +1,6 @@
 """Ripgrep binary management and execution utilities."""
 
 import asyncio
-import functools
 import locale
 import os
 import platform
@@ -9,6 +8,12 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
+
+from tunacode.infrastructure.cache.manager import (
+    CACHE_RIPGREP_BINARY,
+    CACHE_RIPGREP_PLATFORM,
+    get_cache_manager,
+)
 
 PROCESS_OUTPUT_ENCODING = locale.getpreferredencoding(False)
 RIPGREP_MATCH_FOUND_EXIT_CODE = 0
@@ -22,34 +27,57 @@ RIPGREP_SUCCESS_EXIT_CODES = {
 }
 
 
-@functools.lru_cache(maxsize=1)
+_PLATFORM_KEY = "platform"
+
+_X86_MACHINES = {"x86_64", "amd64"}
+_ARM_MACHINES = {"aarch64", "arm64"}
+
+_PLATFORM_MAP: dict[tuple[str, str], str] = {
+    ("linux", "x86"): "x64-linux",
+    ("linux", "arm"): "arm64-linux",
+    ("darwin", "x86"): "x64-darwin",
+    ("darwin", "arm"): "arm64-darwin",
+    ("windows", "x86"): "x64-win32",
+}
+
+
+def _resolve_platform() -> tuple[str, str]:
+    """Resolve the current platform to a (platform_key, system_name) pair."""
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+
+    if machine in _X86_MACHINES:
+        arch = "x86"
+    elif machine in _ARM_MACHINES:
+        arch = "arm"
+    else:
+        raise ValueError(f"Unsupported platform: {system} {machine}")
+
+    platform_key = _PLATFORM_MAP.get((system, arch))
+    if platform_key is None:
+        raise ValueError(f"Unsupported platform: {system} {machine}")
+
+    return platform_key, system
+
+
 def get_platform_identifier() -> tuple[str, str]:
     """Get the current platform identifier.
 
     Returns:
         Tuple of (platform_key, system_name)
     """
-    system = platform.system().lower()
-    machine = platform.machine().lower()
+    cache = get_cache_manager().get_cache(CACHE_RIPGREP_PLATFORM)
+    if _PLATFORM_KEY in cache:
+        return cache[_PLATFORM_KEY]
 
-    if system == "linux":
-        if machine in ["x86_64", "amd64"]:
-            return "x64-linux", system
-        elif machine in ["aarch64", "arm64"]:
-            return "arm64-linux", system
-    elif system == "darwin":  # noqa: SIM102
-        if machine in ["x86_64", "amd64"]:
-            return "x64-darwin", system
-        elif machine in ["arm64", "aarch64"]:
-            return "arm64-darwin", system
-    elif system == "windows":  # noqa: SIM102
-        if machine in ["x86_64", "amd64"]:
-            return "x64-win32", system
-
-    raise ValueError(f"Unsupported platform: {system} {machine}")
+    result = _resolve_platform()
+    cache[_PLATFORM_KEY] = result
+    return result
 
 
-@functools.lru_cache(maxsize=1)
+_BINARY_KEY = "binary_path"
+
+
 def get_ripgrep_binary_path() -> Path | None:
     """Resolve the path to the ripgrep binary.
 
@@ -62,6 +90,17 @@ def get_ripgrep_binary_path() -> Path | None:
     Returns:
         Path to ripgrep binary or None if not available
     """
+    cache = get_cache_manager().get_cache(CACHE_RIPGREP_BINARY)
+    if _BINARY_KEY in cache:
+        return cache[_BINARY_KEY]
+
+    resolved = _resolve_ripgrep_binary()
+    cache[_BINARY_KEY] = resolved
+    return resolved
+
+
+def _resolve_ripgrep_binary() -> Path | None:
+    """Perform the actual ripgrep binary resolution (uncached)."""
     # Check for environment variable override
     env_path = os.environ.get("TUNACODE_RIPGREP_PATH")
     if env_path:

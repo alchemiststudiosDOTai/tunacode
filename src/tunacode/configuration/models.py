@@ -6,11 +6,13 @@ Configuration for loading model data from models_registry.json.
 
 from tunacode.constants import DEFAULT_CONTEXT_WINDOW
 
+from tunacode.infrastructure.cache.manager import CACHE_MODELS_REGISTRY, get_cache_manager
+
 # --- Models.dev Registry Functions ---
 
 MODELS_REGISTRY_FILE_NAME = "models_registry.json"
 
-_models_registry_cache: dict | None = None
+_REGISTRY_KEY = "registry"
 
 
 def parse_model_string(model_string: str) -> tuple[str, str]:
@@ -36,22 +38,25 @@ def load_models_registry() -> dict:
 
     Returns cached data on subsequent calls for performance.
     """
-    global _models_registry_cache
-    if _models_registry_cache is not None:
-        return _models_registry_cache
+    cache = get_cache_manager().get_cache(CACHE_MODELS_REGISTRY)
+
+    if _REGISTRY_KEY in cache:
+        return cache[_REGISTRY_KEY]
 
     import json
     from pathlib import Path
 
     registry_path = Path(__file__).parent / MODELS_REGISTRY_FILE_NAME
     with open(registry_path) as f:
-        _models_registry_cache = json.load(f)
-    return _models_registry_cache
+        data = json.load(f)
+    cache[_REGISTRY_KEY] = data
+    return data
 
 
 def get_cached_models_registry() -> dict | None:
     """Return cached registry data if already loaded."""
-    return _models_registry_cache
+    cache = get_cache_manager().get_cache(CACHE_MODELS_REGISTRY)
+    return cache.get(_REGISTRY_KEY)
 
 
 def get_providers() -> list[tuple[str, str]]:
