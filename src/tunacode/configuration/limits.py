@@ -7,29 +7,36 @@ This allows:
 - Big model users to set custom limits
 """
 
-from functools import lru_cache
-
 from tunacode.constants import (
     MAX_COMMAND_OUTPUT,
     MAX_FILES_IN_DIR,
 )
 
+from tunacode.infrastructure.cache.manager import CACHE_SETTINGS, get_cache_manager
 
-@lru_cache(maxsize=1)
+_SETTINGS_KEY = "loaded_settings"
+
+
 def _load_settings() -> dict:
-    """Load and cache settings from user config."""
+    """Load and cache settings from user config via CacheManager."""
+    cm = get_cache_manager()
+    cache = cm.get_cache(CACHE_SETTINGS)
+
+    if _SETTINGS_KEY in cache:
+        return cache[_SETTINGS_KEY]
+
     # Import here to avoid circular imports
     from tunacode.configuration.user_config import load_config
 
     config = load_config()
-    if config and "settings" in config:
-        return config["settings"]
-    return {}
+    settings = config["settings"] if config and "settings" in config else {}
+    cache[_SETTINGS_KEY] = settings
+    return settings
 
 
 def clear_cache() -> None:
     """Clear the settings cache. Call when config changes."""
-    _load_settings.cache_clear()
+    get_cache_manager().clear_cache(CACHE_SETTINGS)
 
 
 def _get_limit(key: str, default: int) -> int:

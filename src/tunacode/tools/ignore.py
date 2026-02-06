@@ -14,6 +14,8 @@ from tunacode.configuration.ignore_patterns import (
     DEFAULT_IGNORE_PATTERNS,
 )
 
+from tunacode.infrastructure.cache.manager import CACHE_GITIGNORE, MtimeStrategy, get_cache_manager
+
 GITIGNORE_FILE_NAME = ".gitignore"
 GITIGNORE_STYLE = "gitwildmatch"
 PATH_SEPARATOR = "/"
@@ -33,7 +35,9 @@ class IgnoreCacheEntry:
     manager: IgnoreManager
 
 
-IGNORE_MANAGER_CACHE: dict[Path, IgnoreCacheEntry] = {}
+_cm = get_cache_manager()
+_cm.register_cache(CACHE_GITIGNORE, MtimeStrategy())
+IGNORE_MANAGER_CACHE: dict[Path, IgnoreCacheEntry] = _cm.get_cache(CACHE_GITIGNORE)  # type: ignore[assignment]
 
 
 def _resolve_root(root: Path) -> Path:

@@ -80,6 +80,16 @@ def mock_xml_prompt():
 
 
 @pytest.fixture(autouse=True)
+def reset_cache_manager():
+    """Reset CacheManager singleton before each test for clean cache state."""
+    from tunacode.infrastructure.cache.manager import CacheManager
+
+    CacheManager.reset_instance()
+    yield
+    CacheManager.reset_instance()
+
+
+@pytest.fixture(autouse=True)
 def isolate_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """Isolate tests from environment pollution.
 
