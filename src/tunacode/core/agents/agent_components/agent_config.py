@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from httpx import AsyncClient, HTTPStatusError, Request, Response
 from pydantic_ai import Agent
-from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.anthropic import AnthropicModel, AnthropicModelSettings
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -342,6 +342,36 @@ def _create_model_with_retry(
     return OpenAIChatModel(model_name, provider=openai_provider)
 
 
+def _build_model_settings(
+    model_instance: AnthropicModel | OpenAIChatModel | str,
+    max_tokens: int | None,
+) -> ModelSettings:
+    """Build provider-aware model settings with prompt caching for Anthropic.
+
+    Anthropic prompt caching caches the system prompt, tool definitions, and
+    conversation prefix at 10% of the normal input token cost. The 5-minute TTL
+    auto-refreshes on every cache hit, staying alive for the entire session.
+
+    Uses 3 of 4 available cache breakpoints:
+      1. System prompt (instructions)
+      2. Tool definitions
+      3. Last user message (conversation prefix)
+    """
+    is_anthropic = isinstance(model_instance, AnthropicModel)
+    if is_anthropic:
+        return AnthropicModelSettings(
+            max_tokens=max_tokens,
+            anthropic_cache_instructions=True,
+            anthropic_cache_tool_definitions=True,
+            anthropic_cache_messages=True,
+        )
+
+    base: dict[str, Any] = {}
+    if max_tokens is not None:
+        base["max_tokens"] = max_tokens
+    return ModelSettings(**base)
+
+
 def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -> PydanticAgent:
     """Get existing agent or create new one for the specified model."""
     logger = get_logger()
@@ -431,21 +461,16 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         # Create model instance with retry-enabled HTTP client
         model_instance = _create_model_with_retry(model, http_client, state_manager.session)
 
-        # Apply max_tokens if configured
+        # Build provider-aware model settings
         max_tokens = get_max_tokens()
-        if max_tokens is not None:
-            agent = Agent(
-                model=model_instance,
-                system_prompt=system_prompt,
-                tools=tools_list,
-                model_settings=ModelSettings(max_tokens=max_tokens),
-            )
-        else:
-            agent = Agent(
-                model=model_instance,
-                system_prompt=system_prompt,
-                tools=tools_list,
-            )
+        model_settings = _build_model_settings(model_instance, max_tokens)
+
+        agent = Agent(
+            model=model_instance,
+            system_prompt=system_prompt,
+            tools=tools_list,
+            model_settings=model_settings,
+        )
 
         # Store in both caches
         _AGENT_CACHE[model] = agent
