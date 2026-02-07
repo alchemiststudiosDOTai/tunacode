@@ -2,8 +2,6 @@
 
 # Canonical message adapter
 from tunacode.utils.messaging.adapter import (
-    _get_attr,
-    _get_parts,
     find_dangling_tool_calls,
     from_canonical,
     from_canonical_list,
@@ -32,7 +30,4 @@ __all__ = [
     "get_tool_call_ids",
     "get_tool_return_ids",
     "find_dangling_tool_calls",
-    # Low-level accessors (for internal modules)
-    "_get_attr",
-    "_get_parts",
 ]

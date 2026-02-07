@@ -244,13 +244,14 @@ class TextualReplApp(App[None]):
             await self.state_manager.save_session()
 
     def _get_latest_response_text(self) -> str | None:
-        from pydantic_ai.messages import ModelResponse
-
         from tunacode.core.ui_api.messaging import get_content
 
         messages = self.state_manager.session.conversation.messages
         for message in reversed(messages):
-            if not isinstance(message, ModelResponse):
+            if not isinstance(message, dict):
+                continue
+
+            if message.get("role") != "assistant":
                 continue
 
             raw_content = get_content(message)
