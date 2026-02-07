@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from tunacode.infrastructure.llm_types import AgentRun
+from typing import Any
 
 DEBUG_HISTORY_SAMPLE_SIZE: int = 3
 DEBUG_HISTORY_PARTS_LIMIT: int = 5
@@ -85,38 +82,6 @@ def log_sanitized_history_state(
         f"kind={getattr(message_history[-1], 'kind', 'unknown')}"
     )
 
-
-def log_run_handle_context_messages(run_handle: AgentRun, logger: Any) -> None:
-    """Log pydantic-ai context messages for debug."""
-    if not hasattr(run_handle, "ctx"):
-        return
-
-    ctx_messages = getattr(run_handle.ctx, "messages", None)
-    if ctx_messages is None:
-        run_state = getattr(run_handle.ctx, "state", None)
-        if run_state is not None:
-            ctx_messages = getattr(run_state, "message_history", None)
-
-    if ctx_messages is not None:
-        logger.debug(f"pydantic-ai ctx.messages count={len(ctx_messages)}")
-        if ctx_messages:
-            logger.debug(f"ctx.messages[0] type={type(ctx_messages[0]).__name__}")
-        return
-
-    logger.debug("pydantic-ai ctx.messages not found or None")
-
-
-def log_node_details(node: Any, logger: Any) -> None:
-    """Log node details for debug visibility."""
-    node_type = type(node).__name__
-    has_request = getattr(node, "request", None) is not None
-    has_response = getattr(node, "model_response", None) is not None
-    has_thought = getattr(node, "thought", None) is not None
-    logger.debug(
-        f"Node: type={node_type}, "
-        f"has_request={has_request}, has_response={has_response}, "
-        f"has_thought={has_thought}"
-    )
 
 
 def message_has_tool_calls(message: Any) -> bool:

@@ -4,7 +4,7 @@ import os
 import time
 from pathlib import Path
 
-from pydantic_ai import Agent
+from tinyagent import Agent
 
 from tunacode.tools.cache_accessors.ignore_manager_cache import (
     clear_ignore_manager_cache,
@@ -22,7 +22,7 @@ def test_agents_accessor_is_version_aware() -> None:
     clear_agents()
 
     model = "gpt-test"
-    agent_v1 = Agent(model=None, defer_model_check=True)
+    agent_v1 = Agent()
 
     set_agent(model, agent=agent_v1, version=1)
     assert get_agent(model, expected_version=1) is agent_v1
