@@ -6,8 +6,10 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from packaging.version import Version
+
 from tunacode.configuration.settings import ApplicationSettings
-from tunacode.constants import SESSIONS_SUBDIR, TUNACODE_HOME_DIR
+from tunacode.constants import PULLING_VERSIONS_TIMEOUT_SECONDS, SESSIONS_SUBDIR, TUNACODE_HOME_DIR
 
 
 def get_tunacode_home() -> Path:
@@ -110,23 +112,25 @@ def check_for_updates() -> tuple[bool, str]:
             - latest_version (str): The latest version available
     """
     app_settings = ApplicationSettings()
-    current_version = app_settings.version
+    current_version = Version(app_settings.version)
     try:
         result = subprocess.run(
-            ["pip", "index", "versions", "tunacode-cli"], capture_output=True, text=True, check=True
+            ["pip", "index", "versions", "tunacode-cli"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=PULLING_VERSIONS_TIMEOUT_SECONDS,
         )
         output = result.stdout
 
         if "Available versions:" in output:
             versions_line = output.split("Available versions:")[1].strip()
             versions = versions_line.split(", ")
-            latest_version = versions[0]
-
-            latest_version = latest_version.strip()
+            latest_version = Version(versions[0])
 
             if latest_version > current_version:
-                return True, latest_version
+                return True, str(latest_version)
 
-        return False, current_version
+        return False, str(current_version)
     except Exception:
-        return False, current_version
+        return False, str(current_version)
