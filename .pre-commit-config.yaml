@@ -4,7 +4,7 @@ default_language_version:
   python: python3
 
 # Global exclusions to prevent hooks from scanning unnecessary directories
-exclude: ^(venv/|build/|dist/|\.git/|__pycache__/|.*\.egg-info/|\.pytest_cache/|\.mypy_cache/|\.ruff_cache/|\.uv-cache/|\.uv_cache/|htmlcov/|\.coverage|reports/|llm-agent-tools/|\.tickets/)
+exclude: ^(venv/|build/|dist/|\.git/|__pycache__/|.*\.egg-info/|\.pytest_cache/|\.mypy_cache/|\.ruff_cache/|\.uv-cache/|\.uv_cache/|htmlcov/|\.coverage|reports/|llm-agent-tools/|\.tickets/|tinyAgent/)
 
 repos:
   # Pre-commit framework hooks

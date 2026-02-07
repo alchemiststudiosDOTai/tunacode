@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-07T20:01:30.035381+00:00",
+  "generated_at": "2026-02-07T21:23:44.705817+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
@@ -111,8 +111,8 @@
       "name": "pydantic_imports",
       "description": "Imports that reference pydantic.",
       "pattern": "\\bfrom\\s+pydantic\\b|\\bimport\\s+pydantic\\b",
-      "match_count": 8,
-      "file_count": 7,
+      "match_count": 9,
+      "file_count": 8,
       "files": [
         {
           "path": ".claude/debug_history/2026-02-01_openai-chat-invalid-response.md",
@@ -141,6 +141,10 @@
         {
           "path": "src/tunacode/core/session/state.py",
           "match_count": 2
+        },
+        {
+          "path": "src/tunacode/core/tinyagent/__init__.py",
+          "match_count": 1
         }
       ]
     },
@@ -281,12 +285,16 @@
       "name": "agent_call",
       "description": "Agent(...) constructor usage.",
       "pattern": "\\bAgent\\(",
-      "match_count": 7,
-      "file_count": 6,
+      "match_count": 15,
+      "file_count": 12,
       "files": [
         {
           "path": "docs/codebase-map/architecture/architecture.md",
           "match_count": 1
+        },
+        {
+          "path": "memory-bank/research/2026-02-07_tinyagent-v2.5-migration-map.md",
+          "match_count": 2
         },
         {
           "path": "scripts/pydantic_usage_baseline.json",
@@ -306,6 +314,26 @@
         },
         {
           "path": "tests/unit/infrastructure/test_typed_cache_accessors.py",
+          "match_count": 1
+        },
+        {
+          "path": "tinyAgent/docs/README.md",
+          "match_count": 2
+        },
+        {
+          "path": "tinyAgent/docs/api/providers.md",
+          "match_count": 1
+        },
+        {
+          "path": "tinyAgent/examples/example_chat.py",
+          "match_count": 1
+        },
+        {
+          "path": "tinyAgent/examples/example_chat_alchemy.py",
+          "match_count": 1
+        },
+        {
+          "path": "tinyAgent/examples/example_chat_stream_text.py",
           "match_count": 1
         }
       ]
@@ -329,7 +357,7 @@
     }
   },
   "totals": {
-    "match_count": 97,
-    "file_count": 43
+    "match_count": 106,
+    "file_count": 50
   }
 }

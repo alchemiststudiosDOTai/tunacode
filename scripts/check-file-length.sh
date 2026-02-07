@@ -78,6 +78,8 @@ done < <(find . -type f \
     -not -path "./.test_reports/*" \
     -not -path "./node_modules/*" \
     -not -path "./llm-agent-tools/*" \
+    -not -path "./tinyAgent/*" \
+    -not -path "./docs/agent-loop-map.html" \
     -not -path "./.osgrep/*" \
     -not -path "./.pre-commit-cache/*" \
     -not -name "*.pyc" \
