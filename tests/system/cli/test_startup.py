@@ -161,3 +161,49 @@ class TestHeadlessModeMocked:
         result = resolve_output(mock_run, messages)
         # Should return None or handle gracefully
         assert result is None
+
+    def test_headless_output_falls_back_to_latest_assistant_message(self) -> None:
+        """Test headless output fallback reads assistant messages from history."""
+        from tunacode.ui.headless import resolve_output
+
+        mock_run = MagicMock()
+        mock_run.result = None
+
+        messages: list = [
+            {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": "  Hello there  "}],
+            },
+        ]
+
+        result = resolve_output(mock_run, messages)
+        assert result == "Hello there"
+
+    def test_headless_output_skips_tool_call_only_assistant_message(self) -> None:
+        """Tool-call-only assistant messages should not become headless output."""
+        from tunacode.ui.headless import resolve_output
+
+        mock_run = MagicMock()
+        mock_run.result = None
+
+        messages: list = [
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": "First response"}],
+            },
+            {
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "tool_call",
+                        "id": "call_1",
+                        "name": "bash",
+                        "arguments": {"cmd": "echo hi"},
+                    }
+                ],
+            },
+        ]
+
+        result = resolve_output(mock_run, messages)
+        assert result == "First response"

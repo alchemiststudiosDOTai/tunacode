@@ -101,3 +101,7 @@ See `.claude/debug_history/continuous-learning.md` for bug/pattern/lesson entrie
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go
+
+We are in the middle of ripping out pydantic-ai. Expect some turbulence.
+
+The new agent loop is https://github.com/alchemiststudios.ai/tinyAgent

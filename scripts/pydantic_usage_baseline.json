@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-02-07T23:04:31.405447+00:00",
+  "generated_at": "2026-02-07T23:18:23.024199+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
       "name": "pydantic_ai_imports",
       "description": "Imports that reference pydantic_ai.",
       "pattern": "\\bfrom\\s+pydantic_ai\\b|\\bimport\\s+pydantic_ai\\b",
-      "match_count": 13,
-      "file_count": 8,
+      "match_count": 11,
+      "file_count": 6,
       "files": [
         {
           "path": "docs/tools/architecture.md",
@@ -31,14 +31,6 @@
         },
         {
           "path": "src/tunacode/types/canonical.py",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/ui/app.py",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/ui/headless/output.py",
           "match_count": 1
         }
       ]
@@ -289,7 +281,7 @@
     }
   },
   "totals": {
-    "match_count": 70,
-    "file_count": 36
+    "match_count": 68,
+    "file_count": 34
   }
 }
