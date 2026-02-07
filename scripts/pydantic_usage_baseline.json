@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-07T18:30:47.746084+00:00",
+  "generated_at": "2026-02-07T20:01:30.035381+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
@@ -165,9 +165,13 @@
       "name": "field",
       "description": "Field usage.",
       "pattern": "\\bField\\b",
-      "match_count": 9,
-      "file_count": 9,
+      "match_count": 10,
+      "file_count": 10,
       "files": [
+        {
+          "path": "docs/agent-loop-map.html",
+          "match_count": 1
+        },
         {
           "path": "docs/codebase-map/modules/constants.md",
           "match_count": 1
@@ -325,7 +329,7 @@
     }
   },
   "totals": {
-    "match_count": 96,
-    "file_count": 42
+    "match_count": 97,
+    "file_count": 43
   }
 }
