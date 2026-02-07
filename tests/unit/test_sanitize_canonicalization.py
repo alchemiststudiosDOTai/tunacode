@@ -9,7 +9,6 @@ from tunacode.utils.messaging import adapter
 from tunacode.core.agents.resume import sanitize
 from tunacode.core.types import ToolCallRegistry
 
-TEXT_PART_KIND = "text"
 USER_ROLE = "user"
 ASSISTANT_ROLE = "assistant"
 USER_CONTENT = "hello"
@@ -20,10 +19,11 @@ EXPECTED_MESSAGE_COUNT = 2
 def _build_text_message(role: str, content: str) -> dict[str, Any]:
     return {
         "role": role,
-        "parts": [
+        "content": [
             {
-                "part_kind": TEXT_PART_KIND,
-                "content": content,
+                "type": "text",
+                "text": content,
+                "text_signature": None,
             }
         ],
     }

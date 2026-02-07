@@ -314,9 +314,7 @@ class RequestOrchestrator:
             return False
 
         agent.abort()
-        raise RuntimeError(
-            f"Max iterations exceeded ({request_context.max_iterations}); aborted"
-        )
+        raise RuntimeError(f"Max iterations exceeded ({request_context.max_iterations}); aborted")
 
     async def _handle_stream_message_update(
         self,

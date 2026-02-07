@@ -83,7 +83,6 @@ def log_sanitized_history_state(
     )
 
 
-
 def message_has_tool_calls(message: Any) -> bool:
     """Return True if message contains tool calls in parts or metadata.
 

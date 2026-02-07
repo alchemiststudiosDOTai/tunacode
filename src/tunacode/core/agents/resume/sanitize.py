@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from tunacode.types import ToolCallId
-from tunacode.utils.messaging import find_dangling_tool_calls, to_canonical
+from tunacode.utils.messaging import find_dangling_tool_calls
 
 from tunacode.core.logging import get_logger
 from tunacode.core.types import ToolCallRegistry
@@ -68,8 +68,7 @@ __all__ = [
 def _coerce_message_dict(message: Any) -> dict[str, Any]:
     if not isinstance(message, dict):
         raise TypeError(
-            "sanitize expects tinyagent dict messages only; got "
-            f"{type(message).__name__}"
+            f"sanitize expects tinyagent dict messages only; got {type(message).__name__}"
         )
     return cast(dict[str, Any], message)
 
@@ -262,8 +261,8 @@ def remove_empty_responses(messages: list[Any]) -> bool:
 
 
 def _is_request_message(message: Any) -> bool:
-    canonical = to_canonical(message)
-    return canonical.role.value in REQUEST_ROLES
+    msg = _coerce_message_dict(message)
+    return _get_role(msg) in REQUEST_ROLES
 
 
 def remove_consecutive_requests(messages: list[Any]) -> bool:

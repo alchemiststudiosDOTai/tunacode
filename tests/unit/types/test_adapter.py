@@ -43,7 +43,11 @@ def _thinking_item(thinking: str) -> dict[str, object]:
     return {"type": "thinking", "thinking": thinking, "thinking_signature": None}
 
 
-def _tool_call_item(tool_call_id: str, tool_name: str, args: dict[str, object]) -> dict[str, object]:
+def _tool_call_item(
+    tool_call_id: str,
+    tool_name: str,
+    args: dict[str, object],
+) -> dict[str, object]:
     return {
         "type": "tool_call",
         "id": tool_call_id,

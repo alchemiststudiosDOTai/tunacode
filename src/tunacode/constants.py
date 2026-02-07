@@ -99,10 +99,6 @@ NEXTSTEP_COLORS = {
     "error": "#1a1a1a",
 }
 
-ERROR_TOOL_CALL_ID_MISSING = "Tool return missing tool_call_id."
-ERROR_TOOL_ARGS_MISSING = "Tool args missing for tool_call_id '{tool_call_id}'."
-
-
 THEME_NAME = "tunacode"
 
 RESOURCE_BAR_SEPARATOR = " - "

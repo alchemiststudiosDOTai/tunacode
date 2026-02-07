@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-02-07T21:37:52.081843+00:00",
+  "generated_at": "2026-02-07T23:04:31.405447+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
       "name": "pydantic_ai_imports",
       "description": "Imports that reference pydantic_ai.",
       "pattern": "\\bfrom\\s+pydantic_ai\\b|\\bimport\\s+pydantic_ai\\b",
-      "match_count": 41,
-      "file_count": 19,
+      "match_count": 13,
+      "file_count": 8,
       "files": [
         {
           "path": "docs/tools/architecture.md",
@@ -22,30 +22,6 @@
           "match_count": 2
         },
         {
-          "path": "src/tunacode/core/agents/agent_components/agent_config.py",
-          "match_count": 9
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/message_handler.py",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/orchestrator/_tool_dispatcher_collection.py",
-          "match_count": 2
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/streaming.py",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/tool_executor.py",
-          "match_count": 2
-        },
-        {
-          "path": "src/tunacode/core/agents/main.py",
-          "match_count": 5
-        },
-        {
           "path": "src/tunacode/core/agents/resume/summary.py",
           "match_count": 1
         },
@@ -54,35 +30,15 @@
           "match_count": 2
         },
         {
-          "path": "src/tunacode/infrastructure/llm_types.py",
-          "match_count": 3
-        },
-        {
           "path": "src/tunacode/types/canonical.py",
           "match_count": 1
         },
         {
           "path": "src/tunacode/ui/app.py",
-          "match_count": 2
+          "match_count": 1
         },
         {
           "path": "src/tunacode/ui/headless/output.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/integration/core/test_tool_call_lifecycle.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/integration/tools/test_tool_dispatcher_coverage.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/unit/core/test_agent_cache_abort.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/unit/infrastructure/test_typed_cache_accessors.py",
           "match_count": 1
         }
       ]
@@ -91,8 +47,8 @@
       "name": "pydantic_imports",
       "description": "Imports that reference pydantic.",
       "pattern": "\\bfrom\\s+pydantic\\b|\\bimport\\s+pydantic\\b",
-      "match_count": 9,
-      "file_count": 8,
+      "match_count": 8,
+      "file_count": 7,
       "files": [
         {
           "path": ".claude/debug_history/2026-02-01_openai-chat-invalid-response.md",
@@ -112,10 +68,6 @@
         },
         {
           "path": "pytest.ini",
-          "match_count": 1
-        },
-        {
-          "path": "src/tunacode/core/agents/agent_components/orchestrator/orchestrator.py",
           "match_count": 1
         },
         {
@@ -265,7 +217,7 @@
       "name": "agent_call",
       "description": "Agent(...) constructor usage.",
       "pattern": "\\bAgent\\(",
-      "match_count": 15,
+      "match_count": 14,
       "file_count": 12,
       "files": [
         {
@@ -286,7 +238,7 @@
         },
         {
           "path": "src/tunacode/core/agents/agent_components/agent_config.py",
-          "match_count": 2
+          "match_count": 1
         },
         {
           "path": "tests/unit/core/test_agent_cache_abort.py",
@@ -337,7 +289,7 @@
     }
   },
   "totals": {
-    "match_count": 100,
-    "file_count": 45
+    "match_count": 70,
+    "file_count": 36
   }
 }

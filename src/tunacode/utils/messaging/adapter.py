@@ -123,9 +123,7 @@ def _coerce_content_items(message: dict[str, Any]) -> list[Any]:
         return []
     if isinstance(content, list):
         return content
-    raise TypeError(
-        f"Agent message '{KEY_CONTENT}' must be a list, got {type(content).__name__}"
-    )
+    raise TypeError(f"Agent message '{KEY_CONTENT}' must be a list, got {type(content).__name__}")
 
 
 def _coerce_content_item(item: Any) -> dict[str, Any]:
@@ -205,35 +203,52 @@ def _content_items_to_text(content_items: list[Any]) -> str:
 # -----------------------------------------------------------------------------
 
 
-def to_canonical(message: Any) -> CanonicalMessage:
-    """Convert a tinyagent message dict into a :class:`~tunacode.types.canonical.CanonicalMessage`."""
+def _to_canonical_tool_message(message: dict[str, Any]) -> CanonicalMessage:
+    tool_call_id = message.get(KEY_TOOL_CALL_ID)
+    if not isinstance(tool_call_id, str) or not tool_call_id:
+        raise TypeError("tool_result message is missing non-empty 'tool_call_id'")
 
-    if isinstance(message, CanonicalMessage):
-        return message
+    content_text = _content_items_to_text(_coerce_content_items(message))
+    parts: tuple[CanonicalPart, ...] = (
+        ToolReturnPart(tool_call_id=tool_call_id, content=content_text),
+    )
+    return CanonicalMessage(role=MessageRole.TOOL, parts=parts, timestamp=None)
 
-    if not isinstance(message, dict):
-        raise TypeError(f"Unsupported message type: {type(message).__name__}")
 
-    role_raw = _coerce_role(cast(dict[str, Any], message))
+def _system_content_item_to_part(item_type: object, item: dict[str, Any]) -> CanonicalPart:
+    if item_type == CONTENT_TYPE_TEXT:
+        return SystemPromptPart(content=_coerce_text_item(item))
 
-    canonical_role = ROLE_TO_CANONICAL.get(role_raw)
-    if canonical_role is None:
-        raise ValueError(f"Unsupported agent message role: {role_raw!r}")
+    if item_type == CONTENT_TYPE_IMAGE:
+        return SystemPromptPart(content=_coerce_image_item(item))
 
-    if role_raw in TOOL_ROLES:
-        tool_call_id = message.get(KEY_TOOL_CALL_ID)
-        if not isinstance(tool_call_id, str) or not tool_call_id:
-            raise TypeError("tool_result message is missing non-empty 'tool_call_id'")
+    raise ValueError(f"System message content must be text/image, got: {item_type!r}")
 
-        content_text = _content_items_to_text(_coerce_content_items(message))
-        parts: tuple[CanonicalPart, ...] = (
-            ToolReturnPart(tool_call_id=tool_call_id, content=content_text),
-        )
-        return CanonicalMessage(role=MessageRole.TOOL, parts=parts, timestamp=None)
 
-    content_items = _coerce_content_items(message)
+def _non_system_content_item_to_part(item_type: object, item: dict[str, Any]) -> CanonicalPart:
+    if item_type == CONTENT_TYPE_TEXT:
+        return TextPart(content=_coerce_text_item(item))
 
-    parts_list: list[CanonicalPart] = []
+    if item_type == CONTENT_TYPE_THINKING:
+        return ThoughtPart(content=_coerce_thinking_item(item))
+
+    if item_type == CONTENT_TYPE_IMAGE:
+        return TextPart(content=_coerce_image_item(item))
+
+    if item_type == CONTENT_TYPE_TOOL_CALL:
+        tool_call_id, tool_name, args = _coerce_tool_call_item(item)
+        return ToolCallPart(tool_call_id=tool_call_id, tool_name=tool_name, args=args)
+
+    raise ValueError(f"Unsupported content item type: {item_type!r}")
+
+
+def _content_items_to_parts(
+    *,
+    canonical_role: MessageRole,
+    content_items: list[Any],
+) -> tuple[CanonicalPart, ...]:
+    parts: list[CanonicalPart] = []
+
     for raw_item in content_items:
         if raw_item is None:
             continue
@@ -242,45 +257,125 @@ def to_canonical(message: Any) -> CanonicalMessage:
         item_type = item.get(KEY_TYPE)
 
         if canonical_role == MessageRole.SYSTEM:
-            if item_type == CONTENT_TYPE_TEXT:
-                parts_list.append(SystemPromptPart(content=_coerce_text_item(item)))
-                continue
-            if item_type == CONTENT_TYPE_IMAGE:
-                parts_list.append(SystemPromptPart(content=_coerce_image_item(item)))
-                continue
-
-            raise ValueError(
-                f"System message content must be text/image, got: {item_type!r}"
-            )
-
-        if item_type == CONTENT_TYPE_TEXT:
-            parts_list.append(TextPart(content=_coerce_text_item(item)))
+            parts.append(_system_content_item_to_part(item_type, item))
             continue
 
-        if item_type == CONTENT_TYPE_THINKING:
-            parts_list.append(ThoughtPart(content=_coerce_thinking_item(item)))
-            continue
+        parts.append(_non_system_content_item_to_part(item_type, item))
 
-        if item_type == CONTENT_TYPE_IMAGE:
-            parts_list.append(TextPart(content=_coerce_image_item(item)))
-            continue
+    return tuple(parts)
 
-        if item_type == CONTENT_TYPE_TOOL_CALL:
-            tool_call_id, tool_name, args = _coerce_tool_call_item(item)
-            parts_list.append(
-                ToolCallPart(tool_call_id=tool_call_id, tool_name=tool_name, args=args)
-            )
-            continue
 
-        raise ValueError(f"Unsupported content item type: {item_type!r}")
+def to_canonical(message: Any) -> CanonicalMessage:
+    """Convert a tinyagent message dict to :class:`~tunacode.types.canonical.CanonicalMessage`."""
 
-    return CanonicalMessage(role=canonical_role, parts=tuple(parts_list), timestamp=None)
+    if isinstance(message, CanonicalMessage):
+        return message
+
+    if not isinstance(message, dict):
+        raise TypeError(f"Unsupported message type: {type(message).__name__}")
+
+    msg = cast(dict[str, Any], message)
+    role_raw = _coerce_role(msg)
+
+    canonical_role = ROLE_TO_CANONICAL.get(role_raw)
+    if canonical_role is None:
+        raise ValueError(f"Unsupported agent message role: {role_raw!r}")
+
+    if role_raw in TOOL_ROLES:
+        return _to_canonical_tool_message(msg)
+
+    content_items = _coerce_content_items(msg)
+    parts = _content_items_to_parts(
+        canonical_role=canonical_role,
+        content_items=content_items,
+    )
+
+    return CanonicalMessage(role=canonical_role, parts=parts, timestamp=None)
 
 
 def to_canonical_list(messages: list[Any]) -> list[CanonicalMessage]:
     """Convert a list of messages to canonical format."""
 
     return [to_canonical(msg) for msg in messages]
+
+
+def _tool_message_from_canonical(message: CanonicalMessage) -> dict[str, Any]:
+    tool_return_parts = [p for p in message.parts if isinstance(p, ToolReturnPart)]
+    if len(tool_return_parts) != 1:
+        raise ValueError(
+            "Canonical TOOL messages must contain exactly one ToolReturnPart "
+            f"(got {len(tool_return_parts)})"
+        )
+
+    part = tool_return_parts[0]
+    return {
+        KEY_ROLE: ROLE_TOOL_RESULT,
+        KEY_TOOL_CALL_ID: part.tool_call_id,
+        KEY_CONTENT: [
+            {
+                KEY_TYPE: CONTENT_TYPE_TEXT,
+                KEY_TEXT: part.content,
+                TEXT_SIGNATURE_KEY: None,
+            }
+        ],
+        "details": {},
+        "is_error": False,
+    }
+
+
+def _canonical_part_to_content_item(
+    *,
+    message_role: MessageRole,
+    part: CanonicalPart,
+) -> dict[str, Any]:
+    if isinstance(part, TextPart):
+        return {
+            KEY_TYPE: CONTENT_TYPE_TEXT,
+            KEY_TEXT: part.content,
+            TEXT_SIGNATURE_KEY: None,
+        }
+
+    if isinstance(part, ThoughtPart):
+        return {
+            KEY_TYPE: CONTENT_TYPE_THINKING,
+            KEY_THINKING: part.content,
+            THINKING_SIGNATURE_KEY: None,
+        }
+
+    if isinstance(part, SystemPromptPart):
+        if message_role != MessageRole.SYSTEM:
+            raise ValueError("SystemPromptPart is only valid for SYSTEM messages")
+
+        return {
+            KEY_TYPE: CONTENT_TYPE_TEXT,
+            KEY_TEXT: part.content,
+            TEXT_SIGNATURE_KEY: None,
+        }
+
+    if isinstance(part, ToolCallPart):
+        if message_role != MessageRole.ASSISTANT:
+            raise ValueError("ToolCallPart is only valid for ASSISTANT messages")
+
+        return {
+            KEY_TYPE: CONTENT_TYPE_TOOL_CALL,
+            KEY_ID: part.tool_call_id,
+            KEY_NAME: part.tool_name,
+            KEY_ARGUMENTS: part.args,
+            PARTIAL_JSON_KEY: DEFAULT_PARTIAL_JSON,
+        }
+
+    if isinstance(part, RetryPromptPart):
+        # Retry prompts are a legacy abstraction; represent them as text.
+        return {
+            KEY_TYPE: CONTENT_TYPE_TEXT,
+            KEY_TEXT: part.content,
+            TEXT_SIGNATURE_KEY: None,
+        }
+
+    if isinstance(part, ToolReturnPart):
+        raise ValueError("ToolReturnPart must be wrapped in a TOOL message")
+
+    raise TypeError(f"Unsupported canonical part type: {type(part).__name__}")
 
 
 def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
@@ -291,96 +386,12 @@ def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
         raise ValueError(f"Unsupported canonical role: {message.role!r}")
 
     if message.role == MessageRole.TOOL:
-        tool_return_parts = [p for p in message.parts if isinstance(p, ToolReturnPart)]
-        if len(tool_return_parts) != 1:
-            raise ValueError(
-                "Canonical TOOL messages must contain exactly one ToolReturnPart "
-                f"(got {len(tool_return_parts)})"
-            )
+        return _tool_message_from_canonical(message)
 
-        part = tool_return_parts[0]
-        return {
-            KEY_ROLE: ROLE_TOOL_RESULT,
-            KEY_TOOL_CALL_ID: part.tool_call_id,
-            KEY_CONTENT: [
-                {
-                    KEY_TYPE: CONTENT_TYPE_TEXT,
-                    KEY_TEXT: part.content,
-                    TEXT_SIGNATURE_KEY: None,
-                }
-            ],
-            "details": {},
-            "is_error": False,
-        }
-
-    content: list[dict[str, Any]] = []
-
-    for part in message.parts:
-        if isinstance(part, TextPart):
-            content.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_TEXT,
-                    KEY_TEXT: part.content,
-                    TEXT_SIGNATURE_KEY: None,
-                }
-            )
-            continue
-
-        if isinstance(part, ThoughtPart):
-            content.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_THINKING,
-                    KEY_THINKING: part.content,
-                    THINKING_SIGNATURE_KEY: None,
-                }
-            )
-            continue
-
-        if isinstance(part, SystemPromptPart):
-            if message.role != MessageRole.SYSTEM:
-                raise ValueError("SystemPromptPart is only valid for SYSTEM messages")
-
-            content.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_TEXT,
-                    KEY_TEXT: part.content,
-                    TEXT_SIGNATURE_KEY: None,
-                }
-            )
-            continue
-
-        if isinstance(part, ToolCallPart):
-            if message.role != MessageRole.ASSISTANT:
-                raise ValueError("ToolCallPart is only valid for ASSISTANT messages")
-
-            content.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_TOOL_CALL,
-                    KEY_ID: part.tool_call_id,
-                    KEY_NAME: part.tool_name,
-                    KEY_ARGUMENTS: part.args,
-                    PARTIAL_JSON_KEY: DEFAULT_PARTIAL_JSON,
-                }
-            )
-            continue
-
-        if isinstance(part, RetryPromptPart):
-            # Retry prompts are a legacy abstraction; represent them as text.
-            content.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_TEXT,
-                    KEY_TEXT: part.content,
-                    TEXT_SIGNATURE_KEY: None,
-                }
-            )
-            continue
-
-        if isinstance(part, ToolReturnPart):
-            raise ValueError(
-                "ToolReturnPart must be wrapped in a TOOL message (role=tool_result)"
-            )
-
-        raise TypeError(f"Unsupported canonical part type: {type(part).__name__}")
+    content = [
+        _canonical_part_to_content_item(message_role=message.role, part=part)
+        for part in message.parts
+    ]
 
     return {KEY_ROLE: role, KEY_CONTENT: content}
 

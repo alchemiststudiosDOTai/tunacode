@@ -224,8 +224,7 @@ def _build_tinyagent_model(model: ModelName) -> Model:
 
     if provider_id != "openrouter":
         raise ValueError(
-            "Only 'openrouter:' models are supported in tinyagent mode. "
-            f"Got: {model!r}"
+            f"Only 'openrouter:' models are supported in tinyagent mode. Got: {model!r}"
         )
 
     return Model(

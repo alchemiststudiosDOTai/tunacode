@@ -63,8 +63,7 @@ def log_message_history_debug(
 
     message_count = len(messages)
     logger.debug(
-        f"History dump: messages={message_count} "
-        f"dangling_tool_calls={len(dangling_tool_call_ids)}"
+        f"History dump: messages={message_count} dangling_tool_calls={len(dangling_tool_call_ids)}"
     )
 
     if dangling_tool_call_ids:
