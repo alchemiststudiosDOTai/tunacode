@@ -156,39 +156,14 @@ class SessionPickerScreen(Screen[str | None]):
         return "\n".join(previews)
 
     def _extract_user_content(self, msg: dict[str, Any]) -> str:
-        """Extract user prompt content from a stored session message.
+        """Extract user prompt content from a stored tinyagent message."""
 
-        Supports:
-        - tinyagent dict messages (role/content)
-        - legacy pydantic-ai session dumps (kind=request + parts)
-        """
-        role = msg.get("role")
-        if role == "user":
-            from tunacode.core.ui_api.messaging import get_content
-
-            return get_content(msg)
-
-        if msg.get("kind") != "request":
+        if msg.get("role") != "user":
             return ""
 
-        parts = msg.get("parts", [])
-        if not isinstance(parts, list):
-            return ""
+        from tunacode.core.ui_api.messaging import get_content
 
-        user_parts: list[str] = []
-
-        for part in parts:
-            if not isinstance(part, dict):
-                continue
-
-            if part.get("part_kind") != "user-prompt":
-                continue
-
-            content = part.get("content", "")
-            if content:
-                user_parts.append(str(content))
-
-        return " ".join(user_parts)
+        return get_content(msg)
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         """Confirm selection and dismiss with session ID."""

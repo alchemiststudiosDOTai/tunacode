@@ -5,7 +5,6 @@
 <!-- These must be done BEFORE opening the PR -->
 - [ ] **Rebased onto master** (`git fetch origin && git rebase origin/master`)
 - [ ] **All pre-commit hooks pass** (`uv run pre-commit run --all-files`)
-- [ ] No new pydantic-ai imports (use adapter layer in `utils/messaging/` instead)
 - [ ] Tech debt baseline updated (if adding TODO/FIXME markers: `uv run python scripts/todo_scanner.py --output scripts/todo_baseline.json`)
 
 ## Type of Change
@@ -35,7 +34,6 @@
 - [ ] Code formatted with `ruff format`
 - [ ] Code passes `ruff check` without warnings
 - [ ] No Python file exceeds **600 lines**
-- [ ] No new pydantic-ai imports (pydantic-usage-guard will fail)
 
 ## Checklist
 - [ ] My code follows the Python coding standards (type hints, f-strings, pathlib, etc.)

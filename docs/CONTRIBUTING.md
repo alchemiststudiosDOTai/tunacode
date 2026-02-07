@@ -165,14 +165,9 @@ If the dev environment setup (`uv sync --extra dev && uv run pre-commit install`
 3. Ensure all checks pass:
    - Ruff lint and format checks
    - File length validation (600 lines max)
-   - pydantic-usage-guard (no new pydantic-ai imports)
 4. Self-review your changes
 5. Update documentation if needed
 6. **Address CodeRabbit feedback** - We use [CodeRabbit AI](https://coderabbit.ai) for automated code review. Please fix any issues it identifies.
-
-### Pydantic-AI Containment
-
-**Do not add new pydantic-ai imports.** The project has a CI guard (`pydantic-usage-guard`) that fails if pydantic-ai usage increases. If you need pydantic-ai types, wrap them through the adapter layer in `src/tunacode/utils/messaging/` instead of importing directly in core modules.
 
 ### PR Checklist
 

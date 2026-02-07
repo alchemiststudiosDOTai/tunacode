@@ -72,7 +72,7 @@ class ParseDiagnostics:
 
 
 def _generate_tool_call_id() -> str:
-    """Generate a unique tool call ID consistent with pydantic_ai format."""
+    """Generate a unique tool call ID."""
     return str(uuid.uuid4())
 
 

@@ -28,8 +28,6 @@ dependencies = [
     "typer>=0.15.0",
     "click>=8.1.0,<8.2.0",
     "prompt_toolkit>=3.0.52,<4.0.0",
-    "pydantic>=2.12.4,<3.0.0",
-    "pydantic-ai>=1.18.0,<2.0.0",
     "tinyagent",
     "pygments>=2.19.2,<3.0.0",
     "rich>=14.2.0,<15.0.0",
@@ -42,7 +40,6 @@ dependencies = [
     "ruff>=0.14.0",
     # Transitive dependencies that are directly imported
     "httpx>=0.27.0",
-    "tenacity>=8.0.0",
 ]
 
 [project.scripts]
