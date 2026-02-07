@@ -42,12 +42,16 @@ dependencies = [
     # Transitive dependencies that are directly imported
     "httpx>=0.27.0",
     "tenacity>=8.0.0",
+    "structlog>=24.0.0",
 ]
 
 [project.scripts]
 tunacode = "tunacode.ui.main:app"
 
 [project.optional-dependencies]
+observability = [
+    "sentry-sdk>=2.0.0",
+]
 dev = [
     # Testing frameworks
     "pytest>=9.0.1",
@@ -56,6 +60,7 @@ dev = [
     "pytest-randomly>=3.15.0",  # Test isolation - randomize test order
     "pytest-timeout>=2.3.1",    # Test isolation - prevent hanging tests
     "pytest-json-report>=1.5.0",  # JSON test reports for historical tracking
+    "pytest-xdist>=3.5.0",        # Parallel test execution
     "hypothesis>=6.150.0",
 
     # Code quality and linting
@@ -76,6 +81,10 @@ dev = [
     # Development tools
     "pre-commit",
     "textual-dev",
+
+    # Documentation
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
 
     # Build and distribution
     "build",
@@ -262,6 +271,9 @@ DEP002 = [
     "pygments",        # Used by rich.syntax internally
     "python-Levenshtein",  # Used by rapidfuzz as optional speedup
     "ruff",            # CLI tool, not imported
+    "sentry-sdk",      # Optional observability extra, lazy-imported
+    "mkdocs",          # CLI tool, not imported
+    "mkdocs-material", # mkdocs theme plugin, not imported
     # Dev dependencies (test/lint/build tools - all CLI tools)
     "pytest",
     "pytest-cov",
@@ -269,6 +281,7 @@ DEP002 = [
     "pytest-randomly",
     "pytest-timeout",
     "pytest-json-report",
+    "pytest-xdist",
     "hypothesis",
     "mypy",
     "bandit",
@@ -350,6 +363,7 @@ dev = [
     "pytest-randomly>=3.15.0", # Test isolation - randomize test order
     "pytest-timeout>=2.3.1", # Test isolation - prevent hanging tests
     "pytest-json-report>=1.5.0", # JSON test reports for historical tracking
+    "pytest-xdist>=3.5.0", # Parallel test execution
     "hypothesis>=6.150.0",
 
     # Code quality and linting
@@ -370,6 +384,10 @@ dev = [
     # Development tools
     "pre-commit",
     "textual-dev",
+
+    # Documentation
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
 
     # Build and distribution
     "build",

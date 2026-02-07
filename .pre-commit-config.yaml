@@ -160,6 +160,15 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      # Dependency hygiene (unused/missing deps)
+      - id: deptry
+        name: Check dependency hygiene
+        entry: uv run deptry src/
+        language: system
+        pass_filenames: false
+        files: (\.py$|pyproject\.toml$)
+        stages: [pre-commit]
+
   # Import sorting with isort - DISABLED (ruff handles this with extend-select = ["I"])
   # - repo: https://github.com/pycqa/isort
   #   rev: 5.13.2
@@ -193,5 +202,5 @@ ci:
   autoupdate_schedule: weekly
   # Skip hooks that require project-specific environment setup or modify files
   # pydantic-usage: skipped in CI (pydantic-usage-guard job handles this)
-  skip: [vulture-changed, pydantic-usage]
+  skip: [vulture-changed, pydantic-usage, deptry]
   submodules: false

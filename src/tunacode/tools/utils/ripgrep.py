@@ -307,10 +307,7 @@ class RipgrepExecutor:
 
         # Compile regex pattern
         flags = re.IGNORECASE if case_insensitive else 0
-        try:
-            regex = re.compile(pattern, flags)
-        except re.error:
-            return []
+        regex = re.compile(pattern, flags)
 
         # Search files
         if path_obj.is_file():

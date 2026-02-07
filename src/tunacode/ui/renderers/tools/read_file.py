@@ -111,13 +111,10 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
             return None
 
         lines = file_match.group(1).strip().splitlines()
-        if not lines:
-            return None
 
-        content_lines, end_message, total_lines, has_more = self._parse_content_lines(lines)
-
-        if not content_lines:
-            return None
+        content_lines, end_message, total_lines, has_more = (
+            self._parse_content_lines(lines) if lines else ([], "", 0, False)
+        )
 
         args = args or {}
         filepath = args.get("filepath", "unknown")
@@ -213,10 +210,12 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
             status_items.append(f"[{shown}/{len(data.content_lines)} displayed]")
 
         if data.has_more:
-            status_items.append(f"total: {data.total_lines} lines")
+            line_label = "line" if data.total_lines == 1 else "lines"
+            status_items.append(f"total: {data.total_lines} {line_label}")
             status_items.append("(more available)")
         elif data.total_lines > 0:
-            status_items.append(f"total: {data.total_lines} lines")
+            line_label = "line" if data.total_lines == 1 else "lines"
+            status_items.append(f"total: {data.total_lines} {line_label}")
 
         if duration_ms is not None:
             status_items.append(f"{duration_ms:.0f}ms")

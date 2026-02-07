@@ -20,6 +20,9 @@ from tunacode.types.canonical import UsageMetrics
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 
+DEFAULT_ITERATION_BUDGET: int = 10
+DEFAULT_MAX_RECURSION_DEPTH: int = 5
+
 
 @dataclass
 class SessionState:
@@ -50,7 +53,7 @@ class SessionState:
     working_directory: str = ""
     # Recursive execution tracking
     current_recursion_depth: int = 0
-    max_recursion_depth: int = 5
+    max_recursion_depth: int = DEFAULT_MAX_RECURSION_DEPTH
     parent_task_id: str | None = None
     task_hierarchy: dict[str, Any] = field(default_factory=dict)
     iteration_budgets: dict[str, int] = field(default_factory=dict)
@@ -127,7 +130,7 @@ class StateManager:
 
     def get_task_iteration_budget(self, task_id: str) -> int:
         """Get the iteration budget for a specific task."""
-        return self._session.iteration_budgets.get(task_id, 10)  # Default to 10
+        return self._session.iteration_budgets.get(task_id, DEFAULT_ITERATION_BUDGET)
 
     def can_recurse_deeper(self) -> bool:
         """Check if we can recurse deeper without exceeding limits."""

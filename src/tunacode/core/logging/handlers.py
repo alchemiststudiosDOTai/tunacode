@@ -5,10 +5,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
 
+import structlog
 from rich.console import RenderableType
 
 from tunacode.core.logging.levels import LogLevel
 from tunacode.core.logging.records import LogRecord
+
+_file_renderer = structlog.processors.JSONRenderer()
 
 TuiWriteCallback = Callable[[RenderableType], None]
 
@@ -126,24 +129,9 @@ class FileHandler(Handler):
             f.write(line + "\n")
 
     def _format_record(self, record: LogRecord) -> str:
-        """Format record as structured log line."""
-        ts = record.timestamp.isoformat()
-        level = record.level.name.ljust(7)
-        parts = [f"{ts} [{level}]"]
-
-        if record.source:
-            parts.append(f"[{record.source}]")
-        if record.request_id:
-            parts.append(f"req={record.request_id}")
-        if record.iteration:
-            parts.append(f"iter={record.iteration}")
-        if record.tool_name:
-            parts.append(f"tool={record.tool_name}")
-        if record.duration_ms:
-            parts.append(f"dur={record.duration_ms:.1f}ms")
-
-        parts.append(record.message)
-        return " ".join(parts)
+        """Format record as JSON via structlog."""
+        event_dict = record.to_dict()
+        return _file_renderer(None, None, event_dict)
 
 
 class TUIHandler(Handler):

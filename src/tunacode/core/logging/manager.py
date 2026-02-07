@@ -10,6 +10,7 @@ from typing import Any
 from tunacode.core.logging.handlers import FileHandler, Handler, TUIHandler, TuiWriteCallback
 from tunacode.core.logging.levels import LogLevel
 from tunacode.core.logging.records import LogRecord
+from tunacode.core.logging.sentry import _reset_sentry, capture_exception, init_sentry
 from tunacode.core.types import StateManagerProtocol
 
 LOG_RECORD_EXTRA_FIELD: str = "extra"
@@ -43,6 +44,9 @@ class LogManager:
         self._tui_handler.disable()
         self._handlers.append(self._tui_handler)
 
+        # Optional Sentry integration (no-op without SENTRY_DSN)
+        self._sentry_enabled = init_sentry()
+
     @classmethod
     def get_instance(cls) -> LogManager:
         """Get the singleton LogManager instance."""
@@ -57,6 +61,7 @@ class LogManager:
         """Reset singleton (for testing)."""
         with cls._instance_lock:
             cls._instance = None
+            _reset_sentry()
 
     def set_state_manager(self, state_manager: StateManagerProtocol) -> None:
         """Bind state manager for debug_mode checking."""
@@ -108,6 +113,10 @@ class LogManager:
 
     def error(self, message: str, **kwargs: Any) -> None:
         self.log(self._build_record(LogLevel.ERROR, message, **kwargs))
+        if self._sentry_enabled:
+            exc = kwargs.get("exception")
+            if isinstance(exc, BaseException):
+                capture_exception(exc)
 
     def thought(self, message: str, **kwargs: Any) -> None:
         self.log(self._build_record(LogLevel.THOUGHT, message, **kwargs))

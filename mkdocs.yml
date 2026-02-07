@@ -1,0 +1,101 @@
+site_name: TunaCode
+site_description: Your agentic CLI developer
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: cyan
+  features:
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+nav:
+  - Home: CONTRIBUTING.md
+  - Changelog: CHANGELOG.md
+  - Architecture:
+      - Agent Loop: architecture/agent-loop.md
+      - Dependency Layers: architecture/dependencies/DEPENDENCY_LAYERS.md
+      - Layer Tests: architecture/dependencies/layer_dependency_tests.md
+  - Codebase Map:
+      - Overview: codebase-map/MAP.md
+      - Architecture:
+          - Architecture: codebase-map/architecture/architecture.md
+          - Compaction Ontology: codebase-map/architecture/compaction-ontology.md
+          - Conversation Turns: codebase-map/architecture/conversation-turns.md
+      - Structure:
+          - Summary: codebase-map/structure/README.md
+          - Analysis: codebase-map/structure/ANALYSIS_SUMMARY.md
+          - Root Overview: codebase-map/structure/00-root-overview.md
+          - UI Directory: codebase-map/structure/01-ui-directory.md
+          - Core Directory: codebase-map/structure/02-core-directory.md
+          - Tools Directory: codebase-map/structure/03-tools-directory.md
+          - Configuration: codebase-map/structure/04-configuration-directory.md
+          - CLI Directory: codebase-map/structure/05-cli-directory.md
+          - Supporting Modules: codebase-map/structure/06-supporting-modules.md
+      - Modules:
+          - Index: codebase-map/modules/INDEX.md
+          - Overview: codebase-map/modules/00-overview.md
+          - Constants: codebase-map/modules/constants.md
+          - Configuration: codebase-map/modules/configuration.md
+          - Core Agents: codebase-map/modules/core-agents.md
+          - Core Compaction: codebase-map/modules/core-compaction.md
+          - Core Configuration: codebase-map/modules/core-configuration.md
+          - Core Constants: codebase-map/modules/core-constants.md
+          - Core File Filter: codebase-map/modules/core-file-filter.md
+          - Core Formatting: codebase-map/modules/core-formatting.md
+          - Core Logging: codebase-map/modules/core-logging.md
+          - Core LSP Status: codebase-map/modules/core-lsp-status.md
+          - Core Messaging: codebase-map/modules/core-messaging.md
+          - Core Prompting: codebase-map/modules/core-prompting.md
+          - Core Sanitize: codebase-map/modules/core-sanitize.md
+          - Core State: codebase-map/modules/core-state.md
+          - Core System Paths: codebase-map/modules/core-system-paths.md
+          - Core Types: codebase-map/modules/core-types.md
+          - Core User Config: codebase-map/modules/core-user-configuration.md
+          - Exceptions: codebase-map/modules/exceptions.md
+          - LSP: codebase-map/modules/lsp.md
+          - Prompts: codebase-map/modules/prompts.md
+          - Tools Overview: codebase-map/modules/tools-overview.md
+          - Types: codebase-map/modules/types.md
+          - UI Overview: codebase-map/modules/ui-overview.md
+          - Utils: codebase-map/modules/utils.md
+          - Utils Limits: codebase-map/modules/utils-limits.md
+      - State: codebase-map/state/state.md
+  - UI:
+      - Design Philosophy: ui/design_philosophy.md
+      - NeXTSTEP Panels: ui/nextstep_panels.md
+      - Layout: ui/layout.md
+      - Shell Runner: ui/shell_runner.md
+      - Tool Renderers: ui/tool_renderers.md
+      - Agent Response Panel: ui/agent_response_panel.md
+  - Tools:
+      - Architecture: tools/architecture.md
+  - Configuration:
+      - Overview: configuration/README.md
+  - Contributing:
+      - Issue Standards: contributing/issue-standards.md
+  - Refactoring:
+      - Message Flow Map: refactoring/message-flow-map.md
+      - Architecture Refactor: refactoring/architecture-refactor-plan.md
+      - Pydantic Removal: refactoring/pydantic-removal-contract.md
+  - Agent Docs:
+      - Card Format: agent-docs/card-format.md
+      - Quality Gates: agent-docs/quality-gates.md
+      - Tech Debt Tracking: agent-docs/tech-debt-tracking.md
+  - LSP Diagnostics: lsp-diagnostics.md

@@ -30,7 +30,11 @@ def parse_model_string(model_string: str) -> tuple[str, str]:
     if ":" not in model_string:
         raise ValueError(f"Invalid model string format: {model_string}")
     parts = model_string.split(":", 1)
-    return (parts[0], parts[1])
+    provider_id = parts[0].strip()
+    model_id = parts[1].strip()
+    if not provider_id or not model_id:
+        raise ValueError(f"Invalid model string format: {model_string}")
+    return (provider_id, model_id)
 
 
 def load_models_registry() -> dict[str, Any]:

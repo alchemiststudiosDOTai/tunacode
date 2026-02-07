@@ -12,6 +12,7 @@ from tunacode.core.logging.handlers import FileHandler, Handler, TUIHandler
 from tunacode.core.logging.levels import LogLevel
 from tunacode.core.logging.manager import LogManager, get_logger
 from tunacode.core.logging.records import LogRecord
+from tunacode.core.logging.sentry import init_sentry
 
 __all__ = [
     "FileHandler",
@@ -21,4 +22,5 @@ __all__ = [
     "LogRecord",
     "TUIHandler",
     "get_logger",
+    "init_sentry",
 ]

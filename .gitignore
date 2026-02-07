@@ -92,5 +92,8 @@ TASK.md
 detective_verdict.md
 deps.dot
 
+# mkdocs build output
+site/
+
 # Tickets directory (CLI tool uses this, should not be committed)
 .tickets/

@@ -1,7 +1,7 @@
 # Tunacode Development Makefile
 # Provides convenient shortcuts for common development tasks
 
-.PHONY: help dev-setup install run test lint clean
+.PHONY: help dev-setup install run test lint clean docs docs-serve
 
 # Default target shows help
 help:
@@ -12,6 +12,8 @@ help:
 	@echo "  make run        - Run the development server"
 	@echo "  make test       - Run test suite"
 	@echo "  make lint       - Run linters and formatters"
+	@echo "  make docs       - Build documentation site"
+	@echo "  make docs-serve - Serve documentation locally"
 	@echo "  make clean      - Clean build artifacts"
 	@echo ""
 
@@ -35,7 +37,15 @@ test:
 lint:
 	uv run ruff check --fix .
 
+# Build documentation site
+docs:
+	uv run mkdocs build
+
+# Serve documentation locally
+docs-serve:
+	uv run mkdocs serve
+
 # Clean build artifacts
 clean:
-	rm -rf build/ dist/ *.egg-info .pytest_cache .ruff_cache
+	rm -rf build/ dist/ site/ *.egg-info .pytest_cache .ruff_cache
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

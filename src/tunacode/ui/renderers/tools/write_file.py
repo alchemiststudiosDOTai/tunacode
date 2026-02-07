@@ -90,7 +90,8 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
         header.append(data.filename, style="bold green")
         header.append("   ", style="")
         header.append("NEW", style="green bold")
-        header.append(f"  {data.line_count} lines", style="dim")
+        line_label = "line" if data.line_count == 1 else "lines"
+        header.append(f"  {data.line_count} {line_label}", style="dim")
         return header
 
     def build_params(self, data: WriteFileData, max_line_width: int) -> Text:
