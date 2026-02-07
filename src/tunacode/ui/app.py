@@ -65,6 +65,7 @@ class TextualReplApp(App[None]):
 
     BINDINGS = [
         Binding("escape", "cancel_request", "Cancel", show=False, priority=True),
+        Binding("ctrl+c", "copy_selection", "Copy", show=False, priority=True),
     ]
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
@@ -353,6 +354,24 @@ class TextualReplApp(App[None]):
             shell_runner=shell_runner,
             editor=editor,
         )
+
+    def action_copy_selection(self) -> None:
+        """Copy highlighted text to clipboard, or hint quit shortcut."""
+        from tunacode.ui.clipboard import copy_selection_to_clipboard
+
+        copied = copy_selection_to_clipboard(self)
+        if copied:
+            self.clear_selection()
+            return
+
+        # Nothing selected — show the same hint Textual's help_quit would.
+        for _key, active_binding in self.active_bindings.items():
+            if active_binding.binding.action in ("quit", "app.quit"):
+                self.notify(
+                    f"Press [b]{_key}[/b] to quit",
+                    title="Do you want to quit?",
+                )
+                return
 
     def start_shell_command(self, raw_cmd: str) -> None:
         self.shell_runner.start(raw_cmd)
