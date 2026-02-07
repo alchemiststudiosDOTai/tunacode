@@ -4,27 +4,30 @@ digraph tunacode_layers {
 
   ui [label="ui"];
   core [label="core"];
-  infrastructure [label="infrastructure"];
   tools [label="tools"];
   utils [label="utils"];
   configuration [label="configuration"];
   constants [label="constants"];
   exceptions [label="exceptions"];
+  infrastructure [label="infrastructure"];
   types [label="types"];
 
   configuration -> constants [label="6"];
   configuration -> exceptions [label="1"];
+  configuration -> infrastructure [label="2"];
   configuration -> types [label="4"];
   core -> configuration [label="15"];
   core -> constants [label="5"];
   core -> exceptions [label="5"];
-  core -> infrastructure [label="5"];
+  core -> infrastructure [label="7"];
   core -> tools [label="11"];
   core -> types [label="27"];
   core -> utils [label="5"];
   exceptions -> types [label="1"];
-  tools -> configuration [label="4"];
+  infrastructure -> types [label="1"];
+  tools -> configuration [label="5"];
   tools -> exceptions [label="10"];
+  tools -> infrastructure [label="3"];
   ui -> core [label="50"];
   utils -> configuration [label="2"];
   utils -> types [label="1"];
