@@ -8,13 +8,12 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 from rich.console import RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.text import Text
 
 from tunacode.core.ui_api.constants import UI_COLORS
 
 from tunacode.ui.renderers.panels import RichPanelRenderer, SearchResultData
+from tunacode.ui.widgets.chat import PanelMeta
 
 T = TypeVar("T")
 
@@ -54,7 +53,7 @@ class SearchDisplayRenderer:
         page: int = 1,
         page_size: int = 10,
         search_time_ms: float | None = None,
-    ) -> RenderableType:
+    ) -> tuple[RenderableType, PanelMeta]:
         generic_results = []
         for r in results:
             result_dict: dict[str, Any] = {
@@ -99,7 +98,7 @@ class SearchDisplayRenderer:
         page: int = 1,
         page_size: int = 10,
         search_time_ms: float | None = None,
-    ) -> RenderableType:
+    ) -> tuple[RenderableType, PanelMeta]:
         generic_results = []
         for r in results:
             type_icons = {
@@ -158,7 +157,7 @@ class SearchDisplayRenderer:
         return content
 
     @staticmethod
-    def render_empty_results(query: str) -> RenderableType:
+    def render_empty_results(query: str) -> tuple[RenderableType, PanelMeta]:
         content = Text()
         content.append("No results found for: ", style="dim")
         content.append(query, style="bold")
@@ -167,13 +166,12 @@ class SearchDisplayRenderer:
         content.append("  - Use broader patterns\n", style="dim")
         content.append("  - Check file paths and extensions", style="dim")
 
-        return Panel(
-            content,
-            title=f"[{UI_COLORS['warning']}]No Results[/]",
-            border_style=Style(color=UI_COLORS["warning"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class="warning-panel",
+            border_title=f"[{UI_COLORS['warning']}]No Results[/]",
         )
+
+        return content, meta
 
     @staticmethod
     def parse_grep_output(text: str, query: str | None = None) -> SearchResultData | None:
@@ -289,7 +287,7 @@ def file_search_panel(
     results: list[FileSearchResult],
     page: int = 1,
     search_time_ms: float | None = None,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     if not results:
         return SearchDisplayRenderer.render_empty_results(query)
     return SearchDisplayRenderer.render_file_results(
@@ -302,7 +300,7 @@ def code_search_panel(
     results: list[CodeSearchResult],
     page: int = 1,
     search_time_ms: float | None = None,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     if not results:
         return SearchDisplayRenderer.render_empty_results(query)
     return SearchDisplayRenderer.render_code_results(

@@ -5,6 +5,7 @@ from __future__ import annotations
 from rich.console import RenderableType
 
 from tunacode.ui.renderers.panels import ErrorDisplayData, RichPanelRenderer
+from tunacode.ui.widgets.chat import PanelMeta
 
 ERROR_SEVERITY_MAP: dict[str, str] = {
     "ToolExecutionError": "error",
@@ -66,7 +67,7 @@ DEFAULT_RECOVERY_COMMANDS: dict[str, list[str]] = {
 }
 
 
-def render_exception(exc: Exception) -> RenderableType:
+def render_exception(exc: Exception) -> tuple[RenderableType, PanelMeta]:
     error_type = type(exc).__name__
     severity = ERROR_SEVERITY_MAP.get(error_type, "error")
 
@@ -100,7 +101,7 @@ def render_tool_error(
     message: str,
     suggested_fix: str | None = None,
     file_path: str | None = None,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     context = {}
     if file_path:
         context["Path"] = file_path
@@ -127,7 +128,7 @@ def render_validation_error(
     field: str,
     message: str,
     valid_examples: list[str] | None = None,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     suggested_fix = None
     if valid_examples:
         suggested_fix = f"Valid examples: {', '.join(valid_examples[:3])}"
@@ -147,7 +148,7 @@ def render_connection_error(
     service: str,
     message: str,
     retry_available: bool = True,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     recovery = []
     if retry_available:
         recovery.append("Retry the operation")
@@ -168,7 +169,7 @@ def render_connection_error(
     return RichPanelRenderer.render_error(data)
 
 
-def render_user_abort() -> RenderableType:
+def render_user_abort() -> tuple[RenderableType, PanelMeta]:
     data = ErrorDisplayData(
         error_type="Operation Cancelled",
         message="User cancelled the operation",
@@ -178,7 +179,9 @@ def render_user_abort() -> RenderableType:
     return RichPanelRenderer.render_error(data)
 
 
-def render_catastrophic_error(exc: Exception, context: str | None = None) -> RenderableType:
+def render_catastrophic_error(
+    exc: Exception, context: str | None = None
+) -> tuple[RenderableType, PanelMeta]:
     """Render a user-friendly error when something goes very wrong.
 
     This is the catch-all error display for unexpected failures.
