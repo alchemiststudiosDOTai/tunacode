@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-02-07T21:23:44.705817+00:00",
+  "generated_at": "2026-02-07T21:37:52.081843+00:00",
   "root": ".",
   "groups": {
     "pydantic_ai_imports": {
       "name": "pydantic_ai_imports",
       "description": "Imports that reference pydantic_ai.",
       "pattern": "\\bfrom\\s+pydantic_ai\\b|\\bimport\\s+pydantic_ai\\b",
-      "match_count": 47,
-      "file_count": 24,
+      "match_count": 41,
+      "file_count": 19,
       "files": [
         {
           "path": "docs/tools/architecture.md",
@@ -39,7 +39,7 @@
         },
         {
           "path": "src/tunacode/core/agents/agent_components/tool_executor.py",
-          "match_count": 3
+          "match_count": 2
         },
         {
           "path": "src/tunacode/core/agents/main.py",
@@ -58,10 +58,6 @@
           "match_count": 3
         },
         {
-          "path": "src/tunacode/tools/decorators.py",
-          "match_count": 1
-        },
-        {
           "path": "src/tunacode/types/canonical.py",
           "match_count": 1
         },
@@ -78,15 +74,7 @@
           "match_count": 1
         },
         {
-          "path": "tests/integration/tools/test_glob_grep_path_validation.py",
-          "match_count": 1
-        },
-        {
           "path": "tests/integration/tools/test_tool_dispatcher_coverage.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/integration/tools/test_tool_retry.py",
           "match_count": 1
         },
         {
@@ -94,15 +82,7 @@
           "match_count": 1
         },
         {
-          "path": "tests/unit/core/test_text_match.py",
-          "match_count": 1
-        },
-        {
           "path": "tests/unit/infrastructure/test_typed_cache_accessors.py",
-          "match_count": 1
-        },
-        {
-          "path": "tests/unit/tools/test_tool_decorators.py",
           "match_count": 1
         }
       ]
@@ -357,7 +337,7 @@
     }
   },
   "totals": {
-    "match_count": 106,
-    "file_count": 50
+    "match_count": 100,
+    "file_count": 45
   }
 }

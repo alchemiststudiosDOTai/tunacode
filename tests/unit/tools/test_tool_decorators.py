@@ -4,9 +4,8 @@ Tests @base_tool and @file_tool decorator behavior in isolation.
 """
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
 
-from tunacode.exceptions import FileOperationError, ToolExecutionError
+from tunacode.exceptions import FileOperationError, ToolExecutionError, ToolRetryError
 
 from tunacode.tools.decorators import base_tool, file_tool
 
@@ -24,14 +23,14 @@ class TestBaseTool:
         result = await simple_tool(42)
         assert result == "result: 42"
 
-    async def test_passes_through_model_retry(self, mock_no_xml_prompt):
-        """ModelRetry exceptions pass through unchanged."""
+    async def test_passes_through_tool_retry_error(self, mock_no_xml_prompt):
+        """ToolRetryError exceptions pass through unchanged."""
 
         @base_tool
         async def raises_retry():
-            raise ModelRetry("retry message")
+            raise ToolRetryError("retry message")
 
-        with pytest.raises(ModelRetry, match="retry message"):
+        with pytest.raises(ToolRetryError, match="retry message"):
             await raises_retry()
 
     async def test_passes_through_tool_execution_error(self, mock_no_xml_prompt):
@@ -100,14 +99,14 @@ class TestBaseTool:
 class TestFileTool:
     """Tests for @file_tool decorator."""
 
-    async def test_converts_file_not_found_to_model_retry(self, mock_no_xml_prompt):
-        """FileNotFoundError is converted to ModelRetry."""
+    async def test_converts_file_not_found_to_tool_retry_error(self, mock_no_xml_prompt):
+        """FileNotFoundError is converted to ToolRetryError."""
 
         @file_tool
         async def read_missing(filepath: str) -> str:
             raise FileNotFoundError(filepath)
 
-        with pytest.raises(ModelRetry, match="File not found"):
+        with pytest.raises(ToolRetryError, match="File not found"):
             await read_missing("/missing/file.txt")
 
     async def test_converts_permission_error_to_file_operation_error(self, mock_no_xml_prompt):
