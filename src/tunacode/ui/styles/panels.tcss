@@ -1,7 +1,53 @@
 /* ============================================
- * RICH PANELS - Tool/Error/Search Display
+ * CSS PANELS - Tool/Error/Search/Agent Display
  * NeXTSTEP: "Objects that look the same should act the same"
+ *
+ * These classes are applied by ChatContainer.write(panel_meta=...)
+ * to CopyOnSelectStatic widgets, replacing Rich Panel() wrappers
+ * so that text selection works correctly.
  * ============================================ */
+
+/* Base chat message - no border by default */
+.chat-message {
+    width: 1fr;
+}
+
+/* Expand variant - full available width */
+.expand {
+    width: 1fr;
+}
+
+/* Agent response panels - accent border */
+.agent-panel {
+    border: solid $accent;
+    background: $surface;
+    padding: 0 1;
+    margin: 0 0 1 0;
+}
+
+/* Info panels - muted border */
+.info-panel {
+    border: solid $secondary;
+    background: $surface;
+    padding: 0 1;
+    margin: 0 0 1 0;
+}
+
+/* Success panels */
+.success-panel {
+    border: solid $success;
+    background: $surface;
+    padding: 0 1;
+    margin: 0 0 1 0;
+}
+
+/* Warning panels */
+.warning-panel {
+    border: solid $warning;
+    background: $surface;
+    padding: 0 1;
+    margin: 0 0 1 0;
+}
 
 /* Tool execution panels - cyan accent */
 .tool-panel {

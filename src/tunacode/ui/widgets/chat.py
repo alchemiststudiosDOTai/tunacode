@@ -8,6 +8,8 @@ automatically (no keystrokes required).
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from rich.console import RenderableType
 from textual.containers import VerticalScroll
 from textual.geometry import Region, Size
@@ -17,6 +19,20 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from tunacode.ui.clipboard import copy_to_clipboard
+
+
+@dataclass(frozen=True)
+class PanelMeta:
+    """Metadata for styling a CopyOnSelectStatic widget as a CSS panel.
+
+    Renderers return (content, PanelMeta) tuples; ChatContainer.write()
+    applies the metadata as CSS classes and border_title/border_subtitle.
+    """
+
+    css_class: str = ""
+    border_title: str = ""
+    border_subtitle: str = ""
+
 
 # Delay after the last selection change before we copy (milliseconds).
 # Prevents copying on every intermediate drag event; fires once the
@@ -104,6 +120,7 @@ class ChatContainer(VerticalScroll):
         renderable: RenderableType,
         *,
         expand: bool = False,
+        panel_meta: PanelMeta | None = None,
     ) -> Widget:
         """Append a renderable to the chat container.
 
@@ -112,6 +129,7 @@ class ChatContainer(VerticalScroll):
         Args:
             renderable: Rich renderable to display.
             expand: If True, widget expands to fill available width.
+            panel_meta: Optional panel metadata for CSS-styled borders.
 
         Returns:
             The created Static widget.
@@ -120,6 +138,15 @@ class ChatContainer(VerticalScroll):
         widget.add_class("chat-message")
         if expand:
             widget.add_class("expand")
+
+        if panel_meta is not None:
+            if panel_meta.css_class:
+                for cls in panel_meta.css_class.split():
+                    widget.add_class(cls)
+            if panel_meta.border_title:
+                widget.border_title = panel_meta.border_title
+            if panel_meta.border_subtitle:
+                widget.border_subtitle = panel_meta.border_subtitle
 
         self.mount(widget)
 

@@ -8,8 +8,6 @@ from enum import Enum
 from typing import Any
 
 from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
@@ -21,7 +19,7 @@ from tunacode.core.ui_api.constants import (
     UI_COLORS,
 )
 
-from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
+from tunacode.ui.widgets.chat import PanelMeta
 
 
 class PanelType(str, Enum):
@@ -32,6 +30,15 @@ class PanelType(str, Enum):
     SUCCESS = "success"
     WARNING = "warning"
 
+
+PANEL_CSS_CLASS: dict[PanelType, str] = {
+    PanelType.TOOL: "tool-panel",
+    PanelType.ERROR: "error-panel",
+    PanelType.SEARCH: "search-panel",
+    PanelType.INFO: "info-panel",
+    PanelType.SUCCESS: "success-panel",
+    PanelType.WARNING: "warning-panel",
+}
 
 PANEL_STYLES: dict[PanelType, dict[str, str]] = {
     PanelType.TOOL: {
@@ -103,7 +110,7 @@ class RichPanelRenderer:
     def render_tool(
         data: ToolDisplayData,
         max_line_width: int,
-    ) -> RenderableType:
+    ) -> tuple[RenderableType, PanelMeta]:
         status_map = {
             "running": (PanelType.TOOL, "..."),
             "completed": (PanelType.SUCCESS, "done"),
@@ -152,21 +159,18 @@ class RichPanelRenderer:
 
         content = Group(*content_parts) if content_parts else Text("...")
 
-        subtitle = None
+        subtitle = ""
         if data.timestamp:
             time_str = data.timestamp.strftime("%H:%M:%S")
             subtitle = f"[{styles['subtitle']}]{time_str}[/]"
 
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{styles['title']}]{data.tool_name}[/] [{status_suffix}]",
-            subtitle=subtitle,
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            width=frame_width,
+        meta = PanelMeta(
+            css_class="tool-panel",
+            border_title=f"[{styles['title']}]{data.tool_name}[/] [{status_suffix}]",
+            border_subtitle=subtitle,
         )
+
+        return content, meta
 
     @staticmethod
     def render_diff_tool(
@@ -176,7 +180,7 @@ class RichPanelRenderer:
         args: dict[str, Any] | None = None,
         duration_ms: float | None = None,
         timestamp: datetime | None = None,
-    ) -> RenderableType:
+    ) -> tuple[RenderableType, PanelMeta]:
         styles = PANEL_STYLES[PanelType.SUCCESS]
 
         content_parts: list[RenderableType] = []
@@ -205,22 +209,21 @@ class RichPanelRenderer:
 
         content = Group(*content_parts)
 
-        subtitle = None
+        subtitle = ""
         if timestamp:
             time_str = timestamp.strftime("%H:%M:%S")
             subtitle = f"[{styles['subtitle']}]{time_str}[/]"
 
-        return Panel(
-            content,
-            title=f"[{styles['title']}]{tool_name}[/] [done]",
-            subtitle=subtitle,
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class="tool-panel",
+            border_title=f"[{styles['title']}]{tool_name}[/] [done]",
+            border_subtitle=subtitle,
         )
 
+        return content, meta
+
     @staticmethod
-    def render_error(data: ErrorDisplayData) -> RenderableType:
+    def render_error(data: ErrorDisplayData) -> tuple[RenderableType, PanelMeta]:
         severity_map = {
             "error": PanelType.ERROR,
             "warning": PanelType.WARNING,
@@ -257,16 +260,15 @@ class RichPanelRenderer:
 
         content = Group(*content_parts)
 
-        return Panel(
-            content,
-            title=f"[{styles['title']}]{data.error_type}[/]",
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class=PANEL_CSS_CLASS[panel_type],
+            border_title=f"[{styles['title']}]{data.error_type}[/]",
         )
 
+        return content, meta
+
     @staticmethod
-    def render_search_results(data: SearchResultData) -> RenderableType:
+    def render_search_results(data: SearchResultData) -> tuple[RenderableType, PanelMeta]:
         styles = PANEL_STYLES[PanelType.SEARCH]
         content_parts: list[RenderableType] = []
 
@@ -322,7 +324,7 @@ class RichPanelRenderer:
 
         content = Group(*content_parts)
 
-        subtitle = None
+        subtitle = ""
         if total_pages > 1:
             subtitle = f"[{styles['subtitle']}]Use arrows to navigate[/]"
         elif data.source == "index":
@@ -330,53 +332,49 @@ class RichPanelRenderer:
         elif data.source == "filesystem":
             subtitle = f"[{styles['subtitle']}]Scanned[/]"
 
-        return Panel(
-            content,
-            title=f"[{styles['title']}]Search Results[/]",
-            subtitle=subtitle,
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class="search-panel",
+            border_title=f"[{styles['title']}]Search Results[/]",
+            border_subtitle=subtitle,
         )
 
+        return content, meta
+
     @staticmethod
-    def render_info(title: str, content: str | RenderableType) -> RenderableType:
+    def render_info(title: str, content: str | RenderableType) -> tuple[RenderableType, PanelMeta]:
         styles = PANEL_STYLES[PanelType.INFO]
 
         if isinstance(content, str):
             content = Text(content)
 
-        return Panel(
-            content,
-            title=f"[{styles['title']}]{title}[/]",
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class="info-panel",
+            border_title=f"[{styles['title']}]{title}[/]",
         )
 
+        return content, meta
+
     @staticmethod
-    def render_success(title: str, message: str) -> RenderableType:
+    def render_success(title: str, message: str) -> tuple[RenderableType, PanelMeta]:
         styles = PANEL_STYLES[PanelType.SUCCESS]
 
-        return Panel(
-            Text(message, style=styles["title"]),
-            title=f"[{styles['title']}]{title}[/]",
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class="success-panel",
+            border_title=f"[{styles['title']}]{title}[/]",
         )
+
+        return Text(message, style=styles["title"]), meta
 
     @staticmethod
-    def render_warning(title: str, message: str) -> RenderableType:
+    def render_warning(title: str, message: str) -> tuple[RenderableType, PanelMeta]:
         styles = PANEL_STYLES[PanelType.WARNING]
 
-        return Panel(
-            Text(message, style=styles["title"]),
-            title=f"[{styles['title']}]{title}[/]",
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            expand=True,
+        meta = PanelMeta(
+            css_class="warning-panel",
+            border_title=f"[{styles['title']}]{title}[/]",
         )
+
+        return Text(message, style=styles["title"]), meta
 
 
 def _truncate_value(value: Any, max_length: int) -> str:
@@ -430,7 +428,7 @@ def tool_panel(
     *,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     data = ToolDisplayData(
         tool_name=name,
         status=status,
@@ -448,7 +446,7 @@ def error_panel(
     suggested_fix: str | None = None,
     recovery_commands: list[str] | None = None,
     severity: str = "error",
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     data = ErrorDisplayData(
         error_type=error_type,
         message=message,
@@ -465,7 +463,7 @@ def search_panel(
     total_count: int | None = None,
     page: int = 1,
     search_time_ms: float | None = None,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     data = SearchResultData(
         query=query,
         results=results,
@@ -484,14 +482,11 @@ def tool_panel_smart(
     *,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     """Route tool output to NeXTSTEP-style renderers.
 
-    Each tool has a dedicated renderer with 4-zone layout:
-    - Header: identifier + summary
-    - Parameters: selection context
-    - Viewport: primary content
-    - Status: metrics, truncation info
+    Returns (content, PanelMeta) for the caller to apply via
+    ChatContainer.write(panel_meta=...).
     """
     # Only apply custom renderers for completed tools with results
     if status == "completed" and result:
@@ -518,12 +513,12 @@ def tool_panel_smart(
 
         renderer = renderer_map.get(name.lower())
         if renderer:
-            panel = renderer(args, result, duration_ms, max_line_width)
-            if panel:
-                return panel
+            render_result = renderer(args, result, duration_ms, max_line_width)
+            if render_result is not None:
+                return render_result
 
     # Fallback to generic panel for unsupported tools or failed renders
-    panel = tool_panel(
+    return tool_panel(
         name,
         status,
         args,
@@ -531,7 +526,6 @@ def tool_panel_smart(
         duration_ms=duration_ms,
         max_line_width=max_line_width,
     )
-    return panel
 
 
 def _try_parse_search_result(

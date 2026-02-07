@@ -176,8 +176,8 @@ class TextualReplApp(App[None]):
             try:
                 await self._process_request(request)
             except Exception as e:
-                error_renderable = render_exception(e)
-                self.rich_log.write(error_renderable)
+                content, meta = render_exception(e)
+                self.rich_log.write(content, panel_meta=meta)
             finally:
                 self.request_queue.task_done()
 
@@ -210,8 +210,8 @@ class TextualReplApp(App[None]):
         except asyncio.CancelledError:
             self.notify("Cancelled")
         except Exception as e:
-            error_renderable = render_exception(e)
-            self.rich_log.write(error_renderable)
+            content, meta = render_exception(e)
+            self.rich_log.write(content, panel_meta=meta)
         finally:
             self._current_request_task = None
             self._loading_indicator_shown = False
@@ -229,13 +229,13 @@ class TextualReplApp(App[None]):
                 session = self.state_manager.session
                 tokens = session.usage.last_call_usage.completion_tokens
 
-                panel = render_agent_response(
+                content, meta = render_agent_response(
                     content=output_text,
                     tokens=tokens,
                     duration_ms=duration_ms,
                 )
                 self.chat_container.write("")
-                response_widget = self.chat_container.write(panel, expand=True)
+                response_widget = self.chat_container.write(content, expand=True, panel_meta=meta)
                 self.chat_container.set_insertion_anchor(response_widget)
 
             self._update_resource_bar()
@@ -282,7 +282,7 @@ class TextualReplApp(App[None]):
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         max_line_width = self.tool_panel_max_width()
-        panel = tool_panel_smart(
+        content, panel_meta = tool_panel_smart(
             name=message.tool_name,
             status=message.status,
             args=message.args,
@@ -290,7 +290,7 @@ class TextualReplApp(App[None]):
             duration_ms=message.duration_ms,
             max_line_width=max_line_width,
         )
-        self.chat_container.write(panel)
+        self.chat_container.write(content, panel_meta=panel_meta)
 
     def tool_panel_max_width(self) -> int:
         viewport = self.query_one("#viewport")

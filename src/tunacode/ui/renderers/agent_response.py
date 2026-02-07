@@ -15,8 +15,6 @@ from datetime import datetime
 
 from rich.console import Group, RenderableType
 from rich.markdown import Markdown
-from rich.panel import Panel
-from rich.style import Style
 from rich.text import Text
 
 from tunacode.core.ui_api.constants import (
@@ -24,6 +22,8 @@ from tunacode.core.ui_api.constants import (
     SEPARATOR_WIDTH,
     UI_COLORS,
 )
+
+from tunacode.ui.widgets.chat import PanelMeta
 
 # Threshold for k-suffix (tokens) and ms->s conversion (duration)
 UNIT_CONVERSION_THRESHOLD = 1000
@@ -61,27 +61,18 @@ def _build_separator() -> Text:
 def render_agent_streaming(
     content: str,
     elapsed_ms: float = 0.0,
-) -> RenderableType:
-    """Render streaming agent response in a NeXTSTEP panel.
+) -> tuple[RenderableType, PanelMeta]:
+    """Render streaming agent response as content + panel metadata.
 
     Uses same 3-zone layout as finalized response but with
     visual indicators for active streaming state.
-
-    Preconditions:
-        - elapsed_ms >= 0 (when provided)
-        - content is a valid string (may be empty)
-
-    Postconditions:
-        - Returns a Rich Panel with streaming indicators
-        - Panel expands to full width
-        - Status bar shows streaming state with elapsed time
 
     Args:
         content: Current markdown content being streamed
         elapsed_ms: Time since streaming started
 
     Returns:
-        Rich Panel with streaming indicator
+        Tuple of (Rich renderable, PanelMeta) for CSS-styled display.
     """
     if elapsed_ms < 0:
         raise ValueError(f"elapsed_ms must be non-negative, got {elapsed_ms}")
@@ -110,31 +101,20 @@ def render_agent_streaming(
         status,
     ]
 
-    return Panel(
-        Group(*content_parts),
-        title=f"[{border_color}]agent[/] [...]",
-        border_style=Style(color=border_color),
-        padding=(0, 1),
-        expand=True,
+    meta = PanelMeta(
+        css_class="agent-panel",
+        border_title=f"[{border_color}]agent[/] [...]",
     )
+
+    return Group(*content_parts), meta
 
 
 def render_agent_response(
     content: str,
     tokens: int = 0,
     duration_ms: float = 0.0,
-) -> RenderableType:
-    """Render agent response in a styled 3-zone panel.
-
-    Preconditions:
-        - tokens >= 0 (when provided)
-        - duration_ms >= 0 (when provided)
-        - content is a valid string
-
-    Postconditions:
-        - Returns a Rich Panel with formatted agent response
-        - Panel expands to full width
-        - Status bar shows throughput when available
+) -> tuple[RenderableType, PanelMeta]:
+    """Render agent response as content + panel metadata.
 
     Args:
         content: Markdown content from the agent
@@ -142,7 +122,7 @@ def render_agent_response(
         duration_ms: Request duration in milliseconds
 
     Returns:
-        Rich Panel containing the formatted response
+        Tuple of (Rich renderable, PanelMeta) for CSS-styled display.
     """
     if tokens < 0:
         raise ValueError(f"tokens must be non-negative, got {tokens}")
@@ -175,11 +155,10 @@ def render_agent_response(
         status,
     ]
 
-    return Panel(
-        Group(*content_parts),
-        title=f"[{border_color}]agent[/]",
-        subtitle=f"[{muted_color}]{timestamp}[/]",
-        border_style=Style(color=border_color),
-        padding=(0, 1),
-        expand=True,
+    meta = PanelMeta(
+        css_class="agent-panel",
+        border_title=f"[{border_color}]agent[/]",
+        border_subtitle=f"[{muted_color}]{timestamp}[/]",
     )
+
+    return Group(*content_parts), meta
