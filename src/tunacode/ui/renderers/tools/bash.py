@@ -17,6 +17,7 @@ from tunacode.core.ui_api.constants import MIN_VIEWPORT_LINES
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    ToolRenderResult,
     build_hook_params_prefix,
     tool_renderer,
     truncate_content,
@@ -250,6 +251,6 @@ def render_bash(
     result: str,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType | None:
+) -> ToolRenderResult:
     """Render bash with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

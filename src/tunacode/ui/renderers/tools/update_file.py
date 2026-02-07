@@ -9,20 +9,19 @@ from pathlib import Path
 from typing import Any
 
 from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
 from tunacode.core.ui_api.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
-from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    ToolRenderResult,
     build_hook_path_params,
     tool_renderer,
 )
+from tunacode.ui.widgets.chat import PanelMeta
 
 
 @dataclass
@@ -181,15 +180,11 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         result: str,
         duration_ms: float | None,
         max_line_width: int,
-    ) -> RenderableType | None:
+    ) -> ToolRenderResult:
         """Render update_file with NeXTSTEP zoned layout plus optional diagnostics.
 
-        Zones:
-        - Zone 1: Header (filename + change stats)
-        - Zone 2: Params (filepath)
-        - Zone 3: Viewport (syntax-highlighted diff)
-        - Zone 4: Status (hunks, truncation info, timing)
-        - Zone 5: Diagnostics (if present)
+        Returns content + PanelMeta for the caller to apply via
+        ChatContainer.write(panel_meta=...).
         """
         data = self.parse_result(args, result)
         if data is None:
@@ -246,16 +241,13 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         border_color = self.get_border_color(data)
         status_text = self.get_status_text(data)
 
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
-            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
-            border_style=Style(color=border_color),
-            padding=(0, 1),
-            width=frame_width,
+        meta = PanelMeta(
+            css_class="tool-panel",
+            border_title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
+            border_subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
         )
+
+        return content, meta
 
 
 # Module-level renderer instance
@@ -268,6 +260,6 @@ def render_update_file(
     result: str,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType | None:
+) -> ToolRenderResult:
     """Render update_file with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

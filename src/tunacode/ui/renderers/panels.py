@@ -21,7 +21,7 @@ from tunacode.core.ui_api.constants import (
     UI_COLORS,
 )
 
-from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
+from tunacode.ui.widgets.chat import PanelMeta
 
 
 class PanelType(str, Enum):
@@ -103,7 +103,7 @@ class RichPanelRenderer:
     def render_tool(
         data: ToolDisplayData,
         max_line_width: int,
-    ) -> RenderableType:
+    ) -> tuple[RenderableType, PanelMeta]:
         status_map = {
             "running": (PanelType.TOOL, "..."),
             "completed": (PanelType.SUCCESS, "done"),
@@ -152,21 +152,18 @@ class RichPanelRenderer:
 
         content = Group(*content_parts) if content_parts else Text("...")
 
-        subtitle = None
+        subtitle = ""
         if data.timestamp:
             time_str = data.timestamp.strftime("%H:%M:%S")
             subtitle = f"[{styles['subtitle']}]{time_str}[/]"
 
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{styles['title']}]{data.tool_name}[/] [{status_suffix}]",
-            subtitle=subtitle,
-            border_style=Style(color=styles["border"]),
-            padding=(0, 1),
-            width=frame_width,
+        meta = PanelMeta(
+            css_class="tool-panel",
+            border_title=f"[{styles['title']}]{data.tool_name}[/] [{status_suffix}]",
+            border_subtitle=subtitle,
         )
+
+        return content, meta
 
     @staticmethod
     def render_diff_tool(
@@ -430,7 +427,7 @@ def tool_panel(
     *,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     data = ToolDisplayData(
         tool_name=name,
         status=status,
@@ -484,14 +481,11 @@ def tool_panel_smart(
     *,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType:
+) -> tuple[RenderableType, PanelMeta]:
     """Route tool output to NeXTSTEP-style renderers.
 
-    Each tool has a dedicated renderer with 4-zone layout:
-    - Header: identifier + summary
-    - Parameters: selection context
-    - Viewport: primary content
-    - Status: metrics, truncation info
+    Returns (content, PanelMeta) for the caller to apply via
+    ChatContainer.write(panel_meta=...).
     """
     # Only apply custom renderers for completed tools with results
     if status == "completed" and result:
@@ -518,12 +512,12 @@ def tool_panel_smart(
 
         renderer = renderer_map.get(name.lower())
         if renderer:
-            panel = renderer(args, result, duration_ms, max_line_width)
-            if panel:
-                return panel
+            render_result = renderer(args, result, duration_ms, max_line_width)
+            if render_result is not None:
+                return render_result
 
     # Fallback to generic panel for unsupported tools or failed renders
-    panel = tool_panel(
+    return tool_panel(
         name,
         status,
         args,
@@ -531,7 +525,6 @@ def tool_panel_smart(
         duration_ms=duration_ms,
         max_line_width=max_line_width,
     )
-    return panel
 
 
 def _try_parse_search_result(

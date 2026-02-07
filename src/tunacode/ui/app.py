@@ -282,7 +282,7 @@ class TextualReplApp(App[None]):
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         max_line_width = self.tool_panel_max_width()
-        panel = tool_panel_smart(
+        content, panel_meta = tool_panel_smart(
             name=message.tool_name,
             status=message.status,
             args=message.args,
@@ -290,7 +290,7 @@ class TextualReplApp(App[None]):
             duration_ms=message.duration_ms,
             max_line_width=max_line_width,
         )
-        self.chat_container.write(panel)
+        self.chat_container.write(content, panel_meta=panel_meta)
 
     def tool_panel_max_width(self) -> int:
         viewport = self.query_one("#viewport")

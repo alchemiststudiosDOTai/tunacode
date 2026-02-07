@@ -21,6 +21,7 @@ from tunacode.core.ui_api.constants import (
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
     RendererConfig,
+    ToolRenderResult,
     build_hook_path_params,
     clamp_content_width,
     tool_renderer,
@@ -233,6 +234,6 @@ def render_read_file(
     result: str,
     duration_ms: float | None,
     max_line_width: int,
-) -> RenderableType | None:
+) -> ToolRenderResult:
     """Render read_file with NeXTSTEP zoned layout."""
     return _renderer.render(args, result, duration_ms, max_line_width)

@@ -17,8 +17,6 @@ from pathlib import Path
 from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
 from rich.console import Group, RenderableType
-from rich.panel import Panel
-from rich.style import Style
 from rich.text import Text
 
 from tunacode.core.ui_api.constants import (
@@ -32,7 +30,7 @@ from tunacode.core.ui_api.constants import (
     UI_COLORS,
 )
 
-from tunacode.ui.renderers.panel_widths import tool_panel_frame_width
+from tunacode.ui.widgets.chat import PanelMeta
 
 
 def truncate_line(line: str, max_width: int) -> str:
@@ -126,10 +124,13 @@ def build_hook_path_params(filepath: str, root_path: Path) -> Text:
     return params
 
 
+# Return type for tool renderers: (content, panel_meta) or None
+ToolRenderResult = tuple[RenderableType, PanelMeta] | None
+
 # Type alias for render functions
 RenderFunc = Callable[
     [dict[str, Any] | None, str, float | None, int],
-    RenderableType | None,
+    ToolRenderResult,
 ]
 
 # Registry mapping tool names to their render functions
@@ -425,14 +426,11 @@ class BaseToolRenderer(ABC, Generic[T]):
         result: str,
         duration_ms: float | None,
         max_line_width: int,
-    ) -> RenderableType | None:
+    ) -> ToolRenderResult:
         """Render tool result using the 4-zone layout pattern.
 
-        This is the template method that orchestrates the rendering process:
-        1. Parse the result into structured data
-        2. Build each zone using abstract methods
-        3. Compose zones with separators
-        4. Wrap in a Panel with title and styling
+        Returns content + PanelMeta for the caller to apply via
+        ChatContainer.write(panel_meta=...).
 
         Args:
             args: Tool arguments passed to the tool
@@ -441,7 +439,7 @@ class BaseToolRenderer(ABC, Generic[T]):
             max_line_width: Maximum line width for truncation
 
         Returns:
-            Rich Panel containing the rendered output, or None if parsing fails
+            (content, PanelMeta) tuple, or None if parsing fails
         """
         data = self.parse_result(args, result)
         if data is None:
@@ -469,13 +467,10 @@ class BaseToolRenderer(ABC, Generic[T]):
         border_color = self.get_border_color(data)
         status_text = self.get_status_text(data)
 
-        frame_width = tool_panel_frame_width(max_line_width)
-
-        return Panel(
-            content,
-            title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
-            subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
-            border_style=Style(color=border_color),
-            padding=(0, 1),
-            width=frame_width,
+        meta = PanelMeta(
+            css_class="tool-panel",
+            border_title=f"[{border_color}]{self.config.tool_name}[/] [{status_text}]",
+            border_subtitle=f"[{self.config.muted_color}]{timestamp}[/]",
         )
+
+        return content, meta
