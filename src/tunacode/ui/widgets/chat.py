@@ -1,7 +1,9 @@
 """Chat container widget with insertion tracking for tool panels.
 
 This widget provides a scrollable chat history with the ability to insert
-widgets at tracked positions.
+widgets at tracked positions.  Child messages use CopyOnSelectStatic so
+that highlighting text with the mouse copies it to the system clipboard
+automatically (no keystrokes required).
 """
 
 from __future__ import annotations
@@ -9,8 +11,56 @@ from __future__ import annotations
 from rich.console import RenderableType
 from textual.containers import VerticalScroll
 from textual.geometry import Region, Size
+from textual.selection import Selection
+from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import Static
+
+from tunacode.ui.clipboard import copy_to_clipboard
+
+# Delay after the last selection change before we copy (milliseconds).
+# Prevents copying on every intermediate drag event; fires once the
+# mouse stops / is released.
+_COPY_DEBOUNCE_MS = 0.15
+
+
+class CopyOnSelectStatic(Static):
+    """Static widget that copies highlighted text to the clipboard on mouse release.
+
+    Overrides ``selection_updated`` with a short debounce so that
+    only the *final* selection (after the drag ends) triggers the copy.
+    """
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self._copy_timer: Timer | None = None
+
+    def selection_updated(self, selection: Selection | None) -> None:
+        """Called by Textual when the mouse selection changes on this widget."""
+        super().selection_updated(selection)
+        if self._copy_timer is not None:
+            self._copy_timer.stop()
+            self._copy_timer = None
+        if selection is None:
+            return
+        self._copy_timer = self.set_timer(
+            _COPY_DEBOUNCE_MS, self._copy_current_selection
+        )
+
+    def _copy_current_selection(self) -> None:
+        """Extract the current selection text and copy it to the clipboard."""
+        self._copy_timer = None
+        selection = self.text_selection
+        if selection is None:
+            return
+        result = self.get_selection(selection)
+        if result is None:
+            return
+        text, _ending = result
+        if not text:
+            return
+        copy_to_clipboard(text, app=self.app)
+        self.app.notify("Copied", timeout=1)
 
 
 class ChatContainer(VerticalScroll):
@@ -68,7 +118,7 @@ class ChatContainer(VerticalScroll):
         Returns:
             The created Static widget.
         """
-        widget = Static(renderable)
+        widget = CopyOnSelectStatic(renderable)
         widget.add_class("chat-message")
         if expand:
             widget.add_class("expand")
