@@ -22,8 +22,6 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "pydantic"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "pydantic-ai"
-        update-types: ["version-update:semver-major"]
       - dependency-name: "rich"
         update-types: ["version-update:semver-major"]
 
