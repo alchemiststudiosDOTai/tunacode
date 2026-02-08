@@ -94,3 +94,6 @@ deps.dot
 
 # Tickets directory (CLI tool uses this, should not be committed)
 .tickets/
+
+# tinyAgent vendored source (installed from PyPI, not tracked here)
+tinyAgent/
