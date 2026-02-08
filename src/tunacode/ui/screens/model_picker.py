@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
 from textual import events
+
+if TYPE_CHECKING:
+    from tunacode.types import ModelPricing
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.screen import Screen
@@ -237,7 +243,12 @@ class ModelPickerScreen(Screen[str | None]):
 
         self.call_after_refresh(self._rebuild_options)
 
-    def _make_model_option(self, model_id: str, get_model_pricing, format_pricing_display) -> Option:
+    def _make_model_option(
+        self,
+        model_id: str,
+        get_model_pricing: Callable[[str], "ModelPricing | None"],
+        format_pricing_display: Callable[["ModelPricing"], str],
+    ) -> Option:
         """Build an ``Option`` with display name and pricing for *model_id*."""
         full_model = f"{self._provider_id}:{model_id}"
         pricing = get_model_pricing(full_model)
@@ -292,7 +303,7 @@ class ModelPickerScreen(Screen[str | None]):
 
         highlight_index = _choose_highlight_index(visible_models, self._current_model_id)
 
-        for display_name, model_id in visible_models:
+        for _display_name, model_id in visible_models:
             if model_id in recent_id_set:
                 continue
             option_list.add_option(self._make_model_option(model_id, get_model_pricing, format_pricing_display))
