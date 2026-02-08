@@ -237,6 +237,21 @@ class ModelPickerScreen(Screen[str | None]):
 
         self.call_after_refresh(self._rebuild_options)
 
+    def _make_model_option(self, model_id: str, get_model_pricing, format_pricing_display) -> Option:
+        """Build an ``Option`` with display name and pricing for *model_id*."""
+        full_model = f"{self._provider_id}:{model_id}"
+        pricing = get_model_pricing(full_model)
+        display_name = model_id
+        for dname, mid in self._all_models:
+            if mid == model_id:
+                display_name = dname
+                break
+        if pricing is not None:
+            label = f"{display_name}  {format_pricing_display(pricing)}"
+        else:
+            label = display_name
+        return Option(label, id=model_id)
+
     def _rebuild_options(self) -> None:
         """Rebuild OptionList with filtered items and pricing.
 
@@ -257,13 +272,14 @@ class ModelPickerScreen(Screen[str | None]):
 
         # --- Recent models section (only when not filtering) ---
         provider_prefix = f"{self._provider_id}:"
+        all_model_ids: set[str] = {mid for _, mid in self._all_models}
         recent_ids: list[str] = []
         if not filter_query.strip():
             for full in self._recent_models:
                 if full.startswith(provider_prefix):
                     model_id = full[len(provider_prefix):]
-                    # Only include if the model still exists in the provider
-                    if any(mid == model_id for _, mid in visible_models):
+                    # Validate against the full model set, not the truncated view
+                    if model_id in all_model_ids:
                         recent_ids.append(model_id)
 
         recent_id_set: set[str] = set(recent_ids)
@@ -271,19 +287,7 @@ class ModelPickerScreen(Screen[str | None]):
         if recent_ids:
             option_list.add_option(Option("── Recent ──", disabled=True))
             for model_id in recent_ids:
-                full_model = f"{self._provider_id}:{model_id}"
-                pricing = get_model_pricing(full_model)
-                display_name = model_id
-                # Find the real display name from the full list
-                for dname, mid in self._all_models:
-                    if mid == model_id:
-                        display_name = dname
-                        break
-                if pricing is not None:
-                    label = f"{display_name}  {format_pricing_display(pricing)}"
-                else:
-                    label = display_name
-                option_list.add_option(Option(label, id=model_id))
+                option_list.add_option(self._make_model_option(model_id, get_model_pricing, format_pricing_display))
             option_list.add_option(Option("── All Models ──", disabled=True))
 
         highlight_index = _choose_highlight_index(visible_models, self._current_model_id)
@@ -291,19 +295,12 @@ class ModelPickerScreen(Screen[str | None]):
         for display_name, model_id in visible_models:
             if model_id in recent_id_set:
                 continue
-            full_model = f"{self._provider_id}:{model_id}"
-            pricing = get_model_pricing(full_model)
-            if pricing is not None:
-                label = f"{display_name}  {format_pricing_display(pricing)}"
-            else:
-                label = display_name
+            option_list.add_option(self._make_model_option(model_id, get_model_pricing, format_pricing_display))
 
-            option_list.add_option(Option(label, id=model_id))
-
-        # Highlight the current model; prefer position 1 (first real option after header)
+        # Highlight: first recent model if present, otherwise the current model
+        RECENT_HEADER_COUNT = 1  # "── Recent ──" header
         if recent_ids:
-            # Offset by section headers and recent items
-            option_list.highlighted = 1  # first recent model
+            option_list.highlighted = RECENT_HEADER_COUNT  # first recent model
         elif highlight_index is not None:
             option_list.highlighted = highlight_index
 
