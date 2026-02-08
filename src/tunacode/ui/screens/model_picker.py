@@ -212,13 +212,19 @@ class ModelPickerScreen(Screen[str | None]):
         ("escape", "cancel", "Cancel"),
     ]
 
-    def __init__(self, provider_id: str, current_model: str) -> None:
+    def __init__(
+        self,
+        provider_id: str,
+        current_model: str,
+        recent_models: list[str] | None = None,
+    ) -> None:
         super().__init__()
         self._provider_id = provider_id
         self._current_model = current_model
         current_model_id = current_model.split(":", 1)[1] if ":" in current_model else ""
         self._current_model_id = current_model_id
         self._all_models: list[tuple[str, str]] = []
+        self._recent_models: list[str] = recent_models or []
         self._filter_query: str = ""
 
     def compose(self) -> ComposeResult:
@@ -232,7 +238,11 @@ class ModelPickerScreen(Screen[str | None]):
         self.call_after_refresh(self._rebuild_options)
 
     def _rebuild_options(self) -> None:
-        """Rebuild OptionList with filtered items and pricing."""
+        """Rebuild OptionList with filtered items and pricing.
+
+        When no filter query is active, recently-used models for this
+        provider are shown in a ``Recent`` section at the top of the list.
+        """
         from tunacode.core.ui_api.configuration import format_pricing_display, get_model_pricing
 
         option_list = self.query_one("#model-list", OptionList)
@@ -245,9 +255,42 @@ class ModelPickerScreen(Screen[str | None]):
             MODEL_PICKER_UNFILTERED_LIMIT,
         )
 
+        # --- Recent models section (only when not filtering) ---
+        provider_prefix = f"{self._provider_id}:"
+        recent_ids: list[str] = []
+        if not filter_query.strip():
+            for full in self._recent_models:
+                if full.startswith(provider_prefix):
+                    model_id = full[len(provider_prefix):]
+                    # Only include if the model still exists in the provider
+                    if any(mid == model_id for _, mid in visible_models):
+                        recent_ids.append(model_id)
+
+        recent_id_set: set[str] = set(recent_ids)
+
+        if recent_ids:
+            option_list.add_option(Option("── Recent ──", disabled=True))
+            for model_id in recent_ids:
+                full_model = f"{self._provider_id}:{model_id}"
+                pricing = get_model_pricing(full_model)
+                display_name = model_id
+                # Find the real display name from the full list
+                for dname, mid in self._all_models:
+                    if mid == model_id:
+                        display_name = dname
+                        break
+                if pricing is not None:
+                    label = f"{display_name}  {format_pricing_display(pricing)}"
+                else:
+                    label = display_name
+                option_list.add_option(Option(label, id=model_id))
+            option_list.add_option(Option("── All Models ──", disabled=True))
+
         highlight_index = _choose_highlight_index(visible_models, self._current_model_id)
 
         for display_name, model_id in visible_models:
+            if model_id in recent_id_set:
+                continue
             full_model = f"{self._provider_id}:{model_id}"
             pricing = get_model_pricing(full_model)
             if pricing is not None:
@@ -257,7 +300,11 @@ class ModelPickerScreen(Screen[str | None]):
 
             option_list.add_option(Option(label, id=model_id))
 
-        if highlight_index is not None:
+        # Highlight the current model; prefer position 1 (first real option after header)
+        if recent_ids:
+            # Offset by section headers and recent items
+            option_list.highlighted = 1  # first recent model
+        elif highlight_index is not None:
             option_list.highlighted = highlight_index
 
         if is_truncated:
