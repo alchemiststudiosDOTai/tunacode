@@ -37,7 +37,6 @@ from . import agent_components as ac
 __all__ = [
     "process_request",
     "get_agent_tool",
-    "check_query_satisfaction",
 ]
 
 DEFAULT_MAX_ITERATIONS: int = 15
@@ -535,18 +534,6 @@ def get_agent_tool() -> tuple[type[Any], type[Any]]:
     from tinyagent.agent_types import AgentTool as ToolCls
 
     return AgentCls, ToolCls
-
-
-async def check_query_satisfaction(
-    agent: Any,
-    original_query: str,
-    response: str,
-    state_manager: StateManagerProtocol,
-) -> bool:
-    """Legacy hook retained for compatibility."""
-
-    _ = (agent, original_query, response, state_manager)
-    return True
 
 
 async def process_request(

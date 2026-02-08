@@ -245,53 +245,6 @@ class RecursiveContext:
 
 
 # =============================================================================
-# Normalized Usage Types (from pydantic_ai.py migration)
-# =============================================================================
-# These provide a framework-agnostic shape for extracting usage from
-# any provider's response object.
-
-DEFAULT_TOKEN_COUNT = 0
-USAGE_ATTR_REQUEST_TOKENS = "request_tokens"
-USAGE_ATTR_RESPONSE_TOKENS = "response_tokens"
-USAGE_ATTR_CACHED_TOKENS = "cached_tokens"
-
-
-@dataclass(frozen=True, slots=True)
-class NormalizedUsage:
-    """Normalized usage values for provider-agnostic tracking.
-
-    This provides a stable shape for extracting token counts from
-    various LLM provider response objects.
-    """
-
-    request_tokens: int
-    response_tokens: int
-    cached_tokens: int
-
-
-def _read_usage_value(usage: Any, attribute: str) -> int:
-    """Read a usage attribute, defaulting to 0 if not present."""
-    raw_value = getattr(usage, attribute, None)
-    return int(raw_value or DEFAULT_TOKEN_COUNT)
-
-
-def normalize_request_usage(usage: Any | None) -> NormalizedUsage | None:
-    """Normalize usage objects to a stable shape for internal tracking.
-
-    Works with any object that has request_tokens, response_tokens, and
-    cached_tokens attributes (e.g., pydantic-ai Usage objects).
-    """
-    if usage is None:
-        return None
-
-    return NormalizedUsage(
-        request_tokens=_read_usage_value(usage, USAGE_ATTR_REQUEST_TOKENS),
-        response_tokens=_read_usage_value(usage, USAGE_ATTR_RESPONSE_TOKENS),
-        cached_tokens=_read_usage_value(usage, USAGE_ATTR_CACHED_TOKENS),
-    )
-
-
-# =============================================================================
 # Exports
 # =============================================================================
 
@@ -314,7 +267,4 @@ __all__ = [
     "UsageMetrics",
     # Recursive context types
     "RecursiveContext",
-    # Normalized usage types
-    "NormalizedUsage",
-    "normalize_request_usage",
 ]

@@ -253,14 +253,14 @@ def run_headless(
 
 
 def _serialize_message(msg: object) -> dict:
-    """Serialize a message object to a JSON-compatible dictionary."""
+    """Serialize a message object to a JSON-compatible dictionary.
+
+    Per hard-break policy (state.py:167-171), all messages MUST be dicts.
+    Non-dict messages indicate a bug upstream.
+    """
     if isinstance(msg, dict):
         return msg
-    if hasattr(msg, "model_dump"):
-        return msg.model_dump()
-    if hasattr(msg, "__dict__"):
-        return msg.__dict__
-    return {"content": str(msg)}
+    raise TypeError(f"Expected dict message, got {type(msg).__name__}")
 
 
 if __name__ == "__main__":
