@@ -20,7 +20,9 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 - **Code search** - Glob patterns and grep with ripgrep integration
 - **Session persistence** - Resume previous conversations with `/resume`
 - **LSP diagnostics** - Real-time code errors after file writes (Python, TypeScript, Go, Rust)
-- **Themeable UI** - Multiple built-in themes
+- **Themeable UI** - CSS-based theming with NeXTSTEP-inspired design
+- **Copy-on-select** - Automatically copies highlighted text to clipboard
+- **Agent loop** - Powered by [tinyagent](https://github.com/alchemiststudios.ai/tinyAgent)
 
 ## Interface
 
@@ -29,6 +31,27 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 
 ![Read File Tool](docs/media/read-file-tool.png)
 *Tool output with syntax highlighting*
+
+## Architecture
+
+TunaCode is built with:
+
+- **tinyagent** - Core agent loop handling LLM interaction and tool execution
+- **Textual** - Terminal UI framework with CSS-based styling
+- **Rich** - Terminal rendering with syntax highlighting
+- **Typer** - CLI framework
+
+The agent system uses typed cache accessors with pluggable invalidation strategies (manual and mtime-based).
+
+### Migration Notes
+
+**Recent Breaking Changes:**
+
+- Session persistence format changed - existing sessions may not load correctly
+- Tool execution is now sequential (was parallel)
+- The `docs/` directory has been restructured
+
+For full details, see the [CHANGELOG](CHANGELOG.md).
 
 ## Installation
 
