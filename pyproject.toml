@@ -28,7 +28,7 @@ dependencies = [
     "typer>=0.15.0",
     "click>=8.1.0,<8.2.0",
     "prompt_toolkit>=3.0.52,<4.0.0",
-    "tinyagent",
+    "tiny-agent-os==1.1.0",
     "pygments>=2.19.2,<3.0.0",
     "rich>=14.2.0,<15.0.0",
     "defusedxml",
@@ -86,9 +86,8 @@ Repository = "https://github.com/alchemiststudiosDOTai/tunacode"
 Issues = "https://github.com/alchemiststudiosDOTai/tunacode/issues"
 Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
 
-[tool.uv.sources]
-# Phase 1 (tun-00df): install tinyagent from repo-local path until PyPI v2.5 is available.
-tinyagent = { path = "tinyAgent", editable = true }
+# NOTE: tinyagent is now provided by the PyPI distribution `tiny-agent-os`.
+# We intentionally do not use a repo-local override.
 
 [tool.ruff]
 line-length = 100

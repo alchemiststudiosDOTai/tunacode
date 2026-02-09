@@ -1935,25 +1935,16 @@ wheels = [
 ]
 
 [[package]]
-name = "tinyagent"
-version = "0.1.0"
-source = { editable = "tinyAgent" }
+name = "tiny-agent-os"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx", specifier = ">=0.28.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.14.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25.0" },
-    { name = "python-dotenv", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "python-dotenv", marker = "extra == 'examples'", specifier = ">=1.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9.0" },
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/70/18/df8354f40fe66c36d4e3bc640fd47a1f7f428b37ea28699728ae43244f2a/tiny_agent_os-1.1.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:9f1fa6492bf6768225b5bde2845f5ce5726fa9f265a8ed982fa616c377f00b50", size = 1827241, upload-time = "2026-02-08T15:47:05.515Z" },
+    { url = "https://files.pythonhosted.org/packages/12/74/0db1c9b891b75bd9ad259dcb00dea9f4112adcfa8485f822b79e1486e8b9/tiny_agent_os-1.1.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e35832ef1edcf5d0ab438e226a3fbc6a015bf20dbde7a37230349df60f66b656", size = 3773290, upload-time = "2026-02-08T15:47:07.613Z" },
 ]
-provides-extras = ["examples", "dev"]
 
 [[package]]
 name = "toml"
@@ -2023,7 +2014,7 @@ dependencies = [
     { name = "ruff" },
     { name = "textual" },
     { name = "textual-autocomplete" },
-    { name = "tinyagent" },
+    { name = "tiny-agent-os" },
     { name = "typer" },
 ]
 
@@ -2112,7 +2103,7 @@ requires-dist = [
     { name = "textual", specifier = ">=4.0.0,<5.0.0" },
     { name = "textual-autocomplete", specifier = ">=4.0.6" },
     { name = "textual-dev", marker = "extra == 'dev'" },
-    { name = "tinyagent", editable = "tinyAgent" },
+    { name = "tiny-agent-os", specifier = "==1.1.0" },
     { name = "twine", marker = "extra == 'dev'" },
     { name = "typer", specifier = ">=0.15.0" },
     { name = "unimport", marker = "extra == 'dev'", specifier = ">=1.0.0" },

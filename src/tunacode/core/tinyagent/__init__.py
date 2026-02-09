@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
-_TINYAGENT_DISTRIBUTION = "tinyagent"
+_TINYAGENT_DISTRIBUTION = "tiny-agent-os"
 
 
 def get_tinyagent_version() -> str:
