@@ -6,7 +6,7 @@ import asyncio
 import os
 import time
 from datetime import UTC, datetime
-from typing import Any, Never
+from typing import Never
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
@@ -244,13 +244,14 @@ class TextualReplApp(App[None]):
             await self.state_manager.save_session()
 
     def _get_latest_response_text(self) -> str | None:
-        from pydantic_ai.messages import ModelResponse
-
         from tunacode.core.ui_api.messaging import get_content
 
         messages = self.state_manager.session.conversation.messages
         for message in reversed(messages):
-            if not isinstance(message, ModelResponse):
+            if not isinstance(message, dict):
+                continue
+
+            if message.get("role") != "assistant":
                 continue
 
             raw_content = get_content(message)
@@ -311,35 +312,36 @@ class TextualReplApp(App[None]):
         notice_text = Text(notice, style=STYLE_WARNING)
         self.rich_log.write(notice_text)
 
-    def _is_user_prompt_request(self, message: Any) -> bool:
-        parts = getattr(message, "parts", None)
-        if not parts:
-            return False
-
-        return any(getattr(part, "part_kind", None) == "user-prompt" for part in parts)
-
     def _replay_session_messages(self) -> None:
-        """Render loaded session messages to RichLog."""
-        from pydantic_ai.messages import ModelRequest, ModelResponse
-
+        """Render loaded session messages to ChatContainer."""
         from tunacode.core.ui_api.messaging import get_content
 
         conversation = self.state_manager.session.conversation
         for msg in conversation.messages:
-            content = get_content(msg)
-            if not content:
+            if not isinstance(msg, dict):
                 continue
 
-            if isinstance(msg, ModelRequest):
-                if not self._is_user_prompt_request(msg):
+            role = msg.get("role")
+            if role == "user":
+                content = get_content(msg)
+                if not content:
                     continue
+
                 user_block = Text()
                 user_block.append(f"| {content}\n", style=STYLE_PRIMARY)
                 user_block.append("| (restored)", style=f"dim {STYLE_PRIMARY}")
                 self.rich_log.write(user_block)
-            elif isinstance(msg, ModelResponse):
-                self.rich_log.write(Text("agent:", style="accent"))
-                self.rich_log.write(Markdown(content))
+                continue
+
+            if role != "assistant":
+                continue
+
+            content = get_content(msg)
+            if not content:
+                continue
+
+            self.rich_log.write(Text("agent:", style="accent"))
+            self.rich_log.write(Markdown(content))
 
     def action_cancel_request(self) -> None:
         """Cancel the current request, shell command, or clear editor input."""

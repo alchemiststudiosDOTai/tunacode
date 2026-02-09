@@ -1,7 +1,11 @@
 """Module: tunacode.core.agents.main
 
-Main agent functionality with focused responsibility classes.
-Handles agent creation, configuration, and request processing.
+Main agent functionality.
+
+Phase 4 migration note:
+
+This module now consumes **tinyagent** events directly via ``agent.stream()``.
+The legacy pydantic-ai node-based orchestrator is intentionally bypassed.
 """
 
 from __future__ import annotations
@@ -9,13 +13,11 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any, cast
 
-from pydantic_ai import Agent
-
-if TYPE_CHECKING:
-    from pydantic_ai import Tool  # noqa: F401
+from tinyagent import Agent
 
 from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
 from tunacode.types import (
@@ -27,29 +29,18 @@ from tunacode.types import (
     ToolStartCallback,
 )
 
-from tunacode.infrastructure.llm_types import AgentRun
-
-from tunacode.core.agents.history_preparer import HistoryPreparer
-from tunacode.core.agents.request_logger import log_node_details, log_run_handle_context_messages
-from tunacode.core.agents.resume.sanitize import (
-    remove_consecutive_requests,
-    remove_dangling_tool_calls,
-    remove_empty_responses,
-)
 from tunacode.core.logging import get_logger
-from tunacode.core.types import StateManagerProtocol
+from tunacode.core.types import RuntimeState, StateManagerProtocol
 
 from . import agent_components as ac
 
 __all__ = [
     "process_request",
     "get_agent_tool",
-    "check_query_satisfaction",
 ]
 
 DEFAULT_MAX_ITERATIONS: int = 15
 REQUEST_ID_LENGTH: int = 8
-MESSAGE_PREVIEW_LENGTH: int = 50
 MILLISECONDS_PER_SECOND: int = 1000
 
 
@@ -70,6 +61,15 @@ class RequestContext:
     debug_metrics: bool
 
 
+@dataclass(slots=True)
+class _TinyAgentStreamState:
+    """Mutable per-run state for tinyagent event handling."""
+
+    runtime: RuntimeState
+    tool_start_times: dict[str, float]
+    last_assistant_message: dict[str, Any] | None = None
+
+
 class EmptyResponseHandler:
     """Handles tracking and intervention for empty responses."""
 
@@ -82,20 +82,17 @@ class EmptyResponseHandler:
         self.notice_callback = notice_callback
 
     def track(self, is_empty: bool) -> None:
-        """Track empty response and increment counter if empty."""
         runtime = self.state_manager.session.runtime
         if is_empty:
             runtime.consecutive_empty_responses += 1
-        else:
-            runtime.consecutive_empty_responses = 0
+            return
+        runtime.consecutive_empty_responses = 0
 
     def should_intervene(self) -> bool:
-        """Check if intervention is needed (>= 1 consecutive empty)."""
         runtime = self.state_manager.session.runtime
         return runtime.consecutive_empty_responses >= 1
 
     async def prompt_action(self, message: str, reason: str, iteration: int) -> None:
-        """Handle empty response intervention."""
         logger = get_logger()
         logger.warning(f"Empty response: {reason}", iteration=iteration)
 
@@ -113,8 +110,74 @@ class EmptyResponseHandler:
         self.state_manager.session.runtime.consecutive_empty_responses = 0
 
 
+def _is_tinyagent_message(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    role = value.get("role")
+    return role in {"user", "assistant", "tool_result"}
+
+
+def _coerce_tinyagent_history(messages: list[Any]) -> list[dict[str, Any]]:
+    if not messages:
+        return []
+
+    if all(_is_tinyagent_message(m) for m in messages):
+        return [cast(dict[str, Any], m) for m in messages]
+
+    raise TypeError(
+        "Session history contains non-tinyagent messages. "
+        "Back-compat for pydantic-ai sessions has been removed. "
+        "Start a new session or delete the persisted session file."
+    )
+
+
+def _extract_assistant_text(message: dict[str, Any] | None) -> str:
+    if not message:
+        return ""
+
+    if message.get("role") != "assistant":
+        return ""
+
+    content = message.get("content")
+    if not isinstance(content, list):
+        return ""
+
+    parts: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") != "text":
+            continue
+        text = item.get("text")
+        if isinstance(text, str):
+            parts.append(text)
+
+    return "".join(parts)
+
+
+def _extract_tool_result_text(result: Any) -> str | None:
+    if result is None:
+        return None
+
+    content = getattr(result, "content", None)
+    if not isinstance(content, list):
+        return None
+
+    parts: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") != "text":
+            continue
+        text = item.get("text")
+        if isinstance(text, str):
+            parts.append(text)
+
+    return "".join(parts) if parts else None
+
+
 class RequestOrchestrator:
-    """Orchestrates the main request processing loop."""
+    """Orchestrates the request processing loop using tinyagent events."""
 
     def __init__(
         self,
@@ -143,10 +206,8 @@ class RequestOrchestrator:
         )
 
         self.empty_handler = EmptyResponseHandler(state_manager, notice_callback)
-        self.history_preparer = HistoryPreparer(state_manager, model, message)
 
-    async def run(self) -> AgentRun:
-        """Run the main request processing loop with optional global timeout."""
+    async def run(self) -> Agent:
         from tunacode.core.agents.agent_components.agent_config import (
             _coerce_global_request_timeout,
         )
@@ -164,39 +225,39 @@ class RequestOrchestrator:
                 logger.lifecycle("Agent cache invalidated after timeout")
             raise GlobalRequestTimeoutError(timeout) from e
 
-    async def _run_impl(self) -> AgentRun:
-        """Internal implementation of request processing loop."""
+    async def _run_impl(self) -> Agent:
         ctx = self._initialize_request()
         logger = get_logger()
         logger.info("Request started", request_id=ctx.request_id)
 
         agent = ac.get_or_create_agent(self.model, self.state_manager)
-        message_history, debug_mode, baseline_message_count = self.history_preparer.prepare(logger)
-        response_state = ac.ResponseState()
+
+        session = self.state_manager.session
+        conversation = session.conversation
+        baseline_message_count = len(conversation.messages)
+
+        history = _coerce_tinyagent_history(conversation.messages)
+        agent.replace_messages(history)
+
+        session._debug_raw_stream_accum = ""
 
         try:
-            return await self._run_agent_iterations(
+            return await self._run_stream(
                 agent=agent,
-                message_history=message_history,
-                debug_mode=debug_mode,
-                response_state=response_state,
-                baseline_message_count=baseline_message_count,
                 request_context=ctx,
-                logger=logger,
+                baseline_message_count=baseline_message_count,
             )
         except (UserAbortError, asyncio.CancelledError):
             self._handle_abort_cleanup(logger)
             raise
 
     def _initialize_request(self) -> RequestContext:
-        """Initialize request context and reset per-run session state."""
         ctx = self._create_request_context()
         self._reset_session_state()
         self._set_original_query_once()
         return ctx
 
     def _create_request_context(self) -> RequestContext:
-        """Create request context with ID and config."""
         req_id = str(uuid.uuid4())[:REQUEST_ID_LENGTH]
         self.state_manager.session.runtime.request_id = req_id
         return RequestContext(
@@ -206,7 +267,6 @@ class RequestOrchestrator:
         )
 
     def _reset_session_state(self) -> None:
-        """Reset/initialize fields needed for a new run."""
         session = self.state_manager.session
         runtime = session.runtime
         runtime.current_iteration = 0
@@ -217,154 +277,263 @@ class RequestOrchestrator:
         session.task.original_query = ""
 
     def _set_original_query_once(self) -> None:
-        """Set original query if not already set."""
         task_state = self.state_manager.session.task
-        if not task_state.original_query:
-            task_state.original_query = self.message
+        if task_state.original_query:
+            return
+        task_state.original_query = self.message
 
-    def _persist_run_messages(self, agent_run: AgentRun, baseline_message_count: int) -> None:
-        """Persist authoritative run messages, preserving external additions."""
-        run_messages = list(agent_run.all_messages())
-        conversation = self.state_manager.session.conversation
-        external_messages = conversation.messages[baseline_message_count:]
-        conversation.messages = [*run_messages, *external_messages]
+    def _persist_agent_messages(self, agent: Any, baseline_message_count: int) -> None:
+        session = self.state_manager.session
+        conversation = session.conversation
 
-    async def _run_agent_iterations(
+        # Preserve anything that might have been appended externally during the run.
+        external_messages = list(conversation.messages[baseline_message_count:])
+
+        agent_messages = agent.state.get("messages", [])
+        if not isinstance(agent_messages, list):
+            raise TypeError("tinyagent Agent.state['messages'] must be a list")
+
+        conversation.messages = [*agent_messages, *external_messages]
+
+    async def _handle_stream_turn_end(
         self,
-        agent: Agent,
-        message_history: list[Any],
-        debug_mode: bool,
-        response_state: ac.ResponseState,
-        baseline_message_count: int,
+        event_obj: object,
+        *,
+        agent: Any,
+        state: _TinyAgentStreamState,
         request_context: RequestContext,
-        logger: Any,
-    ) -> ac.AgentRunWithState:
-        msg_preview = self.message[:MESSAGE_PREVIEW_LENGTH]
-        history_len = len(message_history)
-        logger.debug(f"Starting agent.iter(): msg={msg_preview}... history={history_len}")
-
-        async with agent.iter(self.message, message_history=message_history) as run_handle:
-            logger.debug("agent.iter() context entered successfully")
-            if debug_mode:
-                log_run_handle_context_messages(run_handle, logger)
-
-            agent_run_ctx = run_handle.ctx
-            iteration_index = 1
-
-            async for node in run_handle:
-                should_stop = await self._handle_iteration_node(
-                    node=node,
-                    iteration_index=iteration_index,
-                    agent_run_ctx=agent_run_ctx,
-                    request_id=request_context.request_id,
-                    response_state=response_state,
-                    logger=logger,
-                )
-                if should_stop:
-                    break
-                iteration_index += 1
-
-            self._persist_run_messages(run_handle, baseline_message_count)
-            logger.lifecycle("Request complete")
-            return ac.AgentRunWithState(run_handle, response_state)
-
-    async def _handle_iteration_node(
-        self,
-        node: Any,
-        iteration_index: int,
-        agent_run_ctx: Any,
-        request_id: str,
-        response_state: ac.ResponseState,
-        logger: Any,
+        baseline_message_count: int,
     ) -> bool:
-        iter_start = time.perf_counter()
-        logger.lifecycle(f"--- Iteration {iteration_index} ---")
-        log_node_details(node, logger)
+        _ = baseline_message_count
 
-        runtime = self.state_manager.session.runtime
-        runtime.current_iteration = iteration_index
-        runtime.iteration_count = iteration_index
+        state.runtime.iteration_count += 1
+        state.runtime.current_iteration = state.runtime.iteration_count
 
-        is_request_node = Agent.is_model_request_node(node)
-        if self.streaming_callback and is_request_node:
-            await ac.stream_model_request_node(
-                node,
-                agent_run_ctx,
-                self.state_manager,
-                self.streaming_callback,
-                request_id,
-                iteration_index,
-            )
+        if state.runtime.iteration_count <= request_context.max_iterations:
+            return False
 
-        empty_response, empty_reason = await ac.process_node(
-            node,
-            self.tool_callback,
-            self.state_manager,
-            self.streaming_callback,
-            response_state,
-            self.tool_result_callback,
-            self.tool_start_callback,
-        )
-        iter_elapsed_ms = (time.perf_counter() - iter_start) * MILLISECONDS_PER_SECOND
-        logger.lifecycle(f"Iteration {iteration_index} complete ({iter_elapsed_ms:.0f}ms)")
+        agent.abort()
+        raise RuntimeError(f"Max iterations exceeded ({request_context.max_iterations}); aborted")
 
-        self.empty_handler.track(empty_response)
-        if empty_response and self.empty_handler.should_intervene():
-            await self.empty_handler.prompt_action(
-                self.message,
-                empty_reason or "",
-                iteration_index,
-            )
+    async def _handle_stream_message_update(
+        self,
+        event_obj: object,
+        *,
+        agent: Any,
+        state: _TinyAgentStreamState,
+        request_context: RequestContext,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (agent, state, request_context, baseline_message_count)
+        await self._handle_message_update(event_obj)
+        return False
 
-        node_output = getattr(getattr(node, "result", None), "output", None)
-        if node_output:
-            response_state.has_user_response = True
+    async def _handle_stream_message_end(
+        self,
+        event_obj: object,
+        *,
+        agent: Any,
+        state: _TinyAgentStreamState,
+        request_context: RequestContext,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (agent, request_context, baseline_message_count)
 
-        if response_state.task_completed:
-            logger.lifecycle(f"Task completed at iteration {iteration_index}")
-            return True
+        msg = getattr(event_obj, "message", None)
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            state.last_assistant_message = cast(dict[str, Any], msg)
 
         return False
 
+    async def _handle_stream_tool_execution_start(
+        self,
+        event_obj: object,
+        *,
+        agent: Any,
+        state: _TinyAgentStreamState,
+        request_context: RequestContext,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (agent, request_context, baseline_message_count)
+
+        tool_call_id = cast(str, getattr(event_obj, "tool_call_id", ""))
+        tool_name = cast(str, getattr(event_obj, "tool_name", ""))
+        raw_args = getattr(event_obj, "args", None)
+
+        state.tool_start_times[tool_call_id] = time.perf_counter()
+        args = cast(dict[str, Any], raw_args or {})
+        state.runtime.tool_registry.register(tool_call_id, tool_name, args)
+        state.runtime.tool_registry.start(tool_call_id)
+
+        if self.tool_start_callback is not None:
+            self.tool_start_callback(tool_name)
+
+        return False
+
+    async def _handle_stream_tool_execution_end(
+        self,
+        event_obj: object,
+        *,
+        agent: Any,
+        state: _TinyAgentStreamState,
+        request_context: RequestContext,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (agent, request_context, baseline_message_count)
+
+        tool_call_id = cast(str, getattr(event_obj, "tool_call_id", ""))
+        tool_name = cast(str, getattr(event_obj, "tool_name", ""))
+        is_error = bool(getattr(event_obj, "is_error", False))
+        result = getattr(event_obj, "result", None)
+
+        duration_ms: float | None = None
+        start_time = state.tool_start_times.pop(tool_call_id, None)
+        if start_time is not None:
+            duration_ms = (time.perf_counter() - start_time) * MILLISECONDS_PER_SECOND
+
+        result_text = _extract_tool_result_text(result)
+
+        if is_error:
+            state.runtime.tool_registry.fail(tool_call_id, error=result_text)
+        else:
+            state.runtime.tool_registry.complete(tool_call_id, result=result_text)
+
+        if self.tool_result_callback is None:
+            return False
+
+        args = state.runtime.tool_registry.get_args(tool_call_id) or {}
+        status = "failed" if is_error else "completed"
+        self.tool_result_callback(
+            tool_name,
+            status,
+            cast(dict[str, Any], args),
+            result_text,
+            duration_ms,
+        )
+
+        return False
+
+    async def _handle_stream_agent_end(
+        self,
+        event_obj: object,
+        *,
+        agent: Any,
+        state: _TinyAgentStreamState,
+        request_context: RequestContext,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (event_obj, state, request_context)
+        self._persist_agent_messages(agent, baseline_message_count)
+        return True
+
+    async def _run_stream(
+        self,
+        *,
+        agent: Any,
+        request_context: RequestContext,
+        baseline_message_count: int,
+    ) -> Agent:
+        logger = get_logger()
+
+        runtime = self.state_manager.session.runtime
+        state = _TinyAgentStreamState(runtime=runtime, tool_start_times={})
+
+        handlers: dict[str, Callable[..., Awaitable[bool]]] = {
+            "turn_end": self._handle_stream_turn_end,
+            "message_update": self._handle_stream_message_update,
+            "message_end": self._handle_stream_message_end,
+            "tool_execution_start": self._handle_stream_tool_execution_start,
+            "tool_execution_end": self._handle_stream_tool_execution_end,
+            "agent_end": self._handle_stream_agent_end,
+        }
+
+        started_at = time.perf_counter()
+
+        async for event in agent.stream(self.message):
+            ev_type = getattr(event, "type", None)
+            if not isinstance(ev_type, str):
+                continue
+
+            handler = handlers.get(ev_type)
+            if handler is None:
+                continue
+
+            should_stop = await handler(
+                event,
+                agent=agent,
+                state=state,
+                request_context=request_context,
+                baseline_message_count=baseline_message_count,
+            )
+            if should_stop:
+                break
+
+        elapsed_ms = (time.perf_counter() - started_at) * MILLISECONDS_PER_SECOND
+        logger.lifecycle(f"Request complete ({elapsed_ms:.0f}ms)")
+
+        assistant_text = _extract_assistant_text(state.last_assistant_message)
+        is_empty = not assistant_text.strip()
+        self.empty_handler.track(is_empty)
+
+        if is_empty and self.empty_handler.should_intervene():
+            await self.empty_handler.prompt_action(
+                self.message,
+                "empty",
+                runtime.iteration_count or 1,
+            )
+
+        return agent
+
+    async def _handle_message_update(self, event: Any) -> None:
+        if not self.streaming_callback:
+            return
+
+        assistant_event = getattr(event, "assistant_message_event", None)
+        if not isinstance(assistant_event, dict):
+            return
+
+        if assistant_event.get("type") != "text_delta":
+            return
+
+        delta = assistant_event.get("delta")
+        if not isinstance(delta, str) or not delta:
+            return
+
+        # Streaming callback is a UI hook; keep it best-effort.
+        await self.streaming_callback(delta)
+
+        # Keep legacy debug accumulator for abort handling.
+        session = self.state_manager.session
+        session._debug_raw_stream_accum += delta
+
     def _handle_abort_cleanup(self, logger: Any) -> None:
-        """Clean up session state after abort or cancellation."""
         session = self.state_manager.session
         conversation = session.conversation
-        runtime = session.runtime
 
         partial_text = session._debug_raw_stream_accum
         if partial_text.strip():
-            from pydantic_ai.messages import ModelResponse, TextPart
-
             interrupted_text = f"[INTERRUPTED]\n\n{partial_text}"
-            partial_msg = ModelResponse(parts=[TextPart(content=interrupted_text)])
-            conversation.messages.append(partial_msg)
-
-        remove_dangling_tool_calls(conversation.messages, runtime.tool_registry)
-        remove_empty_responses(conversation.messages)
-        remove_consecutive_requests(conversation.messages)
+            conversation.messages.append(
+                {
+                    "role": "assistant",
+                    "stop_reason": "aborted",
+                    "content": [{"type": "text", "text": interrupted_text}],
+                    "timestamp": int(time.time() * 1000),
+                }
+            )
 
         invalidated = ac.invalidate_agent_cache(self.model, self.state_manager)
         if invalidated:
             logger.lifecycle("Agent cache invalidated after abort")
 
 
-def get_agent_tool() -> tuple[type[Agent], type[Tool]]:
-    """Return Agent and Tool classes without importing at module load time."""
-    from pydantic_ai import Agent as AgentCls
-    from pydantic_ai import Tool as ToolCls
+def get_agent_tool() -> tuple[type[Any], type[Any]]:
+    """Return the (Agent, AgentTool) classes."""
+
+    from tinyagent import Agent as AgentCls
+    from tinyagent.agent_types import AgentTool as ToolCls
 
     return AgentCls, ToolCls
-
-
-async def check_query_satisfaction(
-    agent: Agent,
-    original_query: str,
-    response: str,
-    state_manager: StateManagerProtocol,
-) -> bool:
-    """Legacy hook for compatibility; completion still signaled via DONE marker."""
-    return True
 
 
 async def process_request(
@@ -376,7 +545,7 @@ async def process_request(
     tool_result_callback: ToolResultCallback | None = None,
     tool_start_callback: ToolStartCallback | None = None,
     notice_callback: NoticeCallback | None = None,
-) -> AgentRun:
+) -> Agent:
     orchestrator = RequestOrchestrator(
         message,
         model,

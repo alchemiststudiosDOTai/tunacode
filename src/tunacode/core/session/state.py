@@ -154,58 +154,49 @@ class StateManager:
         storage_dir = get_session_storage_dir()
         return storage_dir / f"{self._session.project_id}_{self._session.session_id}.json"
 
-    def _serialize_messages(self) -> list[dict]:
-        """Serialize mixed message list to JSON-compatible dicts."""
-        msg_adapter: Any | None = None
-        try:
-            from pydantic import TypeAdapter
-            from pydantic_ai.messages import ModelMessage
+    def _serialize_messages(self) -> list[dict[str, Any]]:
+        """Serialize session message history.
 
-            msg_adapter = TypeAdapter(ModelMessage)
-        except ImportError:
-            msg_adapter = None
+        TunaCode persists history as tinyagent-style dict messages.
+        Any non-dict message indicates a bug in the tinyagent migration and is
+        rejected (hard break; no legacy pydantic-ai message support).
+        """
 
-        serialized_messages: list[dict] = []
-        for msg in self._session.conversation.messages:
-            if isinstance(msg, dict):
-                serialized_messages.append(msg)
-                continue
-
-            if msg_adapter is None:
+        serialized_messages: list[dict[str, Any]] = []
+        for idx, msg in enumerate(self._session.conversation.messages):
+            if not isinstance(msg, dict):
                 message_type = type(msg).__name__
                 raise TypeError(
-                    f"Cannot serialize non-dict message without pydantic adapter: {message_type}"
+                    f"Session messages must be tinyagent dicts; found {message_type} at index {idx}"
                 )
 
-            serialized_message = msg_adapter.dump_python(msg, mode="json")
-            serialized_messages.append(serialized_message)
+            serialized_messages.append(msg)
+
         return serialized_messages
 
-    def _deserialize_messages(self, data: list[dict]) -> list:
-        """Deserialize JSON dicts back to message objects."""
-        msg_adapter: Any | None = None
-        try:
-            from pydantic import TypeAdapter
-            from pydantic_ai.messages import ModelMessage
+    def _deserialize_messages(self, data: Any) -> list[dict[str, Any]]:
+        """Deserialize JSON session messages.
 
-            msg_adapter = TypeAdapter(ModelMessage)
-        except ImportError:
-            return data
+        We expect a list of tinyagent-style dict messages.
+        """
 
-        result = []
-        for item in data:
+        if data is None:
+            return []
+
+        if not isinstance(data, list):
+            raise TypeError(f"Session 'messages' must be a list, got {type(data).__name__}")
+
+        messages: list[dict[str, Any]] = []
+        for idx, item in enumerate(data):
             if not isinstance(item, dict):
-                result.append(item)
-                continue
+                raise TypeError(
+                    "Session messages must be tinyagent dicts; "
+                    f"found {type(item).__name__} at index {idx}"
+                )
 
-            if item.get("kind") in ("request", "response"):
-                try:
-                    result.append(msg_adapter.validate_python(item))
-                except Exception:
-                    result.append(item)
-            else:
-                result.append(item)
-        return result
+            messages.append(item)
+
+        return messages
 
     def _split_thought_messages(self, messages: list[Any]) -> tuple[list[str], list[Any]]:
         """Separate thought entries from message history."""

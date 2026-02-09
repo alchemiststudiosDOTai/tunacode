@@ -63,7 +63,6 @@ from tunacode.types.canonical import (
     CanonicalPart,
     CanonicalToolCall,
     MessageRole,
-    NormalizedUsage,
     PartKind,
     RecursiveContext,
     RetryPromptPart,
@@ -72,7 +71,6 @@ from tunacode.types.canonical import (
     ThoughtPart,
     ToolCallStatus,
     UsageMetrics,
-    normalize_request_usage,
 )
 from tunacode.types.canonical import (
     ToolCallPart as CanonicalToolCallPart,
@@ -149,7 +147,6 @@ __all__ = [
     "CanonicalToolCallPart",
     "CanonicalToolReturnPart",
     "MessageRole",
-    "NormalizedUsage",
     "PartKind",
     "RecursiveContext",
     "RetryPromptPart",
@@ -158,5 +155,4 @@ __all__ = [
     "ThoughtPart",
     "ToolCallStatus",
     "UsageMetrics",
-    "normalize_request_usage",
 ]

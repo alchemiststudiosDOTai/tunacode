@@ -12,6 +12,11 @@ from textual.screen import Screen
 from textual.widgets import OptionList, Static
 from textual.widgets.option_list import Option
 
+PREVIEW_MESSAGE_LIMIT: int = 3
+PREVIEW_MAX_CHARS: int = 60
+PREVIEW_ELLIPSIS: str = "..."
+PREVIEW_TRUNCATE_CHARS: int = PREVIEW_MAX_CHARS - len(PREVIEW_ELLIPSIS)
+
 
 class SessionPickerScreen(Screen[str | None]):
     """Modal screen for session selection with message preview."""
@@ -129,47 +134,36 @@ class SessionPickerScreen(Screen[str | None]):
         previews: list[str] = []
 
         for msg in messages:
-            if len(previews) >= 3:
+            if len(previews) >= PREVIEW_MESSAGE_LIMIT:
                 break
 
             if not isinstance(msg, dict):
                 continue
 
-            # Only show request messages
-            if msg.get("kind") != "request":
-                continue
-
-            # Extract user-prompt parts only (skip system-prompt)
             content = self._extract_user_content(msg)
             if not content:
                 continue
 
-            # Truncate long messages
-            if len(content) > 60:
-                content = content[:57] + "..."
-            previews.append(f"> {content}")
+            preview = content
+            if len(preview) > PREVIEW_MAX_CHARS:
+                preview = preview[:PREVIEW_TRUNCATE_CHARS] + PREVIEW_ELLIPSIS
+
+            previews.append(f"> {preview}")
 
         if not previews:
             return "No messages to preview"
 
         return "\n".join(previews)
 
-    def _extract_user_content(self, msg: dict) -> str:
-        """Extract only user-prompt content from a message."""
-        parts = msg.get("parts", [])
-        user_parts: list[str] = []
+    def _extract_user_content(self, msg: dict[str, Any]) -> str:
+        """Extract user prompt content from a stored tinyagent message."""
 
-        for part in parts:
-            if not isinstance(part, dict):
-                continue
-            # Only include user-prompt parts, skip system-prompt
-            if part.get("part_kind") != "user-prompt":
-                continue
-            content = part.get("content", "")
-            if content:
-                user_parts.append(str(content))
+        if msg.get("role") != "user":
+            return ""
 
-        return " ".join(user_parts)
+        from tunacode.core.ui_api.messaging import get_content
+
+        return get_content(msg)
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         """Confirm selection and dismiss with session ID."""

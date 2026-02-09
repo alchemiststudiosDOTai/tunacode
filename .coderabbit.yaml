@@ -58,7 +58,7 @@ reviews:
            - Pattern: `_remove_dangling_tool_calls()` should be called on abort
 
         2. FROZEN DATACLASS MUTATION (PR #279):
-           - pydantic-ai messages are frozen dataclasses
+           - Canonical messages are frozen dataclasses
            - NEVER use `setattr()` on message objects
            - MUST use `dataclasses.replace()` to create new instances
            - Look for: `setattr(message, ...)` or `message.field = ...`
@@ -80,8 +80,8 @@ reviews:
         Session resume is fragile. PRs #272, #275 fixed hangs and data loss here.
 
         Verify:
-        1. History sanitization handles ALL message formats (dict and pydantic objects)
-        2. System prompts are stripped (pydantic-ai injects them automatically)
+        1. History sanitization handles ALL message formats (dicts)
+        2. System prompts are stripped correctly
         3. Consecutive user requests are detected and handled
         4. Empty responses are removed
         5. Tool call/return invariant is maintained
@@ -221,26 +221,6 @@ reviews:
 
           Flag if: `except (UserAbortError, CancelledError)` exists without
           corresponding cleanup like `_remove_dangling_tool_calls()` or state rollback.
-
-      - name: "NoSetAttrOnPydantic"
-        mode: "error"
-        instructions: |
-          pydantic-ai message objects are frozen dataclasses.
-          Using setattr() on them silently fails (PR #279).
-
-          BAD:
-          ```python
-          setattr(message, "parts", new_parts)
-          message.parts = new_parts  # Also fails silently on frozen
-          ```
-
-          GOOD:
-          ```python
-          from dataclasses import replace
-          new_message = replace(message, parts=new_parts)
-          ```
-
-          Flag any setattr() call on objects that could be pydantic messages.
 
       - name: "DependencyDirection"
         mode: "warning"

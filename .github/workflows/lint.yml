@@ -19,32 +19,6 @@ jobs:
       - name: Run pre-commit
         run: uv run pre-commit run --all-files
 
-  pydantic-usage-guard:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v4
-      - name: Install dependencies
-        run: uv sync --extra dev --frozen
-      - name: Verify pydantic baseline is fresh
-        run: |
-          # Regenerate baseline and check if it matches committed version (ignoring timestamp)
-          uv run python scripts/pydantic_usage_report.py --format json --output /tmp/fresh_baseline.json
-          # Remove generated_at field for comparison (timestamps will always differ)
-          jq 'del(.generated_at)' scripts/pydantic_usage_baseline.json > /tmp/committed.json
-          jq 'del(.generated_at)' /tmp/fresh_baseline.json > /tmp/fresh.json
-          if ! diff -q /tmp/committed.json /tmp/fresh.json > /dev/null 2>&1; then
-            echo "ERROR: pydantic_usage_baseline.json is stale!"
-            echo "Run pre-commit or: uv run python scripts/pydantic_usage_report.py --format json --output scripts/pydantic_usage_baseline.json"
-            echo ""
-            echo "Diff:"
-            diff /tmp/committed.json /tmp/fresh.json || true
-            exit 1
-          fi
-          echo "Baseline is up-to-date"
 
   deptry:
     runs-on: ubuntu-latest

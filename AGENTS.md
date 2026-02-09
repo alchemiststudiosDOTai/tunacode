@@ -101,3 +101,7 @@ See `.claude/debug_history/continuous-learning.md` for bug/pattern/lesson entrie
 ---
 
 We are currently in the middle of a large rewrite few test exist and documentation and that is okay. We will build the test and documentation as we go
+
+The agent loop is https://github.com/alchemiststudios.ai/tinyAgent
+
+pydantic-ai has been fully removed. tinyagent is the sole agent loop. pydantic (the validation library) remains. Do NOT reintroduce pydantic-ai.

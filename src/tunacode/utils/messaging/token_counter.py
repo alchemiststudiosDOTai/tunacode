@@ -1,8 +1,20 @@
-"""Token counting utility using a lightweight heuristic."""
+"""Token counting utility using a lightweight heuristic.
+
+Phase 6+ note:
+TunaCode stores history as tinyagent-style dict messages.
+This module intentionally supports only:
+- tinyagent dict messages
+- :class:`~tunacode.types.canonical.CanonicalMessage`
+
+Legacy pydantic-ai message objects are not supported.
+"""
 
 from __future__ import annotations
 
 from typing import Any
+
+from tunacode.types.canonical import CanonicalMessage, ToolCallPart
+from tunacode.utils.messaging.adapter import to_canonical
 
 CHARS_PER_TOKEN: int = 4
 
@@ -15,36 +27,33 @@ def estimate_tokens(text: str) -> int:
 
 
 def estimate_message_tokens(message: Any) -> int:
-    """Estimate token count for a single message."""
-    total_length = 0
+    """Estimate token count for a single message.
 
-    # Note: This defensive handling of mixed message types is temporary.
-    # Once pydantic-ai is fully removed and messages use a single format,
-    # this can be simplified to work with the canonical type directly.
-    parts = getattr(message, "parts", None)
-    if parts:
-        for part in parts:
-            if isinstance(part, dict):
-                content = part.get("content")
-            else:
-                content = getattr(part, "content", None)
-            if content:
-                total_length += len(str(content))
-        return total_length // CHARS_PER_TOKEN
+    This uses a rough chars-per-token heuristic. It is intended for UI
+    budgeting and compaction heuristics, not billing-accurate accounting.
+    """
 
-    if isinstance(message, dict):
-        content = message.get("content")
-    else:
-        content = getattr(message, "content", None)
+    canonical = message if isinstance(message, CanonicalMessage) else to_canonical(message)
 
-    if content:
-        return len(str(content)) // CHARS_PER_TOKEN
+    total_chars = 0
+    for part in canonical.parts:
+        if isinstance(part, ToolCallPart):
+            total_chars += len(part.tool_call_id) + len(part.tool_name) + len(str(part.args))
+            continue
 
-    return 0
+        content_value = getattr(part, "content", None)
+        if content_value is None:
+            continue
+
+        content_text = content_value if isinstance(content_value, str) else str(content_value)
+        total_chars += len(content_text)
+
+    return total_chars // CHARS_PER_TOKEN
 
 
 def estimate_messages_tokens(messages: list[Any]) -> int:
     """Estimate total token count for a list of messages."""
+
     total = 0
     for message in messages:
         total += estimate_message_tokens(message)

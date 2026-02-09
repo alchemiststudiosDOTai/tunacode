@@ -5,11 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from tinyagent.agent_types import AgentMessage
+
 from tunacode.types.canonical import UsageMetrics
 
-from tunacode.infrastructure.llm_types import MessageHistory
-
 from tunacode.core.types.tool_registry import ToolCallRegistry
+
+MessageHistory = list[AgentMessage]
 
 DEFAULT_BATCH_COUNTER = 0
 DEFAULT_CONSECUTIVE_EMPTY_RESPONSES = 0

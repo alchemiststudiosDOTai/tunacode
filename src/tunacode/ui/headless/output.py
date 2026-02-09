@@ -1,12 +1,14 @@
 """Output extraction for headless mode."""
 
-from typing import Any
+from __future__ import annotations
 
-from pydantic_ai.messages import ModelResponse
+from typing import Any
 
 from tunacode.core.ui_api.messaging import get_content
 
 TEXT_ATTRIBUTES: tuple[str, ...] = ("output", "text", "content", "message")
+
+ROLE_ASSISTANT: str = "assistant"
 
 
 def _normalize(value: str | None) -> str | None:
@@ -41,10 +43,17 @@ def _extract_from_result(agent_run: object) -> str | None:
     return _extract_from_attributes(result)
 
 
+def _is_assistant_message(message: Any) -> bool:
+    if not isinstance(message, dict):
+        return False
+
+    return message.get("role") == ROLE_ASSISTANT
+
+
 def _extract_from_messages(messages: list[Any]) -> str | None:
-    """Extract text from the latest ModelResponse in messages."""
+    """Extract text from the latest assistant message in messages."""
     for message in reversed(messages):
-        if not isinstance(message, ModelResponse):
+        if not _is_assistant_message(message):
             continue
 
         content = get_content(message)
@@ -60,7 +69,7 @@ def resolve_output(agent_run: object, messages: list[Any]) -> str | None:
 
     Priority:
     1. agent_run.result (direct result)
-    2. Latest ModelResponse content (fallback)
+    2. Latest assistant message content (fallback)
 
     Returns:
         Extracted text or None if no output found.

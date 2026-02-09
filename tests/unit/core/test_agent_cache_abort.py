@@ -9,7 +9,7 @@ Fix: Invalidate agent cache (both global and session-level) on abort.
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic_ai import Agent
+from tinyagent import Agent
 
 from tunacode.infrastructure.cache.caches.agents import clear_agents, get_agent, set_agent
 
@@ -45,7 +45,7 @@ def test_abort_should_invalidate_agent_cache(clean_caches, mock_state_manager):
     """After abort, caches should be cleared to force a fresh HTTP client."""
 
     model = "test:model"
-    agent = Agent(model=None, defer_model_check=True)
+    agent = Agent()
     version = 12345
 
     # Populate both caches (simulating normal agent creation).

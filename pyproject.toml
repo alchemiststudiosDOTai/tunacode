@@ -28,8 +28,7 @@ dependencies = [
     "typer>=0.15.0",
     "click>=8.1.0,<8.2.0",
     "prompt_toolkit>=3.0.52,<4.0.0",
-    "pydantic>=2.12.4,<3.0.0",
-    "pydantic-ai>=1.18.0,<2.0.0",
+    "tinyagent",
     "pygments>=2.19.2,<3.0.0",
     "rich>=14.2.0,<15.0.0",
     "defusedxml",
@@ -41,7 +40,6 @@ dependencies = [
     "ruff>=0.14.0",
     # Transitive dependencies that are directly imported
     "httpx>=0.27.0",
-    "tenacity>=8.0.0",
 ]
 
 [project.scripts]
@@ -87,6 +85,10 @@ Homepage = "https://tunacode.xyz/"
 Repository = "https://github.com/alchemiststudiosDOTai/tunacode"
 Issues = "https://github.com/alchemiststudiosDOTai/tunacode/issues"
 Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
+
+[tool.uv.sources]
+# Phase 1 (tun-00df): install tinyagent from repo-local path until PyPI v2.5 is available.
+tinyagent = { path = "tinyAgent", editable = true }
 
 [tool.ruff]
 line-length = 100

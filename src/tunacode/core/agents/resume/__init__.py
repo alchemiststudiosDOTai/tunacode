@@ -1,44 +1,30 @@
-"""Session resume module.
+"""Session resume helpers (tinyagent-only).
 
-Provides utilities for sanitizing, pruning, and managing message history
-when resuming conversations after abort or session restart.
+This package contains utilities for cleaning up conversation history between runs.
 
-Public API:
-- sanitize_history: Clean message history for resume
-- run_cleanup_loop: Iterative cleanup until stable
-- prune_old_tool_outputs: Remove old tool output content
-- filter_compacted: Truncate history at summary checkpoint
-- should_compact: Check if summary generation needed
-- generate_summary: Create rolling summary
+TunaCode persists history as tinyagent-style dict messages:
+
+    {"role": "user|assistant|tool_result", "content": [...]}.
+
+Legacy pydantic-ai message formats are intentionally not supported.
 """
 
-from tunacode.core.agents.resume.filter import filter_compacted, prepare_history
-from tunacode.core.agents.resume.prune import prune_old_tool_outputs
 from tunacode.core.agents.resume.sanitize import (
+    find_dangling_tool_call_ids,
+    remove_consecutive_requests,
+    remove_dangling_tool_calls,
+    remove_empty_responses,
     run_cleanup_loop,
     sanitize_history_for_resume,
 )
 from tunacode.core.agents.resume.sanitize_debug import log_message_history_debug
-from tunacode.core.agents.resume.summary import (
-    SummaryMessage,
-    generate_summary,
-    is_summary_message,
-    should_compact,
-)
 
 __all__ = [
-    # Sanitization
     "sanitize_history_for_resume",
     "run_cleanup_loop",
+    "remove_dangling_tool_calls",
+    "remove_empty_responses",
+    "remove_consecutive_requests",
+    "find_dangling_tool_call_ids",
     "log_message_history_debug",
-    # Pruning
-    "prune_old_tool_outputs",
-    # Filtering
-    "filter_compacted",
-    "prepare_history",
-    # Summary
-    "SummaryMessage",
-    "generate_summary",
-    "is_summary_message",
-    "should_compact",
 ]
