@@ -180,6 +180,7 @@ class ModelCommand(Command):
             get_model_context_window,
             load_models_registry,
         )
+        from tunacode.configuration.user_config import track_recent_model
         from tunacode.core.ui_api.user_configuration import load_config_with_defaults, save_config
 
         state_manager = app.state_manager
@@ -202,6 +203,7 @@ class ModelCommand(Command):
 
             session.current_model = model_name
             session.user_config["default_model"] = model_name
+            track_recent_model(model_name, state_manager)
             session.conversation.max_tokens = get_model_context_window(model_name)
             save_config(state_manager)
             invalidate_agent_cache(model_name, state_manager)
@@ -229,16 +231,21 @@ class ModelCommand(Command):
 
                 session.current_model = full_model
                 session.user_config["default_model"] = full_model
+                track_recent_model(full_model, state_manager)
                 session.conversation.max_tokens = get_model_context_window(full_model)
                 save_config(state_manager)
                 invalidate_agent_cache(full_model, state_manager)
                 app._update_resource_bar()
                 app.notify(f"Model: {full_model}")
 
+            recent_models: list[str] = list(
+                session.user_config.get("recent_models") or []
+            )
+
             def on_provider_selected(provider_id: str | None) -> None:
                 if provider_id is not None:
                     app.push_screen(
-                        ModelPickerScreen(provider_id, current_model),
+                        ModelPickerScreen(provider_id, current_model, recent_models),
                         on_model_selected,
                     )
 

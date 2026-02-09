@@ -90,6 +90,22 @@ def save_config(state_manager: UserConfigStateManager) -> None:
         raise ConfigurationError(f"Unexpected error saving configuration: {e}") from e
 
 
+_MAX_RECENT_MODELS = 10
+
+
+def track_recent_model(model_name: ModelName, state_manager: UserConfigStateManager) -> None:
+    """Record *model_name* as the most-recently-used model.
+
+    Keeps at most ``_MAX_RECENT_MODELS`` entries, with the newest first.
+    Duplicates are moved to the front rather than added again.
+    """
+    recent: list[str] = list(state_manager.session.user_config.get("recent_models") or [])
+    if model_name in recent:
+        recent.remove(model_name)
+    recent.insert(0, model_name)
+    state_manager.session.user_config["recent_models"] = recent[:_MAX_RECENT_MODELS]
+
+
 def set_default_model(model_name: ModelName, state_manager: UserConfigStateManager) -> None:
     """Set the default model in the user config and save."""
     state_manager.session.user_config["default_model"] = model_name

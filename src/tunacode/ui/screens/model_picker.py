@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
 from textual import events
+
+if TYPE_CHECKING:
+    from tunacode.types import ModelPricing
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.screen import Screen
@@ -212,13 +218,19 @@ class ModelPickerScreen(Screen[str | None]):
         ("escape", "cancel", "Cancel"),
     ]
 
-    def __init__(self, provider_id: str, current_model: str) -> None:
+    def __init__(
+        self,
+        provider_id: str,
+        current_model: str,
+        recent_models: list[str] | None = None,
+    ) -> None:
         super().__init__()
         self._provider_id = provider_id
         self._current_model = current_model
         current_model_id = current_model.split(":", 1)[1] if ":" in current_model else ""
         self._current_model_id = current_model_id
         self._all_models: list[tuple[str, str]] = []
+        self._recent_models: list[str] = recent_models or []
         self._filter_query: str = ""
 
     def compose(self) -> ComposeResult:
@@ -231,8 +243,32 @@ class ModelPickerScreen(Screen[str | None]):
 
         self.call_after_refresh(self._rebuild_options)
 
+    def _make_model_option(
+        self,
+        model_id: str,
+        get_model_pricing: Callable[[str], "ModelPricing | None"],
+        format_pricing_display: Callable[["ModelPricing"], str],
+    ) -> Option:
+        """Build an ``Option`` with display name and pricing for *model_id*."""
+        full_model = f"{self._provider_id}:{model_id}"
+        pricing = get_model_pricing(full_model)
+        display_name = model_id
+        for dname, mid in self._all_models:
+            if mid == model_id:
+                display_name = dname
+                break
+        if pricing is not None:
+            label = f"{display_name}  {format_pricing_display(pricing)}"
+        else:
+            label = display_name
+        return Option(label, id=model_id)
+
     def _rebuild_options(self) -> None:
-        """Rebuild OptionList with filtered items and pricing."""
+        """Rebuild OptionList with filtered items and pricing.
+
+        When no filter query is active, recently-used models for this
+        provider are shown in a ``Recent`` section at the top of the list.
+        """
         from tunacode.core.ui_api.configuration import format_pricing_display, get_model_pricing
 
         option_list = self.query_one("#model-list", OptionList)
@@ -245,19 +281,38 @@ class ModelPickerScreen(Screen[str | None]):
             MODEL_PICKER_UNFILTERED_LIMIT,
         )
 
+        # --- Recent models section (only when not filtering) ---
+        provider_prefix = f"{self._provider_id}:"
+        all_model_ids: set[str] = {mid for _, mid in self._all_models}
+        recent_ids: list[str] = []
+        if not filter_query.strip():
+            for full in self._recent_models:
+                if full.startswith(provider_prefix):
+                    model_id = full[len(provider_prefix):]
+                    # Validate against the full model set, not the truncated view
+                    if model_id in all_model_ids:
+                        recent_ids.append(model_id)
+
+        recent_id_set: set[str] = set(recent_ids)
+
+        if recent_ids:
+            option_list.add_option(Option("── Recent ──", disabled=True))
+            for model_id in recent_ids:
+                option_list.add_option(self._make_model_option(model_id, get_model_pricing, format_pricing_display))
+            option_list.add_option(Option("── All Models ──", disabled=True))
+
         highlight_index = _choose_highlight_index(visible_models, self._current_model_id)
 
-        for display_name, model_id in visible_models:
-            full_model = f"{self._provider_id}:{model_id}"
-            pricing = get_model_pricing(full_model)
-            if pricing is not None:
-                label = f"{display_name}  {format_pricing_display(pricing)}"
-            else:
-                label = display_name
+        for _display_name, model_id in visible_models:
+            if model_id in recent_id_set:
+                continue
+            option_list.add_option(self._make_model_option(model_id, get_model_pricing, format_pricing_display))
 
-            option_list.add_option(Option(label, id=model_id))
-
-        if highlight_index is not None:
+        # Highlight: first recent model if present, otherwise the current model
+        RECENT_HEADER_COUNT = 1  # "── Recent ──" header
+        if recent_ids:
+            option_list.highlighted = RECENT_HEADER_COUNT  # first recent model
+        elif highlight_index is not None:
             option_list.highlighted = highlight_index
 
         if is_truncated:

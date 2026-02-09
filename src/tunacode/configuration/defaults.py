@@ -10,6 +10,7 @@ from tunacode.types import UserConfig
 
 DEFAULT_USER_CONFIG: UserConfig = {
     "default_model": "openrouter:openai/gpt-4.1",
+    "recent_models": [],
     "env": {
         "ANTHROPIC_API_KEY": "",
         "GEMINI_API_KEY": "",
