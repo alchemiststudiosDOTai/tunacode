@@ -15,7 +15,6 @@ from typing import Any, cast
 
 from tinyagent import Agent, AgentOptions
 from tinyagent.agent_types import AgentTool, Model, ThinkingLevel
-from tinyagent.openrouter_provider import stream_openrouter
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -41,6 +40,13 @@ from tunacode.infrastructure.cache.caches import tunacode_context as context_cac
 
 from tunacode.core.logging import get_logger
 from tunacode.core.tinyagent import ensure_tinyagent_importable
+
+# NOTE: Temporary shim.
+# tinyagent's OpenRouter provider currently does not attach token usage to the final
+# assistant message when streaming. TunaCode needs completion_tokens to render t/s.
+# We wrap the provider to capture SSE `usage` and attach it to message["usage"].
+# Remove once tinyagent fixes this upstream.
+from tunacode.core.tinyagent.openrouter_usage import stream_openrouter_with_usage
 from tunacode.core.types import SessionStateProtocol, StateManagerProtocol
 
 
@@ -208,7 +214,7 @@ def _build_stream_fn(
         if max_tokens is not None:
             options = {**options, "max_tokens": max_tokens}
 
-        return await stream_openrouter(model, context, options)
+        return await stream_openrouter_with_usage(model, context, options)
 
     return _stream
 
