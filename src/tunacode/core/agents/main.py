@@ -118,10 +118,11 @@ def _is_context_overflow_error(error_text: str) -> bool:
 def _parse_openrouter_usage(raw_usage: object) -> UsageMetrics | None:
     """Parse OpenRouter streaming usage dict into canonical UsageMetrics.
 
-    This is intentionally permissive because upstream providers vary:
-    - snake_case: prompt_tokens / completion_tokens
-    - camelCase: promptTokens / completionTokens
-    - cached tokens often live under prompt_tokens_details.cached_tokens
+    Accepts both raw OpenRouter SSE payloads and tinyagent's normalized
+    ``_build_usage_dict`` format:
+
+    Raw keys:     prompt_tokens, completion_tokens, prompt_tokens_details.cached_tokens
+    Normalized:   prompt_tokens (alias), completion_tokens (alias), cacheRead
 
     If everything is zero/missing, returns None.
     """
@@ -134,10 +135,13 @@ def _parse_openrouter_usage(raw_usage: object) -> UsageMetrics | None:
         raw_usage.get("completion_tokens") or raw_usage.get("completionTokens")
     )
 
-    cached_tokens = 0
-    details = raw_usage.get("prompt_tokens_details") or raw_usage.get("promptTokensDetails")
-    if isinstance(details, dict):
-        cached_tokens = _coerce_int(details.get("cached_tokens") or details.get("cachedTokens"))
+    # Normalized format: cacheRead at top level.
+    # Raw format: prompt_tokens_details.cached_tokens nested.
+    cached_tokens = _coerce_int(raw_usage.get("cacheRead"))
+    if cached_tokens == 0:
+        details = raw_usage.get("prompt_tokens_details") or raw_usage.get("promptTokensDetails")
+        if isinstance(details, dict):
+            cached_tokens = _coerce_int(details.get("cached_tokens") or details.get("cachedTokens"))
 
     cost = _coerce_float(raw_usage.get("cost") or raw_usage.get("total_cost"))
 

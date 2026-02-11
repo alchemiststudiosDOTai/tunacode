@@ -7,7 +7,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from tinyagent.agent_types import AgentMessage, Context, Model, SimpleStreamOptions, ThinkingLevel
+from tinyagent import OpenRouterModel, stream_openrouter
+from tinyagent.agent_types import AgentMessage, Context, SimpleStreamOptions, ThinkingLevel
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -15,6 +16,7 @@ from tunacode.configuration.models import (
     load_models_registry,
     parse_model_string,
 )
+from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.utils.messaging import estimate_messages_tokens, estimate_tokens, get_content
 
 from tunacode.core.compaction.summarizer import ContextSummarizer
@@ -36,7 +38,6 @@ from tunacode.core.compaction.types import (
     CompactionRecord,
 )
 from tunacode.core.logging import get_logger
-from tunacode.core.tinyagent.openrouter_usage import stream_openrouter_with_usage
 from tunacode.core.types import StateManagerProtocol
 
 DEFAULT_KEEP_RECENT_TOKENS = 20_000
@@ -343,7 +344,7 @@ class CompactionController:
             "max_tokens": get_max_tokens(),
         }
 
-        response = await stream_openrouter_with_usage(model, context, options)
+        response = await stream_openrouter(model, context, options)
         final_message = await response.result()
 
         summary = get_content(final_message).strip()
@@ -352,19 +353,31 @@ class CompactionController:
 
         return summary
 
-    def _build_model(self) -> Model:
+    def _build_model(self) -> OpenRouterModel:
         model_name = self._state_manager.session.current_model
         provider_id, model_id = parse_model_string(model_name)
 
         if provider_id != OPENROUTER_PROVIDER_ID:
             raise UnsupportedCompactionProviderError(model_name)
 
-        return Model(
+        base_url = self._resolve_base_url()
+
+        return OpenRouterModel(
             provider=provider_id,
             id=model_id,
-            api=OPENROUTER_API_NAME,
             thinking_level=ThinkingLevel.OFF,
+            **({"base_url": base_url} if base_url else {}),
         )
+
+    def _resolve_base_url(self) -> str | None:
+        """Return OPENAI_BASE_URL from session config, or None if unset."""
+
+        env = self._state_manager.session.user_config.get("env", {})
+        raw = env.get(ENV_OPENAI_BASE_URL)
+        if not isinstance(raw, str):
+            return None
+        stripped = raw.strip()
+        return stripped if stripped else None
 
     def _resolve_api_key(self, provider_id: str) -> str:
         load_models_registry()

@@ -13,8 +13,8 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, cast
 
-from tinyagent import Agent, AgentOptions
-from tinyagent.agent_types import AgentMessage, AgentTool, Model, ThinkingLevel
+from tinyagent import Agent, AgentOptions, OpenRouterModel, stream_openrouter
+from tinyagent.agent_types import AgentMessage, AgentTool, ThinkingLevel
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -23,6 +23,7 @@ from tunacode.configuration.models import (
     parse_model_string,
 )
 from tunacode.configuration.user_config import load_config
+from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.types import ModelName
 
 from tunacode.tools.bash import bash
@@ -41,13 +42,6 @@ from tunacode.infrastructure.cache.caches import tunacode_context as context_cac
 from tunacode.core.compaction.controller import get_or_create_compaction_controller
 from tunacode.core.logging import get_logger
 from tunacode.core.tinyagent import ensure_tinyagent_importable
-
-# NOTE: Temporary shim.
-# tinyagent's OpenRouter provider currently does not attach token usage to the final
-# assistant message when streaming. TunaCode needs completion_tokens to render t/s.
-# We wrap the provider to capture SSE `usage` and attach it to message["usage"].
-# Remove once tinyagent fixes this upstream.
-from tunacode.core.tinyagent.openrouter_usage import stream_openrouter_with_usage
 from tunacode.core.types import SessionStateProtocol, StateManagerProtocol
 
 
@@ -187,6 +181,17 @@ def _build_tools() -> list[AgentTool]:
     ]
 
 
+def _resolve_base_url(session: SessionStateProtocol) -> str | None:
+    """Return OPENAI_BASE_URL from session config, or None if unset."""
+
+    env = session.user_config.get("env", {})
+    raw = env.get(ENV_OPENAI_BASE_URL)
+    if not isinstance(raw, str):
+        return None
+    stripped = raw.strip()
+    return stripped if stripped else None
+
+
 def _build_api_key_resolver(session: SessionStateProtocol) -> Callable[[str], str | None]:
     env = session.user_config.get("env", {})
 
@@ -215,7 +220,7 @@ def _build_stream_fn(
         if max_tokens is not None:
             options = {**options, "max_tokens": max_tokens}
 
-        return await stream_openrouter_with_usage(model, context, options)
+        return await stream_openrouter(model, context, options)
 
     return _stream
 
@@ -240,11 +245,15 @@ def _build_transform_context(
     return _transform_context
 
 
-def _build_tinyagent_model(model: ModelName) -> Model:
-    """Convert a TunaCode ModelName into a tinyagent Model.
+def _build_tinyagent_model(
+    model: ModelName,
+    session: SessionStateProtocol,
+) -> OpenRouterModel:
+    """Convert a TunaCode ModelName into a tinyagent OpenRouterModel.
 
-    Locked decision for this migration stage:
-        - only ``openrouter:...`` models are supported.
+    Reads ``OPENAI_BASE_URL`` from session config to allow pointing at any
+    OpenAI-compatible endpoint (e.g. a local proxy or alternative provider).
+    Falls back to the OpenRouter default when unset.
     """
 
     provider_id, model_id = parse_model_string(model)
@@ -254,11 +263,13 @@ def _build_tinyagent_model(model: ModelName) -> Model:
             f"Only 'openrouter:' models are supported in tinyagent mode. Got: {model!r}"
         )
 
-    return Model(
+    base_url = _resolve_base_url(session)
+
+    return OpenRouterModel(
         provider=provider_id,
         id=model_id,
-        api="openrouter",
         thinking_level=ThinkingLevel.OFF,
+        **({"base_url": base_url} if base_url else {}),
     )
 
 
@@ -313,7 +324,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
 
     agent = Agent(opts)
     agent.set_system_prompt(system_prompt)
-    agent.set_model(_build_tinyagent_model(model))
+    agent.set_model(_build_tinyagent_model(model, session))
     agent.set_tools(tools_list)
 
     agents_cache.set_agent(model, agent=agent, version=agent_version)
