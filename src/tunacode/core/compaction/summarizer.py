@@ -147,12 +147,23 @@ class ContextSummarizer:
         messages: list[AgentMessage],
         keep_recent_tokens: int,
     ) -> int | None:
+        """Find the oldest retained index using an inclusive token-floor policy.
+
+        Policy contract: retaining exactly ``keep_recent_tokens`` is sufficient.
+        The search stops when the retained suffix reaches ``>= keep_recent_tokens``.
+        """
+
         accumulated_tokens = 0
         for index in range(len(messages) - 1, -1, -1):
-            accumulated_tokens += estimate_message_tokens(messages[index])
-            if accumulated_tokens < keep_recent_tokens:
+            message_tokens = estimate_message_tokens(messages[index])
+            accumulated_tokens += message_tokens
+
+            has_reached_retention_floor = accumulated_tokens >= keep_recent_tokens
+            if not has_reached_retention_floor:
                 continue
+
             return index
+
         return None
 
     def _snap_to_valid_boundary(self, messages: list[AgentMessage], threshold_index: int) -> int:
