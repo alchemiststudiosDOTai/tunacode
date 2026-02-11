@@ -16,6 +16,8 @@ from tunacode.ui.styles import (
     STYLE_WARNING,
 )
 
+RESOURCE_BAR_COMPACTING_LABEL = "Compacting..."
+
 
 class ResourceBar(Static):
     """Top bar showing resources: tokens, model, cost, LSP status."""
@@ -29,6 +31,7 @@ class ResourceBar(Static):
         self._session_cost: float = 0.0
         self._lsp_server: str | None = None
         self._lsp_available: bool = False
+        self._compacting: bool = False
 
     def on_mount(self) -> None:
         self._refresh_display()
@@ -63,6 +66,12 @@ class ResourceBar(Static):
         """
         self._lsp_server = server
         self._lsp_available = available
+        self._refresh_display()
+
+    def update_compaction_status(self, active: bool) -> None:
+        """Toggle compaction activity display."""
+
+        self._compacting = active
         self._refresh_display()
 
     def _calculate_remaining_pct(self) -> float:
@@ -114,6 +123,10 @@ class ResourceBar(Static):
             parts.append((sep, STYLE_MUTED))
             parts.append((f"{self._lsp_server} ", STYLE_MUTED))
             parts.append((lsp_indicator, lsp_color))
+
+        if self._compacting:
+            parts.append((sep, STYLE_MUTED))
+            parts.append((RESOURCE_BAR_COMPACTING_LABEL, STYLE_WARNING))
 
         content = Text.assemble(*parts)
         self.update(content)

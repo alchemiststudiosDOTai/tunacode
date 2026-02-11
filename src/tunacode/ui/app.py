@@ -187,6 +187,7 @@ class TextualReplApp(App[None]):
         self._request_start_time = time.monotonic()
         self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
         self.chat_container.clear_insertion_anchor()
+        self._update_compaction_status(False)
 
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
@@ -204,6 +205,7 @@ class TextualReplApp(App[None]):
                     tool_result_callback=build_tool_result_callback(self),
                     tool_start_callback=build_tool_start_callback(self),
                     notice_callback=self._show_system_notice,
+                    compaction_status_callback=self._update_compaction_status,
                 )
             )
             await self._current_request_task
@@ -219,6 +221,7 @@ class TextualReplApp(App[None]):
             self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
             self.streaming_output.update("")
             self.streaming_output.remove_class("active")
+            self._update_compaction_status(False)
 
             output_text = self._get_latest_response_text()
 
@@ -367,6 +370,9 @@ class TextualReplApp(App[None]):
 
     def shell_status_last(self) -> None:
         self.status_bar.update_last_action("shell")
+
+    def _update_compaction_status(self, active: bool) -> None:
+        self.resource_bar.update_compaction_status(active)
 
     def _update_resource_bar(self) -> None:
         session = self.state_manager.session

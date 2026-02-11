@@ -6,6 +6,7 @@ from tunacode.exceptions import (
     BULLET_PREFIX,
     SECTION_SEPARATOR,
     ConfigurationError,
+    ContextOverflowError,
     ToolExecutionError,
     ValidationError,
 )
@@ -92,3 +93,18 @@ def test_validation_error_without_optional_sections() -> None:
     error = ValidationError("missing value")
 
     assert str(error) == "Validation failed: missing value"
+
+
+def test_context_overflow_error_includes_recovery_commands() -> None:
+    """ContextOverflowError should expose model/token metadata and recovery guidance."""
+    error = ContextOverflowError(
+        estimated_tokens=250_000,
+        max_tokens=200_000,
+        model="openrouter:openai/gpt-4.1",
+    )
+
+    assert error.estimated_tokens == 250_000
+    assert error.max_tokens == 200_000
+    assert error.model == "openrouter:openai/gpt-4.1"
+    assert "Context window exceeded" in str(error)
+    assert "Recovery commands:" in str(error)

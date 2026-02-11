@@ -18,6 +18,7 @@ from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
 from tunacode.types.canonical import UsageMetrics
 
+from tunacode.core.compaction.types import CompactionRecord
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 
 
@@ -37,6 +38,7 @@ class SessionState:
     undo_initialized: bool = False
     show_thoughts: bool = False
     conversation: ConversationState = field(default_factory=ConversationState)
+    compaction: CompactionRecord | None = None
     task: TaskState = field(default_factory=TaskState)
     runtime: RuntimeState = field(default_factory=RuntimeState)
     usage: UsageState = field(default_factory=UsageState)
@@ -55,6 +57,8 @@ class SessionState:
     task_hierarchy: dict[str, Any] = field(default_factory=dict)
     iteration_budgets: dict[str, int] = field(default_factory=dict)
     recursive_context_stack: list[dict[str, Any]] = field(default_factory=list)
+    # Runtime-only service cache
+    _compaction_controller: Any | None = None
     # Streaming debug instrumentation (see core/agents/agent_components/streaming.py)
     _debug_events: list[str] = field(default_factory=list)
     _debug_raw_stream_accum: str = ""
@@ -198,6 +202,22 @@ class StateManager:
 
         return messages
 
+    def _serialize_compaction(self) -> dict[str, Any] | None:
+        record = self._session.compaction
+        if record is None:
+            return None
+
+        return record.to_dict()
+
+    def _deserialize_compaction(self, data: Any) -> CompactionRecord | None:
+        if data is None:
+            return None
+
+        if not isinstance(data, dict):
+            raise TypeError(f"Session 'compaction' must be an object, got {type(data).__name__}")
+
+        return CompactionRecord.from_dict(data)
+
     def _split_thought_messages(self, messages: list[Any]) -> tuple[list[str], list[Any]]:
         """Separate thought entries from message history."""
         thoughts: list[str] = []
@@ -249,6 +269,7 @@ class StateManager:
             "session_total_usage": self._session.usage.session_total_usage.to_dict(),
             "thoughts": self._session.conversation.thoughts,
             "messages": self._serialize_messages(),
+            "compaction": self._serialize_compaction(),
         }
 
         try:
@@ -301,6 +322,7 @@ class StateManager:
             extracted_thoughts, cleaned_messages = self._split_thought_messages(loaded_messages)
             self._session.conversation.thoughts = [*stored_thoughts, *extracted_thoughts]
             self._session.conversation.messages = cleaned_messages
+            self._session.compaction = self._deserialize_compaction(data.get("compaction"))
 
             return True
         except json.JSONDecodeError:

@@ -7,7 +7,7 @@ from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
 from tunacode.ui.commands import COMMANDS
 
-# Pre-compute sorted command items at module load (8 items)
+# Pre-compute sorted command items at module load.
 _COMMAND_ITEMS: list[tuple[str, str]] = sorted(
     [(name, cmd.description) for name, cmd in COMMANDS.items()]
 )

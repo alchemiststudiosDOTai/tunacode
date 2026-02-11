@@ -25,6 +25,13 @@ TOOL_ERROR_PREFIX = "Tool '{tool_name}' failed: "
 JSON_TRUNCATION_LIMIT = 100
 VALID_MODEL_EXAMPLE_LIMIT = 3
 
+CONTEXT_OVERFLOW_SUGGESTED_FIX = "Compact the session or reduce context size before retrying."
+CONTEXT_OVERFLOW_RECOVERY_COMMANDS = [
+    "/compact",
+    "/clear",
+    "/model <provider:model>",
+]
+
 
 def _format_section(label: str, lines: list[str]) -> str:
     if not lines:
@@ -276,6 +283,26 @@ class GlobalRequestTimeoutError(TunaCodeError):
             f"Try increasing settings.global_request_timeout in tunacode.json "
             f"or check model API status."
         )
+
+
+class ContextOverflowError(TunaCodeError):
+    """Raised when model context length exceeds the configured window."""
+
+    def __init__(self, estimated_tokens: int, max_tokens: int, model: str):
+        self.estimated_tokens = estimated_tokens
+        self.max_tokens = max_tokens
+        self.model = model
+
+        base_message = (
+            f"Context window exceeded for model '{model}': "
+            f"estimated {estimated_tokens} tokens > limit {max_tokens}."
+        )
+        full_message = _build_error_message(
+            base_message,
+            suggested_fix=CONTEXT_OVERFLOW_SUGGESTED_FIX,
+            recovery_commands=CONTEXT_OVERFLOW_RECOVERY_COMMANDS,
+        )
+        super().__init__(full_message)
 
 
 class ToolBatchingJSONError(TunaCodeError):
