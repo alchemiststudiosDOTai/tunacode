@@ -6,7 +6,7 @@ import asyncio
 import os
 import time
 from datetime import UTC, datetime
-from typing import Never
+from typing import TYPE_CHECKING, Never
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
@@ -16,11 +16,16 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import LoadingIndicator, Static
 
+if TYPE_CHECKING:
+    from textual.theme import Theme
+
 from tunacode.core.agents.main import process_request
 from tunacode.core.session import StateManager
 from tunacode.core.ui_api.constants import (
     MIN_TOOL_PANEL_LINE_WIDTH,
     RICHLOG_CLASS_STREAMING,
+    SUPPORTED_THEME_NAMES,
+    THEME_NAME,
     TOOL_PANEL_HORIZONTAL_INSET,
     build_nextstep_theme,
     build_tunacode_theme,
@@ -60,7 +65,6 @@ class TextualReplApp(App[None]):
         "styles/widgets.tcss",
         "styles/modals.tcss",
         "styles/panels.tcss",
-        "styles/theme-nextstep.tcss",
     ]
 
     BINDINGS = [
@@ -69,6 +73,13 @@ class TextualReplApp(App[None]):
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
+
+        tunacode_theme = build_tunacode_theme()
+        self.register_theme(tunacode_theme)
+        nextstep_theme = build_nextstep_theme()
+        self.register_theme(nextstep_theme)
+        self.theme = THEME_NAME
+
         self.state_manager: StateManager = state_manager
         self._show_setup: bool = show_setup
         self.request_queue: asyncio.Queue[str] = asyncio.Queue()
@@ -109,15 +120,20 @@ class TextualReplApp(App[None]):
         """Backward compatibility alias for chat_container."""
         return self.chat_container
 
-    def on_mount(self) -> None:
-        tunacode_theme = build_tunacode_theme()
-        self.register_theme(tunacode_theme)
-        nextstep_theme = build_nextstep_theme()
-        self.register_theme(nextstep_theme)
+    @property
+    def supported_themes(self) -> dict[str, Theme]:
+        return {
+            theme_name: self.available_themes[theme_name]
+            for theme_name in SUPPORTED_THEME_NAMES
+            if theme_name in self.available_themes
+        }
 
+    def on_mount(self) -> None:
         user_config = self.state_manager.session.user_config
-        saved_theme = user_config.get("settings", {}).get("theme", "dracula")
-        self.theme = saved_theme if saved_theme in self.available_themes else "dracula"
+        saved_theme = user_config.get("settings", {}).get("theme", THEME_NAME)
+        if saved_theme not in SUPPORTED_THEME_NAMES:
+            saved_theme = THEME_NAME
+        self.theme = saved_theme
 
         # Initialize session persistence metadata
         from tunacode.core.ui_api.system_paths import get_project_id
@@ -138,13 +154,6 @@ class TextualReplApp(App[None]):
     async def on_unmount(self) -> None:
         """Save session before app exits."""
         await self.state_manager.save_session()
-
-    def watch_theme(self, old_theme: str, new_theme: str) -> None:
-        """Toggle CSS class when theme changes for theme-specific styling."""
-        if old_theme:
-            self.remove_class(f"theme-{old_theme}")
-        if new_theme:
-            self.add_class(f"theme-{new_theme}")
 
     def _on_setup_complete(self, completed: bool | None) -> None:
         """Called when setup screen is dismissed."""

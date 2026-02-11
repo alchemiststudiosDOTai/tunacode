@@ -17,80 +17,77 @@
     width: 1fr;
 }
 
-/* Agent response panels - accent border */
+/* Shared panel structure */
+.agent-panel,
+.info-panel,
+.success-panel,
+.warning-panel,
+.tool-panel,
+.error-panel,
+.search-panel {
+    background: $surface;
+    padding: 0 1;
+    margin: 0 0 1 0;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
+}
+
+/* Semantic panel outlines */
 .agent-panel {
-    border: solid $accent;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $accent;
 }
 
-/* Info panels - muted border */
 .info-panel {
-    border: solid $secondary;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $secondary;
 }
 
-/* Success panels */
 .success-panel {
-    border: solid $success;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $success;
 }
 
-/* Warning panels */
 .warning-panel {
-    border: solid $warning;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $warning;
 }
 
-/* Tool execution panels - cyan accent */
+/* Tool execution panels - cyan by default */
 .tool-panel {
-    border: solid $primary;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $primary;
 }
 
 .tool-panel.running {
-    border: solid $accent;
+    border-top: solid $bevel-dark;
+    border-left: solid $bevel-dark;
+    border-bottom: solid $bevel-light;
+    border-right: solid $bevel-light;
+    outline: solid $accent;
 }
 
 .tool-panel.completed {
-    border: solid $success;
+    outline: solid $success;
 }
 
 .tool-panel.failed {
-    border: solid $error;
+    outline: solid $error;
 }
 
-/* Error panels - red border, recovery actions */
+/* Error panels - recovery states */
 .error-panel {
-    border: solid $error;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $error;
 }
 
 .error-panel.warning {
-    border: solid $warning;
+    outline: solid $warning;
 }
 
 .error-panel.info {
-    border: solid $secondary;
+    outline: solid $secondary;
 }
 
-/* Search result panels - accent border */
+/* Search result panels */
 .search-panel {
-    border: solid $accent;
-    background: $surface;
-    padding: 0 1;
-    margin: 0 0 1 0;
+    outline: solid $accent;
 }
 
 /* Pagination controls in search */

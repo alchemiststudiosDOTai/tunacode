@@ -7,6 +7,7 @@ Centralizes all magic strings, UI text, error messages, and application constant
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -71,9 +72,13 @@ SESSIONS_SUBDIR = "sessions"
 UI_COLORS = {
     "background": "#1a1a1a",
     "surface": "#252525",
-    "border": "#ff6b9d",
+    "border": "#333333",
     "text": "#e0e0e0",
     "muted": "#808080",
+    "bevel_light": "#3a3a3a",
+    "bevel_dark": "#101010",
+    "scrollbar_thumb": "#ff6b9d",
+    "scrollbar_track": "#252525",
     "primary": "#00d7d7",
     "accent": "#ff6b9d",
     "success": "#4ec9b0",
@@ -84,14 +89,13 @@ UI_COLORS = {
 NEXTSTEP_COLORS = {
     "background": "#acacac",
     "surface": "#c8c8c8",
-    "window_content": "#d0d0d0",
-    "title_bar": "#3a3a3a",
-    "title_bar_text": "#e0e0e0",
     "border": "#2a2a2a",
     "text": "#000000",
     "muted": "#404040",
     "bevel_light": "#e8e8e8",
     "bevel_dark": "#606060",
+    "scrollbar_thumb": "#606060",
+    "scrollbar_track": "#c8c8c8",
     "primary": "#1a1a1a",
     "accent": "#3a3a3a",
     "success": "#2a2a2a",
@@ -99,13 +103,36 @@ NEXTSTEP_COLORS = {
     "error": "#1a1a1a",
 }
 
+THEME_VARIABLE_CONTRACT: tuple[tuple[str, str], ...] = (
+    ("bevel-light", "bevel_light"),
+    ("bevel-dark", "bevel_dark"),
+    ("border", "border"),
+    ("text-muted", "muted"),
+    ("scrollbar-thumb", "scrollbar_thumb"),
+    ("scrollbar-track", "scrollbar_track"),
+)
+
 THEME_NAME = "tunacode"
+NEXTSTEP_THEME_NAME = "nextstep"
+SUPPORTED_THEME_NAMES: tuple[str, ...] = (THEME_NAME, NEXTSTEP_THEME_NAME)
 
 RESOURCE_BAR_SEPARATOR = " - "
 RESOURCE_BAR_COST_FORMAT = "${cost:.2f}"
 
 RICHLOG_CLASS_PAUSED = "paused"
 RICHLOG_CLASS_STREAMING = "streaming"
+
+
+def _build_theme_variables(palette: Mapping[str, str]) -> dict[str, str]:
+    required_palette_keys = {palette_key for _, palette_key in THEME_VARIABLE_CONTRACT}
+    missing_palette_keys = sorted(required_palette_keys - set(palette))
+    if missing_palette_keys:
+        missing_keys = ", ".join(missing_palette_keys)
+        raise ValueError(f"Theme palette missing required keys: {missing_keys}")
+
+    return {
+        variable_key: palette[palette_key] for variable_key, palette_key in THEME_VARIABLE_CONTRACT
+    }
 
 
 def build_tunacode_theme() -> Theme:
@@ -129,10 +156,7 @@ def build_tunacode_theme() -> Theme:
         warning=p["warning"],
         error=p["error"],
         foreground=p["text"],
-        variables={
-            "text-muted": p["muted"],
-            "border": p["border"],
-        },
+        variables=_build_theme_variables(p),
     )
 
 
@@ -146,7 +170,7 @@ def build_nextstep_theme() -> Theme:
 
     p = NEXTSTEP_COLORS
     return Theme(
-        name="nextstep",
+        name=NEXTSTEP_THEME_NAME,
         dark=False,
         primary=p["primary"],
         secondary=p["muted"],
@@ -158,13 +182,5 @@ def build_nextstep_theme() -> Theme:
         warning=p["warning"],
         error=p["error"],
         foreground=p["text"],
-        variables={
-            "text-muted": p["muted"],
-            "border": p["border"],
-            "bevel-light": p["bevel_light"],
-            "bevel-dark": p["bevel_dark"],
-            "title-bar": p["title_bar"],
-            "title-bar-text": p["title_bar_text"],
-            "window-content": p["window_content"],
-        },
+        variables=_build_theme_variables(p),
     )

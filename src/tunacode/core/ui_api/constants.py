@@ -18,17 +18,20 @@ from tunacode.constants import MIN_VIEWPORT_LINES as MIN_VIEWPORT_LINES  # noqa:
 from tunacode.constants import (
     MODEL_PICKER_UNFILTERED_LIMIT as MODEL_PICKER_UNFILTERED_LIMIT,  # noqa: F401
 )
+from tunacode.constants import NEXTSTEP_THEME_NAME as NEXTSTEP_THEME_NAME  # noqa: F401
 from tunacode.constants import RESOURCE_BAR_COST_FORMAT as RESOURCE_BAR_COST_FORMAT  # noqa: F401
 from tunacode.constants import RESOURCE_BAR_SEPARATOR as RESOURCE_BAR_SEPARATOR  # noqa: F401
 from tunacode.constants import RICHLOG_CLASS_PAUSED as RICHLOG_CLASS_PAUSED  # noqa: F401
 from tunacode.constants import RICHLOG_CLASS_STREAMING as RICHLOG_CLASS_STREAMING  # noqa: F401
 from tunacode.constants import SEPARATOR_WIDTH as SEPARATOR_WIDTH  # noqa: F401
+from tunacode.constants import SUPPORTED_THEME_NAMES as SUPPORTED_THEME_NAMES  # noqa: F401
 from tunacode.constants import (
     SYNTAX_LINE_NUMBER_PADDING as SYNTAX_LINE_NUMBER_PADDING,  # noqa: F401
 )
 from tunacode.constants import (
     SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH as SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,  # noqa: F401
 )
+from tunacode.constants import THEME_NAME as THEME_NAME  # noqa: F401
 from tunacode.constants import (
     TOOL_PANEL_HORIZONTAL_INSET as TOOL_PANEL_HORIZONTAL_INSET,  # noqa: F401
 )
@@ -51,14 +54,17 @@ __all__: list[str] = [
     "MIN_TOOL_PANEL_LINE_WIDTH",
     "MIN_VIEWPORT_LINES",
     "MODEL_PICKER_UNFILTERED_LIMIT",
+    "NEXTSTEP_THEME_NAME",
     "RESOURCE_BAR_COST_FORMAT",
     "RESOURCE_BAR_SEPARATOR",
     "RICHLOG_CLASS_PAUSED",
     "RICHLOG_CLASS_STREAMING",
     "SEPARATOR_WIDTH",
+    "SUPPORTED_THEME_NAMES",
     "SYNTAX_LINE_NUMBER_PADDING",
     "SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH",
     "TOOL_PANEL_HORIZONTAL_INSET",
+    "THEME_NAME",
     "TOOL_PANEL_WIDTH_DEBUG",
     "TOOL_VIEWPORT_LINES",
     "UI_COLORS",

@@ -10,6 +10,15 @@
  * └──────────┴─────────────────────────────────────────┘
  */
 
+Screen {
+    scrollbar-color: $scrollbar-thumb;
+    scrollbar-color-hover: $scrollbar-thumb;
+    scrollbar-color-active: $scrollbar-thumb;
+    scrollbar-background: $scrollbar-track;
+    scrollbar-background-hover: $scrollbar-track;
+    scrollbar-background-active: $scrollbar-track;
+}
+
 /* ============================================
  * RESOURCE BAR - Compact, no border
  * NeXTSTEP: "Glanceable, rarely changes"
@@ -27,17 +36,29 @@ ResourceBar {
  * ============================================ */
 #viewport {
     height: 1fr;
-    border: solid $border;
+    background: $surface;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
 }
 
-/* Streaming mode - accent border on viewport (not RichLog) */
+/* Streaming mode - pressed/in-progress viewport with action outline */
 #viewport.streaming {
-    border: solid $accent;
+    border-top: solid $bevel-dark;
+    border-left: solid $bevel-dark;
+    border-bottom: solid $bevel-light;
+    border-right: solid $bevel-light;
+    outline: solid $primary;
 }
 
-/* Pause mode - NeXTSTEP: "Modes must be visually apparent" */
+/* Pause mode - visually apparent warning state */
 #viewport.paused {
-    border: solid $warning;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
+    outline: solid $warning;
 }
 
 /* RichLog - inside viewport, no border */
@@ -54,7 +75,7 @@ RichLog {
 LoadingIndicator {
     height: 1;
     display: none;
-    background: $background;
+    background: $surface;
 }
 
 LoadingIndicator.active {
@@ -69,11 +90,15 @@ LoadingIndicator.active {
     height: auto;
     max-height: 50%;
     display: none;
-    background: $background;
+    background: $surface;
     padding: 0 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    border-bottom: solid $border;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
+    outline: solid $border;
 }
 
 #streaming-output.active {
@@ -87,13 +112,13 @@ Editor {
     width: 1fr;
     height: 6;
     background: $background;
-    border-top: solid $border;
-    border-right: solid $border;
-    border-bottom: solid $border;
-    border-left: solid $border;
+    border-top: solid $bevel-dark;
+    border-left: solid $bevel-dark;
+    border-bottom: solid $bevel-light;
+    border-right: solid $bevel-light;
     padding: 0 1;
 }
 
 Editor.bash-mode {
-    border: solid $success;
+    outline: solid $success;
 }

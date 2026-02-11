@@ -1,11 +1,12 @@
 /* ============================================
- * STATUS BAR - 3-column bottom status (no borders)
+ * STATUS BAR - 3-column bottom status
  * NeXTSTEP: "left=identity, center=metrics, right=state"
  * ============================================ */
 StatusBar {
     height: 1;
     width: 100%;
     background: $background;
+    border-top: solid $bevel-dark;
 }
 
 StatusBar Static {
@@ -35,5 +36,5 @@ StatusBar Static {
 /* Mode indicator - visually distinct when shell/bash mode active */
 .mode-active {
     text-style: bold;
-    color: #4ec9b0;
+    color: $success;
 }

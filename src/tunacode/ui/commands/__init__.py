@@ -244,9 +244,11 @@ class ThemeCommand(Command):
     async def execute(self, app: TextualReplApp, args: str) -> None:
         from tunacode.core.ui_api.user_configuration import save_config
 
+        supported_themes = app.supported_themes
+
         if args:
             theme_name = args.strip()
-            if theme_name not in app.available_themes:
+            if theme_name not in supported_themes:
                 app.notify(f"Unknown theme: {theme_name}", severity="error")
                 return
 
@@ -254,20 +256,23 @@ class ThemeCommand(Command):
             app.state_manager.session.user_config.setdefault("settings", {})["theme"] = theme_name
             save_config(app.state_manager)
             app.notify(f"Theme: {theme_name}")
-        else:
-            from tunacode.ui.screens.theme_picker import ThemePickerScreen
+            return
 
-            def on_dismiss(selected: str | None) -> None:
-                if selected is not None:
-                    config = app.state_manager.session.user_config
-                    config.setdefault("settings", {})["theme"] = selected
-                    save_config(app.state_manager)
-                    app.notify(f"Theme: {selected}")
+        from tunacode.ui.screens.theme_picker import ThemePickerScreen
 
-            app.push_screen(
-                ThemePickerScreen(app.available_themes, app.theme),
-                on_dismiss,
-            )
+        def on_dismiss(selected: str | None) -> None:
+            if selected is None:
+                return
+
+            config = app.state_manager.session.user_config
+            config.setdefault("settings", {})["theme"] = selected
+            save_config(app.state_manager)
+            app.notify(f"Theme: {selected}")
+
+        app.push_screen(
+            ThemePickerScreen(supported_themes, app.theme),
+            on_dismiss,
+        )
 
 
 class ResumeCommand(Command):
