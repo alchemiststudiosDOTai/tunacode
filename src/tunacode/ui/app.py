@@ -29,6 +29,7 @@ from tunacode.core.ui_api.constants import (
     TOOL_PANEL_HORIZONTAL_INSET,
     build_nextstep_theme,
     build_tunacode_theme,
+    wrap_builtin_themes,
 )
 from tunacode.core.ui_api.messaging import estimate_messages_tokens
 from tunacode.core.ui_api.shared_types import ModelName
@@ -74,10 +75,10 @@ class TextualReplApp(App[None]):
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
 
-        tunacode_theme = build_tunacode_theme()
-        self.register_theme(tunacode_theme)
-        nextstep_theme = build_nextstep_theme()
-        self.register_theme(nextstep_theme)
+        self.register_theme(build_tunacode_theme())
+        self.register_theme(build_nextstep_theme())
+        for theme in wrap_builtin_themes(self.available_themes):
+            self.register_theme(theme)
         self.theme = THEME_NAME
 
         self.state_manager: StateManager = state_manager

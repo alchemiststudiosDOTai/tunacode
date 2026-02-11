@@ -41,6 +41,7 @@ from tunacode.constants import UI_COLORS as UI_COLORS  # noqa: F401
 from tunacode.constants import URL_DISPLAY_MAX_LENGTH as URL_DISPLAY_MAX_LENGTH  # noqa: F401
 from tunacode.constants import build_nextstep_theme as build_nextstep_theme  # noqa: F401
 from tunacode.constants import build_tunacode_theme as build_tunacode_theme  # noqa: F401
+from tunacode.constants import wrap_builtin_themes as wrap_builtin_themes  # noqa: F401
 
 __all__: list[str] = [
     "APP_NAME",
@@ -71,4 +72,5 @@ __all__: list[str] = [
     "URL_DISPLAY_MAX_LENGTH",
     "build_nextstep_theme",
     "build_tunacode_theme",
+    "wrap_builtin_themes",
 ]

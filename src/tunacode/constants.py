@@ -114,7 +114,113 @@ THEME_VARIABLE_CONTRACT: tuple[tuple[str, str], ...] = (
 
 THEME_NAME = "tunacode"
 NEXTSTEP_THEME_NAME = "nextstep"
-SUPPORTED_THEME_NAMES: tuple[str, ...] = (THEME_NAME, NEXTSTEP_THEME_NAME)
+
+# Palettes for Textual built-in themes (only the 6 contract keys).
+# Each palette feeds through _build_theme_variables() unchanged.
+BUILTIN_THEME_PALETTES: dict[str, dict[str, str]] = {
+    "catppuccin-latte": {
+        "bevel_light": "#F5F5F8",
+        "bevel_dark": "#ACB0BE",
+        "border": "#BCC0CC",
+        "muted": "#8C8FA1",
+        "scrollbar_thumb": "#8839EF",
+        "scrollbar_track": "#E6E9EF",
+    },
+    "catppuccin-mocha": {
+        "bevel_light": "#45475A",
+        "bevel_dark": "#11111B",
+        "border": "#585B70",
+        "muted": "#6C7086",
+        "scrollbar_thumb": "#F5C2E7",
+        "scrollbar_track": "#313244",
+    },
+    "dracula": {
+        "bevel_light": "#44475A",
+        "bevel_dark": "#191A21",
+        "border": "#6272A4",
+        "muted": "#6272A4",
+        "scrollbar_thumb": "#BD93F9",
+        "scrollbar_track": "#2B2E3B",
+    },
+    "flexoki": {
+        "bevel_light": "#343331",
+        "bevel_dark": "#080808",
+        "border": "#575653",
+        "muted": "#878580",
+        "scrollbar_thumb": "#205EA6",
+        "scrollbar_track": "#1C1B1A",
+    },
+    "gruvbox": {
+        "bevel_light": "#504945",
+        "bevel_dark": "#1D2021",
+        "border": "#665C54",
+        "muted": "#A89984",
+        "scrollbar_thumb": "#85A598",
+        "scrollbar_track": "#3C3836",
+    },
+    "monokai": {
+        "bevel_light": "#49483E",
+        "bevel_dark": "#1A1A16",
+        "border": "#75715E",
+        "muted": "#797979",
+        "scrollbar_thumb": "#AE81FF",
+        "scrollbar_track": "#2E2E2E",
+    },
+    "nord": {
+        "bevel_light": "#4C566A",
+        "bevel_dark": "#242933",
+        "border": "#4C566A",
+        "muted": "#616E88",
+        "scrollbar_thumb": "#88C0D0",
+        "scrollbar_track": "#3B4252",
+    },
+    "solarized-light": {
+        "bevel_light": "#FDF6E3",
+        "bevel_dark": "#93A1A1",
+        "border": "#839496",
+        "muted": "#93A1A1",
+        "scrollbar_thumb": "#268BD2",
+        "scrollbar_track": "#EEE8D5",
+    },
+    "textual-ansi": {
+        "bevel_light": "ansi_white",
+        "bevel_dark": "ansi_bright_black",
+        "border": "ansi_blue",
+        "muted": "ansi_bright_black",
+        "scrollbar_thumb": "ansi_bright_blue",
+        "scrollbar_track": "ansi_default",
+    },
+    "textual-dark": {
+        "bevel_light": "#3A3A3A",
+        "bevel_dark": "#0A0A0A",
+        "border": "#333333",
+        "muted": "#808080",
+        "scrollbar_thumb": "#0178D4",
+        "scrollbar_track": "#1E1E1E",
+    },
+    "textual-light": {
+        "bevel_light": "#EEEEEE",
+        "bevel_dark": "#999999",
+        "border": "#AAAAAA",
+        "muted": "#707070",
+        "scrollbar_thumb": "#004578",
+        "scrollbar_track": "#D8D8D8",
+    },
+    "tokyo-night": {
+        "bevel_light": "#3B4261",
+        "bevel_dark": "#13141E",
+        "border": "#414868",
+        "muted": "#565F89",
+        "scrollbar_thumb": "#BB9AF7",
+        "scrollbar_track": "#24283B",
+    },
+}
+
+SUPPORTED_THEME_NAMES: tuple[str, ...] = (
+    THEME_NAME,
+    NEXTSTEP_THEME_NAME,
+    *BUILTIN_THEME_PALETTES,
+)
 
 RESOURCE_BAR_SEPARATOR = " - "
 RESOURCE_BAR_COST_FORMAT = "${cost:.2f}"
@@ -184,3 +290,50 @@ def build_nextstep_theme() -> Theme:
         foreground=p["text"],
         variables=_build_theme_variables(p),
     )
+
+
+def _wrap_builtin_theme(theme: Theme, palette: Mapping[str, str]) -> Theme:
+    """Re-register a Textual built-in theme with contract variables injected.
+
+    Preserves all original theme properties. Merges contract variables on top
+    of the theme's existing variables so nothing is lost.
+    """
+    from textual.theme import Theme as ThemeCls
+
+    merged_vars = {**theme.variables, **_build_theme_variables(palette)}
+
+    kwargs: dict[str, object] = {
+        "name": theme.name,
+        "dark": theme.dark,
+        "variables": merged_vars,
+    }
+    for attr in (
+        "primary",
+        "secondary",
+        "accent",
+        "foreground",
+        "background",
+        "surface",
+        "panel",
+        "warning",
+        "error",
+        "success",
+    ):
+        value = getattr(theme, attr, None)
+        if value is not None:
+            kwargs[attr] = value
+
+    return ThemeCls(**kwargs)
+
+
+def wrap_builtin_themes(available: Mapping[str, Theme]) -> list[Theme]:
+    """Wrap Textual built-in themes with contract variables.
+
+    Takes the app's available_themes mapping, wraps each one that has a
+    palette defined in BUILTIN_THEME_PALETTES, and returns the wrapped themes.
+    """
+    wrapped: list[Theme] = []
+    for name, palette in BUILTIN_THEME_PALETTES.items():
+        if name in available:
+            wrapped.append(_wrap_builtin_theme(available[name], palette))
+    return wrapped
