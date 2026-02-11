@@ -13,6 +13,7 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
     "AgentError": "error",
     "GitOperationError": "error",
     "GlobalRequestTimeoutError": "error",
+    "ContextOverflowError": "error",
     "ToolBatchingJSONError": "error",
     "ConfigurationError": "warning",
     "ModelConfigurationError": "warning",

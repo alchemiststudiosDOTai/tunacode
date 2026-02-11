@@ -4,7 +4,12 @@ Defines the StateManager protocol to enable type-safe usage without
 creating circular imports with the concrete implementation.
 """
 
-from typing import Any, Protocol
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from tunacode.core.compaction.types import CompactionRecord
 
 from tunacode.core.types.state_structures import (
     ConversationState,
@@ -25,8 +30,10 @@ class SessionStateProtocol(Protocol):
     runtime: RuntimeState
     usage: UsageState
     conversation: ConversationState
+    compaction: CompactionRecord | None
     agents: dict[str, Any]
     agent_versions: dict[str, int]
+    _compaction_controller: Any | None
     _debug_events: list[str]
     _debug_raw_stream_accum: str
     # Persistence fields

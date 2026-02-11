@@ -19,7 +19,8 @@ from typing import Any, cast
 
 from tinyagent import Agent
 
-from tunacode.exceptions import GlobalRequestTimeoutError, UserAbortError
+from tunacode.constants import DEFAULT_CONTEXT_WINDOW
+from tunacode.exceptions import ContextOverflowError, GlobalRequestTimeoutError, UserAbortError
 from tunacode.types import (
     ModelName,
     NoticeCallback,
@@ -29,7 +30,15 @@ from tunacode.types import (
     ToolStartCallback,
     UsageMetrics,
 )
+from tunacode.utils.messaging import estimate_messages_tokens
 
+from tunacode.core.compaction.controller import (
+    CompactionStatusCallback,
+    apply_compaction_messages,
+    build_compaction_notice,
+    get_or_create_compaction_controller,
+)
+from tunacode.core.compaction.types import CompactionOutcome
 from tunacode.core.logging import get_logger
 from tunacode.core.types import RuntimeState, StateManagerProtocol
 
@@ -43,6 +52,15 @@ __all__ = [
 DEFAULT_MAX_ITERATIONS: int = 15
 REQUEST_ID_LENGTH: int = 8
 MILLISECONDS_PER_SECOND: int = 1000
+
+CONTEXT_OVERFLOW_PATTERNS: tuple[str, ...] = (
+    "context_length_exceeded",
+    "maximum context length",
+)
+CONTEXT_OVERFLOW_RETRY_NOTICE = "Context overflow detected. Compacting and retrying once..."
+CONTEXT_OVERFLOW_FAILURE_NOTICE = (
+    "Context is still too large after compaction. Use /compact or /clear and retry."
+)
 
 
 def _coerce_int(value: object) -> int:
@@ -81,6 +99,20 @@ def _coerce_float(value: object) -> float:
         except ValueError:
             return 0.0
     return 0.0
+
+
+def _coerce_error_text(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    return ""
+
+
+def _is_context_overflow_error(error_text: str) -> bool:
+    if not error_text:
+        return False
+
+    normalized_error = error_text.lower()
+    return any(pattern in normalized_error for pattern in CONTEXT_OVERFLOW_PATTERNS)
 
 
 def _parse_openrouter_usage(raw_usage: object) -> UsageMetrics | None:
@@ -265,6 +297,7 @@ class RequestOrchestrator:
         tool_result_callback: ToolResultCallback | None = None,
         tool_start_callback: ToolStartCallback | None = None,
         notice_callback: NoticeCallback | None = None,
+        compaction_status_callback: CompactionStatusCallback | None = None,
     ) -> None:
         self.message = message
         self.model = model
@@ -273,6 +306,9 @@ class RequestOrchestrator:
         self.streaming_callback = streaming_callback
         self.tool_result_callback = tool_result_callback
         self.tool_start_callback = tool_start_callback
+        self.notice_callback = notice_callback
+        self.compaction_status_callback = compaction_status_callback
+        self.compaction_controller = get_or_create_compaction_controller(state_manager)
 
         user_config = getattr(state_manager.session, "user_config", {}) or {}
         settings = user_config.get("settings", {})
@@ -310,19 +346,29 @@ class RequestOrchestrator:
 
         session = self.state_manager.session
         conversation = session.conversation
-        baseline_message_count = len(conversation.messages)
-
         history = _coerce_tinyagent_history(conversation.messages)
-        agent.replace_messages(history)
 
+        self._configure_compaction_callbacks()
+        compacted_history = await self._compact_history_for_request(history)
+
+        baseline_message_count = len(conversation.messages)
+        pre_request_history = list(conversation.messages)
+
+        agent.replace_messages(compacted_history)
         session._debug_raw_stream_accum = ""
 
         try:
-            return await self._run_stream(
+            await self._run_stream(
                 agent=agent,
                 request_context=ctx,
                 baseline_message_count=baseline_message_count,
             )
+            await self._retry_after_context_overflow_if_needed(
+                agent=agent,
+                request_context=ctx,
+                pre_request_history=pre_request_history,
+            )
+            return agent
         except (UserAbortError, asyncio.CancelledError):
             self._handle_abort_cleanup(logger)
             raise
@@ -358,6 +404,107 @@ class RequestOrchestrator:
         if task_state.original_query:
             return
         task_state.original_query = self.message
+
+    def _configure_compaction_callbacks(self) -> None:
+        self.compaction_controller.set_status_callback(self.compaction_status_callback)
+
+    def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
+        if self.notice_callback is None:
+            return
+
+        notice = build_compaction_notice(outcome)
+        if notice is None:
+            return
+
+        self.notice_callback(notice)
+
+    async def _compact_history_for_request(
+        self,
+        history: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        self.compaction_controller.reset_request_state()
+        max_tokens = self.state_manager.session.conversation.max_tokens
+        compaction_outcome = await self.compaction_controller.check_and_compact(
+            history,
+            max_tokens=max_tokens,
+            signal=None,
+            allow_threshold=True,
+        )
+        self._maybe_emit_compaction_notice(compaction_outcome)
+
+        applied_messages = apply_compaction_messages(
+            self.state_manager,
+            compaction_outcome.messages,
+        )
+        return [cast(dict[str, Any], message) for message in applied_messages]
+
+    async def _force_compact_history(
+        self,
+        history: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        max_tokens = self.state_manager.session.conversation.max_tokens
+        compaction_outcome = await self.compaction_controller.force_compact(
+            history,
+            max_tokens=max_tokens,
+            signal=None,
+        )
+        self._maybe_emit_compaction_notice(compaction_outcome)
+
+        applied_messages = apply_compaction_messages(
+            self.state_manager,
+            compaction_outcome.messages,
+        )
+        return [cast(dict[str, Any], message) for message in applied_messages]
+
+    async def _retry_after_context_overflow_if_needed(
+        self,
+        *,
+        agent: Agent,
+        request_context: RequestContext,
+        pre_request_history: list[dict[str, Any]],
+    ) -> None:
+        error_text = self._agent_error_text(agent)
+        if not _is_context_overflow_error(error_text):
+            return
+
+        if self.notice_callback is not None:
+            self.notice_callback(CONTEXT_OVERFLOW_RETRY_NOTICE)
+
+        logger = get_logger()
+        logger.warning("Context overflow detected; forcing compaction and retrying")
+
+        conversation = self.state_manager.session.conversation
+        apply_compaction_messages(self.state_manager, pre_request_history)
+
+        forced_history = await self._force_compact_history(pre_request_history)
+
+        agent.replace_messages(forced_history)
+        self.state_manager.session._debug_raw_stream_accum = ""
+
+        retry_baseline = len(conversation.messages)
+        await self._run_stream(
+            agent=agent,
+            request_context=request_context,
+            baseline_message_count=retry_baseline,
+        )
+
+        retry_error_text = self._agent_error_text(agent)
+        if not _is_context_overflow_error(retry_error_text):
+            return
+
+        if self.notice_callback is not None:
+            self.notice_callback(CONTEXT_OVERFLOW_FAILURE_NOTICE)
+
+        estimated_tokens = estimate_messages_tokens(conversation.messages)
+        max_tokens = conversation.max_tokens or DEFAULT_CONTEXT_WINDOW
+        raise ContextOverflowError(
+            estimated_tokens=estimated_tokens,
+            max_tokens=max_tokens,
+            model=self.model,
+        )
+
+    def _agent_error_text(self, agent: Agent) -> str:
+        return _coerce_error_text(agent.state.get("error"))
 
     def _persist_agent_messages(self, agent: Any, baseline_message_count: int) -> None:
         session = self.state_manager.session
@@ -635,6 +782,7 @@ async def process_request(
     tool_result_callback: ToolResultCallback | None = None,
     tool_start_callback: ToolStartCallback | None = None,
     notice_callback: NoticeCallback | None = None,
+    compaction_status_callback: CompactionStatusCallback | None = None,
 ) -> Agent:
     orchestrator = RequestOrchestrator(
         message,
@@ -645,5 +793,6 @@ async def process_request(
         tool_result_callback,
         tool_start_callback,
         notice_callback,
+        compaction_status_callback,
     )
     return await orchestrator.run()

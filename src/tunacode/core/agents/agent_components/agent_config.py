@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from tinyagent import Agent, AgentOptions
-from tinyagent.agent_types import AgentTool, Model, ThinkingLevel
+from tinyagent.agent_types import AgentMessage, AgentTool, Model, ThinkingLevel
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -38,6 +38,7 @@ from tunacode.tools.write_file import write_file
 from tunacode.infrastructure.cache.caches import agents as agents_cache
 from tunacode.infrastructure.cache.caches import tunacode_context as context_cache
 
+from tunacode.core.compaction.controller import get_or_create_compaction_controller
 from tunacode.core.logging import get_logger
 from tunacode.core.tinyagent import ensure_tinyagent_importable
 
@@ -219,6 +220,26 @@ def _build_stream_fn(
     return _stream
 
 
+def _build_transform_context(
+    state_manager: StateManagerProtocol,
+) -> Callable[[list[AgentMessage], asyncio.Event | None], Awaitable[list[AgentMessage]]]:
+    async def _transform_context(
+        messages: list[AgentMessage],
+        signal: asyncio.Event | None,
+    ) -> list[AgentMessage]:
+        controller = get_or_create_compaction_controller(state_manager)
+        session = state_manager.session
+        compaction_outcome = await controller.check_and_compact(
+            messages,
+            max_tokens=session.conversation.max_tokens,
+            signal=signal,
+            allow_threshold=False,
+        )
+        return controller.inject_summary_message(compaction_outcome.messages)
+
+    return _transform_context
+
+
 def _build_tinyagent_model(model: ModelName) -> Model:
     """Convert a TunaCode ModelName into a tinyagent Model.
 
@@ -287,6 +308,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         stream_fn=stream_fn,
         session_id=getattr(session, "session_id", None),
         get_api_key=_build_api_key_resolver(session),
+        transform_context=_build_transform_context(state_manager),
     )
 
     agent = Agent(opts)
