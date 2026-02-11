@@ -3,7 +3,8 @@
  * NeXTSTEP: "left=identity, center=metrics, right=state"
  * ============================================ */
 StatusBar {
-    height: 1;
+    /* 1 row bevel + 1 row content */
+    height: 2;
     width: 100%;
     background: $background;
     border-top: solid $bevel-dark;
