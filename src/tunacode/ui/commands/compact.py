@@ -6,8 +6,15 @@ from typing import TYPE_CHECKING, Any, cast
 
 from tinyagent.agent_types import AgentMessage
 
-from tunacode.core.compaction.controller import get_or_create_compaction_controller
+from tunacode.core.compaction.controller import (
+    apply_compaction_messages,
+    build_compaction_notice,
+    get_or_create_compaction_controller,
+)
+from tunacode.core.compaction.types import COMPACTION_STATUS_COMPACTED
 from tunacode.core.ui_api.messaging import estimate_messages_tokens
+
+from tunacode.ui.commands.base import Command
 
 if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
@@ -18,7 +25,7 @@ COMPACT_SKIPPED_NOTICE = "Compaction skipped (no eligible boundary)."
 COMPACT_COMPLETE_TEMPLATE = "Compaction complete: {removed} messages, ~{tokens} tokens reclaimed"
 
 
-class CompactCommand:
+class CompactCommand(Command):
     """Slash command that forces immediate context compaction."""
 
     name = "compact"
@@ -43,36 +50,32 @@ class CompactCommand:
             app.notify(COMPACT_EMPTY_HISTORY_NOTICE)
             return
 
-        previous_compaction_count = 0
-        if session.compaction is not None:
-            previous_compaction_count = session.compaction.compaction_count
-
         controller = get_or_create_compaction_controller(app.state_manager)
         controller.reset_request_state()
-        controller.set_callbacks(
-            notice_callback=app._show_system_notice,
-            status_callback=app._update_compaction_status,
-        )
+        controller.set_status_callback(app._update_compaction_status)
 
         tokens_before = estimate_messages_tokens(history)
-        compacted_history = await controller.force_compact(
+        compaction_outcome = await controller.force_compact(
             history,
             max_tokens=conversation.max_tokens,
             signal=None,
         )
-        conversation.messages = compacted_history
+        compacted_history = apply_compaction_messages(
+            app.state_manager,
+            compaction_outcome.messages,
+        )
 
         app._update_compaction_status(False)
         app._update_resource_bar()
         await app.state_manager.save_session()
 
-        record = session.compaction
-        if record is None:
-            app.notify(COMPACT_SKIPPED_NOTICE)
-            return
+        if compaction_outcome.status != COMPACTION_STATUS_COMPACTED:
+            outcome_notice = build_compaction_notice(compaction_outcome)
+            if outcome_notice is None:
+                app.notify(COMPACT_SKIPPED_NOTICE)
+                return
 
-        if record.compaction_count == previous_compaction_count:
-            app.notify(COMPACT_SKIPPED_NOTICE)
+            app.notify(outcome_notice, severity="warning")
             return
 
         removed_count = len(history) - len(compacted_history)

@@ -34,8 +34,11 @@ from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.compaction.controller import (
     CompactionStatusCallback,
+    apply_compaction_messages,
+    build_compaction_notice,
     get_or_create_compaction_controller,
 )
+from tunacode.core.compaction.types import CompactionOutcome
 from tunacode.core.logging import get_logger
 from tunacode.core.types import RuntimeState, StateManagerProtocol
 
@@ -347,7 +350,6 @@ class RequestOrchestrator:
 
         self._configure_compaction_callbacks()
         compacted_history = await self._compact_history_for_request(history)
-        conversation.messages = compacted_history
 
         baseline_message_count = len(conversation.messages)
         pre_request_history = list(conversation.messages)
@@ -404,10 +406,17 @@ class RequestOrchestrator:
         task_state.original_query = self.message
 
     def _configure_compaction_callbacks(self) -> None:
-        self.compaction_controller.set_callbacks(
-            notice_callback=self.notice_callback,
-            status_callback=self.compaction_status_callback,
-        )
+        self.compaction_controller.set_status_callback(self.compaction_status_callback)
+
+    def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
+        if self.notice_callback is None:
+            return
+
+        notice = build_compaction_notice(outcome)
+        if notice is None:
+            return
+
+        self.notice_callback(notice)
 
     async def _compact_history_for_request(
         self,
@@ -415,25 +424,37 @@ class RequestOrchestrator:
     ) -> list[dict[str, Any]]:
         self.compaction_controller.reset_request_state()
         max_tokens = self.state_manager.session.conversation.max_tokens
-        compacted_messages = await self.compaction_controller.check_and_compact(
+        compaction_outcome = await self.compaction_controller.check_and_compact(
             history,
             max_tokens=max_tokens,
             signal=None,
             allow_threshold=True,
         )
-        return [cast(dict[str, Any], message) for message in compacted_messages]
+        self._maybe_emit_compaction_notice(compaction_outcome)
+
+        applied_messages = apply_compaction_messages(
+            self.state_manager,
+            compaction_outcome.messages,
+        )
+        return [cast(dict[str, Any], message) for message in applied_messages]
 
     async def _force_compact_history(
         self,
         history: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         max_tokens = self.state_manager.session.conversation.max_tokens
-        compacted_messages = await self.compaction_controller.force_compact(
+        compaction_outcome = await self.compaction_controller.force_compact(
             history,
             max_tokens=max_tokens,
             signal=None,
         )
-        return [cast(dict[str, Any], message) for message in compacted_messages]
+        self._maybe_emit_compaction_notice(compaction_outcome)
+
+        applied_messages = apply_compaction_messages(
+            self.state_manager,
+            compaction_outcome.messages,
+        )
+        return [cast(dict[str, Any], message) for message in applied_messages]
 
     async def _retry_after_context_overflow_if_needed(
         self,
@@ -453,10 +474,9 @@ class RequestOrchestrator:
         logger.warning("Context overflow detected; forcing compaction and retrying")
 
         conversation = self.state_manager.session.conversation
-        conversation.messages = list(pre_request_history)
+        apply_compaction_messages(self.state_manager, pre_request_history)
 
         forced_history = await self._force_compact_history(pre_request_history)
-        conversation.messages = forced_history
 
         agent.replace_messages(forced_history)
         self.state_manager.session._debug_raw_stream_accum = ""

@@ -7,9 +7,18 @@ from pathlib import Path
 
 import pytest
 
-from tunacode.core.compaction.controller import CompactionController
+from tunacode.core.compaction.controller import (
+    CompactionController,
+    apply_compaction_messages,
+)
 from tunacode.core.compaction.summarizer import ContextSummarizer
-from tunacode.core.compaction.types import CompactionRecord
+from tunacode.core.compaction.types import (
+    COMPACTION_REASON_ALREADY_COMPACTED,
+    COMPACTION_REASON_COMPACTED,
+    COMPACTION_STATUS_COMPACTED,
+    COMPACTION_STATUS_SKIPPED,
+    CompactionRecord,
+)
 from tunacode.core.session import StateManager
 
 KEEP_RECENT_TOKENS = 80
@@ -134,15 +143,23 @@ async def test_compaction_flow_end_to_end(tmp_path: Path, monkeypatch: pytest.Mo
     assert "...[truncated]" in serialized
 
     controller.reset_request_state()
-    compacted = await controller.check_and_compact(
+    compaction_outcome = await controller.check_and_compact(
         history,
         max_tokens=MAX_TOKENS,
         signal=None,
     )
 
+    assert compaction_outcome.status == COMPACTION_STATUS_COMPACTED
+    assert compaction_outcome.reason == COMPACTION_REASON_COMPACTED
+
+    compacted = compaction_outcome.messages
     assert compacted == history[boundary:]
     assert len(compacted) < len(history)
     assert captured_prompts, "summary model should have been called"
+
+    # Controller compaction is side-effect free for conversation history mutation.
+    assert conversation.messages == history
+    apply_compaction_messages(state_manager, compacted)
 
     record = session.compaction
     assert record is not None
@@ -154,12 +171,14 @@ async def test_compaction_flow_end_to_end(tmp_path: Path, monkeypatch: pytest.Mo
     round_trip = CompactionRecord.from_dict(record.to_dict())
     assert round_trip == record
 
-    second_attempt = await controller.check_and_compact(
+    second_outcome = await controller.check_and_compact(
         compacted,
         max_tokens=MAX_TOKENS,
         signal=None,
     )
-    assert second_attempt == compacted
+    assert second_outcome.status == COMPACTION_STATUS_SKIPPED
+    assert second_outcome.reason == COMPACTION_REASON_ALREADY_COMPACTED
+    assert second_outcome.messages == compacted
 
     transformed = controller.inject_summary_message(compacted)
     assert transformed[0]["role"] == "user"

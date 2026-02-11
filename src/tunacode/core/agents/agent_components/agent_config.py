@@ -229,13 +229,13 @@ def _build_transform_context(
     ) -> list[AgentMessage]:
         controller = get_or_create_compaction_controller(state_manager)
         session = state_manager.session
-        compacted = await controller.check_and_compact(
+        compaction_outcome = await controller.check_and_compact(
             messages,
             max_tokens=session.conversation.max_tokens,
             signal=signal,
             allow_threshold=False,
         )
-        return controller.inject_summary_message(compacted)
+        return controller.inject_summary_message(compaction_outcome.messages)
 
     return _transform_context
 

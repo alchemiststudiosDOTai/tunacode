@@ -15,11 +15,26 @@ from tunacode.configuration.models import (
     load_models_registry,
     parse_model_string,
 )
-from tunacode.types import NoticeCallback
 from tunacode.utils.messaging import estimate_messages_tokens, estimate_tokens, get_content
 
 from tunacode.core.compaction.summarizer import ContextSummarizer
-from tunacode.core.compaction.types import CompactionRecord
+from tunacode.core.compaction.types import (
+    COMPACTION_REASON_ALREADY_COMPACTED,
+    COMPACTION_REASON_AUTO_DISABLED,
+    COMPACTION_REASON_BELOW_THRESHOLD,
+    COMPACTION_REASON_COMPACTED,
+    COMPACTION_REASON_MISSING_API_KEY,
+    COMPACTION_REASON_NO_COMPACTABLE_MESSAGES,
+    COMPACTION_REASON_NO_VALID_BOUNDARY,
+    COMPACTION_REASON_SUMMARIZATION_FAILED,
+    COMPACTION_REASON_THRESHOLD_NOT_ALLOWED,
+    COMPACTION_REASON_UNSUPPORTED_PROVIDER,
+    COMPACTION_STATUS_COMPACTED,
+    COMPACTION_STATUS_FAILED,
+    COMPACTION_STATUS_SKIPPED,
+    CompactionOutcome,
+    CompactionRecord,
+)
 from tunacode.core.logging import get_logger
 from tunacode.core.tinyagent.openrouter_usage import stream_openrouter_with_usage
 from tunacode.core.types import StateManagerProtocol
@@ -27,7 +42,6 @@ from tunacode.core.types import StateManagerProtocol
 DEFAULT_KEEP_RECENT_TOKENS = 20_000
 DEFAULT_RESERVE_TOKENS = 16_384
 
-COMPACTION_NOTICE_TEXT = "Compacting context..."
 COMPACTION_SUMMARY_HEADER = "[Compaction summary]"
 COMPACTION_SUMMARY_KEY = "compaction_summary"
 
@@ -36,6 +50,37 @@ OPENROUTER_API_NAME = "openrouter"
 
 ROLE_USER = "user"
 CONTENT_TYPE_TEXT = "text"
+
+DEFAULT_MISSING_API_KEY_ENV_VAR = "OPENROUTER_API_KEY"
+
+
+class _CompactionCapabilityError(RuntimeError):
+    """Base class for expected non-fatal compaction capability skips."""
+
+    def __init__(self, *, reason: str, detail: str) -> None:
+        super().__init__(detail)
+        self.reason = reason
+        self.detail = detail
+
+
+class UnsupportedCompactionProviderError(_CompactionCapabilityError):
+    """Raised when the current model cannot run compaction summarization."""
+
+    def __init__(self, model_name: str) -> None:
+        super().__init__(
+            reason=COMPACTION_REASON_UNSUPPORTED_PROVIDER,
+            detail=model_name,
+        )
+
+
+class MissingCompactionApiKeyError(_CompactionCapabilityError):
+    """Raised when compaction summarization has no configured provider API key."""
+
+    def __init__(self, env_var: str) -> None:
+        super().__init__(
+            reason=COMPACTION_REASON_MISSING_API_KEY,
+            detail=env_var,
+        )
 
 
 class CompactionController:
@@ -62,7 +107,6 @@ class CompactionController:
         self.auto_compact = auto_compact
 
         self._compacted_this_request = False
-        self._notice_callback: NoticeCallback | None = None
         self._status_callback: CompactionStatusCallback | None = None
 
         if summarizer is None:
@@ -70,15 +114,9 @@ class CompactionController:
         else:
             self._summarizer = summarizer
 
-    def set_callbacks(
-        self,
-        *,
-        notice_callback: NoticeCallback | None,
-        status_callback: CompactionStatusCallback | None,
-    ) -> None:
-        """Set callbacks used during compaction operations."""
+    def set_status_callback(self, status_callback: CompactionStatusCallback | None) -> None:
+        """Set callback used to signal compaction in-progress status."""
 
-        self._notice_callback = notice_callback
         self._status_callback = status_callback
 
     def reset_request_state(self) -> None:
@@ -113,21 +151,21 @@ class CompactionController:
         signal: asyncio.Event | None,
         force: bool = False,
         allow_threshold: bool = True,
-    ) -> list[AgentMessage]:
-        """Compact messages if policy allows it, otherwise return unchanged messages."""
+    ) -> CompactionOutcome:
+        """Compact messages if policy allows it, otherwise return structured skip outcome."""
 
         if not force:
             if self._compacted_this_request:
-                return list(messages)
+                return self._build_skip_outcome(messages, COMPACTION_REASON_ALREADY_COMPACTED)
 
             if not allow_threshold:
-                return list(messages)
+                return self._build_skip_outcome(messages, COMPACTION_REASON_THRESHOLD_NOT_ALLOWED)
 
             if not self.auto_compact:
-                return list(messages)
+                return self._build_skip_outcome(messages, COMPACTION_REASON_AUTO_DISABLED)
 
             if not self.should_compact(messages, max_tokens=max_tokens):
-                return list(messages)
+                return self._build_skip_outcome(messages, COMPACTION_REASON_BELOW_THRESHOLD)
 
         self._compacted_this_request = True
         return await self._compact(messages, signal=signal)
@@ -138,7 +176,7 @@ class CompactionController:
         *,
         max_tokens: int,
         signal: asyncio.Event | None,
-    ) -> list[AgentMessage]:
+    ) -> CompactionOutcome:
         """Bypass threshold checks and compact immediately."""
 
         return await self.check_and_compact(
@@ -171,20 +209,20 @@ class CompactionController:
         messages: list[AgentMessage],
         *,
         signal: asyncio.Event | None,
-    ) -> list[AgentMessage]:
+    ) -> CompactionOutcome:
         logger = get_logger()
         boundary = self._summarizer.calculate_retention_boundary(messages, self.keep_recent_tokens)
 
         if boundary <= 0:
-            logger.debug("Compaction skipped: no valid retention boundary")
-            return list(messages)
+            logger.debug("Compaction skipped", reason=COMPACTION_REASON_NO_VALID_BOUNDARY)
+            return self._build_skip_outcome(messages, COMPACTION_REASON_NO_VALID_BOUNDARY)
 
         compactable_messages = messages[:boundary]
         retained_messages = list(messages[boundary:])
 
         if not compactable_messages:
-            logger.debug("Compaction skipped: no messages before retention boundary")
-            return list(messages)
+            logger.debug("Compaction skipped", reason=COMPACTION_REASON_NO_COMPACTABLE_MESSAGES)
+            return self._build_skip_outcome(messages, COMPACTION_REASON_NO_COMPACTABLE_MESSAGES)
 
         self._announce_compaction_start()
         try:
@@ -193,9 +231,26 @@ class CompactionController:
                 previous_summary=self._current_summary(),
                 signal=signal,
             )
+        except _CompactionCapabilityError as exc:
+            logger.warning(
+                "Compaction skipped: summarization capability unavailable",
+                reason=exc.reason,
+                detail=exc.detail,
+            )
+            return self._build_skip_outcome(messages, exc.reason, detail=exc.detail)
         except Exception as exc:  # noqa: BLE001 - fail-safe path
-            logger.error("Compaction summarization failed", error=str(exc))
-            return list(messages)
+            failure_detail = str(exc)
+            logger.error(
+                "Compaction summarization failed",
+                reason=COMPACTION_REASON_SUMMARIZATION_FAILED,
+                detail=failure_detail,
+            )
+            return CompactionOutcome(
+                status=COMPACTION_STATUS_FAILED,
+                reason=COMPACTION_REASON_SUMMARIZATION_FAILED,
+                detail=failure_detail,
+                messages=list(messages),
+            )
         finally:
             self._announce_compaction_end()
 
@@ -206,8 +261,26 @@ class CompactionController:
             summary=summary,
         )
 
-        self._state_manager.session.conversation.messages = retained_messages
-        return retained_messages
+        return CompactionOutcome(
+            status=COMPACTION_STATUS_COMPACTED,
+            reason=COMPACTION_REASON_COMPACTED,
+            detail=None,
+            messages=retained_messages,
+        )
+
+    def _build_skip_outcome(
+        self,
+        messages: list[AgentMessage],
+        reason: str,
+        *,
+        detail: str | None = None,
+    ) -> CompactionOutcome:
+        return CompactionOutcome(
+            status=COMPACTION_STATUS_SKIPPED,
+            reason=reason,
+            detail=detail,
+            messages=list(messages),
+        )
 
     def _current_summary(self) -> str | None:
         record = self._state_manager.session.compaction
@@ -216,11 +289,9 @@ class CompactionController:
         return record.summary
 
     def _announce_compaction_start(self) -> None:
-        if self._status_callback is not None:
-            self._status_callback(True)
-
-        if self._notice_callback is not None:
-            self._notice_callback(COMPACTION_NOTICE_TEXT)
+        if self._status_callback is None:
+            return
+        self._status_callback(True)
 
     def _announce_compaction_end(self) -> None:
         if self._status_callback is None:
@@ -286,10 +357,7 @@ class CompactionController:
         provider_id, model_id = parse_model_string(model_name)
 
         if provider_id != OPENROUTER_PROVIDER_ID:
-            raise ValueError(
-                "Compaction summarization currently supports only openrouter models; "
-                f"got {model_name!r}"
-            )
+            raise UnsupportedCompactionProviderError(model_name)
 
         return Model(
             provider=provider_id,
@@ -308,11 +376,11 @@ class CompactionController:
 
         raw_value = env_config.get(env_var)
         if not isinstance(raw_value, str):
-            raise ValueError(f"Missing API key: {env_var}")
+            raise MissingCompactionApiKeyError(env_var)
 
         api_key = raw_value.strip()
         if not api_key:
-            raise ValueError(f"Missing API key: {env_var}")
+            raise MissingCompactionApiKeyError(env_var)
 
         return api_key
 
@@ -333,6 +401,39 @@ def get_or_create_compaction_controller(
     controller = CompactionController(state_manager=state_manager)
     session._compaction_controller = controller
     return controller
+
+
+def apply_compaction_messages(
+    state_manager: StateManagerProtocol,
+    messages: list[AgentMessage],
+) -> list[AgentMessage]:
+    """Apply compaction output to session conversation with one shared write path."""
+
+    applied_messages = list(messages)
+    state_manager.session.conversation.messages = applied_messages
+    return applied_messages
+
+
+def build_compaction_notice(outcome: CompactionOutcome) -> str | None:
+    """Return a user-facing notice for explicit compaction skip/failure outcomes."""
+
+    reason = outcome.reason
+
+    if reason == COMPACTION_REASON_UNSUPPORTED_PROVIDER:
+        current_model = outcome.detail or "<unknown-model>"
+        return (
+            "Compaction skipped: summarization supports only openrouter models "
+            f"(current model: {current_model})."
+        )
+
+    if reason == COMPACTION_REASON_MISSING_API_KEY:
+        missing_env_var = outcome.detail or DEFAULT_MISSING_API_KEY_ENV_VAR
+        return f"Compaction skipped: missing API key ({missing_env_var})."
+
+    if reason == COMPACTION_REASON_SUMMARIZATION_FAILED:
+        return "Compaction failed during summarization; keeping existing history."
+
+    return None
 
 
 def _is_compaction_summary_message(message: AgentMessage) -> bool:

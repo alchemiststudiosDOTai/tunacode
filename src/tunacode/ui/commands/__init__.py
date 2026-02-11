@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
 
 from tunacode.core.ui_api.configuration import ApplicationSettings
 
+from tunacode.ui.commands.base import Command
 from tunacode.ui.commands.compact import CompactCommand
 from tunacode.ui.styles import STYLE_PRIMARY
 
@@ -36,19 +36,6 @@ def _get_package_manager_command(package: str) -> tuple[list[str], str] | None:
         return ([pip_path, "install", "--upgrade", package], "pip")
 
     return None
-
-
-class Command(ABC):
-    """Base class for REPL commands."""
-
-    name: str
-    description: str
-    usage: str = ""
-
-    @abstractmethod
-    async def execute(self, app: TextualReplApp, args: str) -> None:
-        """Execute the command."""
-        pass
 
 
 class HelpCommand(Command):
@@ -511,7 +498,7 @@ class UpdateCommand(Command):
 COMMANDS: dict[str, Command] = {
     "help": HelpCommand(),
     "clear": ClearCommand(),
-    "compact": cast(Command, CompactCommand()),
+    "compact": CompactCommand(),
     "debug": DebugCommand(),
     "model": ModelCommand(),
     "theme": ThemeCommand(),

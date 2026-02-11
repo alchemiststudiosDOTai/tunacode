@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
+
+from tinyagent.agent_types import AgentMessage
 
 KEY_SUMMARY = "summary"
 KEY_COMPACTED_MESSAGE_COUNT = "compacted_message_count"
@@ -13,8 +15,69 @@ KEY_COMPACTION_COUNT = "compaction_count"
 KEY_PREVIOUS_SUMMARY = "previous_summary"
 KEY_LAST_COMPACTED_AT = "last_compacted_at"
 
+COMPACTION_STATUS_COMPACTED = "compacted"
+COMPACTION_STATUS_SKIPPED = "skipped"
+COMPACTION_STATUS_FAILED = "failed"
 
-__all__: list[str] = ["CompactionRecord"]
+COMPACTION_REASON_COMPACTED = "compacted"
+COMPACTION_REASON_ALREADY_COMPACTED = "already_compacted_this_request"
+COMPACTION_REASON_THRESHOLD_NOT_ALLOWED = "threshold_compaction_not_allowed"
+COMPACTION_REASON_AUTO_DISABLED = "auto_compaction_disabled"
+COMPACTION_REASON_BELOW_THRESHOLD = "below_threshold"
+COMPACTION_REASON_NO_VALID_BOUNDARY = "no_valid_boundary"
+COMPACTION_REASON_NO_COMPACTABLE_MESSAGES = "no_compactable_messages"
+COMPACTION_REASON_UNSUPPORTED_PROVIDER = "unsupported_provider"
+COMPACTION_REASON_MISSING_API_KEY = "missing_api_key"
+COMPACTION_REASON_SUMMARIZATION_FAILED = "summarization_failed"
+
+COMPACTION_CAPABILITY_SKIP_REASONS: frozenset[str] = frozenset(
+    {
+        COMPACTION_REASON_UNSUPPORTED_PROVIDER,
+        COMPACTION_REASON_MISSING_API_KEY,
+    }
+)
+
+CompactionStatus = Literal[
+    "compacted",
+    "skipped",
+    "failed",
+]
+
+
+__all__: list[str] = [
+    "COMPACTION_CAPABILITY_SKIP_REASONS",
+    "COMPACTION_REASON_ALREADY_COMPACTED",
+    "COMPACTION_REASON_AUTO_DISABLED",
+    "COMPACTION_REASON_BELOW_THRESHOLD",
+    "COMPACTION_REASON_COMPACTED",
+    "COMPACTION_REASON_MISSING_API_KEY",
+    "COMPACTION_REASON_NO_COMPACTABLE_MESSAGES",
+    "COMPACTION_REASON_NO_VALID_BOUNDARY",
+    "COMPACTION_REASON_SUMMARIZATION_FAILED",
+    "COMPACTION_REASON_THRESHOLD_NOT_ALLOWED",
+    "COMPACTION_REASON_UNSUPPORTED_PROVIDER",
+    "COMPACTION_STATUS_COMPACTED",
+    "COMPACTION_STATUS_FAILED",
+    "COMPACTION_STATUS_SKIPPED",
+    "CompactionOutcome",
+    "CompactionRecord",
+]
+
+
+@dataclass(slots=True)
+class CompactionOutcome:
+    """Result contract for a compaction attempt."""
+
+    status: CompactionStatus
+    reason: str
+    detail: str | None
+    messages: list[AgentMessage]
+
+    @property
+    def is_capability_skip(self) -> bool:
+        """Return True when compaction skipped because summarization capability is unavailable."""
+
+        return self.reason in COMPACTION_CAPABILITY_SKIP_REASONS
 
 
 @dataclass(slots=True)
