@@ -350,7 +350,6 @@ class RequestOrchestrator:
         runtime.tool_registry.clear()
         runtime.batch_counter = 0
         runtime.consecutive_empty_responses = 0
-        session.task.original_query = ""
         session.usage.last_call_usage = UsageMetrics()
 
     def _set_original_query_once(self) -> None:
