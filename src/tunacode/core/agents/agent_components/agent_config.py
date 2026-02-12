@@ -13,8 +13,9 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, cast
 
-from tinyagent import Agent, AgentOptions, OpenRouterModel, stream_openrouter
+from tinyagent import Agent, AgentOptions, OpenRouterModel
 from tinyagent.agent_types import AgentMessage, AgentTool, ThinkingLevel
+from tinyagent.alchemy_provider import stream_alchemy_openrouter
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -279,7 +280,7 @@ def _build_stream_fn(
         if max_tokens is not None:
             options = {**options, "max_tokens": max_tokens}
 
-        return await stream_openrouter(model, context, options)
+        return await stream_alchemy_openrouter(model, context, options)
 
     return _stream
 
