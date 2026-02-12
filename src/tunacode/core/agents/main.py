@@ -115,14 +115,75 @@ def _is_context_overflow_error(error_text: str) -> bool:
     return any(pattern in normalized_error for pattern in CONTEXT_OVERFLOW_PATTERNS)
 
 
+USAGE_PROMPT_TOKEN_KEYS: tuple[str, ...] = (
+    "prompt_tokens",
+    "promptTokens",
+    "input",
+    "input_tokens",
+    "inputTokens",
+)
+USAGE_COMPLETION_TOKEN_KEYS: tuple[str, ...] = (
+    "completion_tokens",
+    "completionTokens",
+    "output",
+    "output_tokens",
+    "outputTokens",
+)
+USAGE_CACHE_READ_KEYS: tuple[str, ...] = (
+    "cacheRead",
+    "cache_read",
+    "cache_read_input_tokens",
+    "cacheReadInputTokens",
+)
+USAGE_PROMPT_DETAILS_KEYS: tuple[str, ...] = (
+    "prompt_tokens_details",
+    "promptTokensDetails",
+)
+USAGE_PROMPT_DETAILS_CACHED_KEYS: tuple[str, ...] = (
+    "cached_tokens",
+    "cachedTokens",
+)
+USAGE_COST_KEYS: tuple[str, ...] = ("cost", "total_cost", "totalCost")
+USAGE_COST_TOTAL_KEYS: tuple[str, ...] = ("total", "total_cost", "totalCost")
+USAGE_COST_INPUT_KEYS: tuple[str, ...] = ("input",)
+USAGE_COST_OUTPUT_KEYS: tuple[str, ...] = ("output",)
+USAGE_COST_CACHE_READ_KEYS: tuple[str, ...] = ("cache_read", "cacheRead")
+USAGE_COST_CACHE_WRITE_KEYS: tuple[str, ...] = ("cache_write", "cacheWrite")
+
+
+def _first_present(mapping: dict[str, object], keys: tuple[str, ...]) -> object | None:
+    for key in keys:
+        if key in mapping:
+            return mapping[key]
+    return None
+
+
+def _parse_usage_cost(raw_usage: dict[str, object]) -> float:
+    raw_cost = _first_present(raw_usage, USAGE_COST_KEYS)
+    if not isinstance(raw_cost, dict):
+        return _coerce_float(raw_cost)
+
+    cost_dict = cast(dict[str, object], raw_cost)
+    total_cost = _first_present(cost_dict, USAGE_COST_TOTAL_KEYS)
+    if total_cost is not None:
+        return _coerce_float(total_cost)
+
+    input_cost = _coerce_float(_first_present(cost_dict, USAGE_COST_INPUT_KEYS))
+    output_cost = _coerce_float(_first_present(cost_dict, USAGE_COST_OUTPUT_KEYS))
+    cache_read_cost = _coerce_float(_first_present(cost_dict, USAGE_COST_CACHE_READ_KEYS))
+    cache_write_cost = _coerce_float(_first_present(cost_dict, USAGE_COST_CACHE_WRITE_KEYS))
+    return input_cost + output_cost + cache_read_cost + cache_write_cost
+
+
 def _parse_openrouter_usage(raw_usage: object) -> UsageMetrics | None:
-    """Parse OpenRouter streaming usage dict into canonical UsageMetrics.
+    """Parse provider usage dict into canonical UsageMetrics.
 
-    Accepts both raw OpenRouter SSE payloads and tinyagent's normalized
-    ``_build_usage_dict`` format:
+    Supports all known tinyagent usage shapes:
 
-    Raw keys:     prompt_tokens, completion_tokens, prompt_tokens_details.cached_tokens
-    Normalized:   prompt_tokens (alias), completion_tokens (alias), cacheRead
+    - OpenRouter raw SSE: ``prompt_tokens``, ``completion_tokens``,
+      ``prompt_tokens_details.cached_tokens``
+    - tinyagent normalized OpenRouter: ``prompt_tokens``, ``completion_tokens``, ``cacheRead``
+    - alchemy (Rust) stream result: ``input``, ``output``, ``cache_read``, ``cost.total``
 
     If everything is zero/missing, returns None.
     """
@@ -130,20 +191,19 @@ def _parse_openrouter_usage(raw_usage: object) -> UsageMetrics | None:
     if not isinstance(raw_usage, dict):
         return None
 
-    prompt_tokens = _coerce_int(raw_usage.get("prompt_tokens") or raw_usage.get("promptTokens"))
-    completion_tokens = _coerce_int(
-        raw_usage.get("completion_tokens") or raw_usage.get("completionTokens")
-    )
+    usage_dict = cast(dict[str, object], raw_usage)
 
-    # Normalized format: cacheRead at top level.
-    # Raw format: prompt_tokens_details.cached_tokens nested.
-    cached_tokens = _coerce_int(raw_usage.get("cacheRead"))
+    prompt_tokens = _coerce_int(_first_present(usage_dict, USAGE_PROMPT_TOKEN_KEYS))
+    completion_tokens = _coerce_int(_first_present(usage_dict, USAGE_COMPLETION_TOKEN_KEYS))
+
+    cached_tokens = _coerce_int(_first_present(usage_dict, USAGE_CACHE_READ_KEYS))
     if cached_tokens == 0:
-        details = raw_usage.get("prompt_tokens_details") or raw_usage.get("promptTokensDetails")
-        if isinstance(details, dict):
-            cached_tokens = _coerce_int(details.get("cached_tokens") or details.get("cachedTokens"))
+        raw_details = _first_present(usage_dict, USAGE_PROMPT_DETAILS_KEYS)
+        if isinstance(raw_details, dict):
+            details = cast(dict[str, object], raw_details)
+            cached_tokens = _coerce_int(_first_present(details, USAGE_PROMPT_DETAILS_CACHED_KEYS))
 
-    cost = _coerce_float(raw_usage.get("cost") or raw_usage.get("total_cost"))
+    cost = _parse_usage_cost(usage_dict)
 
     if prompt_tokens == 0 and completion_tokens == 0 and cached_tokens == 0 and cost == 0.0:
         return None
@@ -180,6 +240,7 @@ class _TinyAgentStreamState:
     runtime: RuntimeState
     tool_start_times: dict[str, float]
     last_assistant_message: dict[str, Any] | None = None
+    last_recorded_usage_id: int | None = None
 
 
 class EmptyResponseHandler:
@@ -534,6 +595,14 @@ class RequestOrchestrator:
     ) -> bool:
         _ = baseline_message_count
 
+        turn_message = getattr(event_obj, "message", None)
+        if isinstance(turn_message, dict):
+            self._record_usage_from_assistant_message(
+                cast(dict[str, Any], turn_message),
+                source_event="turn_end",
+                stream_state=state,
+            )
+
         state.runtime.iteration_count += 1
         state.runtime.current_iteration = state.runtime.iteration_count
 
@@ -556,6 +625,53 @@ class RequestOrchestrator:
         await self._handle_message_update(event_obj)
         return False
 
+    def _record_usage_from_assistant_message(
+        self,
+        message: dict[str, Any],
+        *,
+        source_event: str,
+        stream_state: _TinyAgentStreamState | None = None,
+    ) -> None:
+        if message.get("role") != "assistant":
+            return
+
+        raw_usage = message.get("usage")
+        if not isinstance(raw_usage, dict):
+            logger = get_logger()
+            logger.warning(
+                "Assistant message missing usage payload",
+                source_event=source_event,
+                usage_type=type(raw_usage).__name__,
+            )
+            return
+
+        usage = _parse_openrouter_usage(raw_usage)
+        if usage is None:
+            logger = get_logger()
+            usage_keys = sorted(raw_usage.keys())
+            logger.warning(
+                "Assistant usage payload did not match known schema",
+                source_event=source_event,
+                usage_keys=usage_keys,
+                usage_payload=raw_usage,
+            )
+            return
+
+        session = self.state_manager.session
+        session.usage.last_call_usage = usage
+
+        usage_id = id(raw_usage)
+        already_recorded = (
+            stream_state is not None and stream_state.last_recorded_usage_id == usage_id
+        )
+        if already_recorded:
+            return
+
+        if stream_state is not None:
+            stream_state.last_recorded_usage_id = usage_id
+
+        session.usage.session_total_usage.add(usage)
+
     async def _handle_stream_message_end(
         self,
         event_obj: object,
@@ -575,14 +691,11 @@ class RequestOrchestrator:
             return False
 
         state.last_assistant_message = cast(dict[str, Any], msg)
-
-        usage = _parse_openrouter_usage(msg.get("usage"))
-        if usage is None:
-            return False
-
-        session = self.state_manager.session
-        session.usage.last_call_usage = usage
-        session.usage.session_total_usage.add(usage)
+        self._record_usage_from_assistant_message(
+            cast(dict[str, Any], msg),
+            source_event="message_end",
+            stream_state=state,
+        )
 
         return False
 
