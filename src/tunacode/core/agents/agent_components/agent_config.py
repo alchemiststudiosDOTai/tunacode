@@ -13,16 +13,18 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, cast
 
-from tinyagent import Agent, AgentOptions
-from tinyagent.agent_types import AgentMessage, AgentTool, Model, ThinkingLevel
+from tinyagent import Agent, AgentOptions, OpenRouterModel, stream_openrouter
+from tinyagent.agent_types import AgentMessage, AgentTool, ThinkingLevel
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
+    get_provider_base_url,
     get_provider_env_var,
     load_models_registry,
     parse_model_string,
 )
 from tunacode.configuration.user_config import load_config
+from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.types import ModelName
 
 from tunacode.tools.bash import bash
@@ -41,14 +43,11 @@ from tunacode.infrastructure.cache.caches import tunacode_context as context_cac
 from tunacode.core.compaction.controller import get_or_create_compaction_controller
 from tunacode.core.logging import get_logger
 from tunacode.core.tinyagent import ensure_tinyagent_importable
-
-# NOTE: Temporary shim.
-# tinyagent's OpenRouter provider currently does not attach token usage to the final
-# assistant message when streaming. TunaCode needs completion_tokens to render t/s.
-# We wrap the provider to capture SSE `usage` and attach it to message["usage"].
-# Remove once tinyagent fixes this upstream.
-from tunacode.core.tinyagent.openrouter_usage import stream_openrouter_with_usage
 from tunacode.core.types import SessionStateProtocol, StateManagerProtocol
+
+ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
+OPENAI_CHAT_COMPLETIONS_PATH = "/chat/completions"
+OPENROUTER_PROVIDER_ID = "openrouter"
 
 
 async def _sleep_with_delay(total_delay: float) -> None:
@@ -187,16 +186,81 @@ def _build_tools() -> list[AgentTool]:
     ]
 
 
-def _build_api_key_resolver(session: SessionStateProtocol) -> Callable[[str], str | None]:
-    env = session.user_config.get("env", {})
+def _normalize_chat_completions_url(base_url: str | None) -> str | None:
+    if not isinstance(base_url, str):
+        return None
 
-    def _resolve(provider_id: str) -> str | None:
-        env_var = get_provider_env_var(provider_id)
-        value = env.get(env_var)
+    stripped = base_url.strip()
+    if not stripped:
+        return None
+
+    if stripped.endswith(OPENAI_CHAT_COMPLETIONS_PATH):
+        return stripped
+
+    return f"{stripped.rstrip('/')}{OPENAI_CHAT_COMPLETIONS_PATH}"
+
+
+def _resolve_base_url(session: SessionStateProtocol, provider_id: str) -> str | None:
+    """Resolve model base URL with explicit override-first precedence.
+
+    Precedence order:
+    1) ``OPENAI_BASE_URL`` from session config
+    2) provider API URL from models registry
+    3) tinyagent OpenRouterModel default (returned as None here)
+    """
+
+    env_config = session.user_config.get("env", {})
+    if not isinstance(env_config, dict):
+        raise TypeError("session.user_config['env'] must be a dict")
+
+    configured_base_url = _normalize_chat_completions_url(env_config.get(ENV_OPENAI_BASE_URL))
+    if configured_base_url is not None:
+        return configured_base_url
+
+    load_models_registry()
+    provider_base_url = get_provider_base_url(provider_id)
+    return _normalize_chat_completions_url(provider_base_url)
+
+
+def _require_provider_base_url(provider_id: str, base_url: str | None) -> str | None:
+    if base_url is not None:
+        return base_url
+
+    if provider_id == OPENROUTER_PROVIDER_ID:
+        return None
+
+    raise ValueError(
+        "Provider has no configured API base URL. "
+        f"Set {ENV_OPENAI_BASE_URL} or add provider.api to models_registry for '{provider_id}'."
+    )
+
+
+def _build_api_key_resolver(session: SessionStateProtocol) -> Callable[[str], str | None]:
+    env_config = session.user_config.get("env", {})
+    if not isinstance(env_config, dict):
+        raise TypeError("session.user_config['env'] must be a dict")
+
+    def _read_env_api_key(env_var: str) -> str | None:
+        value = env_config.get(env_var)
         if not isinstance(value, str):
             return None
+
         stripped = value.strip()
-        return stripped if stripped else None
+        if not stripped:
+            return None
+
+        return stripped
+
+    def _resolve(provider_id: str) -> str | None:
+        provider_env_var = get_provider_env_var(provider_id)
+        provider_api_key = _read_env_api_key(provider_env_var)
+        if provider_api_key is not None:
+            return provider_api_key
+
+        if provider_env_var == ENV_OPENAI_API_KEY:
+            return None
+
+        return _read_env_api_key(ENV_OPENAI_API_KEY)
 
     return _resolve
 
@@ -215,7 +279,7 @@ def _build_stream_fn(
         if max_tokens is not None:
             options = {**options, "max_tokens": max_tokens}
 
-        return await stream_openrouter_with_usage(model, context, options)
+        return await stream_openrouter(model, context, options)
 
     return _stream
 
@@ -240,25 +304,27 @@ def _build_transform_context(
     return _transform_context
 
 
-def _build_tinyagent_model(model: ModelName) -> Model:
-    """Convert a TunaCode ModelName into a tinyagent Model.
+def _build_tinyagent_model(
+    model: ModelName,
+    session: SessionStateProtocol,
+) -> OpenRouterModel:
+    """Convert a TunaCode ModelName into a tinyagent OpenRouterModel.
 
-    Locked decision for this migration stage:
-        - only ``openrouter:...`` models are supported.
+    Resolves base URL with the following order:
+    1) ``OPENAI_BASE_URL`` from session config
+    2) provider API URL from models registry (normalized to `/chat/completions`)
+    3) tinyagent OpenRouterModel default when neither is available
     """
 
     provider_id, model_id = parse_model_string(model)
+    resolved_base_url = _resolve_base_url(session, provider_id)
+    base_url = _require_provider_base_url(provider_id, resolved_base_url)
 
-    if provider_id != "openrouter":
-        raise ValueError(
-            f"Only 'openrouter:' models are supported in tinyagent mode. Got: {model!r}"
-        )
-
-    return Model(
+    return OpenRouterModel(
         provider=provider_id,
         id=model_id,
-        api="openrouter",
         thinking_level=ThinkingLevel.OFF,
+        **({"base_url": base_url} if base_url else {}),
     )
 
 
@@ -313,7 +379,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
 
     agent = Agent(opts)
     agent.set_system_prompt(system_prompt)
-    agent.set_model(_build_tinyagent_model(model))
+    agent.set_model(_build_tinyagent_model(model, session))
     agent.set_tools(tools_list)
 
     agents_cache.set_agent(model, agent=agent, version=agent_version)

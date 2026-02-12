@@ -38,3 +38,20 @@ def test_parse_openrouter_usage_supports_camelcase_keys_and_cost() -> None:
         cached_tokens=7,
         cost=0.02,
     )
+
+
+def test_parse_openrouter_usage_supports_normalized_cache_read() -> None:
+    raw = {
+        "prompt_tokens": 11,
+        "completion_tokens": 9,
+        "cacheRead": 4,
+    }
+
+    metrics = agents_main._parse_openrouter_usage(raw)
+
+    assert metrics == UsageMetrics(
+        prompt_tokens=11,
+        completion_tokens=9,
+        cached_tokens=4,
+        cost=0.0,
+    )
