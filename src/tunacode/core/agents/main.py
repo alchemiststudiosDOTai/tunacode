@@ -472,6 +472,15 @@ class RequestOrchestrator:
 
     def _configure_compaction_callbacks(self) -> None:
         self.compaction_controller.set_status_callback(self.compaction_status_callback)
+        self.compaction_controller.set_usage_callback(self._record_compaction_usage)
+
+    def _record_compaction_usage(self, raw_usage: dict[str, Any]) -> None:
+        """Record usage from a compaction LLM call into session totals."""
+        usage = _parse_openrouter_usage(raw_usage)
+        if usage is None:
+            return
+        session = self.state_manager.session
+        session.usage.session_total_usage.add(usage)
 
     def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
         if self.notice_callback is None:

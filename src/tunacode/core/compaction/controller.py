@@ -7,8 +7,9 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from tinyagent import OpenRouterModel, stream_openrouter
+from tinyagent import OpenRouterModel
 from tinyagent.agent_types import AgentMessage, Context, SimpleStreamOptions, ThinkingLevel
+from tinyagent.alchemy_provider import stream_alchemy_openrouter
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -110,6 +111,7 @@ class CompactionController:
 
         self._compacted_this_request = False
         self._status_callback: CompactionStatusCallback | None = None
+        self._on_usage: Callable[[dict[str, Any]], None] | None = None
 
         if summarizer is None:
             self._summarizer = ContextSummarizer(self._generate_summary)
@@ -120,6 +122,11 @@ class CompactionController:
         """Set callback used to signal compaction in-progress status."""
 
         self._status_callback = status_callback
+
+    def set_usage_callback(self, on_usage: Callable[[dict[str, Any]], None] | None) -> None:
+        """Set callback invoked with the raw usage dict after compaction LLM calls."""
+
+        self._on_usage = on_usage
 
     def reset_request_state(self) -> None:
         """Reset per-request idempotency guard."""
@@ -345,14 +352,26 @@ class CompactionController:
             "max_tokens": get_max_tokens(),
         }
 
-        response = await stream_openrouter(model, context, options)
+        response = await stream_alchemy_openrouter(model, context, options)
         final_message = await response.result()
+
+        self._emit_usage(final_message)
 
         summary = get_content(final_message).strip()
         if not summary:
             raise RuntimeError("Summary model returned empty content")
 
         return summary
+
+    def _emit_usage(self, message: dict[str, Any]) -> None:
+        if self._on_usage is None:
+            return
+
+        raw_usage = message.get("usage")
+        if not isinstance(raw_usage, dict):
+            return
+
+        self._on_usage(raw_usage)
 
     def _build_model(self) -> OpenRouterModel:
         model_name = self._state_manager.session.current_model
