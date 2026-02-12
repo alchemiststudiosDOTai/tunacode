@@ -31,7 +31,7 @@ from tunacode.core.ui_api.constants import (
     build_tunacode_theme,
     wrap_builtin_themes,
 )
-from tunacode.core.ui_api.messaging import estimate_messages_tokens
+from tunacode.core.ui_api.messaging import estimate_messages_tokens, estimate_tokens
 from tunacode.core.ui_api.shared_types import ModelName
 
 from tunacode.ui.esc.handler import EscHandler
@@ -57,6 +57,8 @@ from tunacode.ui.widgets import (
     StatusBar,
     ToolResultDisplay,
 )
+
+MIN_NONEMPTY_OUTPUT_TOKENS = 1
 
 
 class TextualReplApp(App[None]):
@@ -209,6 +211,9 @@ class TextualReplApp(App[None]):
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
 
+        latest_response_before_request = self._get_latest_assistant_response()
+        request_succeeded = False
+
         try:
             model_name = session.current_model or "openai/gpt-4o"
 
@@ -226,6 +231,7 @@ class TextualReplApp(App[None]):
                 )
             )
             await self._current_request_task
+            request_succeeded = True
         except asyncio.CancelledError:
             self.notify("Cancelled")
         except Exception as e:
@@ -244,18 +250,26 @@ class TextualReplApp(App[None]):
             self._last_stream_update = 0.0
             self._update_compaction_status(False)
 
-            output_text = self._get_latest_response_text()
+            latest_response_after_request = self._get_latest_assistant_response()
+            should_render_response = (
+                request_succeeded
+                and latest_response_after_request is not None
+                and latest_response_after_request != latest_response_before_request
+            )
 
-            if output_text is not None:
+            if should_render_response:
+                output_text, _ = latest_response_after_request
+
                 from tunacode.ui.renderers.agent_response import render_agent_response
 
                 duration_ms = (time.monotonic() - self._request_start_time) * 1000
-                session = self.state_manager.session
-                tokens = session.usage.last_call_usage.completion_tokens
+                estimated_output_tokens = estimate_tokens(output_text)
+                if output_text.strip() and estimated_output_tokens == 0:
+                    estimated_output_tokens = MIN_NONEMPTY_OUTPUT_TOKENS
 
                 content, meta = render_agent_response(
                     content=output_text,
-                    tokens=tokens,
+                    tokens=estimated_output_tokens,
                     duration_ms=duration_ms,
                 )
                 self.chat_container.write("")
@@ -267,7 +281,7 @@ class TextualReplApp(App[None]):
             # Auto-save session after processing
             await self.state_manager.save_session()
 
-    def _get_latest_response_text(self) -> str | None:
+    def _get_latest_assistant_response(self) -> tuple[str, str] | None:
         from tunacode.core.ui_api.messaging import get_content
 
         messages = self.state_manager.session.conversation.messages
@@ -280,8 +294,14 @@ class TextualReplApp(App[None]):
 
             raw_content = get_content(message)
             normalized_content = raw_content.strip()
-            if normalized_content:
-                return normalized_content
+            if not normalized_content:
+                continue
+
+            stop_reason = message.get("stop_reason")
+            usage = message.get("usage")
+            timestamp = message.get("timestamp")
+            signature = f"{normalized_content}|{stop_reason!r}|{usage!r}|{timestamp!r}"
+            return normalized_content, signature
 
         return None
 
@@ -406,6 +426,7 @@ class TextualReplApp(App[None]):
             model=session.current_model or "No model selected",
             tokens=estimated_tokens,
             max_tokens=conversation.max_tokens or 200000,
+            session_cost=session.usage.session_total_usage.cost,
         )
 
     async def _streaming_callback(self, chunk: str) -> None:
@@ -417,23 +438,19 @@ class TextualReplApp(App[None]):
         Args:
             chunk: Text delta from the streaming response.
         """
-        try:
-            self._stream_buffer.append(chunk)
+        self._stream_buffer.append(chunk)
 
-            is_first_chunk = not self._stream_active
-            if is_first_chunk:
-                self._stream_active = True
-                self.streaming_output.add_class("active")
-                self.loading_indicator.remove_class("active")
+        is_first_chunk = not self._stream_active
+        if is_first_chunk:
+            self._stream_active = True
+            self.streaming_output.add_class("active")
+            self.loading_indicator.remove_class("active")
 
-            now = time.monotonic()
-            elapsed_ms = (now - self._last_stream_update) * 1000
-            if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:
-                self._last_stream_update = now
-                self.streaming_output.update("".join(self._stream_buffer))
-        except Exception:
-            # Silently drop UI errors to avoid breaking agent loop
-            pass
+        now = time.monotonic()
+        elapsed_ms = (now - self._last_stream_update) * 1000
+        if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:
+            self._last_stream_update = now
+            self.streaming_output.update("".join(self._stream_buffer))
 
     def update_lsp_for_file(self, filepath: str) -> None:
         """Update ResourceBar LSP status based on file type.
