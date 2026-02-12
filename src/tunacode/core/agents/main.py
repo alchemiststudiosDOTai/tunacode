@@ -657,10 +657,12 @@ class RequestOrchestrator:
         raw_usage = message.get("usage")
         if not isinstance(raw_usage, dict):
             logger = get_logger()
+            message_keys = sorted(message.keys())
             logger.warning(
                 "Assistant message missing usage payload",
                 source_event=source_event,
                 usage_type=type(raw_usage).__name__,
+                message_keys=message_keys,
             )
             return
 
