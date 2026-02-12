@@ -7,39 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.62] - 2026-02-11
+
 ### Added
 - **Core Agent**: Migrated from pydantic-ai to [tinyagent](https://github.com/alchemiststudios.ai/tinyAgent) as the core agent loop
 - **Text Selection**: Copy-on-select functionality - automatically copies highlighted text to clipboard on mouse release
 - **Visual Styling**: SelectableRichVisual for text selection in Rich renderables
 - **CSS-Based Theming**: Textual CSS styling system with 5 stylesheet files (panels, theme-nextstep, layout, widgets, modals)
 - **NeXTSTEP Theme**: 3D bevel borders with light top/left and dark bottom/right for raised effect
-- **Cache Infrastructure**: CacheManager singleton with typed accessors for agents, context, ignore manager, ripgrep, and XML prompts
-- **Cache Strategies**: MtimeStrategy for file-based cache invalidation (AGENTS.md, .gitignore, XML prompts)
-- **Testing**: End-to-end tests for mtime-driven caches
 - **Context Management**: Context compaction system with overflow retry capabilities
 - **Token Tracking**: OpenRouter token usage tracking for streaming responses
-- **UI Components**: Theme variable contract tests and architecture documentation
+- **Models Registry**: Expanded models_registry.json with full provider catalog and API URL routing
+- **Provider Routing**: Native TinyAgent `OpenRouterModel(base_url)` for provider API URL routing
 
 ### Changed
 - **BREAKING**: Agent session persistence uses dict messages only - existing sessions may not load correctly
 - **BREAKING**: Tool execution is now sequential (was parallel via custom orchestrator)
 - Replaced Rich Panel wrappers with CSS-based PanelMeta pattern
-- Migrated all lru_cache decorators to CacheManager layer with typed accessors
 - Agent creation now constructs tinyagent.Agent with AgentOptions
 - Revamped theme architecture with CSS variable-based theming system
 - Updated layout, panels, and widget styles for improved visual consistency
+- Bumped tiny-agent-os to v1.1.3 (includes Rust bindings)
 
 ### Removed
 - Orchestrator and tool dispatcher components (tinyagent handles tool execution)
 - Streaming components (pydantic-ai specific)
 - Tool executor (tinyagent owns tool execution)
-- Token pruning/compaction features
-- Rolling summaries
-- Parallel tool execution support
-- pydantic-ai dependency (replaced with tiny-agent-os==1.1.0)
+- pydantic-ai dependency (replaced with tiny-agent-os)
 
 ### Fixed
-- Satisfied pre-commit dead code checks
 - Restored status bar content row with top bevel
 
 ## [0.1.61] - 2026-02-06
