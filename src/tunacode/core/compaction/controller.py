@@ -12,6 +12,7 @@ from tinyagent.agent_types import AgentMessage, Context, SimpleStreamOptions, Th
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
+    get_provider_base_url,
     get_provider_env_var,
     load_models_registry,
     parse_model_string,
@@ -46,13 +47,13 @@ DEFAULT_RESERVE_TOKENS = 16_384
 COMPACTION_SUMMARY_HEADER = "[Compaction summary]"
 COMPACTION_SUMMARY_KEY = "compaction_summary"
 
-OPENROUTER_PROVIDER_ID = "openrouter"
-OPENROUTER_API_NAME = "openrouter"
-
 ROLE_USER = "user"
 CONTENT_TYPE_TEXT = "text"
+ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
+OPENAI_CHAT_COMPLETIONS_PATH = "/chat/completions"
+OPENROUTER_PROVIDER_ID = "openrouter"
 
-DEFAULT_MISSING_API_KEY_ENV_VAR = "OPENROUTER_API_KEY"
+DEFAULT_MISSING_API_KEY_ENV_VAR = ENV_OPENAI_API_KEY
 
 
 class _CompactionCapabilityError(RuntimeError):
@@ -65,12 +66,12 @@ class _CompactionCapabilityError(RuntimeError):
 
 
 class UnsupportedCompactionProviderError(_CompactionCapabilityError):
-    """Raised when the current model cannot run compaction summarization."""
+    """Raised when compaction provider lacks a usable OpenAI-compatible endpoint."""
 
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, provider_id: str) -> None:
         super().__init__(
             reason=COMPACTION_REASON_UNSUPPORTED_PROVIDER,
-            detail=model_name,
+            detail=provider_id,
         )
 
 
@@ -356,11 +357,8 @@ class CompactionController:
     def _build_model(self) -> OpenRouterModel:
         model_name = self._state_manager.session.current_model
         provider_id, model_id = parse_model_string(model_name)
-
-        if provider_id != OPENROUTER_PROVIDER_ID:
-            raise UnsupportedCompactionProviderError(model_name)
-
-        base_url = self._resolve_base_url()
+        resolved_base_url = self._resolve_base_url(provider_id)
+        base_url = self._require_provider_base_url(provider_id, resolved_base_url)
 
         return OpenRouterModel(
             provider=provider_id,
@@ -369,31 +367,72 @@ class CompactionController:
             **({"base_url": base_url} if base_url else {}),
         )
 
-    def _resolve_base_url(self) -> str | None:
-        """Return OPENAI_BASE_URL from session config, or None if unset."""
-
-        env = self._state_manager.session.user_config.get("env", {})
-        raw = env.get(ENV_OPENAI_BASE_URL)
-        if not isinstance(raw, str):
-            return None
-        stripped = raw.strip()
-        return stripped if stripped else None
-
-    def _resolve_api_key(self, provider_id: str) -> str:
-        load_models_registry()
-        env_var = get_provider_env_var(provider_id)
+    def _resolve_base_url(self, provider_id: str) -> str | None:
+        """Resolve model base URL with explicit override-first precedence."""
 
         env_config = self._state_manager.session.user_config.get("env", {})
         if not isinstance(env_config, dict):
             raise TypeError("session.user_config['env'] must be a dict")
 
+        configured_base_url = self._normalize_chat_completions_url(
+            env_config.get(ENV_OPENAI_BASE_URL)
+        )
+        if configured_base_url is not None:
+            return configured_base_url
+
+        load_models_registry()
+        provider_base_url = get_provider_base_url(provider_id)
+        return self._normalize_chat_completions_url(provider_base_url)
+
+    def _normalize_chat_completions_url(self, base_url: str | None) -> str | None:
+        if not isinstance(base_url, str):
+            return None
+
+        stripped = base_url.strip()
+        if not stripped:
+            return None
+
+        if stripped.endswith(OPENAI_CHAT_COMPLETIONS_PATH):
+            return stripped
+
+        return f"{stripped.rstrip('/')}{OPENAI_CHAT_COMPLETIONS_PATH}"
+
+    def _require_provider_base_url(self, provider_id: str, base_url: str | None) -> str | None:
+        if base_url is not None:
+            return base_url
+
+        if provider_id == OPENROUTER_PROVIDER_ID:
+            return None
+
+        raise UnsupportedCompactionProviderError(provider_id)
+
+    def _resolve_api_key(self, provider_id: str) -> str:
+        load_models_registry()
+        provider_env_var = get_provider_env_var(provider_id)
+
+        env_config = self._state_manager.session.user_config.get("env", {})
+        if not isinstance(env_config, dict):
+            raise TypeError("session.user_config['env'] must be a dict")
+
+        provider_api_key = self._extract_api_key(env_config, provider_env_var)
+        if provider_api_key is not None:
+            return provider_api_key
+
+        if provider_env_var != ENV_OPENAI_API_KEY:
+            openai_api_key = self._extract_api_key(env_config, ENV_OPENAI_API_KEY)
+            if openai_api_key is not None:
+                return openai_api_key
+
+        raise MissingCompactionApiKeyError(provider_env_var)
+
+    def _extract_api_key(self, env_config: dict[str, Any], env_var: str) -> str | None:
         raw_value = env_config.get(env_var)
         if not isinstance(raw_value, str):
-            raise MissingCompactionApiKeyError(env_var)
+            return None
 
         api_key = raw_value.strip()
         if not api_key:
-            raise MissingCompactionApiKeyError(env_var)
+            return None
 
         return api_key
 
@@ -434,10 +473,7 @@ def build_compaction_notice(outcome: CompactionOutcome) -> str | None:
 
     if reason == COMPACTION_REASON_UNSUPPORTED_PROVIDER:
         current_model = outcome.detail or "<unknown-model>"
-        return (
-            "Compaction skipped: summarization supports only openrouter models "
-            f"(current model: {current_model})."
-        )
+        return f"Compaction skipped: unsupported summarization provider ({current_model})."
 
     if reason == COMPACTION_REASON_MISSING_API_KEY:
         missing_env_var = outcome.detail or DEFAULT_MISSING_API_KEY_ENV_VAR

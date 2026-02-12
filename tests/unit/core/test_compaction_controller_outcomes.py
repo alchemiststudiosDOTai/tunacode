@@ -95,12 +95,13 @@ async def test_force_compact_empty_history_returns_no_boundary_skip(
 
 
 @pytest.mark.asyncio
-async def test_force_compact_unsupported_provider_returns_capability_skip(
+async def test_force_compact_non_openrouter_provider_without_api_endpoint_returns_unsupported_skip(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state_manager = _build_state_manager(tmp_path, monkeypatch)
-    state_manager.session.current_model = "anthropic:claude-3-5-sonnet"
+    state_manager.session.current_model = "azure:gpt-4.1"
+    state_manager.session.user_config["env"] = {}
 
     history = _build_compactable_history()
     _patch_token_estimates(monkeypatch, history, token_counts=[5, 10])
@@ -118,13 +119,13 @@ async def test_force_compact_unsupported_provider_returns_capability_skip(
 
     assert outcome.status == COMPACTION_STATUS_SKIPPED
     assert outcome.reason == COMPACTION_REASON_UNSUPPORTED_PROVIDER
-    assert outcome.detail == "anthropic:claude-3-5-sonnet"
+    assert outcome.detail == "azure"
     assert outcome.messages == history
     assert state_manager.session.compaction is None
 
     user_notice = build_compaction_notice(outcome)
     assert user_notice is not None
-    assert "openrouter" in user_notice
+    assert "unsupported summarization provider" in user_notice
 
 
 @pytest.mark.asyncio
