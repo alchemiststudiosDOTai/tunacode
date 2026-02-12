@@ -39,6 +39,7 @@ from tunacode.core.compaction.controller import (
     get_or_create_compaction_controller,
 )
 from tunacode.core.compaction.types import CompactionOutcome
+from tunacode.core.debug import log_usage_update
 from tunacode.core.logging import get_logger
 from tunacode.core.types import RuntimeState, StateManagerProtocol
 
@@ -63,44 +64,6 @@ CONTEXT_OVERFLOW_FAILURE_NOTICE = (
 )
 
 
-def _coerce_int(value: object) -> int:
-    if value is None:
-        return 0
-    if isinstance(value, bool):
-        return int(value)
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value)
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return 0
-        try:
-            return int(stripped)
-        except ValueError:
-            return 0
-    return 0
-
-
-def _coerce_float(value: object) -> float:
-    if value is None:
-        return 0.0
-    if isinstance(value, bool):
-        return float(int(value))
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return 0.0
-        try:
-            return float(stripped)
-        except ValueError:
-            return 0.0
-    return 0.0
-
-
 def _coerce_error_text(value: object) -> str:
     if isinstance(value, str):
         return value
@@ -115,45 +78,15 @@ def _is_context_overflow_error(error_text: str) -> bool:
     return any(pattern in normalized_error for pattern in CONTEXT_OVERFLOW_PATTERNS)
 
 
-def _parse_openrouter_usage(raw_usage: object) -> UsageMetrics | None:
-    """Parse OpenRouter streaming usage dict into canonical UsageMetrics.
-
-    Accepts both raw OpenRouter SSE payloads and tinyagent's normalized
-    ``_build_usage_dict`` format:
-
-    Raw keys:     prompt_tokens, completion_tokens, prompt_tokens_details.cached_tokens
-    Normalized:   prompt_tokens (alias), completion_tokens (alias), cacheRead
-
-    If everything is zero/missing, returns None.
-    """
-
+def _parse_canonical_usage(raw_usage: object) -> UsageMetrics:
+    """Parse canonical tinyagent usage payload into UsageMetrics."""
     if not isinstance(raw_usage, dict):
-        return None
+        raise RuntimeError("Assistant message missing usage payload")
 
-    prompt_tokens = _coerce_int(raw_usage.get("prompt_tokens") or raw_usage.get("promptTokens"))
-    completion_tokens = _coerce_int(
-        raw_usage.get("completion_tokens") or raw_usage.get("completionTokens")
-    )
-
-    # Normalized format: cacheRead at top level.
-    # Raw format: prompt_tokens_details.cached_tokens nested.
-    cached_tokens = _coerce_int(raw_usage.get("cacheRead"))
-    if cached_tokens == 0:
-        details = raw_usage.get("prompt_tokens_details") or raw_usage.get("promptTokensDetails")
-        if isinstance(details, dict):
-            cached_tokens = _coerce_int(details.get("cached_tokens") or details.get("cachedTokens"))
-
-    cost = _coerce_float(raw_usage.get("cost") or raw_usage.get("total_cost"))
-
-    if prompt_tokens == 0 and completion_tokens == 0 and cached_tokens == 0 and cost == 0.0:
-        return None
-
-    return UsageMetrics(
-        prompt_tokens=prompt_tokens,
-        completion_tokens=completion_tokens,
-        cached_tokens=cached_tokens,
-        cost=cost,
-    )
+    try:
+        return UsageMetrics.from_dict(raw_usage)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"Assistant message usage contract violation: {exc}") from exc
 
 
 @dataclass
@@ -576,13 +509,20 @@ class RequestOrchestrator:
 
         state.last_assistant_message = cast(dict[str, Any], msg)
 
-        usage = _parse_openrouter_usage(msg.get("usage"))
-        if usage is None:
-            return False
+        usage = _parse_canonical_usage(msg.get("usage"))
 
         session = self.state_manager.session
         session.usage.last_call_usage = usage
         session.usage.session_total_usage.add(usage)
+
+        logger = get_logger()
+        log_usage_update(
+            logger=logger,
+            request_id=request_context.request_id,
+            event_name="message_end",
+            last_call_usage=session.usage.last_call_usage,
+            session_total_usage=session.usage.session_total_usage,
+        )
 
         return False
 

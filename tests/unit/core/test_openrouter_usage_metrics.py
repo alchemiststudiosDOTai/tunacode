@@ -1,57 +1,45 @@
 from __future__ import annotations
 
+import pytest
+
 from tunacode.types.canonical import UsageMetrics
 
 from tunacode.core.agents import main as agents_main
 
 
-def test_parse_openrouter_usage_parses_prompt_and_completion_tokens() -> None:
-    raw = {"prompt_tokens": 12, "completion_tokens": 34, "total_tokens": 46}
-    metrics = agents_main._parse_openrouter_usage(raw)
-
-    assert metrics == UsageMetrics(
-        prompt_tokens=12,
-        completion_tokens=34,
-        cached_tokens=0,
-        cost=0.0,
-    )
-
-
-def test_parse_openrouter_usage_returns_none_for_zero_usage() -> None:
-    metrics = agents_main._parse_openrouter_usage({"prompt_tokens": 0, "completion_tokens": 0})
-    assert metrics is None
-
-
-def test_parse_openrouter_usage_supports_camelcase_keys_and_cost() -> None:
+def test_parse_canonical_usage_accepts_canonical_usage_payload() -> None:
     raw = {
-        "promptTokens": "10",
-        "completionTokens": "5",
-        "total_cost": "0.02",
-        "promptTokensDetails": {"cachedTokens": 7},
+        "input": 12,
+        "output": 34,
+        "cache_read": 3,
+        "cache_write": 1,
+        "total_tokens": 46,
+        "cost": {
+            "input": 0.01,
+            "output": 0.02,
+            "cache_read": 0.003,
+            "cache_write": 0.001,
+            "total": 0.034,
+        },
     }
 
-    metrics = agents_main._parse_openrouter_usage(raw)
+    metrics = agents_main._parse_canonical_usage(raw)
 
-    assert metrics == UsageMetrics(
-        prompt_tokens=10,
-        completion_tokens=5,
-        cached_tokens=7,
-        cost=0.02,
-    )
+    assert metrics == UsageMetrics.from_dict(raw)
 
 
-def test_parse_openrouter_usage_supports_normalized_cache_read() -> None:
-    raw = {
-        "prompt_tokens": 11,
-        "completion_tokens": 9,
-        "cacheRead": 4,
+def test_parse_canonical_usage_rejects_missing_usage_payload() -> None:
+    with pytest.raises(RuntimeError, match="missing usage payload"):
+        agents_main._parse_canonical_usage(None)
+
+
+def test_parse_canonical_usage_rejects_legacy_usage_payload() -> None:
+    legacy_payload = {
+        "prompt_tokens": 12,
+        "completion_tokens": 34,
+        "cached_tokens": 3,
+        "cost": 0.02,
     }
 
-    metrics = agents_main._parse_openrouter_usage(raw)
-
-    assert metrics == UsageMetrics(
-        prompt_tokens=11,
-        completion_tokens=9,
-        cached_tokens=4,
-        cost=0.0,
-    )
+    with pytest.raises(RuntimeError, match="usage contract violation"):
+        agents_main._parse_canonical_usage(legacy_payload)

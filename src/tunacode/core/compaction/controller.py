@@ -7,8 +7,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from tinyagent import OpenRouterModel, stream_openrouter
-from tinyagent.agent_types import AgentMessage, Context, SimpleStreamOptions, ThinkingLevel
+from tinyagent.agent_types import AgentMessage, Context, SimpleStreamOptions
+from tinyagent.alchemy_provider import OpenAICompatModel, stream_alchemy_openai_completions
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -345,7 +345,7 @@ class CompactionController:
             "max_tokens": get_max_tokens(),
         }
 
-        response = await stream_openrouter(model, context, options)
+        response = await stream_alchemy_openai_completions(model, context, options)
         final_message = await response.result()
 
         summary = get_content(final_message).strip()
@@ -354,16 +354,15 @@ class CompactionController:
 
         return summary
 
-    def _build_model(self) -> OpenRouterModel:
+    def _build_model(self) -> OpenAICompatModel:
         model_name = self._state_manager.session.current_model
         provider_id, model_id = parse_model_string(model_name)
         resolved_base_url = self._resolve_base_url(provider_id)
         base_url = self._require_provider_base_url(provider_id, resolved_base_url)
 
-        return OpenRouterModel(
+        return OpenAICompatModel(
             provider=provider_id,
             id=model_id,
-            thinking_level=ThinkingLevel.OFF,
             **({"base_url": base_url} if base_url else {}),
         )
 

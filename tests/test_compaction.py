@@ -216,7 +216,20 @@ async def test_legacy_session_without_compaction_field_defaults_to_none(
         "last_modified": "2026-02-11T00:00:00+00:00",
         "working_directory": "/tmp",
         "current_model": "openrouter:openai/gpt-4.1",
-        "session_total_usage": {},
+        "session_total_usage": {
+            "input": 0,
+            "output": 0,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total_tokens": 0,
+            "cost": {
+                "input": 0.0,
+                "output": 0.0,
+                "cache_read": 0.0,
+                "cache_write": 0.0,
+                "total": 0.0,
+            },
+        },
         "thoughts": [],
         "messages": [],
     }

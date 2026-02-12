@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from textual.theme import Theme
 
 from tunacode.core.agents.main import process_request
+from tunacode.core.debug import log_resource_bar_update
+from tunacode.core.logging import get_logger
 from tunacode.core.session import StateManager
 from tunacode.core.ui_api.constants import (
     MIN_TOOL_PANEL_LINE_WIDTH,
@@ -240,7 +242,7 @@ class TextualReplApp(App[None]):
 
                 duration_ms = (time.monotonic() - self._request_start_time) * 1000
                 session = self.state_manager.session
-                tokens = session.usage.last_call_usage.completion_tokens
+                tokens = session.usage.last_call_usage.output
 
                 content, meta = render_agent_response(
                     content=output_text,
@@ -391,10 +393,24 @@ class TextualReplApp(App[None]):
         # Use simplified token counter to estimate actual context window usage
         estimated_tokens = estimate_messages_tokens(conversation.messages)
 
+        model = session.current_model or "No model selected"
+        max_tokens = conversation.max_tokens or 200000
+        session_cost = session.usage.session_total_usage.cost.total
+
         self.resource_bar.update_stats(
-            model=session.current_model or "No model selected",
+            model=model,
             tokens=estimated_tokens,
-            max_tokens=conversation.max_tokens or 200000,
+            max_tokens=max_tokens,
+            session_cost=session_cost,
+        )
+
+        logger = get_logger()
+        log_resource_bar_update(
+            logger=logger,
+            model=model,
+            estimated_tokens=estimated_tokens,
+            max_tokens=max_tokens,
+            session_cost=session_cost,
         )
 
     def update_lsp_for_file(self, filepath: str) -> None:

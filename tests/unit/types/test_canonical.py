@@ -207,52 +207,151 @@ class TestUsageMetrics:
 
     def test_usage_metrics_defaults(self) -> None:
         usage = UsageMetrics()
-        assert usage.prompt_tokens == 0
-        assert usage.completion_tokens == 0
-        assert usage.cached_tokens == 0
-        assert usage.cost == 0.0
+        assert usage.input == 0
+        assert usage.output == 0
+        assert usage.cache_read == 0
+        assert usage.cache_write == 0
         assert usage.total_tokens == 0
+        assert usage.cost.input == 0.0
+        assert usage.cost.output == 0.0
+        assert usage.cost.cache_read == 0.0
+        assert usage.cost.cache_write == 0.0
+        assert usage.cost.total == 0.0
 
-    def test_usage_metrics_total_tokens(self) -> None:
-        usage = UsageMetrics(prompt_tokens=100, completion_tokens=50)
+    def test_usage_metrics_total_tokens_stored_value(self) -> None:
+        usage = UsageMetrics(total_tokens=150)
         assert usage.total_tokens == 150
 
     def test_usage_metrics_add(self) -> None:
-        usage1 = UsageMetrics(prompt_tokens=100, completion_tokens=50, cost=0.01)
-        usage2 = UsageMetrics(prompt_tokens=200, completion_tokens=100, cost=0.02)
+        usage1 = UsageMetrics.from_dict(
+            {
+                "input": 100,
+                "output": 50,
+                "cache_read": 10,
+                "cache_write": 5,
+                "total_tokens": 150,
+                "cost": {
+                    "input": 0.01,
+                    "output": 0.02,
+                    "cache_read": 0.001,
+                    "cache_write": 0.0005,
+                    "total": 0.0315,
+                },
+            }
+        )
+        usage2 = UsageMetrics.from_dict(
+            {
+                "input": 200,
+                "output": 100,
+                "cache_read": 20,
+                "cache_write": 8,
+                "total_tokens": 300,
+                "cost": {
+                    "input": 0.03,
+                    "output": 0.04,
+                    "cache_read": 0.002,
+                    "cache_write": 0.001,
+                    "total": 0.073,
+                },
+            }
+        )
 
         usage1.add(usage2)
 
-        assert usage1.prompt_tokens == 300
-        assert usage1.completion_tokens == 150
-        assert usage1.cost == pytest.approx(0.03)
+        assert usage1.input == 300
+        assert usage1.output == 150
+        assert usage1.cache_read == 30
+        assert usage1.cache_write == 13
+        assert usage1.total_tokens == 450
+        assert usage1.cost.input == pytest.approx(0.04)
+        assert usage1.cost.output == pytest.approx(0.06)
+        assert usage1.cost.cache_read == pytest.approx(0.003)
+        assert usage1.cost.cache_write == pytest.approx(0.0015)
+        assert usage1.cost.total == pytest.approx(0.1045)
 
     def test_usage_metrics_from_dict(self) -> None:
         data = {
-            "prompt_tokens": 500,
-            "completion_tokens": 200,
-            "cached_tokens": 100,
-            "cost": 0.05,
+            "input": 500,
+            "output": 200,
+            "cache_read": 100,
+            "cache_write": 15,
+            "total_tokens": 700,
+            "cost": {
+                "input": 0.03,
+                "output": 0.05,
+                "cache_read": 0.01,
+                "cache_write": 0.002,
+                "total": 0.092,
+            },
         }
         usage = UsageMetrics.from_dict(data)
-        assert usage.prompt_tokens == 500
-        assert usage.completion_tokens == 200
-        assert usage.cached_tokens == 100
-        assert usage.cost == 0.05
+        assert usage.input == 500
+        assert usage.output == 200
+        assert usage.cache_read == 100
+        assert usage.cache_write == 15
+        assert usage.total_tokens == 700
+        assert usage.cost.total == pytest.approx(0.092)
+
+    def test_usage_metrics_from_dict_rejects_legacy_schema(self) -> None:
+        with pytest.raises(ValueError, match=r"usage missing key\(s\)"):
+            UsageMetrics.from_dict(
+                {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 50,
+                    "cached_tokens": 10,
+                    "cost": 0.01,
+                }
+            )
+
+    def test_usage_metrics_from_dict_requires_cost_keys(self) -> None:
+        with pytest.raises(ValueError, match=r"usage\.cost missing key\(s\)"):
+            UsageMetrics.from_dict(
+                {
+                    "input": 100,
+                    "output": 50,
+                    "cache_read": 25,
+                    "cache_write": 9,
+                    "total_tokens": 150,
+                    "cost": {
+                        "input": 0.01,
+                        "output": 0.02,
+                        "cache_read": 0.003,
+                        "total": 0.034,
+                    },
+                }
+            )
 
     def test_usage_metrics_to_dict(self) -> None:
-        usage = UsageMetrics(
-            prompt_tokens=100,
-            completion_tokens=50,
-            cached_tokens=25,
-            cost=0.01,
+        usage = UsageMetrics.from_dict(
+            {
+                "input": 100,
+                "output": 50,
+                "cache_read": 25,
+                "cache_write": 9,
+                "total_tokens": 150,
+                "cost": {
+                    "input": 0.01,
+                    "output": 0.02,
+                    "cache_read": 0.003,
+                    "cache_write": 0.001,
+                    "total": 0.034,
+                },
+            }
         )
         result = usage.to_dict()
         assert result == {
-            "prompt_tokens": 100,
-            "completion_tokens": 50,
-            "cached_tokens": 25,
-            "cost": 0.01,
+            "input": 100,
+            "output": 50,
+            "cache_read": 25,
+            "cache_write": 9,
+            "total_tokens": 150,
+            "cost": {
+                "input": 0.01,
+                "output": 0.02,
+                "cache_read": 0.003,
+                "cache_write": 0.001,
+                "total": 0.034,
+            },
         }
 
 

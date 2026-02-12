@@ -13,8 +13,9 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, cast
 
-from tinyagent import Agent, AgentOptions, OpenRouterModel, stream_openrouter
-from tinyagent.agent_types import AgentMessage, AgentTool, ThinkingLevel
+from tinyagent import Agent, AgentOptions
+from tinyagent.agent_types import AgentMessage, AgentTool
+from tinyagent.alchemy_provider import OpenAICompatModel, stream_alchemy_openai_completions
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
@@ -206,7 +207,7 @@ def _resolve_base_url(session: SessionStateProtocol, provider_id: str) -> str | 
     Precedence order:
     1) ``OPENAI_BASE_URL`` from session config
     2) provider API URL from models registry
-    3) tinyagent OpenRouterModel default (returned as None here)
+    3) tinyagent OpenAICompatModel default (returned as None here)
     """
 
     env_config = session.user_config.get("env", {})
@@ -279,7 +280,7 @@ def _build_stream_fn(
         if max_tokens is not None:
             options = {**options, "max_tokens": max_tokens}
 
-        return await stream_openrouter(model, context, options)
+        return await stream_alchemy_openai_completions(model, context, options)
 
     return _stream
 
@@ -307,23 +308,22 @@ def _build_transform_context(
 def _build_tinyagent_model(
     model: ModelName,
     session: SessionStateProtocol,
-) -> OpenRouterModel:
-    """Convert a TunaCode ModelName into a tinyagent OpenRouterModel.
+) -> OpenAICompatModel:
+    """Convert a TunaCode ModelName into a tinyagent OpenAICompatModel.
 
     Resolves base URL with the following order:
     1) ``OPENAI_BASE_URL`` from session config
     2) provider API URL from models registry (normalized to `/chat/completions`)
-    3) tinyagent OpenRouterModel default when neither is available
+    3) tinyagent OpenAICompatModel default when neither is available
     """
 
     provider_id, model_id = parse_model_string(model)
     resolved_base_url = _resolve_base_url(session, provider_id)
     base_url = _require_provider_base_url(provider_id, resolved_base_url)
 
-    return OpenRouterModel(
+    return OpenAICompatModel(
         provider=provider_id,
         id=model_id,
-        thinking_level=ThinkingLevel.OFF,
         **({"base_url": base_url} if base_url else {}),
     )
 

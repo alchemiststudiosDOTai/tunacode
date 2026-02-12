@@ -181,46 +181,109 @@ class CanonicalToolCall:
 
 
 @dataclass(slots=True)
+class UsageCost:
+    """Cost breakdown aligned with tinyagent usage contract."""
+
+    input: float = 0.0
+    output: float = 0.0
+    cache_read: float = 0.0
+    cache_write: float = 0.0
+    total: float = 0.0
+
+    def add(self, other: "UsageCost") -> None:
+        """Accumulate cost from another usage cost object."""
+        self.input += other.input
+        self.output += other.output
+        self.cache_read += other.cache_read
+        self.cache_write += other.cache_write
+        self.total += other.total
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "UsageCost":
+        """Build cost object from canonical usage payload."""
+        if not isinstance(data, dict):
+            raise ValueError("usage.cost must be a dict")
+
+        required_keys = frozenset({"input", "output", "cache_read", "cache_write", "total"})
+        missing_keys = sorted(required_keys.difference(data.keys()))
+        if missing_keys:
+            raise ValueError(f"usage.cost missing key(s): {', '.join(missing_keys)}")
+
+        return cls(
+            input=float(data["input"]),
+            output=float(data["output"]),
+            cache_read=float(data["cache_read"]),
+            cache_write=float(data["cache_write"]),
+            total=float(data["total"]),
+        )
+
+    def to_dict(self) -> dict[str, float]:
+        """Convert cost object to canonical usage payload."""
+        return {
+            "input": self.input,
+            "output": self.output,
+            "cache_read": self.cache_read,
+            "cache_write": self.cache_write,
+            "total": self.total,
+        }
+
+
+@dataclass(slots=True)
 class UsageMetrics:
     """API usage metrics for a single call or cumulative session.
 
     Replaces ad-hoc dicts like {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
     """
 
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-    cached_tokens: int = 0
-    cost: float = 0.0
-
-    @property
-    def total_tokens(self) -> int:
-        """Total tokens used (prompt + completion)."""
-        return self.prompt_tokens + self.completion_tokens
+    input: int = 0
+    output: int = 0
+    cache_read: int = 0
+    cache_write: int = 0
+    total_tokens: int = 0
+    cost: UsageCost = field(default_factory=UsageCost)
 
     def add(self, other: "UsageMetrics") -> None:
         """Accumulate usage from another metrics object."""
-        self.prompt_tokens += other.prompt_tokens
-        self.completion_tokens += other.completion_tokens
-        self.cached_tokens += other.cached_tokens
-        self.cost += other.cost
+        self.input += other.input
+        self.output += other.output
+        self.cache_read += other.cache_read
+        self.cache_write += other.cache_write
+        self.total_tokens += other.total_tokens
+        self.cost.add(other.cost)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "UsageMetrics":
-        """Convert from legacy dict format."""
+        """Convert from canonical usage dict format."""
+        if not isinstance(data, dict):
+            raise ValueError("usage must be a dict")
+
+        required_keys = frozenset(
+            {"input", "output", "cache_read", "cache_write", "total_tokens", "cost"}
+        )
+        missing_keys = sorted(required_keys.difference(data.keys()))
+        if missing_keys:
+            raise ValueError(f"usage missing key(s): {', '.join(missing_keys)}")
+
+        cost_raw = data["cost"]
+
         return cls(
-            prompt_tokens=data.get("prompt_tokens", 0),
-            completion_tokens=data.get("completion_tokens", 0),
-            cached_tokens=data.get("cached_tokens", 0),
-            cost=data.get("cost", 0.0),
+            input=int(data["input"]),
+            output=int(data["output"]),
+            cache_read=int(data["cache_read"]),
+            cache_write=int(data["cache_write"]),
+            total_tokens=int(data["total_tokens"]),
+            cost=UsageCost.from_dict(cost_raw),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to legacy dict format for backward compatibility."""
+        """Convert to canonical usage dict format."""
         return {
-            "prompt_tokens": self.prompt_tokens,
-            "completion_tokens": self.completion_tokens,
-            "cached_tokens": self.cached_tokens,
-            "cost": self.cost,
+            "input": self.input,
+            "output": self.output,
+            "cache_read": self.cache_read,
+            "cache_write": self.cache_write,
+            "total_tokens": self.total_tokens,
+            "cost": self.cost.to_dict(),
         }
 
 
@@ -264,6 +327,7 @@ __all__ = [
     "ToolCallStatus",
     "CanonicalToolCall",
     # Usage types
+    "UsageCost",
     "UsageMetrics",
     # Recursive context types
     "RecursiveContext",

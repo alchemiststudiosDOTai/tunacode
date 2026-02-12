@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from tunacode.constants import ENV_OPENAI_BASE_URL
 
 from tunacode.core.agents.agent_components import agent_config
+from tunacode.core.compaction import controller as compaction_controller
 from tunacode.core.compaction.controller import (
     CompactionController,
     UnsupportedCompactionProviderError,
@@ -100,6 +102,31 @@ def test_build_api_key_resolver_falls_back_to_openai_api_key(
     assert resolver("chutes") == "sk-openai"
 
 
+@pytest.mark.asyncio
+async def test_build_stream_fn_uses_alchemy_stream_and_overrides_max_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_options: dict[str, Any] = {}
+
+    async def _fake_stream(model: Any, context: Any, options: dict[str, Any]) -> object:
+        _ = model
+        _ = context
+        captured_options.update(options)
+        return {"ok": True}
+
+    monkeypatch.setattr(agent_config, "stream_alchemy_openai_completions", _fake_stream)
+
+    stream_fn = agent_config._build_stream_fn(request_delay=0.0, max_tokens=128)
+    original_options: dict[str, Any] = {"api_key": "sk-test", "max_tokens": None}
+
+    result = await stream_fn(object(), object(), original_options)
+
+    assert result == {"ok": True}
+    assert captured_options["api_key"] == "sk-test"
+    assert captured_options["max_tokens"] == 128
+    assert original_options["max_tokens"] is None
+
+
 def test_compaction_controller_model_and_api_key_support_non_openrouter_provider(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -137,6 +164,62 @@ def test_compaction_controller_uses_provider_registry_base_url_when_override_mis
 
     assert model.provider == "chutes"
     assert model.base_url == CHUTES_CHAT_COMPLETIONS_URL
+
+
+@pytest.mark.asyncio
+async def test_compaction_generate_summary_uses_alchemy_stream(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    state_manager.session.current_model = "openrouter:openai/gpt-4.1"
+    state_manager.session.user_config["env"][ENV_OPENAI_API_KEY] = "sk-openai"
+
+    controller = CompactionController(state_manager=state_manager)
+    captured: dict[str, Any] = {}
+
+    class _FakeResponse:
+        async def result(self) -> dict[str, Any]:
+            return {
+                "role": "assistant",
+                "content": [{"type": "text", "text": " summary from rust "}],
+                "timestamp": None,
+                "tool_calls": None,
+                "provider": "openrouter",
+                "model": "openai/gpt-4.1",
+                "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cache_read": 0,
+                    "cache_write": 0,
+                    "total_tokens": 0,
+                    "cost": {
+                        "input": 0.0,
+                        "output": 0.0,
+                        "cache_read": 0.0,
+                        "cache_write": 0.0,
+                        "total": 0.0,
+                    },
+                },
+                "error_message": None,
+            }
+
+    async def _fake_stream(model: Any, context: Any, options: dict[str, Any]) -> _FakeResponse:
+        captured["model"] = model
+        captured["context"] = context
+        captured["options"] = options
+        return _FakeResponse()
+
+    monkeypatch.setattr(compaction_controller, "stream_alchemy_openai_completions", _fake_stream)
+    monkeypatch.setattr(compaction_controller, "get_max_tokens", lambda: 321)
+
+    summary = await controller._generate_summary("Summarize this", None)
+
+    assert summary == "summary from rust"
+    assert captured["model"].provider == "openrouter"
+    assert captured["model"].id == "openai/gpt-4.1"
+    assert captured["options"]["api_key"] == "sk-openai"
+    assert captured["options"]["max_tokens"] == 321
 
 
 def test_compaction_controller_raises_when_provider_has_no_api_and_override_missing(

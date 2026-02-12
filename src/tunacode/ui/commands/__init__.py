@@ -103,6 +103,7 @@ class DebugCommand(Command):
     description = "Toggle debug logging to screen"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
+        from tunacode.core.debug import log_usage_update
         from tunacode.core.logging import get_logger
 
         session = app.state_manager.session
@@ -123,6 +124,13 @@ class DebugCommand(Command):
             )
             logger.info(debug_message)
             logger.info("Lifecycle logging enabled")
+            log_usage_update(
+                logger=logger,
+                request_id=session.runtime.request_id,
+                event_name="debug_toggle",
+                last_call_usage=session.usage.last_call_usage,
+                session_total_usage=session.usage.session_total_usage,
+            )
 
 
 def _validate_provider_api_key_with_notification(
