@@ -421,13 +421,39 @@ class TextualReplApp(App[None]):
 
         # Use simplified token counter to estimate actual context window usage
         estimated_tokens = estimate_messages_tokens(conversation.messages)
+        max_tokens = conversation.max_tokens or 200000
+        session_cost = session.usage.session_total_usage.cost
+        model = session.current_model or "No model selected"
 
         self.resource_bar.update_stats(
-            model=session.current_model or "No model selected",
+            model=model,
             tokens=estimated_tokens,
-            max_tokens=conversation.max_tokens or 200000,
-            session_cost=session.usage.session_total_usage.cost,
+            max_tokens=max_tokens,
+            session_cost=session_cost,
         )
+
+        if session.debug_mode:
+            from tunacode.core.logging import get_logger
+
+            usage = session.usage
+            logger = get_logger()
+            logger.lifecycle(
+                f"Resource bar: {estimated_tokens}/{max_tokens} tokens "
+                f"({len(conversation.messages)} msgs), "
+                f"cost=${session_cost:.4f}, model={model}"
+            )
+            logger.lifecycle(
+                f"  last_call: prompt={usage.last_call_usage.prompt_tokens} "
+                f"completion={usage.last_call_usage.completion_tokens} "
+                f"cached={usage.last_call_usage.cached_tokens} "
+                f"cost=${usage.last_call_usage.cost:.4f}"
+            )
+            logger.lifecycle(
+                f"  session_total: prompt={usage.session_total_usage.prompt_tokens} "
+                f"completion={usage.session_total_usage.completion_tokens} "
+                f"cached={usage.session_total_usage.cached_tokens} "
+                f"cost=${usage.session_total_usage.cost:.4f}"
+            )
 
     async def _streaming_callback(self, chunk: str) -> None:
         """Handle streaming text chunks from the agent.

@@ -478,9 +478,19 @@ class RequestOrchestrator:
         """Record usage from a compaction LLM call into session totals."""
         usage = _parse_openrouter_usage(raw_usage)
         if usage is None:
+            logger = get_logger()
+            logger.lifecycle(
+                f"Compaction usage: raw payload not parseable, keys={sorted(raw_usage.keys())}"
+            )
             return
         session = self.state_manager.session
         session.usage.session_total_usage.add(usage)
+        logger = get_logger()
+        logger.lifecycle(
+            f"Compaction usage recorded: "
+            f"prompt={usage.prompt_tokens} completion={usage.completion_tokens} "
+            f"cost=${usage.cost:.4f}"
+        )
 
     def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
         if self.notice_callback is None:
@@ -674,12 +684,24 @@ class RequestOrchestrator:
             stream_state is not None and stream_state.last_recorded_usage_id == usage_id
         )
         if already_recorded:
+            logger = get_logger()
+            logger.lifecycle(f"Usage dedup: skipped duplicate from {source_event} (id={usage_id})")
             return
 
         if stream_state is not None:
             stream_state.last_recorded_usage_id = usage_id
 
         session.usage.session_total_usage.add(usage)
+
+        logger = get_logger()
+        logger.lifecycle(
+            f"Usage recorded ({source_event}): "
+            f"prompt={usage.prompt_tokens} completion={usage.completion_tokens} "
+            f"cached={usage.cached_tokens} cost=${usage.cost:.4f} | "
+            f"session_total: prompt={session.usage.session_total_usage.prompt_tokens} "
+            f"completion={session.usage.session_total_usage.completion_tokens} "
+            f"cost=${session.usage.session_total_usage.cost:.4f}"
+        )
 
     async def _handle_stream_message_end(
         self,
