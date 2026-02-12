@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.63] - 2026-02-12
+
+### Added
+- Live integration test for tinyagent alchemy usage contract (`tests/integration/core/test_tinyagent_alchemy_usage_contract_live.py`)
+- Dedicated debug usage/resource lifecycle tracing module (`src/tunacode/core/debug/usage_trace.py`)
+- Unit coverage for strict session usage schema loading and resource bar session cost propagation
+- Research map documenting TunaCode Rust-only tinyagent migration path (`.claude/metadata/research/2026-02-12-tinyagent-rust-only-migration-map.md`)
+
+### Changed
+- Migrated TunaCode agent runtime stream path to tinyagent Rust alchemy stream (`stream_alchemy_openai_completions`)
+- Migrated compaction summary generation stream path to tinyagent Rust alchemy stream
+- Updated usage model to strict canonical tinyagent contract (`input/output/cache_read/cache_write/total_tokens/cost`)
+- Bumped `tiny-agent-os` to `1.1.5`
+
+### Fixed
+- Enforced fail-loud behavior when assistant usage payload is missing or violates canonical contract
+- Resource bar session cost now reads canonical `session_total_usage.cost.total`
+
 ## [0.1.62] - 2026-02-11
 
 ### Added
