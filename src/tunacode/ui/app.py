@@ -100,8 +100,10 @@ class TextualReplApp(App[None]):
         self.status_bar: StatusBarLike
         self.streaming_output: Static
 
-        self._current_stream_text: str = ""
+        self._stream_buffer: list[str] = []
+        self._stream_active: bool = False
         self._last_stream_update: float = 0.0
+        self._stream_generation: int = 0
 
     def compose(self) -> ComposeResult:
         self.resource_bar = ResourceBar()
@@ -236,7 +238,9 @@ class TextualReplApp(App[None]):
             self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
             self.streaming_output.update("")
             self.streaming_output.remove_class("active")
-            self._current_stream_text = ""
+            self._stream_generation += 1
+            self._stream_buffer = []
+            self._stream_active = False
             self._last_stream_update = 0.0
             self._update_compaction_status(False)
 
@@ -413,17 +417,23 @@ class TextualReplApp(App[None]):
         Args:
             chunk: Text delta from the streaming response.
         """
-        self._current_stream_text += chunk
+        try:
+            self._stream_buffer.append(chunk)
 
-        is_first_chunk = not self.streaming_output.has_class("active")
-        if is_first_chunk:
-            self.streaming_output.add_class("active")
+            is_first_chunk = not self._stream_active
+            if is_first_chunk:
+                self._stream_active = True
+                self.streaming_output.add_class("active")
+                self.loading_indicator.remove_class("active")
 
-        now = time.monotonic()
-        elapsed_ms = (now - self._last_stream_update) * 1000
-        if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:
-            self._last_stream_update = now
-            self.streaming_output.update(self._current_stream_text)
+            now = time.monotonic()
+            elapsed_ms = (now - self._last_stream_update) * 1000
+            if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:
+                self._last_stream_update = now
+                self.streaming_output.update("".join(self._stream_buffer))
+        except Exception:
+            # Silently drop UI errors to avoid breaking agent loop
+            pass
 
     def update_lsp_for_file(self, filepath: str) -> None:
         """Update ResourceBar LSP status based on file type.
