@@ -8,6 +8,7 @@ automatically (no keystrokes required).
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from itertools import islice
 
@@ -162,6 +163,10 @@ class PanelMeta:
 # mouse stops / is released.
 _COPY_DEBOUNCE_MS = 0.15
 
+_DETACHED_WRITE_WARNING = (
+    "ChatContainer.write() skipped mount because container is detached; returning unmounted widget."
+)
+
 
 class CopyOnSelectStatic(Static):
     """Static widget that copies highlighted text to the clipboard on mouse release.
@@ -309,6 +314,10 @@ class ChatContainer(VerticalScroll):
                 widget.border_title = panel_meta.border_title
             if panel_meta.border_subtitle:
                 widget.border_subtitle = panel_meta.border_subtitle
+
+        if not self.is_attached:
+            print(_DETACHED_WRITE_WARNING, file=sys.stderr)
+            return widget
 
         self.mount(widget)
 
