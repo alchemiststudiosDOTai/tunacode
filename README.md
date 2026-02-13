@@ -1,6 +1,6 @@
 # tunacode-cli
 
-<img src="docs/images/logo.jpeg" alt="tunacode logo" width="200"/>
+<img src="docs/images/tunacode.png" alt="tunacode" width="600"/>
 
 [![PyPI version](https://badge.fury.io/py/tunacode-cli.svg)](https://badge.fury.io/py/tunacode-cli)
 [![Downloads](https://pepy.tech/badge/tunacode-cli)](https://pepy.tech/project/tunacode-cli)
