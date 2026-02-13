@@ -1,6 +1,6 @@
-# Agent Docs
+# Docs
 
-This directory is the home for refactor follow-up documentation.
+This directory is the home for project documentation, including architecture governance artifacts added during the refactor.
 
 ## Folders
 
