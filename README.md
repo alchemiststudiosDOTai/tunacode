@@ -24,14 +24,6 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 - **Copy-on-select** - Automatically copies highlighted text to clipboard
 - **Agent loop** - Powered by [tinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent)
 
-## Interface
-
-![Agent Response Panel](docs/media/agent-response.png)
-*Agent response with NeXTSTEP-style panels*
-
-![Read File Tool](docs/media/read-file-tool.png)
-*Tool output with syntax highlighting*
-
 ## Built With
 
 - **[tinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent)** - Core agent loop handling LLM interaction and tool execution
@@ -45,7 +37,7 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 **Recent Breaking Changes:**
 
 - Session persistence format changed - existing sessions may not load correctly
-- Tool execution is now sequential (was parallel)
+- Tool execution is sequential — parallel tool calls are on the roadmap
 - The `docs/` directory has been restructured
 
 For full details, see the [CHANGELOG](CHANGELOG.md).
