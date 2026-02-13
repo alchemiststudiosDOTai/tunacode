@@ -119,6 +119,10 @@ Editor {
     padding: 0 1;
 }
 
+Editor:focus-within {
+    outline: solid $primary;
+}
+
 Editor.bash-mode {
     outline: solid $success;
 }

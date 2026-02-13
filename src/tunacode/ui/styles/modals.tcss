@@ -9,9 +9,13 @@ SetupScreen {
 #setup-container {
     width: 70;
     height: auto;
-    border: solid $primary;
     background: $surface;
     padding: 1 2;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
+    outline: solid $primary;
 }
 
 #setup-title {

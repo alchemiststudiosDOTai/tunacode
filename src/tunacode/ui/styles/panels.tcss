@@ -107,8 +107,8 @@
 }
 
 .result-item.selected {
-    background: $primary 20%;
-    border-left: solid $primary;
+    background: $primary 15%;
+    border-left: heavy $primary;
 }
 
 /* Recovery command styling */

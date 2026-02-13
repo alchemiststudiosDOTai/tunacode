@@ -6,8 +6,8 @@ StatusBar {
     /* 1 row bevel + 1 row content */
     height: 2;
     width: 100%;
-    background: $background;
-    border-top: solid $bevel-dark;
+    background: $surface;
+    border-top: solid $bevel-light;
 }
 
 StatusBar Static {
@@ -38,4 +38,5 @@ StatusBar Static {
 .mode-active {
     text-style: bold;
     color: $success;
+    background: $success 10%;
 }
