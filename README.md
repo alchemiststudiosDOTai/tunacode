@@ -1,6 +1,6 @@
 # tunacode-cli
 
-<img src="docs/images/logo.jpeg" alt="tunacode logo" width="200"/>
+<img src="docs/images/tunacode.png" alt="tunacode" width="600"/>
 
 [![PyPI version](https://badge.fury.io/py/tunacode-cli.svg)](https://badge.fury.io/py/tunacode-cli)
 [![Downloads](https://pepy.tech/badge/tunacode-cli)](https://pepy.tech/project/tunacode-cli)
@@ -10,7 +10,7 @@
 
 A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 
-> **Note:** Under active development - expect bugs.
+> **Early stage software — not production ready.** Under active development, expect bugs and breaking changes.
 
 ## Features
 
@@ -22,7 +22,7 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 - **LSP diagnostics** - Real-time code errors after file writes (Python, TypeScript, Go, Rust)
 - **Themeable UI** - CSS-based theming with NeXTSTEP-inspired design
 - **Copy-on-select** - Automatically copies highlighted text to clipboard
-- **Agent loop** - Powered by [tinyagent](https://github.com/alchemiststudios.ai/tinyAgent)
+- **Agent loop** - Powered by [tinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent)
 
 ## Interface
 
@@ -32,16 +32,13 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 ![Read File Tool](docs/media/read-file-tool.png)
 *Tool output with syntax highlighting*
 
-## Architecture
+## Built With
 
-TunaCode is built with:
-
-- **tinyagent** - Core agent loop handling LLM interaction and tool execution
+- **[tinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent)** - Core agent loop handling LLM interaction and tool execution
+- **[alchemy-rs](https://github.com/tunahorse/alchemy-rs)** - Rust-powered tokenizer and utilities via PyO3 bindings
 - **Textual** - Terminal UI framework with CSS-based styling
 - **Rich** - Terminal rendering with syntax highlighting
 - **Typer** - CLI framework
-
-The agent system uses typed cache accessors with pluggable invalidation strategies (manual and mtime-based).
 
 ### Migration Notes
 
