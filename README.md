@@ -128,6 +128,8 @@ For local models and advanced settings, see the [Configuration Guide](docs/confi
 
 ## Tools
 
+<img src="docs/images/tool-calls.png" alt="Tool calls in tunacode" width="600"/>
+
 The agent has access to:
 
 | Tool | Description |
