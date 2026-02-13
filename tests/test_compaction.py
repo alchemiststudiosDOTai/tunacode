@@ -238,3 +238,51 @@ async def test_legacy_session_without_compaction_field_defaults_to_none(
     state_manager = StateManager()
     assert await state_manager.load_session(session_id)
     assert state_manager.session.compaction is None
+
+
+@pytest.mark.asyncio
+async def test_force_compaction_runs_below_threshold_with_valid_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+
+    state_manager = StateManager()
+    session = state_manager.session
+    session.project_id = "project-test"
+    session.created_at = "2026-02-11T00:00:00+00:00"
+    session.working_directory = "/tmp"
+    session.conversation.max_tokens = MAX_TOKENS
+
+    history: list[dict[str, object]] = [
+        _make_text_message("user", "old"),
+        _make_text_message("assistant", "reply-without-stop-reason"),
+    ]
+    session.conversation.messages = history
+
+    async def fake_summary_model(_prompt: str, _signal: object) -> str:
+        return SUMMARY_TEXT
+
+    summarizer = ContextSummarizer(fake_summary_model)
+    controller = CompactionController(
+        state_manager=state_manager,
+        summarizer=summarizer,
+        keep_recent_tokens=200,
+        reserve_tokens=0,
+    )
+
+    assert controller.should_compact(history, max_tokens=MAX_TOKENS) is False
+
+    outcome = await controller.force_compact(
+        history,
+        max_tokens=MAX_TOKENS,
+        signal=None,
+    )
+
+    assert outcome.status == COMPACTION_STATUS_COMPACTED
+    assert outcome.reason == COMPACTION_REASON_COMPACTED
+    assert outcome.messages == []
+
+    record = session.compaction
+    assert record is not None
+    assert record.compacted_message_count == len(history)

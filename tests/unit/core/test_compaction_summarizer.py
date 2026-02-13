@@ -72,7 +72,7 @@ def test_retention_boundary_treats_threshold_equality_as_satisfied(
     assert boundary == 1
 
 
-def test_retention_boundary_snaps_to_zero_when_no_valid_boundary_exists(
+def test_retention_boundary_snaps_to_zero_for_unsafe_assistant_tool_shape(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Boundary contracts must never split at invalid assistant positions."""
@@ -80,12 +80,21 @@ def test_retention_boundary_snaps_to_zero_when_no_valid_boundary_exists(
     messages: list[dict[str, Any]] = [
         {
             "role": "assistant",
-            "content": [{"type": "text", "text": "thinking"}],
+            "content": [
+                {
+                    "type": "tool_call",
+                    "id": "tc-1",
+                    "name": "bash",
+                    "arguments": {"command": "ls"},
+                }
+            ],
             "timestamp": None,
         },
         {
-            "role": "assistant",
-            "content": [{"type": "text", "text": "still thinking"}],
+            "role": "tool_result",
+            "tool_call_id": "tc-1",
+            "tool_name": "bash",
+            "content": [{"type": "text", "text": "ok"}],
             "timestamp": None,
         },
     ]
@@ -96,6 +105,66 @@ def test_retention_boundary_snaps_to_zero_when_no_valid_boundary_exists(
     boundary = summarizer.calculate_retention_boundary(messages, keep_recent_tokens=5)
 
     assert boundary == 0
+
+
+def test_retention_boundary_allows_safe_assistant_without_stop_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Assistant text-only turns can close boundaries even when stop_reason is absent."""
+
+    messages: list[dict[str, Any]] = [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": "old"}],
+            "timestamp": None,
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "complete turn"}],
+            "timestamp": None,
+        },
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": "recent"}],
+            "timestamp": None,
+        },
+    ]
+    _patch_token_estimates(monkeypatch, messages, token_counts=[3, 4, 10])
+
+    summarizer = ContextSummarizer(_unused_summary_generator)
+
+    boundary = summarizer.calculate_retention_boundary(messages, keep_recent_tokens=8)
+
+    assert boundary == 2
+
+
+def test_force_retention_boundary_compacts_even_below_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Manual force boundary ignores token threshold and picks the latest valid cut."""
+
+    messages: list[dict[str, Any]] = [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": "hello"}],
+            "timestamp": None,
+        },
+        {
+            "role": "assistant",
+            "stop_reason": "complete",
+            "content": [{"type": "text", "text": "world"}],
+            "timestamp": None,
+        },
+    ]
+    _patch_token_estimates(monkeypatch, messages, token_counts=[2, 3])
+
+    summarizer = ContextSummarizer(_unused_summary_generator)
+
+    threshold_boundary = summarizer.calculate_retention_boundary(messages, keep_recent_tokens=20)
+    force_boundary = summarizer.calculate_force_retention_boundary(messages)
+
+    assert threshold_boundary == 0
+    assert force_boundary == 2
 
 
 def test_retention_boundary_never_starts_with_tool_result(

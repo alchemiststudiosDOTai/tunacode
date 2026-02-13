@@ -170,7 +170,7 @@ class CompactionController:
                 return self._build_skip_outcome(messages, COMPACTION_REASON_BELOW_THRESHOLD)
 
         self._compacted_this_request = True
-        return await self._compact(messages, signal=signal)
+        return await self._compact(messages, signal=signal, force=force)
 
     async def force_compact(
         self,
@@ -211,9 +211,15 @@ class CompactionController:
         messages: list[AgentMessage],
         *,
         signal: asyncio.Event | None,
+        force: bool,
     ) -> CompactionOutcome:
         logger = get_logger()
-        boundary = self._summarizer.calculate_retention_boundary(messages, self.keep_recent_tokens)
+        if force:
+            boundary = self._summarizer.calculate_force_retention_boundary(messages)
+        else:
+            boundary = self._summarizer.calculate_retention_boundary(
+                messages, self.keep_recent_tokens
+            )
 
         if boundary <= 0:
             logger.debug("Compaction skipped", reason=COMPACTION_REASON_NO_VALID_BOUNDARY)

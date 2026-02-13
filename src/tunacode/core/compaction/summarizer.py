@@ -21,6 +21,7 @@ ROLE_USER = "user"
 ROLE_ASSISTANT = "assistant"
 ROLE_TOOL_RESULT = "tool_result"
 
+CONTENT_TYPE_TEXT = "text"
 CONTENT_TYPE_TOOL_CALL = "tool_call"
 
 TOOL_RESULT_TRUNCATION_LIMIT = 500
@@ -63,6 +64,18 @@ class ContextSummarizer:
             return 0
 
         return self._snap_to_valid_boundary(messages, threshold_index)
+
+    def calculate_force_retention_boundary(self, messages: list[AgentMessage]) -> int:
+        """Return the latest structurally safe boundary for manual force compaction."""
+
+        if not messages:
+            return 0
+
+        for boundary in range(len(messages), 0, -1):
+            if self._is_valid_boundary(messages, boundary):
+                return boundary
+
+        return 0
 
     def serialize_messages(self, messages: list[AgentMessage]) -> str:
         """Serialize messages into compact text for LLM summarization."""
@@ -214,7 +227,33 @@ def _is_boundary_after_message(message: dict[str, Any]) -> bool:
     if role != ROLE_ASSISTANT:
         return False
 
-    return message.get("stop_reason") is not None
+    stop_reason = message.get("stop_reason")
+    if stop_reason is not None:
+        return True
+
+    return _has_safe_assistant_turn_shape_without_stop_reason(message)
+
+
+def _has_safe_assistant_turn_shape_without_stop_reason(message: dict[str, Any]) -> bool:
+    content_items = _coerce_content_items(message)
+
+    has_non_empty_text = False
+    for raw_item in content_items:
+        if not isinstance(raw_item, dict):
+            continue
+
+        item_type = raw_item.get("type")
+        if item_type == CONTENT_TYPE_TOOL_CALL:
+            return False
+
+        if item_type != CONTENT_TYPE_TEXT:
+            continue
+
+        text = raw_item.get(CONTENT_TYPE_TEXT)
+        if isinstance(text, str) and text.strip():
+            has_non_empty_text = True
+
+    return has_non_empty_text
 
 
 def _is_tool_result_message(message: dict[str, Any]) -> bool:

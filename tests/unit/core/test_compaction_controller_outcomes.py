@@ -11,10 +11,12 @@ import pytest
 from tunacode.core.compaction.controller import CompactionController, build_compaction_notice
 from tunacode.core.compaction.summarizer import ContextSummarizer
 from tunacode.core.compaction.types import (
+    COMPACTION_REASON_COMPACTED,
     COMPACTION_REASON_MISSING_API_KEY,
     COMPACTION_REASON_NO_VALID_BOUNDARY,
     COMPACTION_REASON_SUMMARIZATION_FAILED,
     COMPACTION_REASON_UNSUPPORTED_PROVIDER,
+    COMPACTION_STATUS_COMPACTED,
     COMPACTION_STATUS_FAILED,
     COMPACTION_STATUS_SKIPPED,
 )
@@ -197,3 +199,43 @@ async def test_force_compact_summary_failure_returns_failed_outcome(
 
     user_notice = build_compaction_notice(outcome)
     assert user_notice is not None
+
+
+@pytest.mark.asyncio
+async def test_force_compact_compacts_below_threshold_when_boundary_exists(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    history = _build_compactable_history()
+
+    async def _fake_summary(_prompt: str, _signal: asyncio.Event | None) -> str:
+        return "## Goal\n- compact"
+
+    summarizer = ContextSummarizer(_fake_summary)
+    controller = CompactionController(
+        state_manager=state_manager,
+        summarizer=summarizer,
+        keep_recent_tokens=900,
+        reserve_tokens=0,
+    )
+
+    below_threshold_max_tokens = 10_000
+
+    assert controller.should_compact(history, max_tokens=below_threshold_max_tokens) is False
+
+    outcome = await controller.force_compact(
+        history,
+        max_tokens=below_threshold_max_tokens,
+        signal=None,
+    )
+
+    assert outcome.status == COMPACTION_STATUS_COMPACTED
+    assert outcome.reason == COMPACTION_REASON_COMPACTED
+    assert outcome.detail is None
+    assert outcome.messages == []
+
+    record = state_manager.session.compaction
+    assert record is not None
+    assert record.compacted_message_count == len(history)
+    assert record.summary == "## Goal\n- compact"
