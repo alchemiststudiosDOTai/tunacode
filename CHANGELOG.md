@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.64] - 2026-02-12
+
+### Fixed
+- Allow manual compaction below threshold
+- Keep streaming updates and remove tint crash path
+
+### Changed
+- Updated theme architecture handoff and CSS architecture documentation
+
 ## [0.1.63] - 2026-02-12
 
 ### Added
