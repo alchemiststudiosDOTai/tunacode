@@ -49,23 +49,17 @@ repos:
       - id: ruff-format  # Re-enabled - ruff handles linting, ruff-format handles formatting
         exclude: (models_registry\.json|lsp/__init__\.py)$
 
-  # Type checking with mypy (runs on commit and push)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
-    hooks:
-      - id: mypy
-        additional_dependencies:
-          - 'pydantic>=2.0'
-          - 'typer>=0.15'
-          - 'types-requests'
-        args: ['--ignore-missing-imports', '--no-strict-optional']
-        exclude: '(conftest\.py|src/tunacode/core/agents/|^tests/|^scripts/)'
-        stages: [pre-commit, pre-push]
-
-
   # Local hooks for project-specific checks
   - repo: local
     hooks:
+      # Type check source package on every commit
+      - id: mypy-src
+        name: Type check source package
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       # UV-managed tools
       - id: dead-imports
         name: Check for unused imports in changed files
@@ -130,13 +124,13 @@ repos:
         pass_filenames: true
         stages: [pre-commit, pre-push]
 
-      # Run tests (runs on push - too slow for every commit)
+      # Run tests on push only (too slow for commit)
       - id: pytest
         name: Run tests
         entry: uv run pytest -x -q
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]
+        stages: [pre-push]
 
 
       # Dependency layer check (runs on commit - architectural check)

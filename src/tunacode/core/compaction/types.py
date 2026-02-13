@@ -15,9 +15,9 @@ KEY_COMPACTION_COUNT = "compaction_count"
 KEY_PREVIOUS_SUMMARY = "previous_summary"
 KEY_LAST_COMPACTED_AT = "last_compacted_at"
 
-COMPACTION_STATUS_COMPACTED = "compacted"
-COMPACTION_STATUS_SKIPPED = "skipped"
-COMPACTION_STATUS_FAILED = "failed"
+COMPACTION_STATUS_COMPACTED: Literal["compacted"] = "compacted"
+COMPACTION_STATUS_SKIPPED: Literal["skipped"] = "skipped"
+COMPACTION_STATUS_FAILED: Literal["failed"] = "failed"
 
 COMPACTION_REASON_COMPACTED = "compacted"
 COMPACTION_REASON_ALREADY_COMPACTED = "already_compacted_this_request"

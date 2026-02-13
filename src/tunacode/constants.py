@@ -302,28 +302,22 @@ def _wrap_builtin_theme(theme: Theme, palette: Mapping[str, str]) -> Theme:
 
     merged_vars = {**theme.variables, **_build_theme_variables(palette)}
 
-    kwargs: dict[str, object] = {
-        "name": theme.name,
-        "dark": theme.dark,
-        "variables": merged_vars,
-    }
-    for attr in (
-        "primary",
-        "secondary",
-        "accent",
-        "foreground",
-        "background",
-        "surface",
-        "panel",
-        "warning",
-        "error",
-        "success",
-    ):
-        value = getattr(theme, attr, None)
-        if value is not None:
-            kwargs[attr] = value
-
-    return ThemeCls(**kwargs)
+    name = theme.name
+    return ThemeCls(
+        name=name,
+        primary=theme.primary,
+        secondary=theme.secondary,
+        accent=theme.accent,
+        foreground=theme.foreground,
+        background=theme.background,
+        surface=theme.surface,
+        panel=theme.panel,
+        warning=theme.warning,
+        error=theme.error,
+        success=theme.success,
+        variables=merged_vars,
+        dark=theme.dark,
+    )
 
 
 def wrap_builtin_themes(available: Mapping[str, Theme]) -> list[Theme]:

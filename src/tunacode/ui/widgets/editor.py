@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from rich.cells import cell_len
+from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.binding import Binding
@@ -279,10 +281,14 @@ class Editor(Input):
             wrap_width=wrap_width,
         )
 
-    def _build_empty_display(self, cursor_style: object) -> tuple[Text, int]:
+    def _build_empty_display(
+        self,
+        cursor_style: str | Style,
+    ) -> tuple[Text, int]:
         """Build display text when input value is empty."""
+        placeholder_style = cast("str | Style", self.get_component_rich_style("input--placeholder"))
         placeholder = Text(self.placeholder, justify="left", end="", overflow="fold")
-        placeholder.stylize(self.get_component_rich_style("input--placeholder"))
+        placeholder.stylize(placeholder_style)
 
         if not (self.has_focus and self._cursor_visible):
             return placeholder, 0
@@ -325,7 +331,7 @@ class Editor(Input):
         return prefix + result, cursor_index + len(prefix.plain)
 
     def _build_wrapped_display_text(self) -> tuple[Text, int]:
-        cursor_style = self.get_component_rich_style("input--cursor")
+        cursor_style = cast("str | Style", self.get_component_rich_style("input--cursor"))
 
         if not self.value:
             return self._build_empty_display(cursor_style)

@@ -161,10 +161,12 @@ STDERR:
 {stderr_text}"""
 
         args = {"timeout": int(SHELL_COMMAND_TIMEOUT_SECONDS)}
-        panel = render_bash(args, result_text, duration_ms, max_line_width)
+        panel_result = render_bash(args, result_text, duration_ms, max_line_width)
 
-        if panel is None:
+        if panel_result is None:
             return Text(f"$ {cmd}\n{stdout_text}\n{stderr_text}")
+
+        panel, _meta = panel_result
         return panel
 
     def _on_done(self, task: asyncio.Task[None]) -> None:

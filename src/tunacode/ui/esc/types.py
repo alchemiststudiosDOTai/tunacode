@@ -20,6 +20,8 @@ class EditorProtocol(Protocol):
     """Protocol for editor input dependencies."""
 
     value: str
-    has_paste_buffer: bool
+
+    @property
+    def has_paste_buffer(self) -> bool: ...
 
     def clear_input(self) -> None: ...

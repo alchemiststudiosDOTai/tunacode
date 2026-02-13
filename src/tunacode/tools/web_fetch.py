@@ -12,6 +12,7 @@ CLAUDE_ANCHOR[web-fetch-module]: HTTP GET with HTML-to-text conversion
 
 import ipaddress
 import re
+from typing import NoReturn
 from urllib.parse import urlparse
 
 import html2text
@@ -214,7 +215,7 @@ _HTTP_STATUS_MESSAGES: dict[int, str] = {
 }
 
 
-def _handle_http_error(url: str, err: httpx.HTTPStatusError) -> None:
+def _handle_http_error(url: str, err: httpx.HTTPStatusError) -> NoReturn:
     """Convert httpx.HTTPStatusError to ToolRetryError."""
     status = err.response.status_code
     template = _HTTP_STATUS_MESSAGES.get(status)

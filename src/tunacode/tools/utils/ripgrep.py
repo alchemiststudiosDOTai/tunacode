@@ -242,7 +242,7 @@ class RipgrepExecutor:
 
         except TimeoutError:
             return []
-        except (OSError, asyncio.SubprocessError, UnicodeDecodeError):
+        except (OSError, subprocess.SubprocessError, UnicodeDecodeError):
             return self._python_fallback_search(pattern, path, file_pattern=file_pattern)
 
     async def _run_ripgrep_command(self, cmd: list[str], timeout: int) -> tuple[int, str]:

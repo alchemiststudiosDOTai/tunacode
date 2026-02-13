@@ -22,10 +22,7 @@ class EscHandler:
             request_task.cancel()
             return
 
-        shell_runner_available = shell_runner is not None
-        shell_runner_running = shell_runner_available and shell_runner.is_running()
-        if shell_runner_running:
-            assert shell_runner is not None
+        if shell_runner is not None and shell_runner.is_running():
             shell_runner.cancel()
             return
 

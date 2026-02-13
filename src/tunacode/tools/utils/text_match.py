@@ -12,6 +12,7 @@ Replacers are tried in order from strict to fuzzy until one succeeds.
 """
 
 from collections.abc import Callable, Generator
+from typing import NoReturn
 
 try:
     from Levenshtein import distance as _levenshtein_c
@@ -356,7 +357,7 @@ def _try_replace_unique(content: str, search: str, new_string: str) -> str | Non
     return content[:index] + new_string + content[index + len(search) :]
 
 
-def _raise_replace_error(found_fuzzy_match_for_replace_all: bool, found_multiple: bool) -> None:
+def _raise_replace_error(found_fuzzy_match_for_replace_all: bool, found_multiple: bool) -> NoReturn:
     """Raise the appropriate ValueError for a failed replace."""
     if found_fuzzy_match_for_replace_all:
         raise ValueError(
