@@ -8,7 +8,6 @@ from tinyagent.agent_types import AgentMessage
 
 from tunacode.core.compaction.controller import (
     apply_compaction_messages,
-    build_compaction_notice,
     get_or_create_compaction_controller,
 )
 from tunacode.core.compaction.types import COMPACTION_STATUS_COMPACTED
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
 
 COMPACT_USAGE_HINT = "Usage: /compact"
 COMPACT_EMPTY_HISTORY_NOTICE = "Nothing to compact."
-COMPACT_SKIPPED_NOTICE = "Compaction skipped (no eligible boundary)."
 COMPACT_COMPLETE_TEMPLATE = "Compaction complete: {removed} messages, ~{tokens} tokens reclaimed"
 
 
@@ -41,7 +39,7 @@ class CompactCommand(Command):
         conversation = session.conversation
 
         try:
-            history = _coerce_history(conversation.messages)
+            history = _validate_history(conversation.messages)
         except TypeError as exc:
             app.notify(str(exc), severity="error")
             return
@@ -70,12 +68,10 @@ class CompactCommand(Command):
         await app.state_manager.save_session()
 
         if compaction_outcome.status != COMPACTION_STATUS_COMPACTED:
-            outcome_notice = build_compaction_notice(compaction_outcome)
-            if outcome_notice is None:
-                app.notify(COMPACT_SKIPPED_NOTICE)
-                return
-
-            app.notify(outcome_notice, severity="warning")
+            app.notify(
+                f"Compaction skipped: {compaction_outcome.reason}",
+                severity="warning",
+            )
             return
 
         removed_count = len(history) - len(compacted_history)
@@ -89,7 +85,7 @@ class CompactCommand(Command):
         )
 
 
-def _coerce_history(messages: list[AgentMessage]) -> list[dict[str, Any]]:
+def _validate_history(messages: list[AgentMessage]) -> list[dict[str, Any]]:
     if all(isinstance(message, dict) for message in messages):
         return [cast(dict[str, Any], message) for message in messages]
 
