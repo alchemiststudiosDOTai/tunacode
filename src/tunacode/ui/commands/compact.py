@@ -39,7 +39,7 @@ class CompactCommand(Command):
         conversation = session.conversation
 
         try:
-            history = _validate_history(conversation.messages)
+            history = _coerce_history(conversation.messages)
         except TypeError as exc:
             app.notify(str(exc), severity="error")
             return
@@ -85,7 +85,7 @@ class CompactCommand(Command):
         )
 
 
-def _validate_history(messages: list[AgentMessage]) -> list[dict[str, Any]]:
+def _coerce_history(messages: list[AgentMessage]) -> list[dict[str, Any]]:
     if all(isinstance(message, dict) for message in messages):
         return [cast(dict[str, Any], message) for message in messages]
 
