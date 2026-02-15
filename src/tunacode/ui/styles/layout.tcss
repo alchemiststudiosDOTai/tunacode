@@ -114,6 +114,21 @@ ResourceBar {
     border-title-style: bold;
 }
 
+#field-pet {
+    height: auto;
+    min-height: 6;
+    max-height: 10;
+    padding: 0 1;
+}
+#field-slopbar-health {
+    height: auto;
+    min-height: 2;
+    padding: 0 1;
+}
+
+
+
+
 /* Files field - can grow but caps out */
 #field-files {
     max-height: 16;

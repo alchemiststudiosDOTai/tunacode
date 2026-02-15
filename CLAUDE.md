@@ -105,3 +105,15 @@ We are currently in the middle of a large rewrite few test exist and documentati
 pydantic-ai has been fully removed. tinyagent is the sole agent loop. pydantic (the validation library) remains as a dependency. Do NOT reintroduce pydantic-ai under any circumstance.
 
 The agent loop is https://github.com/alchemiststudios.ai/tinyAgent
+
+---
+
+## 2026-02-15: Tamagotchi Pet Widget (Branch: fix-chat-container-tuple-write)
+
+Decorative pet in context inspector (`#field-pet`). Click shows red heart, cycles ASCII frame, bounces margin.
+
+**Textual Click Detection:** Do NOT use `on_mouse_down` with `event.control is widget` -- unreliable for Static widgets. Use `on_click` + walk `event.widget.parent` tree checking IDs instead.
+
+**Rich Text in Textual Static:** Never apply a single style to entire `Text(art, style=...)` -- it colors whitespace too, creating colored blocks. Build with `.append()` per segment instead.
+
+Files: `src/tunacode/ui/app.py` (compose, on_click, _touch_tamagochi, _refresh_tamagochi), `src/tunacode/ui/styles/layout.tcss` (#field-pet), `tests/unit/ui/test_context_panel_summary.py`. See `.claude/JOURNAL.md` 2026-02-15 entry for full debug story.
