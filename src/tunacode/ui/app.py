@@ -38,6 +38,14 @@ from tunacode.core.ui_api.constants import (
 from tunacode.core.ui_api.messaging import estimate_messages_tokens
 from tunacode.core.ui_api.shared_types import ModelName
 
+from tunacode.ui.context_panel import (
+    build_context_gauge,
+    build_context_panel_widgets,
+    build_files_field,
+    is_widget_within_field,
+    token_color,
+    token_remaining_pct,
+)
 from tunacode.ui.esc.handler import EscHandler
 from tunacode.ui.model_display import format_model_for_display
 from tunacode.ui.renderers.errors import render_exception
@@ -51,18 +59,8 @@ from tunacode.ui.repl_support import (
     format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
-from tunacode.ui.styles import (
-    STYLE_ACCENT,
-    STYLE_ERROR,
-    STYLE_MUTED,
-    STYLE_PRIMARY,
-    STYLE_SUCCESS,
-    STYLE_WARNING,
-)
+from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
 from tunacode.ui.tamagochi import (
-    SLOPBAR_HEALTH_NAME,
-    TAMAGOCHI_ART_STATES,
-    TAMAGOCHI_NAME,
     TamagochiPanelState,
     render_slopbar_health,
     render_tamagochi,
@@ -79,12 +77,6 @@ from tunacode.ui.widgets import (
     StatusBar,
     ToolResultDisplay,
 )
-
-
-class InspectorField(Static):
-    """Context inspector field with text selection disabled."""
-
-    ALLOW_SELECT = False
 
 
 class TextualReplApp(App[None]):
@@ -160,51 +152,14 @@ class TextualReplApp(App[None]):
                 Container(id="context-rail", classes=self.CONTEXT_PANEL_COLLAPSED_CLASS),
                 Container(id="context-panel"),
             ):
-                yield Static("Session Inspector", id="inspector-title")
-                self._field_tamagochi = InspectorField(
-                    f"{TAMAGOCHI_ART_STATES[0]}",
-                    id="field-pet",
-                    classes="inspector-field",
-                )
-                self._field_tamagochi.border_title = TAMAGOCHI_NAME
-                yield self._field_tamagochi
-
-                self._field_slopbar_health = InspectorField(
-                    "",
-                    id="field-slopbar-health",
-                    classes="inspector-field",
-                )
-                self._field_slopbar_health.border_title = SLOPBAR_HEALTH_NAME
-                yield self._field_slopbar_health
-
-                self._field_model = InspectorField(
-                    "---",
-                    id="field-model",
-                    classes="inspector-field",
-                )
-                self._field_model.border_title = "Model"
-                yield self._field_model
-                self._field_context = InspectorField(
-                    "",
-                    id="field-context",
-                    classes="inspector-field",
-                )
-                self._field_context.border_title = "Context"
-                yield self._field_context
-                self._field_cost = InspectorField(
-                    "",
-                    id="field-cost",
-                    classes="inspector-field",
-                )
-                self._field_cost.border_title = "Cost"
-                yield self._field_cost
-                self._field_files = InspectorField(
-                    "",
-                    id="field-files",
-                    classes="inspector-field",
-                )
-                self._field_files.border_title = "Files"
-                yield self._field_files
+                context_panel_widgets = build_context_panel_widgets()
+                self._field_tamagochi = context_panel_widgets.field_tamagochi
+                self._field_slopbar_health = context_panel_widgets.field_slopbar_health
+                self._field_model = context_panel_widgets.field_model
+                self._field_context = context_panel_widgets.field_context
+                self._field_cost = context_panel_widgets.field_cost
+                self._field_files = context_panel_widgets.field_files
+                yield from context_panel_widgets.widgets
         yield self.streaming_output
         yield self.editor
         yield FileAutoComplete(self.editor)
@@ -497,10 +452,17 @@ class TextualReplApp(App[None]):
         self._edited_files.clear()
         self._refresh_context_panel()
 
-    GAUGE_WIDTH: int = 24
-
     def _refresh_context_panel(self) -> None:
-        if self._field_model is None:
+        field_model = self._field_model
+        field_context = self._field_context
+        field_cost = self._field_cost
+        field_files = self._field_files
+        if (
+            field_model is None
+            or field_context is None
+            or field_cost is None
+            or field_files is None
+        ):
             return
 
         session = self.state_manager.session
@@ -510,71 +472,33 @@ class TextualReplApp(App[None]):
         model_display = format_model_for_display(raw_model, max_length=30) if raw_model else "---"
         estimated_tokens = estimate_messages_tokens(conversation.messages)
         max_tokens = conversation.max_tokens or self.DEFAULT_CONTEXT_MAX_TOKENS
-        remaining_pct = self._token_remaining_pct(estimated_tokens, max_tokens)
-        token_style = self._token_color(remaining_pct)
+        remaining_pct = token_remaining_pct(estimated_tokens, max_tokens)
+        current_token_style = token_color(remaining_pct)
         session_cost = session.usage.session_total_usage.cost.total
         cost_display = RESOURCE_BAR_COST_FORMAT.format(cost=session_cost)
 
-        self._field_model.update(Text(model_display, style=f"bold {STYLE_PRIMARY}"))
-
-        self._refresh_context_gauge(
-            estimated_tokens,
-            max_tokens,
-            remaining_pct,
-            token_style,
+        field_model.update(Text(model_display, style=f"bold {STYLE_PRIMARY}"))
+        field_context.update(
+            build_context_gauge(
+                tokens=estimated_tokens,
+                max_tokens=max_tokens,
+                remaining_pct=remaining_pct,
+                token_style=current_token_style,
+            )
         )
+        field_cost.update(Text(cost_display, style=f"bold {STYLE_SUCCESS}"))
+        files_title, files_content = build_files_field(self._edited_files)
+        field_files.border_title = files_title
+        field_files.update(files_content)
 
-        self._field_cost.update(Text(cost_display, style=f"bold {STYLE_SUCCESS}"))
         self._refresh_tamagochi()
         self._refresh_slopbar_health()
 
-        self._refresh_files_field()
-
-    def _refresh_context_gauge(
-        self,
-        tokens: int,
-        max_tokens: int,
-        remaining_pct: float,
-        token_style: str,
-    ) -> None:
-        used_pct = 100.0 - remaining_pct
-        filled = round(self.GAUGE_WIDTH * used_pct / 100)
-        empty = self.GAUGE_WIDTH - filled
-
-        gauge = Text()
-        gauge.append("\u2588" * filled, style=token_style)
-        gauge.append("\u2591" * empty, style=STYLE_MUTED)
-        gauge.append(f" {remaining_pct:.0f}%\n", style=f"bold {token_style}")
-        gauge.append(f"{tokens:,}", style=token_style)
-        gauge.append(f" / {max_tokens:,}", style=STYLE_MUTED)
-
-        self._field_context.update(gauge)
-
-    def _refresh_files_field(self) -> None:
-        edited_files = sorted(self._edited_files)
-        file_count = len(edited_files)
-        self._field_files.border_title = f"Files [{file_count}]"
-
-        if not edited_files:
-            self._field_files.update(Text("(none)", style=f"dim {STYLE_MUTED}"))
+    def on_click(self, event: events.Click) -> None:
+        if not is_widget_within_field(event.widget, self, field_id="field-pet"):
             return
 
-        content = Text()
-        for i, filepath in enumerate(edited_files):
-            content.append("\u25b8 ", style=STYLE_ACCENT)
-            content.append(filepath, style=STYLE_PRIMARY)
-            if i < file_count - 1:
-                content.append("\n")
-        self._field_files.update(content)
-
-    def on_click(self, event: events.Click) -> None:
-        widget = event.widget
-        # Walk up from the clicked widget to see if it's inside the pet field
-        while widget is not None and widget is not self:
-            if getattr(widget, "id", None) == "field-pet":
-                self._touch_tamagochi()
-                return
-            widget = widget.parent
+        self._touch_tamagochi()
 
     def _touch_tamagochi(self) -> None:
         if self._field_tamagochi is None:
@@ -596,21 +520,6 @@ class TextualReplApp(App[None]):
             return
 
         self._field_slopbar_health.update(render_slopbar_health(self._tamagochi_state))
-
-    @staticmethod
-    def _token_remaining_pct(tokens: int, max_tokens: int) -> float:
-        if max_tokens == 0:
-            return 0.0
-        raw = (max_tokens - tokens) / max_tokens * 100
-        return max(0.0, min(100.0, raw))
-
-    @staticmethod
-    def _token_color(remaining_pct: float) -> str:
-        if remaining_pct > 60:
-            return STYLE_SUCCESS
-        if remaining_pct > 30:
-            return STYLE_WARNING
-        return STYLE_ERROR
 
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)

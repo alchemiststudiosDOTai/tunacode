@@ -99,7 +99,7 @@ async def test_reset_context_panel_state_clears_edited_files() -> None:
         app.reset_context_panel_state()
 
         context_text = _context_panel_text(app)
-        assert "/tmp/reset-me.py" not in context_text
+        assert "/TMP/RESET-ME.PY" not in context_text
         assert "(NONE)" in context_text
 
 
@@ -122,7 +122,7 @@ async def test_clear_command_resets_context_panel_state() -> None:
 
         context_text = _context_panel_text(app)
         assert app._edited_files == set()
-        assert "/tmp/clear-me.py" not in context_text
+        assert "/TMP/CLEAR-ME.PY" not in context_text
         assert "(NONE)" in context_text
 
 
