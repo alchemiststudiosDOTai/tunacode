@@ -168,6 +168,28 @@ _DETACHED_WRITE_WARNING = (
 )
 
 
+def _coerce_panel_renderable(
+    renderable: RenderableType | tuple[RenderableType, PanelMeta],
+    panel_meta: PanelMeta | None,
+) -> tuple[RenderableType, PanelMeta | None]:
+    """Normalize tuple renderables from panel render helpers.
+
+    Renderers often return ``(content, PanelMeta)`` to keep styling metadata
+    separate from the rendered body, while call sites can still pass
+    ``panel_meta`` explicitly to override that metadata.
+    """
+    if not isinstance(renderable, tuple):
+        return renderable, panel_meta
+    if len(renderable) == 2 and isinstance(renderable[1], PanelMeta):
+        if panel_meta is None:
+            return renderable[0], renderable[1]
+        return renderable[0], panel_meta
+    raise TypeError(
+        "ChatContainer.write() received unsupported tuple renderable; expected "
+        "(RenderableType, PanelMeta) or RenderableType."
+    )
+
+
 class CopyOnSelectStatic(Static):
     """Static widget that copies highlighted text to the clipboard on mouse release.
 
@@ -284,7 +306,7 @@ class ChatContainer(VerticalScroll):
 
     def write(
         self,
-        renderable: RenderableType,
+        renderable: RenderableType | tuple[RenderableType, PanelMeta],
         *,
         expand: bool = False,
         panel_meta: PanelMeta | None = None,
@@ -294,14 +316,16 @@ class ChatContainer(VerticalScroll):
         This is the primary API for adding content, compatible with RichLog.write().
 
         Args:
-            renderable: Rich renderable to display.
+            renderable: Rich renderable or ``(RenderableType, PanelMeta)`` tuple.
             expand: If True, widget expands to fill available width.
             panel_meta: Optional panel metadata for CSS-styled borders.
 
         Returns:
             The created Static widget.
         """
-        widget = CopyOnSelectStatic(renderable)
+        panel_content, panel_meta = _coerce_panel_renderable(renderable, panel_meta)
+
+        widget = CopyOnSelectStatic(panel_content)
         widget.add_class("chat-message")
         if expand:
             widget.add_class("expand")
