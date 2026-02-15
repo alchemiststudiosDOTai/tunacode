@@ -45,6 +45,7 @@ class ClearCommand(Command):
         # Keep session_total_usage - tracks lifetime session cost
 
         app.state_manager.reset_recursive_state()
+        app.reset_context_panel_state()
 
         app._update_resource_bar()
         app.notify("Cleared agent state (messages preserved for /resume)")

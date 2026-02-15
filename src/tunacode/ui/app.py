@@ -25,6 +25,7 @@ from tunacode.core.logging import get_logger
 from tunacode.core.session import StateManager
 from tunacode.core.ui_api.constants import (
     MIN_TOOL_PANEL_LINE_WIDTH,
+    RESOURCE_BAR_COST_FORMAT,
     RICHLOG_CLASS_STREAMING,
     SUPPORTED_THEME_NAMES,
     THEME_NAME,
@@ -40,6 +41,7 @@ from tunacode.ui.esc.handler import EscHandler
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
+    FILE_EDIT_TOOLS,
     StatusBarLike,
     build_textual_tool_callback,
     build_tool_result_callback,
@@ -72,9 +74,12 @@ class TextualReplApp(App[None]):
 
     BINDINGS = [
         Binding("escape", "cancel_request", "Cancel", show=False, priority=True),
+        Binding("ctrl+e", "toggle_context_panel", "Context", show=False, priority=True),
     ]
 
     STREAM_THROTTLE_MS: float = 100.0
+    CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
+    DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
@@ -97,11 +102,13 @@ class TextualReplApp(App[None]):
         self.shell_runner = ShellRunner(self)
 
         self.chat_container: ChatContainer
+        self.context_panel: Static | None = None
         self.editor: Editor
         self.resource_bar: ResourceBar
         self.status_bar: StatusBarLike
         self.streaming_output: Static
-
+        self._context_panel_visible: bool = False
+        self._edited_files: set[str] = set()
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
 
@@ -112,11 +119,14 @@ class TextualReplApp(App[None]):
         self.loading_indicator = LoadingIndicator()
         self.editor = Editor()
         self.status_bar = StatusBar()
-
         yield self.resource_bar
-        with Container(id="viewport"):
-            yield self.chat_container
-            yield self.loading_indicator
+        with Container(id="workspace"):
+            with Container(id="viewport"):
+                yield self.chat_container
+                yield self.loading_indicator
+            with Container(id="context-rail", classes=self.CONTEXT_PANEL_COLLAPSED_CLASS):
+                self.context_panel = Static("", id="context-panel")
+                yield self.context_panel
         yield self.streaming_output
         yield self.editor
         yield FileAutoComplete(self.editor)
@@ -314,6 +324,18 @@ class TextualReplApp(App[None]):
             max_line_width=max_line_width,
         )
         self.chat_container.write(content, panel_meta=panel_meta)
+        if message.status != "completed":
+            return
+        if message.tool_name not in FILE_EDIT_TOOLS:
+            return
+        filepath_value = message.args.get("filepath")
+        if not isinstance(filepath_value, str):
+            return
+        filepath = filepath_value.strip()
+        if not filepath:
+            return
+        self._edited_files.add(filepath)
+        self._refresh_context_panel()
 
     def tool_panel_max_width(self) -> int:
         viewport = self.query_one("#viewport")
@@ -342,28 +364,34 @@ class TextualReplApp(App[None]):
         for msg in conversation.messages:
             if not isinstance(msg, dict):
                 continue
-
             role = msg.get("role")
             if role == "user":
                 content = get_content(msg)
                 if not content:
                     continue
-
                 user_block = Text()
                 user_block.append(f"| {content}\n", style=STYLE_PRIMARY)
                 user_block.append("| (restored)", style=f"dim {STYLE_PRIMARY}")
                 self.rich_log.write(user_block)
                 continue
-
             if role != "assistant":
                 continue
 
             content = get_content(msg)
             if not content:
                 continue
-
             self.rich_log.write(Text("agent:", style="accent"))
             self.rich_log.write(Markdown(content))
+
+    def action_toggle_context_panel(self) -> None:
+        self._context_panel_visible = not self._context_panel_visible
+        context_rail = self.query_one("#context-rail", Container)
+        if self._context_panel_visible:
+            context_rail.remove_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
+            self._refresh_context_panel()
+            return
+
+        context_rail.add_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
 
     def action_cancel_request(self) -> None:
         """Cancel the current request or shell command."""
@@ -387,27 +415,56 @@ class TextualReplApp(App[None]):
     def shell_status_last(self) -> None:
         self.status_bar.update_last_action("shell")
 
+    def reset_context_panel_state(self) -> None:
+        self._edited_files.clear()
+        self._refresh_context_panel()
+
+    def _refresh_context_panel(self) -> None:
+        context_panel = self.context_panel
+        if context_panel is None:
+            return
+
+        session = self.state_manager.session
+        conversation = session.conversation
+        model = session.current_model or "No model selected"
+        estimated_tokens = estimate_messages_tokens(conversation.messages)
+        max_tokens = conversation.max_tokens or self.DEFAULT_CONTEXT_MAX_TOKENS
+        session_cost = session.usage.session_total_usage.cost.total
+        session_cost_display = RESOURCE_BAR_COST_FORMAT.format(cost=session_cost)
+        lines = [
+            "Context Summary",
+            "",
+            f"Model: {model}",
+            f"Token Usage: {estimated_tokens:,} / {max_tokens:,}",
+            f"Session Cost: {session_cost_display}",
+            "",
+            "Edited Files:",
+        ]
+        edited_files = sorted(self._edited_files)
+        if not edited_files:
+            lines.append("  - none")
+        else:
+            lines.extend(f"  - {filepath}" for filepath in edited_files)
+        context_panel.update(Text("\n".join(lines)))
+
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)
 
     def _update_resource_bar(self) -> None:
         session = self.state_manager.session
         conversation = session.conversation
-
         # Use simplified token counter to estimate actual context window usage
         estimated_tokens = estimate_messages_tokens(conversation.messages)
 
         model = session.current_model or "No model selected"
-        max_tokens = conversation.max_tokens or 200000
+        max_tokens = conversation.max_tokens or self.DEFAULT_CONTEXT_MAX_TOKENS
         session_cost = session.usage.session_total_usage.cost.total
-
         self.resource_bar.update_stats(
             model=model,
             tokens=estimated_tokens,
             max_tokens=max_tokens,
             session_cost=session_cost,
         )
-
         logger = get_logger()
         log_resource_bar_update(
             logger=logger,
@@ -416,19 +473,17 @@ class TextualReplApp(App[None]):
             max_tokens=max_tokens,
             session_cost=session_cost,
         )
+        self._refresh_context_panel()
 
     async def _streaming_callback(self, chunk: str) -> None:
         """Handle streaming text chunks from the agent.
-
         Accumulates chunks and updates the streaming output panel
         with throttled UI updates to reduce visual churn.
         """
         self._current_stream_text += chunk
-
         is_first_chunk = not self.streaming_output.has_class("active")
         if is_first_chunk:
             self.streaming_output.add_class("active")
-
         now = time.monotonic()
         elapsed_ms = (now - self._last_stream_update) * 1000
         if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:

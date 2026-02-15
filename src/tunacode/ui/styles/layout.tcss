@@ -31,16 +31,48 @@ ResourceBar {
 }
 
 /* ============================================
+ * WORKSPACE - Horizontal split for viewport + context rail
+ * ============================================ */
+#workspace {
+    layout: horizontal;
+    height: 1fr;
+}
+/* ============================================
  * PRIMARY VIEWPORT - Unified container for RichLog + streaming
  * NeXTSTEP: "Objects stay where put" - content lives in ONE zone
  * ============================================ */
 #viewport {
+    width: 1fr;
     height: 1fr;
     background: $surface;
     border-top: solid $bevel-light;
     border-left: solid $bevel-light;
     border-bottom: solid $bevel-dark;
     border-right: solid $bevel-dark;
+}
+
+#context-rail {
+    width: 36;
+    min-width: 28;
+    max-width: 48;
+    height: 1fr;
+    background: $surface;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
+}
+
+#context-rail.hidden {
+    display: none;
+}
+
+#context-panel {
+    height: 1fr;
+    background: $background;
+    padding: 1;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
 }
 
 /* Streaming mode - pressed/in-progress viewport with action outline */
