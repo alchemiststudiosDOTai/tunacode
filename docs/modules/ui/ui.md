@@ -73,6 +73,7 @@ All slash commands are implemented as `Command` subclasses and registered in `CO
 | `commands/debug.py` | `/debug` command toggling debug log output. |
 | `commands/model.py` | `/model` command for picker-based and direct model selection. |
 | `commands/theme.py` | `/theme` command for picker-based and direct theme switching by name. |
+| `commands/update.py` | `/update` command for checking and installing TunaCode updates. |
 | `commands/resume.py` | `/resume` command for listing, loading, and deleting sessions. |
 | `commands/exit.py` | `/exit` command for quitting TunaCode via slash input. |
 
@@ -88,7 +89,7 @@ This contract is enforced in `tests/unit/ui/test_command_contracts.py`.
 
 | File | Purpose |
 |------|---------|
-| `esc/handler.py` | `EscHandler` — centralized ESC key logic. Priority order: cancel request → cancel shell → clear editor input/paste buffer. |
+| `esc/handler.py` | `EscHandler` — centralized ESC key logic. Priority order: cancel request → cancel shell command. |
 | `esc/types.py` | Protocol definitions for editor and shell runner injection. |
 
 ### Utilities
@@ -195,9 +196,6 @@ Priority 1: cancel current request task
     |
     v
 Priority 2: cancel running shell command
-    |
-    v
-Priority 3: clear editor input / paste buffer
 ```
 
 ### Rendering Pipeline
@@ -252,7 +250,7 @@ The UI layer follows **NeXTSTEP User Interface Guidelines** (see `.claude/skills
 - Without tracking, tool panels would always appear at the bottom, breaking conversation flow.
 
 **Why ESC handler as separate component?**
-- ESC has three distinct responsibilities (cancel request, cancel shell, clear input).
+- ESC has two distinct responsibilities (cancel request, cancel shell).
 - Hardcoding logic in TextualReplApp creates tight coupling and makes testing difficult.
 - Dependency injection via `EscHandler.handle_escape()` allows protocol-based testing.
 
