@@ -77,11 +77,16 @@ ResourceBar {
 #context-panel {
     height: 1fr;
     background: $surface;
-    padding: 1 1 0 1;
+    padding: 0 1 0 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
+    scrollbar-size-vertical: 1;
     scrollbar-color: $scrollbar-thumb;
     scrollbar-background: $scrollbar-track;
+    scrollbar-color-hover: $scrollbar-thumb;
+    scrollbar-color-active: $scrollbar-thumb;
+    scrollbar-background-hover: $scrollbar-track;
+    scrollbar-background-active: $scrollbar-track;
 }
 
 /* Inspector title strip - raised button, high-contrast label */
@@ -92,7 +97,7 @@ ResourceBar {
     text-style: bold;
     color: $accent;
     background: $surface;
-    margin: 0 0 1 0;
+    margin: 0 0 0 0;
     border-top: solid $bevel-light;
     border-left: solid $bevel-light;
     border-bottom: solid $bevel-dark;
@@ -102,7 +107,7 @@ ResourceBar {
 /* Sunken data fields - inverted bevel = inset/etched look */
 .inspector-field {
     height: auto;
-    margin: 0 0 1 0;
+    margin: 0 0 0 0;
     padding: 0 1;
     background: $background;
     border-top: solid $bevel-dark;

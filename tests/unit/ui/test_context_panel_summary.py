@@ -151,3 +151,18 @@ async def test_tamagochi_slopbar_health_is_half_full_by_default() -> None:
         assert "50%" in health_text
         assert "\u2588\u2588\u2588\u2588\u2588" in health_text
         assert "\u2591\u2591\u2591\u2591\u2591" in health_text
+
+
+async def test_context_inspector_fields_disable_text_selection() -> None:
+    app = TextualReplApp(state_manager=StateManager())
+    async with app.run_test(headless=True):
+        for field_id in (
+            "field-pet",
+            "field-slopbar-health",
+            "field-model",
+            "field-context",
+            "field-cost",
+            "field-files",
+        ):
+            field = app.query_one(f"#{field_id}", Static)
+            assert field.allow_select is False

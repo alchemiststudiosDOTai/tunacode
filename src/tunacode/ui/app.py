@@ -81,6 +81,12 @@ from tunacode.ui.widgets import (
 )
 
 
+class InspectorField(Static):
+    """Context inspector field with text selection disabled."""
+
+    ALLOW_SELECT = False
+
+
 class TextualReplApp(App[None]):
     TITLE = "TunaCode"
     CSS_PATH = [
@@ -155,7 +161,7 @@ class TextualReplApp(App[None]):
                 Container(id="context-panel"),
             ):
                 yield Static("Session Inspector", id="inspector-title")
-                self._field_tamagochi = Static(
+                self._field_tamagochi = InspectorField(
                     f"{TAMAGOCHI_ART_STATES[0]}",
                     id="field-pet",
                     classes="inspector-field",
@@ -163,7 +169,7 @@ class TextualReplApp(App[None]):
                 self._field_tamagochi.border_title = TAMAGOCHI_NAME
                 yield self._field_tamagochi
 
-                self._field_slopbar_health = Static(
+                self._field_slopbar_health = InspectorField(
                     "",
                     id="field-slopbar-health",
                     classes="inspector-field",
@@ -171,16 +177,32 @@ class TextualReplApp(App[None]):
                 self._field_slopbar_health.border_title = SLOPBAR_HEALTH_NAME
                 yield self._field_slopbar_health
 
-                self._field_model = Static("---", id="field-model", classes="inspector-field")
+                self._field_model = InspectorField(
+                    "---",
+                    id="field-model",
+                    classes="inspector-field",
+                )
                 self._field_model.border_title = "Model"
                 yield self._field_model
-                self._field_context = Static("", id="field-context", classes="inspector-field")
+                self._field_context = InspectorField(
+                    "",
+                    id="field-context",
+                    classes="inspector-field",
+                )
                 self._field_context.border_title = "Context"
                 yield self._field_context
-                self._field_cost = Static("", id="field-cost", classes="inspector-field")
+                self._field_cost = InspectorField(
+                    "",
+                    id="field-cost",
+                    classes="inspector-field",
+                )
                 self._field_cost.border_title = "Cost"
                 yield self._field_cost
-                self._field_files = Static("", id="field-files", classes="inspector-field")
+                self._field_files = InspectorField(
+                    "",
+                    id="field-files",
+                    classes="inspector-field",
+                )
                 self._field_files.border_title = "Files"
                 yield self._field_files
         yield self.streaming_output
