@@ -14,12 +14,3 @@ class ShellRunnerProtocol(Protocol):
     def is_running(self) -> bool: ...
 
     def cancel(self) -> None: ...
-
-
-class EditorProtocol(Protocol):
-    """Protocol for editor input dependencies."""
-
-    value: str
-    has_paste_buffer: bool
-
-    def clear_input(self) -> None: ...

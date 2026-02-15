@@ -29,6 +29,11 @@ jobs:
         run: |
           init_only_dirs=$(find . -type d -not -path "*/.*" -not -path "*/node_modules/*" -not -path "*/__pycache__/*" -not -path "*/.venv/*" -not -path "*/.git/*" -exec sh -c '
             dir="$1"
+            # Skip directories that contain sub-packages (legitimate namespace packages)
+            subdirs=$(find "$dir" -maxdepth 1 -mindepth 1 -type d -not -name "__pycache__" | wc -l)
+            if [ "$subdirs" -gt 0 ]; then
+              exit 0
+            fi
             files=$(find "$dir" -maxdepth 1 -type f | wc -l)
             if [ "$files" -eq 1 ]; then
               if [ -f "$dir/__init__.py" ]; then

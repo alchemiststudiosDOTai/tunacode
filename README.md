@@ -115,16 +115,21 @@ For local models and advanced settings, see the [Configuration Guide](docs/confi
 
 ## Commands
 
+
+Slash commands are command objects in `tunacode.ui.commands`; each one is a `Command` subclass and is registered in `COMMANDS`. `handle_command()` also routes shell commands (`!<cmd>`), legacy `exit`, and slash `/exit`.
 | Command | Description |
 |---------|-------------|
 | `/help` | Show available commands |
-| `/model` | Change AI model |
-| `/clear` | Clear UI state (messages preserved) |
-| `/theme` | Change UI theme |
-| `/resume` | Load previous sessions |
-| `/update` | Check for updates |
+| `/clear` | Clear transient agent state while preserving message history. |
+| `/compact` | Force context compaction |
+| `/debug` | Toggle debug logging to screen |
+| `/model` | Open model picker or switch model |
+| `/theme` | Open theme picker or switch theme |
+| `/resume` | List, load, or delete persisted sessions. |
+| `/update` | Check for or install updates. |
 | `!<cmd>` | Run shell command |
-| `exit` | Quit |
+| `/exit` | Exit TunaCode |
+| `exit` | Legacy alias for exit |
 
 ## Tools
 
