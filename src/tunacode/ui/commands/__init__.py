@@ -8,6 +8,7 @@ from tunacode.ui.commands.base import Command
 from tunacode.ui.commands.clear import ClearCommand
 from tunacode.ui.commands.compact import CompactCommand
 from tunacode.ui.commands.debug import DebugCommand
+from tunacode.ui.commands.exit import ExitCommand
 from tunacode.ui.commands.help import HelpCommand
 from tunacode.ui.commands.model import ModelCommand
 from tunacode.ui.commands.resume import ResumeCommand
@@ -23,6 +24,7 @@ COMMANDS: dict[str, Command] = {
     "clear": ClearCommand(),
     "compact": CompactCommand(),
     "debug": DebugCommand(),
+    "exit": ExitCommand(),
     "model": ModelCommand(),
     "theme": ThemeCommand(),
     "resume": ResumeCommand(),

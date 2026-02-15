@@ -14,17 +14,6 @@ from tunacode.ui.widgets.editor import Editor
 
 
 @dataclass
-class _FakeEditor:
-    value: str
-    cleared: bool = False
-    has_paste_buffer: bool = False
-
-    def clear_input(self) -> None:
-        self.value = ""
-        self.cleared = True
-
-
-@dataclass
 class _FakeKeyEvent:
     key: str
     character: str | None
@@ -56,7 +45,39 @@ async def test_handle_command_bang_starts_shell_command() -> None:
     assert [cmd.strip() for cmd in started] == ["ls"]
 
 
-def test_escape_clears_editor_when_no_streaming_or_shell_running() -> None:
+@pytest.mark.asyncio
+async def test_handle_command_plain_exit_still_works() -> None:
+    class FakeApp:
+        def __init__(self) -> None:
+            self.exit_called = False
+
+        def exit(self) -> None:
+            self.exit_called = True
+
+    app = cast(TextualReplApp, FakeApp())
+    handled = await handle_command(app, "exit")
+
+    assert handled is True
+    assert app.exit_called is True
+
+
+@pytest.mark.asyncio
+async def test_handle_command_slash_exit_invokes_exit() -> None:
+    class FakeApp:
+        def __init__(self) -> None:
+            self.exit_called = False
+
+        def exit(self) -> None:
+            self.exit_called = True
+
+    app = cast(TextualReplApp, FakeApp())
+    handled = await handle_command(app, "/exit")
+
+    assert handled is True
+    assert app.exit_called is True
+
+
+def test_escape_does_not_clear_editor_when_no_request_or_shell_running() -> None:
     fake_app = type(
         "FakeApp",
         (),
@@ -64,13 +85,10 @@ def test_escape_clears_editor_when_no_streaming_or_shell_running() -> None:
             "_current_request_task": None,
             "_esc_handler": EscHandler(),
             "_shell_command_task": None,
-            "editor": _FakeEditor("! ls"),
         },
     )()
-
     TextualReplApp.action_cancel_request(fake_app)
-    assert fake_app.editor.cleared is True
-    assert fake_app.editor.value == ""
+    assert fake_app._current_request_task is None
 
 
 def test_bang_toggles_on_when_empty() -> None:

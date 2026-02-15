@@ -366,16 +366,13 @@ class TextualReplApp(App[None]):
             self.rich_log.write(Markdown(content))
 
     def action_cancel_request(self) -> None:
-        """Cancel the current request, shell command, or clear editor input."""
+        """Cancel the current request or shell command."""
         esc_handler = self._esc_handler
         current_request_task = self._current_request_task
         shell_runner = getattr(self, "shell_runner", None)
-        editor = self.editor
-
         esc_handler.handle_escape(
             current_request_task=current_request_task,
             shell_runner=shell_runner,
-            editor=editor,
         )
 
     def start_shell_command(self, raw_cmd: str) -> None:

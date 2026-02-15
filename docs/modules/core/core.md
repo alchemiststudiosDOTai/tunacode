@@ -69,7 +69,7 @@ The engine. Takes a user message, routes it through a tinyagent `Agent`, handles
 |------|---------|
 | `debug/usage_trace.py` | `log_usage_update()` -- structured logging of per-request usage metrics. |
 | `tinyagent/__init__.py` | `ensure_tinyagent_importable()` -- verifies tinyagent is installed and importable. |
-| `ui_api/` | Bridge between core and UI. See [ui.md](ui.md) for details. |
+| `ui_api/` | Bridge between core and UI. See [ui/ui.md](ui/ui.md) for details. |
 
 ## How
 

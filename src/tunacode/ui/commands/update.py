@@ -9,7 +9,6 @@ from tunacode.ui.commands.base import Command
 if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
 
-# Update command constants
 PACKAGE_NAME = "tunacode-cli"
 UPDATE_INSTALL_TIMEOUT_SECONDS = 120
 

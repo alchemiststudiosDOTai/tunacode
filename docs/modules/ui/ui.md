@@ -62,13 +62,28 @@ The Textual-based terminal user interface for TunaCode. Handles all user interac
 | `renderers/tools/` | Tool-specific renderers for bash, grep, glob, list_dir, read_file, update_file, web_fetch, diagnostics. Apply syntax highlighting and truncation. |
 
 ### Command System
-
+All slash commands are implemented as `Command` subclasses and registered in `COMMANDS`. `handle_command()` also routes shell commands (`!<cmd>`), legacy `exit`, and slash `/exit`.
 | File | Purpose |
 |------|---------|
-| `commands/base.py` | `Command` abstract base class defining the command interface. |
-| `commands/__init__.py` | Slash command implementations: `/help`, `/clear`, `/compact`, `/debug`, `/model`, `/theme`, `/resume`, `/update`. Routing via `handle_command()`. |
-| `commands/compact.py` | `/compact` command for manual context compaction. Forces summarization of old messages. |
+| `commands/base.py` | `Command` abstract base class defining the command interface (`name`, `description`, optional `usage`, `execute(app, args)`). |
+| `commands/__init__.py` | Slash command registry and router. Maps command name to instance and dispatches `/` commands in `handle_command()`. |
+| `commands/help.py` | `/help` command rendering command/description table. |
+| `commands/clear.py` | `/clear` command for clearing transient agent state while preserving message history for `/resume`. |
+| `commands/compact.py` | `/compact` command for manual context compaction and token reclamation. |
+| `commands/debug.py` | `/debug` command toggling debug log output. |
+| `commands/model.py` | `/model` command for picker-based and direct model selection. |
+| `commands/theme.py` | `/theme` command for picker-based and direct theme switching by name. |
+| `commands/resume.py` | `/resume` command for listing, loading, and deleting sessions. |
+| `commands/exit.py` | `/exit` command for quitting TunaCode via slash input. |
 
+### Command Contract
+
+- Each command module (excluding `base.py` and `__init__.py`) defines one concrete `Command` subclass.
+- `name` and `description` must be set and non-empty; `usage` is optional.
+- `execute` must be `async` and accept `(app, args)`.
+- Each concrete command must be present in `COMMANDS` with its `name` as the key.
+
+This contract is enforced in `tests/unit/ui/test_command_contracts.py`.
 ### ESC Key Handling
 
 | File | Purpose |

@@ -30,17 +30,17 @@ types           Base aliases, callback protocols, canonical message model
 
 Start from the bottom if you need to understand the type system.
 Start from the top if you need to change the UI.
-Start from `core.md` if you need to understand how a user prompt becomes an LLM response.
+Start from `core/core.md` if you need to understand how a user prompt becomes an LLM response.
 
 | Layer           | Document                                 | Key concern                          |
 |-----------------|------------------------------------------|--------------------------------------|
-| types           | [types.md](types.md)                     | Aliases, protocols, canonical model  |
-| utils           | [utils.md](utils.md)                     | Message adapter, token estimation    |
-| infrastructure  | [infrastructure.md](infrastructure.md)   | Thread-safe caching                  |
-| configuration   | [configuration.md](configuration.md)     | User config, model registry          |
-| tools           | [tools.md](tools.md)                     | LLM-callable tool implementations    |
-| core            | [core.md](core.md)                       | Agent loop, compaction, session      |
-| ui              | [ui.md](ui.md)                           | Textual app, widgets, theming        |
+| types           | [types/types.md](types/types.md)                     | Aliases, protocols, canonical model  |
+| utils           | [utils/utils.md](utils/utils.md)                     | Message adapter, token estimation    |
+| infrastructure  | [infrastructure/infrastructure.md](infrastructure/infrastructure.md)   | Thread-safe caching                  |
+| configuration   | [configuration/configuration.md](configuration/configuration.md)     | User config, model registry          |
+| tools           | [tools/tools.md](tools/tools.md)                     | LLM-callable tool implementations    |
+| core            | [core/core.md](core/core.md)                       | Agent loop, compaction, session      |
+| ui              | [ui/ui.md](ui/ui.md)                           | Textual app, widgets, theming        |
 
 ## Root-Level Files
 
