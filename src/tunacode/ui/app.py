@@ -59,6 +59,15 @@ from tunacode.ui.styles import (
     STYLE_SUCCESS,
     STYLE_WARNING,
 )
+from tunacode.ui.tamagochi import (
+    SLOPBAR_HEALTH_NAME,
+    TAMAGOCHI_ART_STATES,
+    TAMAGOCHI_NAME,
+    TamagochiPanelState,
+    render_slopbar_health,
+    render_tamagochi,
+    touch_tamagochi,
+)
 from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
     ChatContainer,
@@ -89,16 +98,6 @@ class TextualReplApp(App[None]):
     STREAM_THROTTLE_MS: float = 100.0
     CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
     DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
-    TAMAGOCHI_NAME: str = "Tamagotchi"
-    TAMAGOCHI_HEART: str = "♥"
-    TAMAGOCHI_ART_STATES: tuple[str, str] = (
-        " /\\_/\\\n( T.T )\n > _ <",
-        " /\\_/\\\n( ;.; )\n > _ <",
-    )
-    TAMAGOCHI_MOVE_RANGE: int = 4
-    SLOPBAR_HEALTH_BAR_WIDTH: int = 10
-    SLOPBAR_HEALTH_PERCENT_START: int = 50
-    SLOPBAR_HEALTH_NAME: str = "Slopbar Health"
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
@@ -131,14 +130,10 @@ class TextualReplApp(App[None]):
         self._field_context: Static | None = None
         self._field_cost: Static | None = None
         self._field_files: Static | None = None
-        self._tamagochi_frame_index: int = 0
-        self._tamagochi_offset: int = 0
-        self._tamagochi_direction: int = 1
-        self._tamagochi_show_heart: bool = False
+        self._tamagochi_state: TamagochiPanelState = TamagochiPanelState()
 
         self._field_tamagochi: Static | None = None
         self._field_slopbar_health: Static | None = None
-        self._slopbar_health_percent: int = getattr(type(self), "SLOPBAR_HEALTH_PERCENT_START", 50)
 
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
@@ -161,11 +156,11 @@ class TextualReplApp(App[None]):
             ):
                 yield Static("Session Inspector", id="inspector-title")
                 self._field_tamagochi = Static(
-                    f"{self.TAMAGOCHI_ART_STATES[0]}",
+                    f"{TAMAGOCHI_ART_STATES[0]}",
                     id="field-pet",
                     classes="inspector-field",
                 )
-                self._field_tamagochi.border_title = self.TAMAGOCHI_NAME
+                self._field_tamagochi.border_title = TAMAGOCHI_NAME
                 yield self._field_tamagochi
 
                 self._field_slopbar_health = Static(
@@ -173,8 +168,7 @@ class TextualReplApp(App[None]):
                     id="field-slopbar-health",
                     classes="inspector-field",
                 )
-                slopbar_health_name = getattr(type(self), "SLOPBAR_HEALTH_NAME", "Slopbar Health")
-                self._field_slopbar_health.border_title = slopbar_health_name
+                self._field_slopbar_health.border_title = SLOPBAR_HEALTH_NAME
                 yield self._field_slopbar_health
 
                 self._field_model = Static("---", id="field-model", classes="inspector-field")
@@ -564,50 +558,22 @@ class TextualReplApp(App[None]):
         if self._field_tamagochi is None:
             return
 
-        self._tamagochi_show_heart = True
-        self._tamagochi_frame_index = (self._tamagochi_frame_index + 1) % len(
-            self.TAMAGOCHI_ART_STATES
-        )
-        self._tamagochi_offset += self._tamagochi_direction
-        if self._tamagochi_offset >= self.TAMAGOCHI_MOVE_RANGE:
-            self._tamagochi_offset = self.TAMAGOCHI_MOVE_RANGE
-            self._tamagochi_direction = -1
-        elif self._tamagochi_offset <= 0:
-            self._tamagochi_offset = 0
-            self._tamagochi_direction = 1
+        touch_tamagochi(self._tamagochi_state)
         self._refresh_tamagochi()
 
     def _refresh_tamagochi(self) -> None:
         if self._field_tamagochi is None:
             return
-        frame_count = len(self.TAMAGOCHI_ART_STATES)
-        frame = self.TAMAGOCHI_ART_STATES[self._tamagochi_frame_index % frame_count]
-        art = Text()
-        art.append(frame, style=STYLE_SUCCESS)
-        if self._tamagochi_show_heart:
-            art.append("\n")
-            art.append(f"  {self.TAMAGOCHI_HEART}", style=f"bold {STYLE_ERROR}")
-        self._field_tamagochi.styles.margin = (0, 0, 0, self._tamagochi_offset)
+
+        art = render_tamagochi(self._tamagochi_state)
+        self._field_tamagochi.styles.margin = (0, 0, 0, self._tamagochi_state.offset)
         self._field_tamagochi.update(art)
 
     def _refresh_slopbar_health(self) -> None:
         if self._field_slopbar_health is None:
             return
 
-        width = getattr(self, "SLOPBAR_HEALTH_BAR_WIDTH", 10)
-        filled = width * self._slopbar_health_percent // 100
-        if filled < 0:
-            filled = 0
-        elif filled > width:
-            filled = width
-
-        empty = width - filled
-
-        bar = Text()
-        bar.append("\u2588" * filled, style=STYLE_SUCCESS)
-        bar.append("\u2591" * empty, style=STYLE_MUTED)
-        bar.append(f" {self._slopbar_health_percent}%", style=f"bold {STYLE_PRIMARY}")
-        self._field_slopbar_health.update(bar)
+        self._field_slopbar_health.update(render_slopbar_health(self._tamagochi_state))
 
     @staticmethod
     def _token_remaining_pct(tokens: int, max_tokens: int) -> float:
