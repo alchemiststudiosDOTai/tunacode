@@ -1,0 +1,34 @@
+digraph tunacode_layers {
+  rankdir=TB;
+  node [shape=box, style=filled, fontname=Arial];
+
+  ui [label="ui"];
+  core [label="core"];
+  tools [label="tools"];
+  utils [label="utils"];
+  configuration [label="configuration"];
+  constants [label="constants"];
+  exceptions [label="exceptions"];
+  infrastructure [label="infrastructure"];
+  types [label="types"];
+
+  configuration -> constants [label="6"];
+  configuration -> exceptions [label="1"];
+  configuration -> infrastructure [label="2"];
+  configuration -> types [label="4"];
+  core -> configuration [label="16"];
+  core -> constants [label="5"];
+  core -> exceptions [label="3"];
+  core -> infrastructure [label="3"];
+  core -> tools [label="10"];
+  core -> types [label="15"];
+  core -> utils [label="6"];
+  exceptions -> types [label="1"];
+  infrastructure -> types [label="1"];
+  tools -> configuration [label="5"];
+  tools -> exceptions [label="10"];
+  tools -> infrastructure [label="3"];
+  ui -> core [label="58"];
+  utils -> configuration [label="2"];
+  utils -> types [label="2"];
+}
