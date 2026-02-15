@@ -1,0 +1,236 @@
+TunaCode Source Code Structure Tree
+===================================
+
+Generated: 2026-02-15
+Source: <repo_root>/src/tunacode
+Output: <repo_root>/docs/codebase-map/structure/tree-structure.txt
+
+src/tunacode/
+├── configuration/
+│   ├── __init__.py
+│   ├── defaults.py
+│   ├── feature_flags.py
+│   ├── ignore_patterns.py
+│   ├── limits.py
+│   ├── models.py
+│   ├── models_registry.json
+│   ├── paths.py
+│   ├── pricing.py
+│   ├── settings.py
+│   └── user_config.py
+├── core/
+│   ├── agents/
+│   │   ├── agent_components/
+│   │   │   ├── __init__.py
+│   │   │   ├── agent_config.py
+│   │   │   ├── agent_helpers.py
+│   │   │   ├── openai_response_validation.py
+│   │   │   └── state_transition.py
+│   │   ├── resume/
+│   │   │   ├── __init__.py
+│   │   │   ├── sanitize.py
+│   │   │   └── sanitize_debug.py
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── compaction/
+│   │   ├── __init__.py
+│   │   ├── controller.py
+│   │   ├── prompts.py
+│   │   ├── summarizer.py
+│   │   └── types.py
+│   ├── debug/
+│   │   ├── __init__.py
+│   │   └── usage_trace.py
+│   ├── logging/
+│   │   ├── __init__.py
+│   │   ├── handlers.py
+│   │   ├── levels.py
+│   │   ├── manager.py
+│   │   └── records.py
+│   ├── prompting/
+│   ├── session/
+│   │   ├── __init__.py
+│   │   └── state.py
+│   ├── types/
+│   │   ├── __init__.py
+│   │   ├── agent_state.py
+│   │   ├── state.py
+│   │   ├── state_structures.py
+│   │   └── tool_registry.py
+│   ├── ui_api/
+│   │   ├── __init__.py
+│   │   ├── configuration.py
+│   │   ├── constants.py
+│   │   ├── file_filter.py
+│   │   ├── formatting.py
+│   │   ├── lsp_status.py
+│   │   ├── messaging.py
+│   │   ├── shared_types.py
+│   │   ├── system_paths.py
+│   │   └── user_configuration.py
+│   └── __init__.py
+├── indexing/
+├── infrastructure/
+│   ├── cache/
+│   │   ├── caches/
+│   │   │   ├── __init__.py
+│   │   │   ├── agents.py
+│   │   │   ├── limits_settings.py
+│   │   │   ├── models_registry.py
+│   │   │   └── tunacode_context.py
+│   │   ├── __init__.py
+│   │   ├── manager.py
+│   │   ├── metadata.py
+│   │   └── strategies.py
+│   ├── __init__.py
+│   └── file_filter.py
+├── lsp/
+├── prompts/
+│   └── system_prompt.md
+├── tools/
+│   ├── authorization/
+│   ├── cache_accessors/
+│   │   ├── __init__.py
+│   │   ├── ignore_manager_cache.py
+│   │   ├── ripgrep_cache.py
+│   │   └── xml_prompts_cache.py
+│   ├── grep_components/
+│   │   ├── __init__.py
+│   │   ├── file_filter.py
+│   │   ├── pattern_matcher.py
+│   │   ├── result_formatter.py
+│   │   └── search_result.py
+│   ├── lsp/
+│   │   ├── __init__.py
+│   │   ├── client.py
+│   │   ├── diagnostics.py
+│   │   └── servers.py
+│   ├── messaging/
+│   ├── parsing/
+│   │   ├── __init__.py
+│   │   ├── command_parser.py
+│   │   ├── json_utils.py
+│   │   └── tool_parser.py
+│   ├── prompts/
+│   │   ├── bash_prompt.xml
+│   │   ├── glob_prompt.xml
+│   │   ├── grep_prompt.xml
+│   │   ├── list_dir_prompt.xml
+│   │   ├── read_file_prompt.xml
+│   │   ├── update_file_prompt.xml
+│   │   ├── web_fetch_prompt.xml
+│   │   └── write_file_prompt.xml
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── formatting.py
+│   │   ├── ripgrep.py
+│   │   └── text_match.py
+│   ├── __init__.py
+│   ├── bash.py
+│   ├── decorators.py
+│   ├── glob.py
+│   ├── grep.py
+│   ├── ignore.py
+│   ├── ignore_manager.py
+│   ├── list_dir.py
+│   ├── read_file.py
+│   ├── update_file.py
+│   ├── web_fetch.py
+│   ├── write_file.py
+│   └── xml_helper.py
+├── types/
+│   ├── __init__.py
+│   ├── base.py
+│   ├── callbacks.py
+│   ├── canonical.py
+│   └── dataclasses.py
+├── ui/
+│   ├── assets/
+│   │   └── logo.ansi
+│   ├── commands/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── cancel.py
+│   │   ├── clear.py
+│   │   ├── compact.py
+│   │   ├── debug.py
+│   │   ├── exit.py
+│   │   ├── help.py
+│   │   ├── model.py
+│   │   ├── resume.py
+│   │   ├── theme.py
+│   │   └── update.py
+│   ├── esc/
+│   │   ├── __init__.py
+│   │   ├── handler.py
+│   │   └── types.py
+│   ├── headless/
+│   │   ├── __init__.py
+│   │   └── output.py
+│   ├── renderers/
+│   │   ├── tools/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   ├── bash.py
+│   │   │   ├── diagnostics.py
+│   │   │   ├── glob.py
+│   │   │   ├── grep.py
+│   │   │   ├── list_dir.py
+│   │   │   ├── read_file.py
+│   │   │   ├── syntax_utils.py
+│   │   │   ├── update_file.py
+│   │   │   ├── web_fetch.py
+│   │   │   └── write_file.py
+│   │   ├── __init__.py
+│   │   ├── agent_response.py
+│   │   ├── errors.py
+│   │   ├── panel_widths.py
+│   │   ├── panels.py
+│   │   └── search.py
+│   ├── screens/
+│   │   ├── __init__.py
+│   │   ├── model_picker.py
+│   │   ├── session_picker.py
+│   │   ├── setup.py
+│   │   ├── theme_picker.py
+│   │   └── update_confirm.py
+│   ├── styles/
+│   │   ├── layout.tcss
+│   │   ├── modals.tcss
+│   │   ├── panels.tcss
+│   │   └── widgets.tcss
+│   ├── widgets/
+│   │   ├── __init__.py
+│   │   ├── chat.py
+│   │   ├── command_autocomplete.py
+│   │   ├── editor.py
+│   │   ├── file_autocomplete.py
+│   │   ├── messages.py
+│   │   ├── resource_bar.py
+│   │   └── status_bar.py
+│   ├── __init__.py
+│   ├── app.py
+│   ├── clipboard.py
+│   ├── logo_assets.py
+│   ├── main.py
+│   ├── model_display.py
+│   ├── repl_support.py
+│   ├── shell_runner.py
+│   ├── styles.py
+│   └── welcome.py
+├── utils/
+│   ├── config/
+│   ├── messaging/
+│   │   ├── __init__.py
+│   │   ├── adapter.py
+│   │   └── token_counter.py
+│   ├── parsing/
+│   ├── system/
+│   │   ├── __init__.py
+│   │   └── gitignore.py
+│   ├── ui/
+│   └── __init__.py
+├── __init__.py
+├── constants.py
+├── exceptions.py
+└── py.typed

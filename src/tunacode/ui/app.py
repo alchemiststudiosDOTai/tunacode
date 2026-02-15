@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Never
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
@@ -25,6 +26,7 @@ from tunacode.core.logging import get_logger
 from tunacode.core.session import StateManager
 from tunacode.core.ui_api.constants import (
     MIN_TOOL_PANEL_LINE_WIDTH,
+    RESOURCE_BAR_COST_FORMAT,
     RICHLOG_CLASS_STREAMING,
     SUPPORTED_THEME_NAMES,
     THEME_NAME,
@@ -36,10 +38,20 @@ from tunacode.core.ui_api.constants import (
 from tunacode.core.ui_api.messaging import estimate_messages_tokens
 from tunacode.core.ui_api.shared_types import ModelName
 
+from tunacode.ui.context_panel import (
+    build_context_gauge,
+    build_context_panel_widgets,
+    build_files_field,
+    is_widget_within_field,
+    token_color,
+    token_remaining_pct,
+)
 from tunacode.ui.esc.handler import EscHandler
+from tunacode.ui.model_display import format_model_for_display
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.repl_support import (
+    FILE_EDIT_TOOLS,
     StatusBarLike,
     build_textual_tool_callback,
     build_tool_result_callback,
@@ -47,7 +59,13 @@ from tunacode.ui.repl_support import (
     format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
-from tunacode.ui.styles import STYLE_PRIMARY, STYLE_WARNING
+from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
+from tunacode.ui.tamagochi import (
+    TamagochiPanelState,
+    render_slopbar_health,
+    render_tamagochi,
+    touch_tamagochi,
+)
 from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
     ChatContainer,
@@ -72,9 +90,12 @@ class TextualReplApp(App[None]):
 
     BINDINGS = [
         Binding("escape", "cancel_request", "Cancel", show=False, priority=True),
+        Binding("ctrl+e", "toggle_context_panel", "Context", show=False, priority=True),
     ]
 
     STREAM_THROTTLE_MS: float = 100.0
+    CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
+    DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
@@ -101,6 +122,16 @@ class TextualReplApp(App[None]):
         self.resource_bar: ResourceBar
         self.status_bar: StatusBarLike
         self.streaming_output: Static
+        self._context_panel_visible: bool = False
+        self._edited_files: set[str] = set()
+        self._field_model: Static | None = None
+        self._field_context: Static | None = None
+        self._field_cost: Static | None = None
+        self._field_files: Static | None = None
+        self._tamagochi_state: TamagochiPanelState = TamagochiPanelState()
+
+        self._field_tamagochi: Static | None = None
+        self._field_slopbar_health: Static | None = None
 
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
@@ -112,11 +143,23 @@ class TextualReplApp(App[None]):
         self.loading_indicator = LoadingIndicator()
         self.editor = Editor()
         self.status_bar = StatusBar()
-
         yield self.resource_bar
-        with Container(id="viewport"):
-            yield self.chat_container
-            yield self.loading_indicator
+        with Container(id="workspace"):
+            with Container(id="viewport"):
+                yield self.chat_container
+                yield self.loading_indicator
+            with (
+                Container(id="context-rail", classes=self.CONTEXT_PANEL_COLLAPSED_CLASS),
+                Container(id="context-panel"),
+            ):
+                context_panel_widgets = build_context_panel_widgets()
+                self._field_tamagochi = context_panel_widgets.field_tamagochi
+                self._field_slopbar_health = context_panel_widgets.field_slopbar_health
+                self._field_model = context_panel_widgets.field_model
+                self._field_context = context_panel_widgets.field_context
+                self._field_cost = context_panel_widgets.field_cost
+                self._field_files = context_panel_widgets.field_files
+                yield from context_panel_widgets.widgets
         yield self.streaming_output
         yield self.editor
         yield FileAutoComplete(self.editor)
@@ -314,6 +357,18 @@ class TextualReplApp(App[None]):
             max_line_width=max_line_width,
         )
         self.chat_container.write(content, panel_meta=panel_meta)
+        if message.status != "completed":
+            return
+        if message.tool_name not in FILE_EDIT_TOOLS:
+            return
+        filepath_value = message.args.get("filepath")
+        if not isinstance(filepath_value, str):
+            return
+        filepath = filepath_value.strip()
+        if not filepath:
+            return
+        self._edited_files.add(filepath)
+        self._refresh_context_panel()
 
     def tool_panel_max_width(self) -> int:
         viewport = self.query_one("#viewport")
@@ -342,28 +397,34 @@ class TextualReplApp(App[None]):
         for msg in conversation.messages:
             if not isinstance(msg, dict):
                 continue
-
             role = msg.get("role")
             if role == "user":
                 content = get_content(msg)
                 if not content:
                     continue
-
                 user_block = Text()
                 user_block.append(f"| {content}\n", style=STYLE_PRIMARY)
                 user_block.append("| (restored)", style=f"dim {STYLE_PRIMARY}")
                 self.rich_log.write(user_block)
                 continue
-
             if role != "assistant":
                 continue
 
             content = get_content(msg)
             if not content:
                 continue
-
             self.rich_log.write(Text("agent:", style="accent"))
             self.rich_log.write(Markdown(content))
+
+    def action_toggle_context_panel(self) -> None:
+        self._context_panel_visible = not self._context_panel_visible
+        context_rail = self.query_one("#context-rail", Container)
+        if self._context_panel_visible:
+            context_rail.remove_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
+            self._refresh_context_panel()
+            return
+
+        context_rail.add_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
 
     def action_cancel_request(self) -> None:
         """Cancel the current request or shell command."""
@@ -387,27 +448,97 @@ class TextualReplApp(App[None]):
     def shell_status_last(self) -> None:
         self.status_bar.update_last_action("shell")
 
+    def reset_context_panel_state(self) -> None:
+        self._edited_files.clear()
+        self._refresh_context_panel()
+
+    def _refresh_context_panel(self) -> None:
+        field_model = self._field_model
+        field_context = self._field_context
+        field_cost = self._field_cost
+        field_files = self._field_files
+        if (
+            field_model is None
+            or field_context is None
+            or field_cost is None
+            or field_files is None
+        ):
+            return
+
+        session = self.state_manager.session
+        conversation = session.conversation
+
+        raw_model = session.current_model or ""
+        model_display = format_model_for_display(raw_model, max_length=30) if raw_model else "---"
+        estimated_tokens = estimate_messages_tokens(conversation.messages)
+        max_tokens = conversation.max_tokens or self.DEFAULT_CONTEXT_MAX_TOKENS
+        remaining_pct = token_remaining_pct(estimated_tokens, max_tokens)
+        current_token_style = token_color(remaining_pct)
+        session_cost = session.usage.session_total_usage.cost.total
+        cost_display = RESOURCE_BAR_COST_FORMAT.format(cost=session_cost)
+
+        field_model.update(Text(model_display, style=f"bold {STYLE_PRIMARY}"))
+        field_context.update(
+            build_context_gauge(
+                tokens=estimated_tokens,
+                max_tokens=max_tokens,
+                remaining_pct=remaining_pct,
+                token_style=current_token_style,
+            )
+        )
+        field_cost.update(Text(cost_display, style=f"bold {STYLE_SUCCESS}"))
+        files_title, files_content = build_files_field(self._edited_files)
+        field_files.border_title = files_title
+        field_files.update(files_content)
+
+        self._refresh_tamagochi()
+        self._refresh_slopbar_health()
+
+    def on_click(self, event: events.Click) -> None:
+        if not is_widget_within_field(event.widget, self, field_id="field-pet"):
+            return
+
+        self._touch_tamagochi()
+
+    def _touch_tamagochi(self) -> None:
+        if self._field_tamagochi is None:
+            return
+
+        touch_tamagochi(self._tamagochi_state)
+        self._refresh_tamagochi()
+
+    def _refresh_tamagochi(self) -> None:
+        if self._field_tamagochi is None:
+            return
+
+        art = render_tamagochi(self._tamagochi_state)
+        self._field_tamagochi.styles.margin = (0, 0, 0, self._tamagochi_state.offset)
+        self._field_tamagochi.update(art)
+
+    def _refresh_slopbar_health(self) -> None:
+        if self._field_slopbar_health is None:
+            return
+
+        self._field_slopbar_health.update(render_slopbar_health(self._tamagochi_state))
+
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)
 
     def _update_resource_bar(self) -> None:
         session = self.state_manager.session
         conversation = session.conversation
-
         # Use simplified token counter to estimate actual context window usage
         estimated_tokens = estimate_messages_tokens(conversation.messages)
 
         model = session.current_model or "No model selected"
-        max_tokens = conversation.max_tokens or 200000
+        max_tokens = conversation.max_tokens or self.DEFAULT_CONTEXT_MAX_TOKENS
         session_cost = session.usage.session_total_usage.cost.total
-
         self.resource_bar.update_stats(
             model=model,
             tokens=estimated_tokens,
             max_tokens=max_tokens,
             session_cost=session_cost,
         )
-
         logger = get_logger()
         log_resource_bar_update(
             logger=logger,
@@ -416,19 +547,17 @@ class TextualReplApp(App[None]):
             max_tokens=max_tokens,
             session_cost=session_cost,
         )
+        self._refresh_context_panel()
 
     async def _streaming_callback(self, chunk: str) -> None:
         """Handle streaming text chunks from the agent.
-
         Accumulates chunks and updates the streaming output panel
         with throttled UI updates to reduce visual churn.
         """
         self._current_stream_text += chunk
-
         is_first_chunk = not self.streaming_output.has_class("active")
         if is_first_chunk:
             self.streaming_output.add_class("active")
-
         now = time.monotonic()
         elapsed_ms = (now - self._last_stream_update) * 1000
         if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.65] - 2026-02-15
+
+### Added
+- Context panel with model/token/cost summary and edit tracking
+- Codebase structure tree documentation
+- `/cancel` command for request cancellation
+- `/exit` command and refresh UI command docs/tests
+- Tool-calls screenshot to README
+- Handle panel tuple renderables in chat writes
+
+### Changed
+- Updated README interface section and clarified tool execution
+- Docs update for architecture dependencies
+
+### Fixed
+- Handle tuple renderables in chat writes
+- Chore: slopus 4.6 now requires a init bloat test
+
 ## [0.1.64] - 2026-02-12
 
 ### Fixed

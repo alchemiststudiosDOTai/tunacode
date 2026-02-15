@@ -632,3 +632,93 @@ git diff --stat                      # see changes
 
 ### Fun Note
 We deleted 117 lines of duplicated polymorphic accessors! The adapter layer is earning its keep. 🎉
+
+---
+
+## 2026-02-15: Tamagotchi Pet Widget in Context Inspector (Branch: fix-chat-container-tuple-write)
+
+### The Mission
+Add a decorative "Tamagotchi" pet to the context inspector panel. Click it, get a heart. That's it. Pure joy, zero functional impact.
+
+### The Bug Safari (3 Rounds of Fixes)
+
+**Round 1 (previous session):** Initial implementation done. Constants, state fields, ASCII art frames, compose() wiring, `on_mouse_down` handler, `_touch_tamagochi()`, `_refresh_tamagochi()`. Tests written. But user reports two bugs...
+
+**Round 2:** User sends screenshot showing:
+1. Teal-colored block behind the cat art (visual artifact)
+2. Click does nothing / heart never appears
+
+**Diagnosed:**
+- **Teal block:** `Text(art, style="bold {STYLE_SUCCESS}")` applies style to ENTIRE text including whitespace. Combined with Textual's rendering, this creates a visible colored rectangle behind the ASCII art. Fix: build `Text()` incrementally with `.append()` so style only hits actual characters.
+- **Heart clipped:** `#field-pet` had `height: 6` which is exactly 3 art lines + 2 border lines + 0 room for the heart's 4th line. Changed to `height: auto; min-height: 6; max-height: 10`.
+- **Heart same color as cat:** Both used STYLE_SUCCESS (teal). Changed heart to `STYLE_ERROR` (red) for visual pop.
+
+**Round 3:** User says "nothing happens when I click." The margin offset WAS moving (proving `_touch_tamagochi()` fires), but...
+
+**The Real Click Bug:** `on_mouse_down` with `event.control is self._field_tamagochi` -- this identity check is UNRELIABLE in Textual! `event.control` on MouseDown doesn't reliably resolve to the Static widget instance. Sometimes it's None, sometimes it's a parent container.
+
+**The Fix:** Switched from `on_mouse_down` to `on_click`. Used `event.widget` (the actual clicked widget) and walked up the parent tree checking `widget.id == "field-pet"`. This is the reliable pattern for click detection on Static widgets in Textual.
+
+```python
+# BROKEN: identity check with event.control
+def on_mouse_down(self, event: events.MouseDown) -> None:
+    if event.control is self._field_tamagochi:  # UNRELIABLE!
+        self._touch_tamagochi()
+
+# FIXED: walk parent tree with on_click
+def on_click(self, event: events.Click) -> None:
+    widget = event.widget
+    while widget is not None and widget is not self:
+        if getattr(widget, "id", None) == "field-pet":
+            self._touch_tamagochi()
+            return
+        widget = widget.parent
+```
+
+### Textual Click Detection Lesson (IMPORTANT for future UI work)
+
+In Textual:
+- `events.MouseDown.control` -- unreliable for Static widgets. Often None or wrong widget.
+- `events.Click.widget` -- the actual widget where click originated. Reliable.
+- For compound widgets, walk `widget.parent` tree to find target by ID.
+- Never use `is` identity comparison for event targets in Textual. Use ID checks.
+
+### Also Learned: Rich Text + Textual Style Interaction
+
+When using `Text(content, style=...)` inside a Textual Static widget:
+- The style applies to ALL characters including spaces
+- Combined with CSS `text-align: center`, this creates colored rectangles where padding should be transparent
+- Fix: Build `Text()` incrementally with `.append(segment, style=...)` for each styled piece
+- Or: Set color via Textual CSS on the widget, not Rich Text style
+
+### Files Modified
+- `src/tunacode/ui/app.py` -- click handler, render logic, heart constant
+- `src/tunacode/ui/styles/layout.tcss` -- `#field-pet` height: auto, removed text-align: center
+- `tests/unit/ui/test_context_panel_summary.py` -- tamagotchi assertions
+
+### Current State of the Pet
+- ASCII cat art renders cleanly (no teal block)
+- Click detection works via `on_click` + parent walk
+- Heart appears in red after click (persists until app restart)
+- Frame cycles between `o.o` and `^.^` on each click
+- Margin offset bounces left/right (0 to 4)
+
+### Tests
+All 9 UI tests passing:
+```bash
+uv run pytest tests/unit/ui/test_context_panel_summary.py tests/unit/ui/test_context_panel_toggle.py tests/unit/ui/test_chat_container.py -q
+```
+
+### Not Yet Committed
+Changes are staged/unstaged on `fix-chat-container-tuple-write`.
+
+### What Could Come Next (User's Call)
+- Make heart ephemeral (disappear after N seconds or next refresh cycle)
+- Touch-device parity (if Textual supports distinct touch events)
+- More animation frames for the cat
+- But honestly, it's a decorative pet. It's done. Ship it.
+
+### The Philosophical Bit
+Three rounds of debugging for a cat that shows a heart. That's software development, baby. The Textual event system documentation doesn't warn you about `event.control` being unreliable for Static widgets. The Rich Text style-space interaction isn't documented anywhere. We learned it the hard way so future-us doesn't have to.
+
+Also the user was incredibly patient through three rounds of "try clicking now." Respect.
