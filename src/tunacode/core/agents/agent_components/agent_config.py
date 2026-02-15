@@ -43,7 +43,6 @@ from tunacode.infrastructure.cache.caches import tunacode_context as context_cac
 
 from tunacode.core.compaction.controller import get_or_create_compaction_controller
 from tunacode.core.logging import get_logger
-from tunacode.core.tinyagent import ensure_tinyagent_importable
 from tunacode.core.types import SessionStateProtocol, StateManagerProtocol
 
 ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
@@ -330,8 +329,6 @@ def _build_tinyagent_model(
 
 def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -> Agent:
     """Get existing agent or create a new tinyagent Agent for the specified model."""
-
-    ensure_tinyagent_importable()
 
     logger = get_logger()
     session = state_manager.session
