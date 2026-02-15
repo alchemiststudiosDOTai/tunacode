@@ -51,28 +51,75 @@ ResourceBar {
     border-right: solid $bevel-dark;
 }
 
+/* ============================================
+ * CONTEXT RAIL - NeXTSTEP Object Inspector
+ * Raised outer chrome, sunken inner fields
+ * Mirrors DoomEd / Interface Builder inspectors
+ * ============================================ */
 #context-rail {
-    width: 36;
-    min-width: 28;
-    max-width: 48;
+    width: 40;
+    min-width: 32;
+    max-width: 52;
     height: 1fr;
     background: $surface;
     border-top: solid $bevel-light;
     border-left: solid $bevel-light;
     border-bottom: solid $bevel-dark;
     border-right: solid $bevel-dark;
+    outline: solid $border;
 }
 
 #context-rail.hidden {
     display: none;
 }
 
+/* Scrollable interior of the inspector */
 #context-panel {
     height: 1fr;
-    background: $background;
-    padding: 1;
+    background: $surface;
+    padding: 1 1 0 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
+    scrollbar-color: $scrollbar-thumb;
+    scrollbar-background: $scrollbar-track;
+}
+
+/* Inspector title strip - raised button, high-contrast label */
+#inspector-title {
+    height: 1;
+    width: 1fr;
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    background: $surface;
+    margin: 0 0 1 0;
+    border-top: solid $bevel-light;
+    border-left: solid $bevel-light;
+    border-bottom: solid $bevel-dark;
+    border-right: solid $bevel-dark;
+}
+
+/* Sunken data fields - inverted bevel = inset/etched look */
+.inspector-field {
+    height: auto;
+    margin: 0 0 1 0;
+    padding: 0 1;
+    background: $background;
+    border-top: solid $bevel-dark;
+    border-left: solid $bevel-dark;
+    border-bottom: solid $bevel-light;
+    border-right: solid $bevel-light;
+    border-title-align: left;
+    border-title-color: $accent;
+    border-title-style: bold;
+}
+
+/* Files field - can grow but caps out */
+#field-files {
+    max-height: 16;
+    overflow-y: auto;
+    scrollbar-color: $scrollbar-thumb;
+    scrollbar-background: $scrollbar-track;
 }
 
 /* Streaming mode - pressed/in-progress viewport with action outline */
