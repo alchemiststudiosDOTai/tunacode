@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tunacode.ui.commands.base import Command
+from tunacode.ui.commands.cancel import CancelCommand
 from tunacode.ui.commands.clear import ClearCommand
 from tunacode.ui.commands.compact import CompactCommand
 from tunacode.ui.commands.debug import DebugCommand
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 COMMANDS: dict[str, Command] = {
     "help": HelpCommand(),
+    "cancel": CancelCommand(),
     "clear": ClearCommand(),
     "compact": CompactCommand(),
     "debug": DebugCommand(),

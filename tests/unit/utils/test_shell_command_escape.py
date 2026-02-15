@@ -77,6 +77,22 @@ async def test_handle_command_slash_exit_invokes_exit() -> None:
     assert app.exit_called is True
 
 
+@pytest.mark.asyncio
+async def test_handle_command_slash_cancel_invokes_cancel() -> None:
+    class FakeApp:
+        def __init__(self) -> None:
+            self.cancel_called = False
+
+        def action_cancel_request(self) -> None:
+            self.cancel_called = True
+
+    app = cast(TextualReplApp, FakeApp())
+    handled = await handle_command(app, "/cancel")
+
+    assert handled is True
+    assert app.cancel_called is True
+
+
 def test_escape_does_not_clear_editor_when_no_request_or_shell_running() -> None:
     fake_app = type(
         "FakeApp",
