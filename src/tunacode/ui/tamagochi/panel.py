@@ -59,13 +59,15 @@ def advance_tamagochi(state: TamagochiPanelState, *, now: float) -> bool:
 def render_tamagochi(state: TamagochiPanelState) -> Text:
     frame_count = len(TAMAGOCHI_ART_STATES)
     frame = TAMAGOCHI_ART_STATES[state.frame_index % frame_count]
+    pad = " " * state.offset
 
     art = Text()
-    art.append(frame, style=STYLE_SUCCESS)
+    padded_frame = "\n".join(pad + line for line in frame.split("\n"))
+    art.append(padded_frame, style=STYLE_SUCCESS)
 
     if state.show_heart:
         art.append("\n")
-        art.append(f"  {TAMAGOCHI_HEART}", style=f"bold {STYLE_ERROR}")
+        art.append(f"{pad}  {TAMAGOCHI_HEART}", style=f"bold {STYLE_ERROR}")
 
     return art
 
@@ -92,5 +94,4 @@ class TamagochiHandler:
     def _refresh(self) -> None:
         """Update the widget with current state."""
         art = render_tamagochi(self._state)
-        self._widget.styles.margin = (0, 0, 0, self._state.offset)
         self._widget.update(art)

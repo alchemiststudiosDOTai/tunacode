@@ -255,18 +255,14 @@ class TextualReplApp(App[None]):
 
     async def _process_request(self, message: str) -> None:
         session = self.state_manager.session
-
         self._request_start_time = time.monotonic()
         self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
         self.chat_container.clear_insertion_anchor()
         self._update_compaction_status(False)
-
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
-
         try:
             model_name = session.current_model or "openai/gpt-4o"
-
             self._current_request_task = asyncio.create_task(
                 process_request(
                     message=message,
@@ -296,16 +292,13 @@ class TextualReplApp(App[None]):
             self._current_stream_text = ""
             self._last_stream_update = 0.0
             self._update_compaction_status(False)
-
             output_text = self._get_latest_response_text()
-
             if output_text is not None:
                 from tunacode.ui.renderers.agent_response import render_agent_response
 
                 duration_ms = (time.monotonic() - self._request_start_time) * 1000
                 session = self.state_manager.session
                 tokens = session.usage.last_call_usage.output
-
                 content, meta = render_agent_response(
                     content=output_text,
                     tokens=tokens,
@@ -314,9 +307,7 @@ class TextualReplApp(App[None]):
                 self.chat_container.write("")
                 response_widget = self.chat_container.write(content, expand=True, panel_meta=meta)
                 self.chat_container.set_insertion_anchor(response_widget)
-
             self._update_resource_bar()
-
             # Auto-save session after processing
             await self.state_manager.save_session()
 
@@ -327,15 +318,12 @@ class TextualReplApp(App[None]):
         for message in reversed(messages):
             if not isinstance(message, dict):
                 continue
-
             if message.get("role") != "assistant":
                 continue
-
             raw_content = get_content(message)
             normalized_content = raw_content.strip()
             if normalized_content:
                 return normalized_content
-
         return None
 
     async def on_editor_submit_requested(self, message: EditorSubmitRequested) -> None:
@@ -343,18 +331,13 @@ class TextualReplApp(App[None]):
 
         if await handle_command(self, message.text):
             return
-
         await self.request_queue.put(message.text)
-
         from datetime import datetime
 
         timestamp = datetime.now().strftime("%I:%M %p").lstrip("0")
-
         self.rich_log.write("")
         render_width = max(1, self.rich_log.size.width - 2)
-
         user_block = format_user_message(message.text, STYLE_PRIMARY, width=render_width)
-
         user_block.append(f"│ you {timestamp}", style=f"dim {STYLE_PRIMARY}")
         self.rich_log.write(user_block)
 
@@ -500,10 +483,8 @@ class TextualReplApp(App[None]):
             or field_files is None
         ):
             return
-
         session = self.state_manager.session
         conversation = session.conversation
-
         raw_model = session.current_model or ""
         model_display = format_model_for_display(raw_model, max_length=30) if raw_model else "---"
         estimated_tokens = estimate_messages_tokens(conversation.messages)
@@ -512,7 +493,6 @@ class TextualReplApp(App[None]):
         current_token_style = token_color(remaining_pct)
         session_cost = session.usage.session_total_usage.cost.total
         cost_display = RESOURCE_BAR_COST_FORMAT.format(cost=session_cost)
-
         field_model.update(Text(model_display, style=f"bold {STYLE_PRIMARY}"))
         field_context.update(
             build_context_gauge(
@@ -527,12 +507,16 @@ class TextualReplApp(App[None]):
         field_files.border_title = files_title
         field_files.update(files_content)
 
-        self._refresh_tamagochi()
+        handler = self._tamagochi_handler
+        if handler is not None:
+            handler._refresh()
 
     def on_click(self, event: events.Click) -> None:
         if not is_widget_within_field(event.widget, self, field_id="field-pet"):
             return
+        self._touch_tamagochi()
 
+    def _touch_tamagochi(self) -> None:
         handler = self._tamagochi_handler
         if handler is not None:
             handler.touch()
@@ -550,7 +534,6 @@ class TextualReplApp(App[None]):
         conversation = session.conversation
         # Use simplified token counter to estimate actual context window usage
         estimated_tokens = estimate_messages_tokens(conversation.messages)
-
         model = session.current_model or "No model selected"
         max_tokens = conversation.max_tokens or self.DEFAULT_CONTEXT_MAX_TOKENS
         session_cost = session.usage.session_total_usage.cost.total
