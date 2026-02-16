@@ -7,11 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed
-- Dead tools parsing module (`src/tunacode/tools/parsing/`) including command parser and JSON utilities
+### Added
+- Slopgotchi pet widget in context inspector with click interaction and ASCII art cycling
+- Dead-code CI checks (`unimport`, `vulture`) in lint workflow
+- Unit test for context panel summary
 
 ### Changed
+- Renamed tamagochi module to slopgotchi (`TamagochiHandler` -> `SlopgotchiHandler`, etc.)
+- Side-by-side diff view now uses explicit Before/After captions and a visible change lane
+- Context rail border title set to "Session Inspector" with theme-colored accent
+- Reduced core agents main module to 600 lines
 - Updated documentation to remove parsing module references
+
+### Removed
+- Dead tools parsing module (`src/tunacode/tools/parsing/`) including command parser and JSON utilities
 
 ### Fixed
 - Pre-commit file-length hook performance
@@ -19,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Refactored
 - UI: removed slopbar health from context panel
+- Extracted symbolic constants for diff layout widths and divider glyphs
 
 ## [0.1.65] - 2026-02-15
 

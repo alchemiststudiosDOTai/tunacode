@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tunacode.core.agents.main import _is_context_overflow_error
+from tunacode.core.agents.helpers import is_context_overflow_error
 
 
 @pytest.mark.parametrize(
@@ -15,7 +15,7 @@ from tunacode.core.agents.main import _is_context_overflow_error
     ],
 )
 def test_is_context_overflow_error_accepts_supported_error_forms(error_text: str) -> None:
-    assert _is_context_overflow_error(error_text)
+    assert is_context_overflow_error(error_text)
 
 
 @pytest.mark.parametrize(
@@ -27,4 +27,4 @@ def test_is_context_overflow_error_accepts_supported_error_forms(error_text: str
     ],
 )
 def test_is_context_overflow_error_rejects_non_overflow_errors(error_text: str) -> None:
-    assert not _is_context_overflow_error(error_text)
+    assert not is_context_overflow_error(error_text)

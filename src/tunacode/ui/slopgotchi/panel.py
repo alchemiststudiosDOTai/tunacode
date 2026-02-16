@@ -65,8 +65,8 @@ def render_slopgotchi(state: SlopgotchiPanelState) -> Text:
     padded_frame = "\n".join(pad + line for line in frame.split("\n"))
     art.append(padded_frame, style=STYLE_SUCCESS)
 
+    art.append("\n")
     if state.show_heart:
-        art.append("\n")
         art.append(f"{pad}  {SLOPGOTCHI_HEART}", style=f"bold {STYLE_ERROR}")
 
     return art

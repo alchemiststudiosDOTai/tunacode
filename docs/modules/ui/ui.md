@@ -92,6 +92,14 @@ This contract is enforced in `tests/unit/ui/test_command_contracts.py`.
 | `esc/handler.py` | `EscHandler` — centralized ESC key logic. Priority order: cancel request → cancel shell command. |
 | `esc/types.py` | Protocol definitions for editor and shell runner injection. |
 
+### Context Panel
+
+| File | Purpose |
+|------|---------|
+| `context_panel.py` | `ContextPanelWidgets` builder — constructs inspector fields for the right-side "Session Inspector" rail (model, tokens, cost, edits, slopgotchi pet). |
+| `slopgotchi/__init__.py` | Exports `SlopgotchiHandler`, `SlopgotchiPanelState`. |
+| `slopgotchi/panel.py` | Slopgotchi pet widget — ASCII art cycling, click-triggered heart animation, margin bounce. |
+
 ### Utilities
 
 | File | Purpose |

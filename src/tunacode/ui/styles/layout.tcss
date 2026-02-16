@@ -114,11 +114,9 @@ ResourceBar.hidden {
     border-title-style: bold;
 }
 
-/* Pet field - interactive decorative well */
+/* Pet field - fixed height prevents panel shift during animation */
 #field-pet {
-    height: auto;
-    min-height: 6;
-    max-height: 10;
+    height: 6;
     padding: 0 1;
 }
 

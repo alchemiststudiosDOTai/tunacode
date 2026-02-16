@@ -67,7 +67,16 @@ def show_welcome(log: WriteableLog) -> None:
     welcome.append("      - Switch theme\n\n")
     welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
 
-    # Group 4: Shell
+    # Group 3: Shell
     welcome.append("   !<cmd>", style=STYLE_PRIMARY)
     welcome.append("      - Run shell commands\n\n")
+    welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
+
+    # Slopgotchi
+    welcome.append("   Your ", style=STYLE_MUTED)
+    welcome.append("slopgotchi", style=STYLE_PRIMARY)
+    welcome.append(" lives in the context panel (", style=STYLE_MUTED)
+    welcome.append("ctrl+e", style=STYLE_PRIMARY)
+    welcome.append("). Click it!\n\n", style=STYLE_MUTED)
+
     log.write(welcome)

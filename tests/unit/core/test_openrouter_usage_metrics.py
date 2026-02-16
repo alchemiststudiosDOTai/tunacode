@@ -4,7 +4,7 @@ import pytest
 
 from tunacode.types.canonical import UsageMetrics
 
-from tunacode.core.agents import main as agents_main
+from tunacode.core.agents import helpers as agents_helpers
 
 
 def test_parse_canonical_usage_accepts_canonical_usage_payload() -> None:
@@ -23,14 +23,14 @@ def test_parse_canonical_usage_accepts_canonical_usage_payload() -> None:
         },
     }
 
-    metrics = agents_main._parse_canonical_usage(raw)
+    metrics = agents_helpers.parse_canonical_usage(raw)
 
     assert metrics == UsageMetrics.from_dict(raw)
 
 
 def test_parse_canonical_usage_rejects_missing_usage_payload() -> None:
     with pytest.raises(RuntimeError, match="missing usage payload"):
-        agents_main._parse_canonical_usage(None)
+        agents_helpers.parse_canonical_usage(None)
 
 
 def test_parse_canonical_usage_rejects_legacy_usage_payload() -> None:
@@ -42,4 +42,4 @@ def test_parse_canonical_usage_rejects_legacy_usage_payload() -> None:
     }
 
     with pytest.raises(RuntimeError, match="usage contract violation"):
-        agents_main._parse_canonical_usage(legacy_payload)
+        agents_helpers.parse_canonical_usage(legacy_payload)

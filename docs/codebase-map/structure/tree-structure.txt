@@ -106,11 +106,6 @@ src/tunacode/
 │   │   ├── diagnostics.py
 │   │   └── servers.py
 │   ├── messaging/
-│   ├── parsing/
-│   │   ├── __init__.py
-│   │   ├── command_parser.py
-│   │   ├── json_utils.py
-│   │   └── tool_parser.py
 │   ├── prompts/
 │   │   ├── bash_prompt.xml
 │   │   ├── glob_prompt.xml
@@ -167,6 +162,9 @@ src/tunacode/
 │   ├── headless/
 │   │   ├── __init__.py
 │   │   └── output.py
+│   ├── slopgotchi/
+│   │   ├── __init__.py
+│   │   └── panel.py
 │   ├── renderers/
 │   │   ├── tools/
 │   │   │   ├── __init__.py
@@ -211,6 +209,7 @@ src/tunacode/
 │   ├── __init__.py
 │   ├── app.py
 │   ├── clipboard.py
+│   ├── context_panel.py
 │   ├── logo_assets.py
 │   ├── main.py
 │   ├── model_display.py
@@ -224,7 +223,6 @@ src/tunacode/
 │   │   ├── __init__.py
 │   │   ├── adapter.py
 │   │   └── token_counter.py
-│   ├── parsing/
 │   ├── system/
 │   │   ├── __init__.py
 │   │   └── gitignore.py
