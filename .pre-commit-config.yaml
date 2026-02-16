@@ -14,8 +14,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
         # Auto-generated file: models_registry.json
-        # Empty stub: lsp/__init__.py
-        exclude: (models_registry\.json|lsp/__init__\.py)$
+        exclude: models_registry\.json$
       - id: check-yaml
         args: ['--allow-multiple-documents']
       - id: check-added-large-files
@@ -47,7 +46,7 @@ repos:
       - id: ruff
         args: ['--fix', '--show-fixes']
       - id: ruff-format  # Re-enabled - ruff handles linting, ruff-format handles formatting
-        exclude: (models_registry\.json|lsp/__init__\.py)$
+        exclude: models_registry\.json$
 
   # Type checking with mypy (runs on push, not commit - too slow for commit)
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -110,7 +109,7 @@ repos:
         entry: scripts/check-file-length.sh
         language: script
         files: \.py$
-        pass_filenames: false
+        pass_filenames: true
 
       # Check naming conventions
       - id: naming-conventions

@@ -12,47 +12,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for empty directories
-        id: empty_dirs
+      - name: Check for dead directories
         run: |
-          empty_dirs=$(find . -type d -empty -not -path "*/.*" -not -path "*/node_modules/*" -not -path "*/__pycache__/*" -not -path "*/.venv/*" -not -path "*/.git/*" 2>/dev/null)
-          if [ -n "$empty_dirs" ]; then
-            echo "ERROR: Found empty directories:"
-            echo "$empty_dirs"
-            echo "has_empty_dirs=true" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-          echo "No empty directories found"
+          EXIT_CODE=0
+          SRC_DIR="src"
 
-      - name: Check for directories with only __init__.py
-        id: init_only_dirs
-        run: |
-          init_only_dirs=$(find . -type d -not -path "*/.*" -not -path "*/node_modules/*" -not -path "*/__pycache__/*" -not -path "*/.venv/*" -not -path "*/.git/*" -exec sh -c '
-            dir="$1"
-            # Skip directories that contain sub-packages (legitimate namespace packages)
-            subdirs=$(find "$dir" -maxdepth 1 -mindepth 1 -type d -not -name "__pycache__" | wc -l)
-            if [ "$subdirs" -gt 0 ]; then
-              exit 0
-            fi
-            files=$(find "$dir" -maxdepth 1 -type f | wc -l)
-            if [ "$files" -eq 1 ]; then
+          while IFS= read -r dir; do
+            file_count=$(find "$dir" -maxdepth 1 -type f | wc -l)
+            subdir_count=$(find "$dir" -maxdepth 1 -mindepth 1 -type d -not -name "__pycache__" | wc -l)
+
+            if [ "$file_count" -eq 0 ] && [ "$subdir_count" -eq 0 ]; then
+              echo "::error::Empty directory: $dir"
+              EXIT_CODE=1
+            elif [ "$file_count" -eq 1 ] && [ "$subdir_count" -eq 0 ]; then
               if [ -f "$dir/__init__.py" ]; then
-                printf "%s\n" "$dir"
+                echo "::error::Directory with only __init__.py: $dir"
+                EXIT_CODE=1
               fi
             fi
-          ' _ {} \; 2>/dev/null)
+          done < <(find "$SRC_DIR" -type d -not -name "__pycache__" -not -path "*/__pycache__/*" 2>/dev/null)
 
-          if [ -n "$init_only_dirs" ]; then
-            echo "ERROR: Found directories with only __init__.py:"
-            echo "$init_only_dirs"
-            echo "has_init_only_dirs=true" >> "$GITHUB_OUTPUT"
-            exit 1
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo ""
+            echo "Remove empty directories or add meaningful content to them."
+          else
+            echo "No dead directories found."
           fi
-          echo "No directories with only __init__.py found"
 
-      - name: Fail if issues found
-        if: steps.empty_dirs.outputs.has_empty_dirs == 'true' || steps.init_only_dirs.outputs.has_init_only_dirs == 'true'
-        run: |
-          echo "::error::Empty directories or directories with only __init__.py found."
-          echo "Please remove empty directories or add meaningful content to them."
-          exit 1
+          exit $EXIT_CODE

@@ -95,6 +95,7 @@ class TextualReplApp(App[None]):
     STREAM_THROTTLE_MS: float = 100.0
     CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
     DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
+    CONTEXT_PANEL_MIN_TERMINAL_WIDTH: int = 80
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
@@ -413,15 +414,39 @@ class TextualReplApp(App[None]):
             self.rich_log.write(Text("agent:", style="accent"))
             self.rich_log.write(Markdown(content))
 
-    def action_toggle_context_panel(self) -> None:
-        self._context_panel_visible = not self._context_panel_visible
+    def _context_panel_supported_for_width(self, width: int) -> bool:
+        return width >= self.CONTEXT_PANEL_MIN_TERMINAL_WIDTH
+
+    def _set_context_panel_visibility(self, *, visible: bool) -> None:
         context_rail = self.query_one("#context-rail", Container)
-        if self._context_panel_visible:
+        self._context_panel_visible = visible
+        if visible:
             context_rail.remove_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
+            self.resource_bar.add_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
             self._refresh_context_panel()
             return
-
         context_rail.add_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
+        self.resource_bar.remove_class(self.CONTEXT_PANEL_COLLAPSED_CLASS)
+
+    def action_toggle_context_panel(self) -> None:
+        should_show = not self._context_panel_visible
+        if should_show and not self._context_panel_supported_for_width(self.size.width):
+            self.notify(
+                f"Context panel requires at least {self.CONTEXT_PANEL_MIN_TERMINAL_WIDTH} columns"
+            )
+            return
+
+        self._set_context_panel_visibility(visible=should_show)
+
+    def on_resize(self, event: events.Resize) -> None:
+        if not self._context_panel_visible:
+            return
+
+        if self._context_panel_supported_for_width(event.size.width):
+            return
+
+        self._set_context_panel_visibility(visible=False)
+        self.notify(f"Context panel hidden below {self.CONTEXT_PANEL_MIN_TERMINAL_WIDTH} columns")
 
     def action_cancel_request(self) -> None:
         """Cancel the current request or shell command."""
@@ -510,7 +535,6 @@ class TextualReplApp(App[None]):
         art = render_tamagochi(self._tamagochi_state)
         self._field_tamagochi.styles.margin = (0, 0, 0, self._tamagochi_state.offset)
         self._field_tamagochi.update(art)
-
 
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)

@@ -30,6 +30,10 @@ ResourceBar {
     padding: 0 1;
 }
 
+ResourceBar.hidden {
+    display: none;
+}
+
 /* ============================================
  * WORKSPACE - Horizontal split for viewport + context rail
  * ============================================ */
