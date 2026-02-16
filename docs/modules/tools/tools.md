@@ -1,6 +1,6 @@
 ---
 title: Tools Layer
-summary: LLM-callable tool implementations, decorator framework, and supporting subsystems (grep engine, LSP, parsing).
+summary: LLM-callable tool implementations and supporting subsystems (grep engine, LSP).
 read_when: Adding a new tool, modifying tool error handling, or changing how tool schemas are generated.
 depends_on: [types, infrastructure, configuration]
 feeds_into: [core]
@@ -54,13 +54,6 @@ Every capability the agent can invoke during a conversation. Each tool is an asy
 | `client.py` | LSP client for language-server communication. |
 | `diagnostics.py` | Fetch and format diagnostics from the LSP server. |
 | `servers.py` | Server configuration and lifecycle management. |
-
-### Parsing (`parsing/`)
-
-| File | Purpose |
-|------|---------|
-| `command_parser.py` | Parse slash commands from user input. |
-| `json_utils.py` | Tolerant JSON parsing for LLM output. |
 
 ### Utilities (`utils/`)
 
