@@ -61,7 +61,6 @@ Every capability the agent can invoke during a conversation. Each tool is an asy
 |------|---------|
 | `command_parser.py` | Parse slash commands from user input. |
 | `json_utils.py` | Tolerant JSON parsing for LLM output. |
-| `tool_parser.py` | Parse tool call structures from model responses. |
 
 ### Utilities (`utils/`)
 
