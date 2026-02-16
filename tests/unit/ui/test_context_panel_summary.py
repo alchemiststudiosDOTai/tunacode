@@ -77,8 +77,6 @@ async def test_context_panel_summary_includes_model_tokens_cost_and_edited_files
         assert "COST" in context_text
         assert "$0.42" in context_text
         assert "FILES" in context_text
-        assert "SLOPBAR HEALTH" in context_text
-        assert "50%" in context_text
         assert "/TMP/EXAMPLE.PY" in context_text
 
 
@@ -143,22 +141,11 @@ async def test_tamagochi_shows_heart_only_after_touch() -> None:
         assert "\N{BLACK HEART SUIT}" in _static_text(pet_field)
 
 
-async def test_tamagochi_slopbar_health_is_half_full_by_default() -> None:
-    app = TextualReplApp(state_manager=StateManager())
-    async with app.run_test(headless=True):
-        health_field = app.query_one("#field-slopbar-health", Static)
-        health_text = _static_text(health_field)
-        assert "50%" in health_text
-        assert "\u2588\u2588\u2588\u2588\u2588" in health_text
-        assert "\u2591\u2591\u2591\u2591\u2591" in health_text
-
-
 async def test_context_inspector_fields_disable_text_selection() -> None:
     app = TextualReplApp(state_manager=StateManager())
     async with app.run_test(headless=True):
         for field_id in (
             "field-pet",
-            "field-slopbar-health",
             "field-model",
             "field-context",
             "field-cost",

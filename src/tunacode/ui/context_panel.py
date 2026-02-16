@@ -16,7 +16,7 @@ from tunacode.ui.styles import (
     STYLE_SUCCESS,
     STYLE_WARNING,
 )
-from tunacode.ui.tamagochi import SLOPBAR_HEALTH_NAME, TAMAGOCHI_ART_STATES, TAMAGOCHI_NAME
+from tunacode.ui.tamagochi import TAMAGOCHI_ART_STATES, TAMAGOCHI_NAME
 
 CONTEXT_GAUGE_WIDTH: int = 24
 
@@ -31,7 +31,6 @@ class InspectorField(Static):
 class ContextPanelWidgets:
     widgets: tuple[Static, ...]
     field_tamagochi: InspectorField
-    field_slopbar_health: InspectorField
     field_model: InspectorField
     field_context: InspectorField
     field_cost: InspectorField
@@ -47,13 +46,6 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
         classes="inspector-field",
     )
     field_tamagochi.border_title = TAMAGOCHI_NAME
-
-    field_slopbar_health = InspectorField(
-        "",
-        id="field-slopbar-health",
-        classes="inspector-field",
-    )
-    field_slopbar_health.border_title = SLOPBAR_HEALTH_NAME
 
     field_model = InspectorField(
         "---",
@@ -86,7 +78,6 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
     widgets: tuple[Static, ...] = (
         inspector_title,
         field_tamagochi,
-        field_slopbar_health,
         field_model,
         field_context,
         field_cost,
@@ -96,7 +87,6 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
     return ContextPanelWidgets(
         widgets=widgets,
         field_tamagochi=field_tamagochi,
-        field_slopbar_health=field_slopbar_health,
         field_model=field_model,
         field_context=field_context,
         field_cost=field_cost,

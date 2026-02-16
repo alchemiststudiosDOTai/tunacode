@@ -62,7 +62,6 @@ from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
 from tunacode.ui.tamagochi import (
     TamagochiPanelState,
-    render_slopbar_health,
     render_tamagochi,
     touch_tamagochi,
 )
@@ -131,7 +130,6 @@ class TextualReplApp(App[None]):
         self._tamagochi_state: TamagochiPanelState = TamagochiPanelState()
 
         self._field_tamagochi: Static | None = None
-        self._field_slopbar_health: Static | None = None
 
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
@@ -154,7 +152,6 @@ class TextualReplApp(App[None]):
             ):
                 context_panel_widgets = build_context_panel_widgets()
                 self._field_tamagochi = context_panel_widgets.field_tamagochi
-                self._field_slopbar_health = context_panel_widgets.field_slopbar_health
                 self._field_model = context_panel_widgets.field_model
                 self._field_context = context_panel_widgets.field_context
                 self._field_cost = context_panel_widgets.field_cost
@@ -492,7 +489,6 @@ class TextualReplApp(App[None]):
         field_files.update(files_content)
 
         self._refresh_tamagochi()
-        self._refresh_slopbar_health()
 
     def on_click(self, event: events.Click) -> None:
         if not is_widget_within_field(event.widget, self, field_id="field-pet"):
@@ -515,11 +511,6 @@ class TextualReplApp(App[None]):
         self._field_tamagochi.styles.margin = (0, 0, 0, self._tamagochi_state.offset)
         self._field_tamagochi.update(art)
 
-    def _refresh_slopbar_health(self) -> None:
-        if self._field_slopbar_health is None:
-            return
-
-        self._field_slopbar_health.update(render_slopbar_health(self._tamagochi_state))
 
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)

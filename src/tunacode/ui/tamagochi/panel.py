@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from rich.text import Text
 
-from tunacode.ui.styles import STYLE_ERROR, STYLE_MUTED, STYLE_PRIMARY, STYLE_SUCCESS
+from tunacode.ui.styles import STYLE_ERROR, STYLE_SUCCESS
 
 TAMAGOCHI_NAME: str = "Tamagotchi"
 TAMAGOCHI_HEART: str = "♥"
@@ -13,9 +13,6 @@ TAMAGOCHI_ART_STATES: tuple[str, str] = (
     " /\\_/\\\n( ;.; )\n > _ <",
 )
 TAMAGOCHI_MOVE_RANGE: int = 4
-SLOPBAR_HEALTH_BAR_WIDTH: int = 10
-SLOPBAR_HEALTH_PERCENT_START: int = 50
-SLOPBAR_HEALTH_NAME: str = "Slopbar Health"
 
 
 @dataclass(slots=True)
@@ -24,7 +21,6 @@ class TamagochiPanelState:
     offset: int = 0
     direction: int = 1
     show_heart: bool = False
-    slopbar_health_percent: int = SLOPBAR_HEALTH_PERCENT_START
 
 
 def touch_tamagochi(state: TamagochiPanelState) -> None:
@@ -55,15 +51,3 @@ def render_tamagochi(state: TamagochiPanelState) -> Text:
         art.append(f"  {TAMAGOCHI_HEART}", style=f"bold {STYLE_ERROR}")
 
     return art
-
-
-def render_slopbar_health(state: TamagochiPanelState) -> Text:
-    filled = SLOPBAR_HEALTH_BAR_WIDTH * state.slopbar_health_percent // 100
-    filled = max(0, min(SLOPBAR_HEALTH_BAR_WIDTH, filled))
-    empty = SLOPBAR_HEALTH_BAR_WIDTH - filled
-
-    bar = Text()
-    bar.append("█" * filled, style=STYLE_SUCCESS)
-    bar.append("░" * empty, style=STYLE_MUTED)
-    bar.append(f" {state.slopbar_health_percent}%", style=f"bold {STYLE_PRIMARY}")
-    return bar
