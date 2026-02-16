@@ -7,46 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.65] - 2026-02-16
+
 ### Added
 - Slopgotchi pet widget in context inspector with click interaction and ASCII art cycling
-- Dead-code CI checks (`unimport`, `vulture`) in lint workflow
-- Unit test for context panel summary
-
-### Changed
-- Renamed tamagochi module to slopgotchi (`TamagochiHandler` -> `SlopgotchiHandler`, etc.)
-- Side-by-side diff view now uses explicit Before/After captions and a visible change lane
-- Context rail border title set to "Session Inspector" with theme-colored accent
-- Reduced core agents main module to 600 lines
-- Updated documentation to remove parsing module references
-
-### Removed
-- Dead tools parsing module (`src/tunacode/tools/parsing/`) including command parser and JSON utilities
-
-### Fixed
-- Pre-commit file-length hook performance
-- Chat container tuple write issue
-
-### Refactored
-- UI: removed slopbar health from context panel
-- Extracted symbolic constants for diff layout widths and divider glyphs
-
-## [0.1.65] - 2026-02-15
-
-### Added
 - Context panel with model/token/cost summary and edit tracking
 - Codebase structure tree documentation
 - `/cancel` command for request cancellation
 - `/exit` command and refresh UI command docs/tests
-- Tool-calls screenshot to README
-- Handle panel tuple renderables in chat writes
+- Dead-code CI checks (`unimport`, `vulture`) in lint workflow
+- Unit test for context panel summary
 
 ### Changed
+- Renamed tamagochi module to slopgotchi
+- Side-by-side diff view uses explicit Before/After captions and visible change lane
+- Context rail border title set to "Session Inspector" with theme-colored accent
+- Reduced core agents main module to 600 lines via helpers extraction
 - Updated README interface section and clarified tool execution
-- Docs update for architecture dependencies
+
+### Removed
+- Dead tools parsing module (`src/tunacode/tools/parsing/`)
 
 ### Fixed
-- Handle tuple renderables in chat writes
-- Chore: slopus 4.6 now requires a init bloat test
+- Pre-commit file-length hook performance
+- Chat container tuple write issue
 
 ## [0.1.64] - 2026-02-12
 
