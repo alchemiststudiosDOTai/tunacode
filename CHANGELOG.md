@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Dead tools parsing module (`src/tunacode/tools/parsing/`) including command parser and JSON utilities
+
+### Changed
+- Updated documentation to remove parsing module references
+
+### Fixed
+- Pre-commit file-length hook performance
+- Chat container tuple write issue
+
+### Refactored
+- UI: removed slopbar health from context panel
+
 ## [0.1.65] - 2026-02-15
 
 ### Added

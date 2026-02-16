@@ -490,29 +490,10 @@ def tool_panel_smart(
     """
     # Only apply custom renderers for completed tools with results
     if status == "completed" and result:
-        from tunacode.ui.renderers.tools import (
-            render_bash,
-            render_glob,
-            render_grep,
-            render_list_dir,
-            render_read_file,
-            render_update_file,
-            render_web_fetch,
-        )
+        from tunacode.ui.renderers.tools import get_renderer
 
-        # Map tool names to their renderers
-        renderer_map = {
-            "list_dir": render_list_dir,
-            "grep": render_grep,
-            "glob": render_glob,
-            "read_file": render_read_file,
-            "update_file": render_update_file,
-            "bash": render_bash,
-            "web_fetch": render_web_fetch,
-        }
-
-        renderer = renderer_map.get(name.lower())
-        if renderer:
+        renderer = get_renderer(name.lower())
+        if renderer is not None:
             render_result = renderer(args, result, duration_ms, max_line_width)
             if render_result is not None:
                 return render_result
