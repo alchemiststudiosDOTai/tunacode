@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from rich.console import Console
 from rich.table import Table
 
 from tunacode.ui.renderers.tools.update_file import (
@@ -14,6 +15,7 @@ EXTRA_CHAR_COUNT: int = 1
 FILLER_CHAR: str = "a"
 SINGLE_LINE_COUNT: int = 1
 TEST_MAX_LINE_WIDTH: int = 64
+TEST_CONSOLE_WIDTH: int = 96
 
 
 def test_truncate_diff_caps_line_width() -> None:
@@ -68,3 +70,33 @@ def test_build_viewport_returns_table_for_side_by_side_diff() -> None:
     viewport = _renderer.build_viewport(data, TEST_MAX_LINE_WIDTH)
 
     assert isinstance(viewport, Table)
+
+
+def test_build_viewport_renders_before_after_separator_lane() -> None:
+    diff = """--- a/src/file.py
++++ b/src/file.py
+@@ -1,2 +1,2 @@
+-old line
++new line
+"""
+    data = UpdateFileData(
+        filepath="src/file.py",
+        filename="file.py",
+        root_path=Path("."),
+        message="File updated",
+        diff_content=diff,
+        additions=1,
+        deletions=1,
+        hunks=1,
+        diagnostics_block=None,
+    )
+
+    viewport = _renderer.build_viewport(data, TEST_MAX_LINE_WIDTH)
+    console = Console(width=TEST_CONSOLE_WIDTH, record=True)
+    console.print(viewport)
+    rendered = console.export_text()
+
+    assert "Before: a/file.py" in rendered
+    assert "After: b/file.py" in rendered
+    assert "-│" in rendered
+    assert "+│" in rendered

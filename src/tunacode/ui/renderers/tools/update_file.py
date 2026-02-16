@@ -26,8 +26,12 @@ from tunacode.ui.renderers.tools.base import (
 )
 from tunacode.ui.widgets.chat import PanelMeta
 
-# Width reserve in the side-by-side diff view: both line numbers + gutters.
-_DIFF_LINE_WIDTH_RESERVE: int = 12
+# Width reserve in the side-by-side diff view: both line numbers + lane gutters.
+_DIFF_LINE_WIDTH_RESERVE: int = 13
+_DIFF_LINE_NUMBER_MIN_WIDTH: int = 3
+_DIFF_CONTENT_MIN_WIDTH: int = 12
+_CHANGE_LANE_WIDTH: int = 2
+_SIDE_BY_SIDE_DIVIDER: str = "│"
 
 
 @dataclass(frozen=True)
@@ -225,13 +229,17 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             if row.right_line_no is not None:
                 max_right = max(max_right, row.right_line_no)
 
-        line_no_width = max(len(str(max_left)), len(str(max_right)), 3)
+        line_no_width = max(
+            len(str(max_left)),
+            len(str(max_right)),
+            _DIFF_LINE_NUMBER_MIN_WIDTH,
+        )
         content_width = clamp_content_width(
             max_line_width=max_line_width,
             reserved_width=(line_no_width * 2) + _DIFF_LINE_WIDTH_RESERVE,
         )
-        left_width = max(12, content_width // 2)
-        right_width = max(12, content_width - left_width)
+        left_width = max(_DIFF_CONTENT_MIN_WIDTH, content_width // 2)
+        right_width = max(_DIFF_CONTENT_MIN_WIDTH, content_width - left_width)
         return line_no_width, left_width, right_width
 
     def _build_side_by_side_viewport(
@@ -246,10 +254,10 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
         table = Table.grid(padding=(0, 1), expand=True)
         table.add_column("a", width=line_no_width, justify="right", style="dim")
         table.add_column("left", width=left_width, overflow="fold")
-        table.add_column("", width=1, justify="center", style="dim")
+        table.add_column("", width=_CHANGE_LANE_WIDTH, justify="center")
         table.add_column("b", width=line_no_width, justify="right", style="dim")
         table.add_column("right", width=right_width, overflow="fold")
-        table.caption = f"a/{filename}   b/{filename}"
+        table.caption = f"Before: a/{filename}  {_SIDE_BY_SIDE_DIVIDER}  After: b/{filename}"
         table.caption_style = "dim"
 
         kind_styles: dict[DiffLineKind, tuple[str, str]] = {
@@ -259,16 +267,24 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             "meta": ("dim", "dim"),
             "pad": ("dim", "dim"),
         }
+        lane_styles: dict[DiffLineKind, str] = {
+            "context": "dim",
+            "insert": "green",
+            "delete": "red",
+            "meta": "yellow",
+            "pad": "dim",
+        }
         kind_marks: dict[DiffLineKind, str] = {
-            "context": "",
-            "insert": "+",
-            "delete": "-",
-            "meta": "!",
-            "pad": "",
+            "context": f" {_SIDE_BY_SIDE_DIVIDER}",
+            "insert": f"+{_SIDE_BY_SIDE_DIVIDER}",
+            "delete": f"-{_SIDE_BY_SIDE_DIVIDER}",
+            "meta": f"!{_SIDE_BY_SIDE_DIVIDER}",
+            "pad": f" {_SIDE_BY_SIDE_DIVIDER}",
         }
 
         for row in rows:
             left_style, right_style = kind_styles[row.kind]
+            lane_style = lane_styles[row.kind]
             left_number = "" if row.left_line_no is None else str(row.left_line_no)
             right_number = "" if row.right_line_no is None else str(row.right_line_no)
             left_text = truncate_line(row.left_content, left_width)
@@ -277,7 +293,7 @@ class UpdateFileRenderer(BaseToolRenderer[UpdateFileData]):
             table.add_row(
                 Text(left_number, style="dim"),
                 Text(left_text, style=left_style),
-                Text(kind_marks[row.kind], style="dim"),
+                Text(kind_marks[row.kind], style=lane_style),
                 Text(right_number, style="dim"),
                 Text(right_text, style=right_style),
             )

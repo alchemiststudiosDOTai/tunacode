@@ -148,9 +148,10 @@ class TextualReplApp(App[None]):
                 yield self.chat_container
                 yield self.loading_indicator
             with (
-                Container(id="context-rail", classes=self.CONTEXT_PANEL_COLLAPSED_CLASS),
+                Container(id="context-rail", classes=self.CONTEXT_PANEL_COLLAPSED_CLASS) as rail,
                 Container(id="context-panel"),
             ):
+                rail.border_title = "Session Inspector"
                 context_panel_widgets = build_context_panel_widgets()
                 self._field_tamagochi = context_panel_widgets.field_tamagochi
                 self._field_model = context_panel_widgets.field_model

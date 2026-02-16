@@ -38,8 +38,6 @@ class ContextPanelWidgets:
 
 
 def build_context_panel_widgets() -> ContextPanelWidgets:
-    inspector_title = Static("Session Inspector", id="inspector-title")
-
     field_tamagochi = InspectorField(
         f"{TAMAGOCHI_ART_STATES[0]}",
         id="field-pet",
@@ -76,7 +74,6 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
     field_files.border_title = "Files"
 
     widgets: tuple[Static, ...] = (
-        inspector_title,
         field_tamagochi,
         field_model,
         field_context,

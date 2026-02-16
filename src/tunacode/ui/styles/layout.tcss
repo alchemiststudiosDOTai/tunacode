@@ -57,8 +57,9 @@ ResourceBar.hidden {
 
 /* ============================================
  * CONTEXT RAIL - NeXTSTEP Object Inspector
- * Raised outer chrome, sunken inner fields
- * Mirrors DoomEd / Interface Builder inspectors
+ * Raised outer chrome, sunken inner fields.
+ * DoomEd inspector: raised window chrome wraps sunken data wells.
+ * The $surface background peeks between fields = depth cue.
  * ============================================ */
 #context-rail {
     width: 40;
@@ -70,7 +71,9 @@ ResourceBar.hidden {
     border-left: solid $bevel-light;
     border-bottom: solid $bevel-dark;
     border-right: solid $bevel-dark;
-    outline: solid $border;
+    border-title-align: center;
+    border-title-color: $accent;
+    border-title-style: bold;
 }
 
 #context-rail.hidden {
@@ -81,7 +84,7 @@ ResourceBar.hidden {
 #context-panel {
     height: 1fr;
     background: $surface;
-    padding: 0 1 0 1;
+    padding: 0 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
     scrollbar-size-vertical: 1;
@@ -93,25 +96,12 @@ ResourceBar.hidden {
     scrollbar-background-active: $scrollbar-track;
 }
 
-/* Inspector title strip - raised button, high-contrast label */
-#inspector-title {
-    height: 1;
-    width: 1fr;
-    text-align: center;
-    text-style: bold;
-    color: $accent;
-    background: $surface;
-    margin: 0 0 0 0;
-    border-top: solid $bevel-light;
-    border-left: solid $bevel-light;
-    border-bottom: solid $bevel-dark;
-    border-right: solid $bevel-dark;
-}
-
-/* Sunken data fields - inverted bevel = inset/etched look */
+/* Sunken data fields - inverted bevel = inset/etched well.
+ * Margin-bottom creates the raised $surface gap between fields
+ * that gives the 3D illusion of depth (chrome peeking through). */
 .inspector-field {
     height: auto;
-    margin: 0 0 0 0;
+    margin: 0 0 1 0;
     padding: 0 1;
     background: $background;
     border-top: solid $bevel-dark;
@@ -123,6 +113,7 @@ ResourceBar.hidden {
     border-title-style: bold;
 }
 
+/* Pet field - interactive decorative well */
 #field-pet {
     height: auto;
     min-height: 6;

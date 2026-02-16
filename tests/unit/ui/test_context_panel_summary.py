@@ -70,7 +70,8 @@ async def test_context_panel_summary_includes_model_tokens_cost_and_edited_files
         )
 
         context_text = _context_panel_text(app)
-        assert "SESSION INSPECTOR" in context_text
+        rail = app.query_one("#context-rail")
+        assert rail.border_title == "Session Inspector"
         assert "TAMAGOTCHI" in context_text
         assert "OA/GPT-4O-MINI" in context_text
         assert "CONTEXT" in context_text
