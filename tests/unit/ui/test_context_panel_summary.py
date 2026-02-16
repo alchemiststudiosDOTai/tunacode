@@ -7,10 +7,10 @@ from tunacode.core.session import StateManager
 
 from tunacode.ui.app import TextualReplApp
 from tunacode.ui.commands.clear import ClearCommand
-from tunacode.ui.tamagochi import (
-    TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS,
-    TamagochiPanelState,
-    advance_tamagochi,
+from tunacode.ui.slopgotchi import (
+    SLOPGOTCHI_AUTO_MOVE_INTERVAL_SECONDS,
+    SlopgotchiPanelState,
+    advance_slopgotchi,
 )
 from tunacode.ui.widgets import ToolResultDisplay
 
@@ -77,7 +77,7 @@ async def test_context_panel_summary_includes_model_tokens_cost_and_edited_files
         context_text = _context_panel_text(app)
         rail = app.query_one("#context-rail")
         assert rail.border_title == "Session Inspector"
-        assert "TAMAGOTCHI" in context_text
+        assert "SLOPGOTCHI" in context_text
         assert "OA/GPT-4O-MINI" in context_text
         assert "CONTEXT" in context_text
         assert "COST" in context_text
@@ -130,34 +130,34 @@ async def test_clear_command_resets_context_panel_state() -> None:
         assert "(NONE)" in context_text
 
 
-async def test_tamagochi_looks_sad_by_default() -> None:
+async def test_slopgotchi_looks_sad_by_default() -> None:
     app = TextualReplApp(state_manager=StateManager())
     async with app.run_test(headless=True):
         pet_field = app.query_one("#field-pet", Static)
         assert "T.T" in _static_text(pet_field) or ";.;" in _static_text(pet_field)
 
 
-async def test_tamagochi_shows_heart_only_after_touch() -> None:
+async def test_slopgotchi_shows_heart_only_after_touch() -> None:
     app = TextualReplApp(state_manager=StateManager())
     async with app.run_test(headless=True):
         pet_field = app.query_one("#field-pet", Static)
         assert "\N{BLACK HEART SUIT}" not in _static_text(pet_field)
-        app._touch_tamagochi()
+        app._touch_slopgotchi()
 
         assert "\N{BLACK HEART SUIT}" in _static_text(pet_field)
 
 
-async def test_tamagochi_moves_only_after_interval() -> None:
-    state = TamagochiPanelState()
-    step = TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS
-    assert advance_tamagochi(state, now=step / 2) is False
+async def test_slopgotchi_moves_only_after_interval() -> None:
+    state = SlopgotchiPanelState()
+    step = SLOPGOTCHI_AUTO_MOVE_INTERVAL_SECONDS
+    assert advance_slopgotchi(state, now=step / 2) is False
     assert state.offset == 0
 
-    assert advance_tamagochi(state, now=step) is True
+    assert advance_slopgotchi(state, now=step) is True
     assert state.offset == 1
     assert state.frame_index == 1
 
-    assert advance_tamagochi(state, now=step + (step / 2)) is False
+    assert advance_slopgotchi(state, now=step + (step / 2)) is False
     assert state.offset == 1
     assert state.frame_index == 1
 

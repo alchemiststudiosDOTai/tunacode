@@ -60,12 +60,12 @@ from tunacode.ui.repl_support import (
     format_user_message,
 )
 from tunacode.ui.shell_runner import ShellRunner
-from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
-from tunacode.ui.tamagochi import (
-    TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS,
-    TamagochiHandler,
-    TamagochiPanelState,
+from tunacode.ui.slopgotchi import (
+    SLOPGOTCHI_AUTO_MOVE_INTERVAL_SECONDS,
+    SlopgotchiHandler,
+    SlopgotchiPanelState,
 )
+from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
 from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
     ChatContainer,
@@ -129,11 +129,11 @@ class TextualReplApp(App[None]):
         self._field_context: Static | None = None
         self._field_cost: Static | None = None
         self._field_files: Static | None = None
-        self._tamagochi_state: TamagochiPanelState = TamagochiPanelState()
+        self._slopgotchi_state: SlopgotchiPanelState = SlopgotchiPanelState()
 
-        self._field_tamagochi: Static | None = None
-        self._tamagochi_handler: TamagochiHandler | None = None
-        self._tamagochi_timer: Timer | None = None
+        self._field_slopgotchi: Static | None = None
+        self._slopgotchi_handler: SlopgotchiHandler | None = None
+        self._slopgotchi_timer: Timer | None = None
 
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
@@ -156,9 +156,9 @@ class TextualReplApp(App[None]):
             ):
                 rail.border_title = "Session Inspector"
                 context_panel_widgets = build_context_panel_widgets()
-                self._field_tamagochi = context_panel_widgets.field_tamagochi
-                self._tamagochi_handler = TamagochiHandler(
-                    self._tamagochi_state, self._field_tamagochi
+                self._field_slopgotchi = context_panel_widgets.field_slopgotchi
+                self._slopgotchi_handler = SlopgotchiHandler(
+                    self._slopgotchi_state, self._field_slopgotchi
                 )
                 self._field_model = context_panel_widgets.field_model
                 self._field_context = context_panel_widgets.field_context
@@ -209,9 +209,9 @@ class TextualReplApp(App[None]):
 
     async def on_unmount(self) -> None:
         """Save session before app exits."""
-        if self._tamagochi_timer is not None:
-            self._tamagochi_timer.stop()
-            self._tamagochi_timer = None
+        if self._slopgotchi_timer is not None:
+            self._slopgotchi_timer.stop()
+            self._slopgotchi_timer = None
         await self.state_manager.save_session()
 
     def _on_setup_complete(self, completed: bool | None) -> None:
@@ -235,9 +235,9 @@ class TextualReplApp(App[None]):
 
         self.set_focus(self.editor)
         self.run_worker(self._request_worker, exclusive=False)
-        self._tamagochi_timer = self.set_interval(
-            TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS,
-            self._update_tamagochi,
+        self._slopgotchi_timer = self.set_interval(
+            SLOPGOTCHI_AUTO_MOVE_INTERVAL_SECONDS,
+            self._update_slopgotchi,
         )
         self._update_resource_bar()
         show_welcome(self.rich_log)
@@ -507,22 +507,22 @@ class TextualReplApp(App[None]):
         field_files.border_title = files_title
         field_files.update(files_content)
 
-        handler = self._tamagochi_handler
+        handler = self._slopgotchi_handler
         if handler is not None:
             handler._refresh()
 
     def on_click(self, event: events.Click) -> None:
         if not is_widget_within_field(event.widget, self, field_id="field-pet"):
             return
-        self._touch_tamagochi()
+        self._touch_slopgotchi()
 
-    def _touch_tamagochi(self) -> None:
-        handler = self._tamagochi_handler
+    def _touch_slopgotchi(self) -> None:
+        handler = self._slopgotchi_handler
         if handler is not None:
             handler.touch()
 
-    def _update_tamagochi(self) -> None:
-        handler = self._tamagochi_handler
+    def _update_slopgotchi(self) -> None:
+        handler = self._slopgotchi_handler
         if handler is not None:
             handler.update()
 

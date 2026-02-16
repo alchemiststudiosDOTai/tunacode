@@ -8,6 +8,7 @@ from rich.text import Text
 from textual.dom import DOMNode
 from textual.widgets import Static
 
+from tunacode.ui.slopgotchi import SLOPGOTCHI_ART_STATES, SLOPGOTCHI_NAME
 from tunacode.ui.styles import (
     STYLE_ACCENT,
     STYLE_ERROR,
@@ -16,7 +17,6 @@ from tunacode.ui.styles import (
     STYLE_SUCCESS,
     STYLE_WARNING,
 )
-from tunacode.ui.tamagochi import TAMAGOCHI_ART_STATES, TAMAGOCHI_NAME
 
 CONTEXT_GAUGE_WIDTH: int = 24
 
@@ -30,7 +30,7 @@ class InspectorField(Static):
 @dataclass(slots=True)
 class ContextPanelWidgets:
     widgets: tuple[Static, ...]
-    field_tamagochi: InspectorField
+    field_slopgotchi: InspectorField
     field_model: InspectorField
     field_context: InspectorField
     field_cost: InspectorField
@@ -38,12 +38,12 @@ class ContextPanelWidgets:
 
 
 def build_context_panel_widgets() -> ContextPanelWidgets:
-    field_tamagochi = InspectorField(
-        f"{TAMAGOCHI_ART_STATES[0]}",
+    field_slopgotchi = InspectorField(
+        f"{SLOPGOTCHI_ART_STATES[0]}",
         id="field-pet",
         classes="inspector-field",
     )
-    field_tamagochi.border_title = TAMAGOCHI_NAME
+    field_slopgotchi.border_title = SLOPGOTCHI_NAME
 
     field_model = InspectorField(
         "---",
@@ -74,7 +74,7 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
     field_files.border_title = "Files"
 
     widgets: tuple[Static, ...] = (
-        field_tamagochi,
+        field_slopgotchi,
         field_model,
         field_context,
         field_cost,
@@ -83,7 +83,7 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
 
     return ContextPanelWidgets(
         widgets=widgets,
-        field_tamagochi=field_tamagochi,
+        field_slopgotchi=field_slopgotchi,
         field_model=field_model,
         field_context=field_context,
         field_cost=field_cost,
