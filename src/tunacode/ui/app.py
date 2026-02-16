@@ -15,6 +15,7 @@ from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
+from textual.timer import Timer
 from textual.widgets import LoadingIndicator, Static
 
 if TYPE_CHECKING:
@@ -61,9 +62,9 @@ from tunacode.ui.repl_support import (
 from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
 from tunacode.ui.tamagochi import (
+    TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS,
+    TamagochiHandler,
     TamagochiPanelState,
-    render_tamagochi,
-    touch_tamagochi,
 )
 from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
@@ -131,6 +132,8 @@ class TextualReplApp(App[None]):
         self._tamagochi_state: TamagochiPanelState = TamagochiPanelState()
 
         self._field_tamagochi: Static | None = None
+        self._tamagochi_handler: TamagochiHandler | None = None
+        self._tamagochi_timer: Timer | None = None
 
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
@@ -154,6 +157,9 @@ class TextualReplApp(App[None]):
                 rail.border_title = "Session Inspector"
                 context_panel_widgets = build_context_panel_widgets()
                 self._field_tamagochi = context_panel_widgets.field_tamagochi
+                self._tamagochi_handler = TamagochiHandler(
+                    self._tamagochi_state, self._field_tamagochi
+                )
                 self._field_model = context_panel_widgets.field_model
                 self._field_context = context_panel_widgets.field_context
                 self._field_cost = context_panel_widgets.field_cost
@@ -203,6 +209,9 @@ class TextualReplApp(App[None]):
 
     async def on_unmount(self) -> None:
         """Save session before app exits."""
+        if self._tamagochi_timer is not None:
+            self._tamagochi_timer.stop()
+            self._tamagochi_timer = None
         await self.state_manager.save_session()
 
     def _on_setup_complete(self, completed: bool | None) -> None:
@@ -226,6 +235,10 @@ class TextualReplApp(App[None]):
 
         self.set_focus(self.editor)
         self.run_worker(self._request_worker, exclusive=False)
+        self._tamagochi_timer = self.set_interval(
+            TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS,
+            self._update_tamagochi,
+        )
         self._update_resource_bar()
         show_welcome(self.rich_log)
 
@@ -520,22 +533,14 @@ class TextualReplApp(App[None]):
         if not is_widget_within_field(event.widget, self, field_id="field-pet"):
             return
 
-        self._touch_tamagochi()
+        handler = self._tamagochi_handler
+        if handler is not None:
+            handler.touch()
 
-    def _touch_tamagochi(self) -> None:
-        if self._field_tamagochi is None:
-            return
-
-        touch_tamagochi(self._tamagochi_state)
-        self._refresh_tamagochi()
-
-    def _refresh_tamagochi(self) -> None:
-        if self._field_tamagochi is None:
-            return
-
-        art = render_tamagochi(self._tamagochi_state)
-        self._field_tamagochi.styles.margin = (0, 0, 0, self._tamagochi_state.offset)
-        self._field_tamagochi.update(art)
+    def _update_tamagochi(self) -> None:
+        handler = self._tamagochi_handler
+        if handler is not None:
+            handler.update()
 
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)

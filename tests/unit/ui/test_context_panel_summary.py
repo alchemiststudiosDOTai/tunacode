@@ -7,6 +7,11 @@ from tunacode.core.session import StateManager
 
 from tunacode.ui.app import TextualReplApp
 from tunacode.ui.commands.clear import ClearCommand
+from tunacode.ui.tamagochi import (
+    TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS,
+    TamagochiPanelState,
+    advance_tamagochi,
+)
 from tunacode.ui.widgets import ToolResultDisplay
 
 
@@ -140,6 +145,21 @@ async def test_tamagochi_shows_heart_only_after_touch() -> None:
         app._touch_tamagochi()
 
         assert "\N{BLACK HEART SUIT}" in _static_text(pet_field)
+
+
+async def test_tamagochi_moves_only_after_interval() -> None:
+    state = TamagochiPanelState()
+    step = TAMAGOCHI_AUTO_MOVE_INTERVAL_SECONDS
+    assert advance_tamagochi(state, now=step / 2) is False
+    assert state.offset == 0
+
+    assert advance_tamagochi(state, now=step) is True
+    assert state.offset == 1
+    assert state.frame_index == 1
+
+    assert advance_tamagochi(state, now=step + (step / 2)) is False
+    assert state.offset == 1
+    assert state.frame_index == 1
 
 
 async def test_context_inspector_fields_disable_text_selection() -> None:

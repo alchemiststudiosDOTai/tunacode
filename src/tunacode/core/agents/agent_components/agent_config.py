@@ -107,7 +107,7 @@ def _compute_agent_version(
 def invalidate_agent_cache(model: str, state_manager: StateManagerProtocol) -> bool:
     """Invalidate cached agent for a specific model.
 
-    Call this after an abort or timeout to ensure the next request recreates
+    Call this after timeout, model switches, or explicit recovery after failed requests.
     the Agent (and any underlying provider client cache).
 
     Clears both module-level and session-level caches.

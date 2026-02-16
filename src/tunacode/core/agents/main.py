@@ -306,8 +306,12 @@ class RequestOrchestrator:
                 pre_request_history=pre_request_history,
             )
             return agent
-        except (UserAbortError, asyncio.CancelledError):
-            self._handle_abort_cleanup(logger)
+        except UserAbortError:
+            self._handle_abort_cleanup(logger, invalidate_cache=False)
+            raise
+        except asyncio.CancelledError:
+            # ESC cancellation should preserve agent cache
+            self._handle_abort_cleanup(logger, invalidate_cache=False)
             raise
 
     def _initialize_request(self) -> RequestContext:
@@ -687,7 +691,7 @@ class RequestOrchestrator:
         session = self.state_manager.session
         session._debug_raw_stream_accum += delta
 
-    def _handle_abort_cleanup(self, logger: Any) -> None:
+    def _handle_abort_cleanup(self, logger: Any, *, invalidate_cache: bool = False) -> None:
         session = self.state_manager.session
         conversation = session.conversation
 
@@ -703,9 +707,10 @@ class RequestOrchestrator:
                 }
             )
 
-        invalidated = ac.invalidate_agent_cache(self.model, self.state_manager)
-        if invalidated:
-            logger.lifecycle("Agent cache invalidated after abort")
+        if invalidate_cache:
+            invalidated = ac.invalidate_agent_cache(self.model, self.state_manager)
+            if invalidated:
+                logger.lifecycle("Agent cache invalidated after abort")
 
 
 def get_agent_tool() -> tuple[type[Any], type[Any]]:

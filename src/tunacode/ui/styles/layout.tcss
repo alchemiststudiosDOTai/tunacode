@@ -74,6 +74,7 @@ ResourceBar.hidden {
     border-title-align: center;
     border-title-color: $accent;
     border-title-style: bold;
+    outline: solid $primary;
 }
 
 #context-rail.hidden {
