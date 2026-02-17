@@ -1,4 +1,4 @@
-"""Update command for checking and installing package upgrades."""
+"""Update command: check PyPI and upgrade if a newer version exists."""
 
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ def _get_package_manager_command(package: str) -> tuple[list[str], str] | None:
     Returns:
         tuple(list[str], str) for command and manager name, or None if unavailable.
     """
-
     import shutil
 
     uv_path = shutil.which("uv")
@@ -38,59 +37,33 @@ class UpdateCommand(Command):
 
     name = "update"
     description = "Update tunacode to latest version"
-    usage = "/update [check]"
+    usage = "/update"
 
-    async def execute(self, app: TextualReplApp, args: str) -> None:
-        parts = args.split(maxsplit=1) if args else []
-        subcommand = parts[0].lower() if parts else "install"
-
-        handler = {
-            "check": self._handle_check,
-            "install": self._handle_install,
-        }.get(subcommand)
-
-        if handler is None:
-            app.notify(f"Unknown subcommand: {subcommand}", severity="warning")
-            app.notify("Usage: /update [check]")
-            return
-
-        await handler(app)
-
-    async def _handle_check(self, app: TextualReplApp) -> None:
-        """Check for updates without installing."""
-        import asyncio
-
-        from tunacode.core.ui_api.constants import APP_VERSION
-        from tunacode.core.ui_api.system_paths import check_for_updates
-
-        app.notify("Checking for updates...")
-        has_update, latest_version = await asyncio.to_thread(check_for_updates)
-
-        if not has_update:
-            app.notify(f"Already on latest version ({APP_VERSION})")
-            return
-
-        app.rich_log.write(f"Current version: {APP_VERSION}")
-        app.rich_log.write(f"Latest version:  {latest_version}")
-        app.notify(f"Update available: {latest_version}")
-        app.rich_log.write("Run /update to upgrade")
-
-    async def _handle_install(self, app: TextualReplApp) -> None:
-        """Check for updates and install if available."""
+    async def execute(self, app: TextualReplApp, _args: str) -> None:
         import asyncio
         import subprocess
 
-        from tunacode.core.ui_api.constants import APP_VERSION
-        from tunacode.core.ui_api.system_paths import check_for_updates
+        from tunacode.core.ui_api.system_paths import (
+            check_for_updates,
+            get_installed_version,
+        )
 
         from tunacode.ui.screens.update_confirm import UpdateConfirmScreen
 
-        app.notify("Checking for updates...")
-        has_update, latest_version = await asyncio.to_thread(check_for_updates)
+        installed_version = get_installed_version()
+        app.rich_log.write("Checking for updates...")
+
+        try:
+            has_update, latest_version = await asyncio.to_thread(check_for_updates)
+        except RuntimeError as exc:
+            app.rich_log.write(f"Update check failed: {exc}")
+            return
 
         if not has_update:
-            app.notify(f"Already on latest version ({APP_VERSION})")
+            app.rich_log.write(f"Already on latest version ({installed_version})")
             return
+
+        app.rich_log.write(f"Installed: {installed_version}  ->  Latest: {latest_version}")
 
         def on_update_confirmed(confirmed: bool | None) -> None:
             """Handle user's response to update confirmation."""
@@ -100,11 +73,11 @@ class UpdateCommand(Command):
 
             pkg_cmd_result = _get_package_manager_command(PACKAGE_NAME)
             if not pkg_cmd_result:
-                app.notify("No package manager found (uv or pip)", severity="error")
+                app.rich_log.write("No package manager found (uv or pip)")
                 return
 
             cmd, pkg_mgr = pkg_cmd_result
-            app.notify(f"Installing with {pkg_mgr}...")
+            app.rich_log.write(f"Installing with {pkg_mgr}...")
 
             async def install_update() -> None:
                 try:
@@ -117,15 +90,13 @@ class UpdateCommand(Command):
                     )
 
                     if result.returncode == 0:
-                        app.notify(f"Updated to {latest_version}!")
-                        app.rich_log.write("Restart tunacode to use the new version")
+                        msg = f"Updated to {latest_version}! Restart tunacode to use it."
+                        app.rich_log.write(msg)
                     else:
-                        app.notify("Update failed", severity="error")
-                        if result.stderr:
-                            app.rich_log.write(result.stderr.strip())
+                        app.rich_log.write(f"Update failed: {result.stderr.strip()}")
                 except Exception as e:
                     app.rich_log.write(f"Error: {e}")
 
             app.run_worker(install_update(), exclusive=False)
 
-        app.push_screen(UpdateConfirmScreen(APP_VERSION, latest_version), on_update_confirmed)
+        app.push_screen(UpdateConfirmScreen(installed_version, latest_version), on_update_confirmed)

@@ -6,7 +6,6 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import SESSIONS_SUBDIR, TUNACODE_HOME_DIR
 
 
@@ -100,33 +99,57 @@ def delete_session_file(project_id: str, session_id: str) -> bool:
         return False
 
 
-def check_for_updates() -> tuple[bool, str]:
+def _get_installed_version() -> str:
+    """Get the actually installed package version via importlib.metadata.
+
+    Falls back to APP_VERSION constant if the package is not installed
+    (e.g. running from an editable install or raw source checkout).
     """
-    Check if there's a newer version of tunacode-cli available on PyPI.
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("tunacode-cli")
+    except PackageNotFoundError:
+        from tunacode.constants import APP_VERSION
+
+        return APP_VERSION
+
+
+def check_for_updates() -> tuple[bool, str]:
+    """Check if there's a newer version of tunacode-cli available on PyPI.
 
     Returns:
         tuple: (has_update, latest_version)
             - has_update (bool): True if a newer version is available
             - latest_version (str): The latest version available
+
+    Raises:
+        RuntimeError: If the PyPI version check fails.
     """
-    app_settings = ApplicationSettings()
-    current_version = app_settings.version
-    try:
-        result = subprocess.run(
-            ["pip", "index", "versions", "tunacode-cli"], capture_output=True, text=True, check=True
-        )
-        output = result.stdout
+    from packaging.version import Version
 
-        if "Available versions:" in output:
-            versions_line = output.split("Available versions:")[1].strip()
-            versions = versions_line.split(", ")
-            latest_version = versions[0]
+    current_version = _get_installed_version()
 
-            latest_version = latest_version.strip()
+    result = subprocess.run(
+        ["pip", "index", "versions", "tunacode-cli"],
+        capture_output=True,
+        text=True,
+    )
 
-            if latest_version > current_version:
-                return True, latest_version
+    if result.returncode != 0:
+        msg = f"pip index versions failed: {result.stderr.strip()}"
+        raise RuntimeError(msg)
 
-        return False, current_version
-    except Exception:
-        return False, current_version
+    output = result.stdout
+    if "Available versions:" not in output:
+        msg = f"Unexpected pip output: {output.strip()}"
+        raise RuntimeError(msg)
+
+    versions_line = output.split("Available versions:")[1].strip()
+    versions = versions_line.split(", ")
+    latest_version = versions[0].strip()
+
+    if Version(latest_version) > Version(current_version):
+        return True, latest_version
+
+    return False, current_version
