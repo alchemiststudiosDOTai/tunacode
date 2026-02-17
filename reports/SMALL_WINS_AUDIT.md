@@ -48,17 +48,59 @@ No imports reference any of these. All contain only `__pycache__` or nothing.
 
 ### B. Dead Code & Orphans
 
-#### Unused Exported Symbols
+#### Unused Exported Symbols (DONE -- removed in batch 1)
 
-| Symbol | File | Evidence |
-|--------|------|----------|
-| `render_diff_tool()` | `ui/renderers/panels.py:176` | Defined but never called anywhere |
-| `file_search_panel()` | `ui/renderers/search.py:285` | Exported in `__init__`, never imported |
-| `code_search_panel()` | `ui/renderers/search.py:298` | Exported in `__init__`, never imported |
-| `quick_results()` | `ui/renderers/search.py:311` | Exported in `__init__`, never imported |
+| Symbol | File | Status |
+|--------|------|--------|
+| `render_diff_tool()` | `ui/renderers/panels.py:176` | REMOVED |
+| `file_search_panel()` | `ui/renderers/search.py:285` | REMOVED |
+| `code_search_panel()` | `ui/renderers/search.py:298` | REMOVED |
+| `quick_results()` | `ui/renderers/search.py:311` | REMOVED |
 | `tool_panel()` | `ui/renderers/panels.py:423` | Only called by `tool_panel_smart` (internal) |
 | `error_panel()` | `ui/renderers/panels.py:443` | Exported in `__init__`, verify usage |
 | `search_panel()` | `ui/renderers/panels.py:460` | Exported in `__init__`, verify usage |
+
+#### Entirely Unreferenced Files (never imported anywhere)
+
+| File | Lines | Contents |
+|------|-------|----------|
+| `core/agents/agent_components/state_transition.py` | ~120 | `AgentStateMachine`, `StateTransitionRules` -- entire file dead |
+| `core/agents/agent_components/openai_response_validation.py` | ~265 | `validate_openai_chat_completion_response()` + helpers -- entire file dead |
+| `ui/renderers/panel_widths.py` | 15 | `tool_panel_frame_width()` -- never used |
+
+#### Unused Exception Classes (defined, never raised or caught)
+
+| Exception | File:Line | Notes |
+|-----------|-----------|-------|
+| `StateError` | `exceptions.py:185` | Only in error style map |
+| `GitOperationError` | `exceptions.py:198` | Only in error style/fix maps |
+| `ServiceError` | `exceptions.py:192` | Only parent of GitOperationError |
+| `SetupValidationError` | `exceptions.py:243` | Only in error style map |
+| `ModelConfigurationError` | `exceptions.py:224` | Only in error style/fix maps |
+| `ToolBatchingJSONError` | `exceptions.py:308` | Only in error style map |
+| `AggregateToolError` | `exceptions.py:349` | Never imported or raised |
+
+#### Unused Functions/Methods
+
+| Symbol | Location | Notes |
+|--------|----------|-------|
+| `render_info()` | `ui/renderers/panels.py:344` | Never called |
+| `render_success()` | `ui/renderers/panels.py:358` | Never called |
+| `render_warning()` | `ui/renderers/panels.py:369` | Never called |
+| `calculate_cost()` | `configuration/pricing.py:42` | Never imported |
+| `from_canonical_list()` | `utils/messaging/adapter.py:399` | Exported, never imported |
+| `get_readable_tool_description()` | `core/agents/agent_components/agent_helpers.py:67` | Never called |
+| `_describe_research()` | `core/agents/agent_components/agent_helpers.py:37` | Maps to nonexistent `research_codebase` tool |
+
+#### Unused Dataclasses/Types
+
+| Symbol | Location | Notes |
+|--------|----------|-------|
+| `ResponseState` | `core/types/agent_state.py:8` | Exported, never imported |
+| `TokenUsage` | `types/dataclasses.py:29` | Exported, never imported |
+| `CostBreakdown` | `types/dataclasses.py:38` | Exported, never imported |
+| `ModelConfig` | `types/dataclasses.py:19` | Exported, never imported (registry uses raw dicts) |
+| `RecursiveContext` | `types/canonical.py:297` | Exported, never imported |
 
 #### TODO/FIXME Debt
 **Zero items.** The codebase has no TODO, FIXME, HACK, XXX, or WORKAROUND comments.
