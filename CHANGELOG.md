@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.66] - 2026-02-17
+
+### Added
+- Thinking content streaming for extended thinking models (Claude 3.5+ with thinking enabled)
+- `/thoughts` command to toggle thinking panel visibility
+- Thinking panel renderer with truncation and collapsible display
+- Tests for thinking stream routing, response extraction, and panel rendering
+
+### Changed
+- Updated bundled models registry from models.dev (92 providers)
+
 ## [0.1.65] - 2026-02-16
 
 ### Added
