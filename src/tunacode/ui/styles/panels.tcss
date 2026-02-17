@@ -19,6 +19,7 @@
 
 /* Shared panel structure */
 .agent-panel,
+.thinking-panel,
 .info-panel,
 .success-panel,
 .warning-panel,
@@ -37,6 +38,16 @@
 /* Semantic panel outlines */
 .agent-panel {
     outline: solid $accent;
+}
+
+.thinking-panel {
+    max-height: 6;
+    overflow-y: auto;
+    background: $background;
+    color: $text-muted;
+    border-title-color: $text-muted;
+    border-title-style: bold;
+    outline: solid $border;
 }
 
 .info-panel {

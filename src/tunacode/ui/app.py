@@ -16,6 +16,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.timer import Timer
+from textual.widget import Widget
 from textual.widgets import LoadingIndicator, Static
 
 if TYPE_CHECKING:
@@ -51,6 +52,11 @@ from tunacode.ui.esc.handler import EscHandler
 from tunacode.ui.model_display import format_model_for_display
 from tunacode.ui.renderers.errors import render_exception
 from tunacode.ui.renderers.panels import tool_panel_smart
+from tunacode.ui.renderers.thinking import (
+    DEFAULT_THINKING_MAX_CHARS,
+    DEFAULT_THINKING_MAX_LINES,
+    render_thinking_panel,
+)
 from tunacode.ui.repl_support import (
     FILE_EDIT_TOOLS,
     StatusBarLike,
@@ -94,6 +100,11 @@ class TextualReplApp(App[None]):
     ]
 
     STREAM_THROTTLE_MS: float = 100.0
+    MILLISECONDS_PER_SECOND: float = 1000.0
+    THINKING_BUFFER_CHAR_LIMIT: int = 20000
+    THINKING_MAX_RENDER_LINES: int = DEFAULT_THINKING_MAX_LINES
+    THINKING_MAX_RENDER_CHARS: int = DEFAULT_THINKING_MAX_CHARS
+    THINKING_THROTTLE_MS: float = STREAM_THROTTLE_MS
     CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
     DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
     CONTEXT_PANEL_MIN_TERMINAL_WIDTH: int = 80
@@ -123,6 +134,7 @@ class TextualReplApp(App[None]):
         self.resource_bar: ResourceBar
         self.status_bar: StatusBarLike
         self.streaming_output: Static
+        self._thinking_panel_widget: Widget | None = None
         self._context_panel_visible: bool = False
         self._edited_files: set[str] = set()
         self._field_model: Static | None = None
@@ -137,6 +149,8 @@ class TextualReplApp(App[None]):
 
         self._current_stream_text: str = ""
         self._last_stream_update: float = 0.0
+        self._current_thinking_text: str = ""
+        self._last_thinking_update: float = 0.0
 
     def compose(self) -> ComposeResult:
         self.resource_bar = ResourceBar()
@@ -261,6 +275,7 @@ class TextualReplApp(App[None]):
         self._update_compaction_status(False)
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
+        self._clear_thinking_state()
         try:
             model_name = session.current_model or "openai/gpt-4o"
             self._current_request_task = asyncio.create_task(
@@ -270,6 +285,7 @@ class TextualReplApp(App[None]):
                     state_manager=self.state_manager,
                     tool_callback=build_textual_tool_callback(),
                     streaming_callback=self._streaming_callback,
+                    thinking_callback=self._thinking_callback,
                     tool_result_callback=build_tool_result_callback(self),
                     tool_start_callback=build_tool_start_callback(self),
                     notice_callback=self._show_system_notice,
@@ -291,12 +307,15 @@ class TextualReplApp(App[None]):
             self.streaming_output.remove_class("active")
             self._current_stream_text = ""
             self._last_stream_update = 0.0
+            self._finalize_thinking_state_after_request()
             self._update_compaction_status(False)
             output_text = self._get_latest_response_text()
             if output_text is not None:
                 from tunacode.ui.renderers.agent_response import render_agent_response
 
-                duration_ms = (time.monotonic() - self._request_start_time) * 1000
+                duration_ms = (
+                    time.monotonic() - self._request_start_time
+                ) * self.MILLISECONDS_PER_SECOND
                 session = self.state_manager.session
                 tokens = session.usage.last_call_usage.output
                 content, meta = render_agent_response(
@@ -312,18 +331,33 @@ class TextualReplApp(App[None]):
             await self.state_manager.save_session()
 
     def _get_latest_response_text(self) -> str | None:
-        from tunacode.core.ui_api.messaging import get_content
-
         messages = self.state_manager.session.conversation.messages
         for message in reversed(messages):
             if not isinstance(message, dict):
                 continue
             if message.get("role") != "assistant":
                 continue
-            raw_content = get_content(message)
-            normalized_content = raw_content.strip()
-            if normalized_content:
-                return normalized_content
+
+            content_items = message.get("content")
+            if not isinstance(content_items, list):
+                return None
+
+            text_segments: list[str] = []
+            for raw_item in content_items:
+                if not isinstance(raw_item, dict):
+                    continue
+                if raw_item.get("type") != "text":
+                    continue
+                raw_text = raw_item.get("text", "")
+                text_segment = raw_text if isinstance(raw_text, str) else str(raw_text)
+                if not text_segment:
+                    continue
+                text_segments.append(text_segment)
+
+            normalized_content = " ".join(text_segments).strip()
+            if not normalized_content:
+                return None
+            return normalized_content
         return None
 
     async def on_editor_submit_requested(self, message: EditorSubmitRequested) -> None:
@@ -553,6 +587,72 @@ class TextualReplApp(App[None]):
         )
         self._refresh_context_panel()
 
+    def _hide_thinking_output(self) -> None:
+        thinking_panel_widget = self._thinking_panel_widget
+        if thinking_panel_widget is None:
+            return
+
+        self._thinking_panel_widget = None
+        if thinking_panel_widget.parent is None:
+            return
+
+        thinking_panel_widget.remove()
+
+    def _clear_thinking_state(self) -> None:
+        self._current_thinking_text = ""
+        self._last_thinking_update = 0.0
+        self._hide_thinking_output()
+
+    def _finalize_thinking_state_after_request(self) -> None:
+        if not self.state_manager.session.show_thoughts:
+            self._clear_thinking_state()
+            return
+        self._refresh_thinking_output(force=True)
+
+    def _refresh_thinking_output(self, force: bool = False) -> None:
+        if not self.state_manager.session.show_thoughts:
+            return
+        if not self._current_thinking_text:
+            self._hide_thinking_output()
+            return
+
+        thinking_panel_widget = self._thinking_panel_widget
+        is_first_render = thinking_panel_widget is None
+        now = time.monotonic()
+        elapsed_ms = (now - self._last_thinking_update) * self.MILLISECONDS_PER_SECOND
+        if not force and not is_first_render and elapsed_ms < self.THINKING_THROTTLE_MS:
+            return
+
+        self._last_thinking_update = now
+        thinking_content, thinking_panel_meta = render_thinking_panel(
+            self._current_thinking_text,
+            max_lines=self.THINKING_MAX_RENDER_LINES,
+            max_chars=self.THINKING_MAX_RENDER_CHARS,
+        )
+
+        if thinking_panel_widget is None:
+            self._thinking_panel_widget = self.chat_container.write(
+                thinking_content,
+                expand=True,
+                panel_meta=thinking_panel_meta,
+            )
+            return
+
+        thinking_panel_widget.update(thinking_content)
+        self.chat_container.scroll_end(animate=False)
+
+    async def _thinking_callback(self, delta: str) -> None:
+        self._current_thinking_text += delta
+        current_char_count = len(self._current_thinking_text)
+        overflow_char_count = current_char_count - self.THINKING_BUFFER_CHAR_LIMIT
+        if overflow_char_count > 0:
+            self._current_thinking_text = self._current_thinking_text[overflow_char_count:]
+
+        if not self.state_manager.session.show_thoughts:
+            return
+
+        self._refresh_thinking_output()
+
     async def _streaming_callback(self, chunk: str) -> None:
         """Handle streaming text chunks from the agent.
         Accumulates chunks and updates the streaming output panel
@@ -563,7 +663,7 @@ class TextualReplApp(App[None]):
         if is_first_chunk:
             self.streaming_output.add_class("active")
         now = time.monotonic()
-        elapsed_ms = (now - self._last_stream_update) * 1000
+        elapsed_ms = (now - self._last_stream_update) * self.MILLISECONDS_PER_SECOND
         if elapsed_ms >= self.STREAM_THROTTLE_MS or is_first_chunk:
             self._last_stream_update = now
             self.streaming_output.update(self._current_stream_text)

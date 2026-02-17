@@ -136,6 +136,7 @@ class RequestOrchestrator:
         state_manager: StateManagerProtocol,
         tool_callback: ToolCallback | None,
         streaming_callback: StreamingCallback | None,
+        thinking_callback: StreamingCallback | None = None,
         tool_result_callback: ToolResultCallback | None = None,
         tool_start_callback: ToolStartCallback | None = None,
         notice_callback: NoticeCallback | None = None,
@@ -146,6 +147,7 @@ class RequestOrchestrator:
         self.state_manager = state_manager
         self.tool_callback = tool_callback
         self.streaming_callback = streaming_callback
+        self.thinking_callback = thinking_callback
         self.tool_result_callback = tool_result_callback
         self.tool_start_callback = tool_start_callback
         self.notice_callback = notice_callback
@@ -519,21 +521,30 @@ class RequestOrchestrator:
         return agent
 
     async def _handle_message_update(self, event: Any) -> None:
-        if not self.streaming_callback:
-            return
         assistant_event = getattr(event, "assistant_message_event", None)
         if not isinstance(assistant_event, dict):
             return
-        if assistant_event.get("type") != "text_delta":
-            return
+
+        event_type = assistant_event.get("type")
         delta = assistant_event.get("delta")
         if not isinstance(delta, str) or not delta:
             return
-        # Streaming callback is a UI hook; keep it best-effort.
-        await self.streaming_callback(delta)
-        # Keep legacy debug accumulator for abort handling.
-        session = self.state_manager.session
-        session._debug_raw_stream_accum += delta
+
+        if event_type == "text_delta":
+            if self.streaming_callback is None:
+                return
+            # Streaming callback is a UI hook; keep it best-effort.
+            await self.streaming_callback(delta)
+            # Keep legacy debug accumulator for abort handling.
+            session = self.state_manager.session
+            session._debug_raw_stream_accum += delta
+            return
+
+        if event_type == "thinking_delta":
+            if self.thinking_callback is None:
+                return
+            await self.thinking_callback(delta)
+            return
 
     def _handle_abort_cleanup(self, logger: Any, *, invalidate_cache: bool = False) -> None:
         session = self.state_manager.session
@@ -569,6 +580,7 @@ async def process_request(
     state_manager: StateManagerProtocol,
     tool_callback: ToolCallback | None = None,
     streaming_callback: StreamingCallback | None = None,
+    thinking_callback: StreamingCallback | None = None,
     tool_result_callback: ToolResultCallback | None = None,
     tool_start_callback: ToolStartCallback | None = None,
     notice_callback: NoticeCallback | None = None,
@@ -580,6 +592,7 @@ async def process_request(
         state_manager,
         tool_callback,
         streaming_callback,
+        thinking_callback,
         tool_result_callback,
         tool_start_callback,
         notice_callback,

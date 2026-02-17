@@ -14,6 +14,7 @@ from tunacode.ui.commands.help import HelpCommand
 from tunacode.ui.commands.model import ModelCommand
 from tunacode.ui.commands.resume import ResumeCommand
 from tunacode.ui.commands.theme import ThemeCommand
+from tunacode.ui.commands.thoughts import ThoughtsCommand
 from tunacode.ui.commands.update import UpdateCommand
 
 if TYPE_CHECKING:
@@ -29,6 +30,7 @@ COMMANDS: dict[str, Command] = {
     "exit": ExitCommand(),
     "model": ModelCommand(),
     "theme": ThemeCommand(),
+    "thoughts": ThoughtsCommand(),
     "resume": ResumeCommand(),
     "update": UpdateCommand(),
 }
