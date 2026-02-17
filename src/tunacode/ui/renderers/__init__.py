@@ -15,9 +15,6 @@ from .search import (
     CodeSearchResult,
     FileSearchResult,
     SearchDisplayRenderer,
-    code_search_panel,
-    file_search_panel,
-    quick_results,
 )
 
 __all__ = [
@@ -28,10 +25,7 @@ __all__ = [
     "SearchDisplayRenderer",
     "SearchResultData",
     "ToolDisplayData",
-    "code_search_panel",
     "error_panel",
-    "file_search_panel",
-    "quick_results",
     "render_exception",
     "render_tool_error",
     "render_user_abort",

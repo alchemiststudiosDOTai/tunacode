@@ -280,33 +280,3 @@ class SearchDisplayRenderer:
             page_size=len(results),
             source=source,
         )
-
-
-def file_search_panel(
-    query: str,
-    results: list[FileSearchResult],
-    page: int = 1,
-    search_time_ms: float | None = None,
-) -> tuple[RenderableType, PanelMeta]:
-    if not results:
-        return SearchDisplayRenderer.render_empty_results(query)
-    return SearchDisplayRenderer.render_file_results(
-        query, results, page, search_time_ms=search_time_ms
-    )
-
-
-def code_search_panel(
-    query: str,
-    results: list[CodeSearchResult],
-    page: int = 1,
-    search_time_ms: float | None = None,
-) -> tuple[RenderableType, PanelMeta]:
-    if not results:
-        return SearchDisplayRenderer.render_empty_results(query)
-    return SearchDisplayRenderer.render_code_results(
-        query, results, page, search_time_ms=search_time_ms
-    )
-
-
-def quick_results(results: list[dict[str, Any]], max_display: int = 5) -> RenderableType:
-    return SearchDisplayRenderer.render_inline_results(results, max_display)

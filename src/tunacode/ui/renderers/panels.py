@@ -8,7 +8,6 @@ from enum import Enum
 from typing import Any
 
 from rich.console import Group, RenderableType
-from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
@@ -167,56 +166,6 @@ class RichPanelRenderer:
         meta = PanelMeta(
             css_class="tool-panel",
             border_title=f"[{styles['title']}]{data.tool_name}[/] [{status_suffix}]",
-            border_subtitle=subtitle,
-        )
-
-        return content, meta
-
-    @staticmethod
-    def render_diff_tool(
-        tool_name: str,
-        message: str,
-        diff: str,
-        args: dict[str, Any] | None = None,
-        duration_ms: float | None = None,
-        timestamp: datetime | None = None,
-    ) -> tuple[RenderableType, PanelMeta]:
-        styles = PANEL_STYLES[PanelType.SUCCESS]
-
-        content_parts: list[RenderableType] = []
-
-        if args:
-            args_table = Table.grid(padding=(0, 1))
-            args_table.add_column(style="dim")
-            args_table.add_column()
-            for key, value in args.items():
-                display_value = _truncate_value(value, max_length=60)
-                args_table.add_row(f"{key}:", display_value)
-            content_parts.append(args_table)
-            content_parts.append(Text("\n"))
-
-        if message:
-            content_parts.append(Text(message))
-            content_parts.append(Text("\n"))
-
-        # Use Syntax highlighter for the diff
-        diff_syntax = Syntax(diff, "diff", theme="monokai", word_wrap=True)
-        content_parts.append(diff_syntax)
-
-        if duration_ms is not None:
-            footer = Text(f"\n{duration_ms:.0f}ms", style="dim")
-            content_parts.append(footer)
-
-        content = Group(*content_parts)
-
-        subtitle = ""
-        if timestamp:
-            time_str = timestamp.strftime("%H:%M:%S")
-            subtitle = f"[{styles['subtitle']}]{time_str}[/]"
-
-        meta = PanelMeta(
-            css_class="tool-panel",
-            border_title=f"[{styles['title']}]{tool_name}[/] [done]",
             border_subtitle=subtitle,
         )
 
