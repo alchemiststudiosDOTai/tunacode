@@ -67,9 +67,11 @@ def show_welcome(log: WriteableLog) -> None:
     welcome.append("      - Switch theme\n\n")
     welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
 
-    # Group 3: Shell
+    # Group 3: Shell & extras
     welcome.append("   !<cmd>", style=STYLE_PRIMARY)
-    welcome.append("      - Run shell commands\n\n")
+    welcome.append("      - Run shell commands\n")
+    welcome.append("   /thoughts", style=STYLE_PRIMARY)
+    welcome.append("   - Toggle model thinking panel\n\n")
     welcome.append(SECTION_DIVIDER, style=STYLE_MUTED)
 
     # Slopgotchi
