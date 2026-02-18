@@ -52,6 +52,26 @@ OMIT_API_PROVIDERS: frozenset[str] = frozenset(
     }
 )
 
+MINIMAX_ALCHEMY_API = "minimax-completions"
+MINIMAX_PROVIDER_CONTRACTS: dict[str, dict[str, object]] = {
+    "minimax": {
+        "env": ["MINIMAX_API_KEY"],
+        "alchemy_api": MINIMAX_ALCHEMY_API,
+    },
+    "minimax-coding-plan": {
+        "env": ["MINIMAX_API_KEY"],
+        "alchemy_api": MINIMAX_ALCHEMY_API,
+    },
+    "minimax-cn": {
+        "env": ["MINIMAX_CN_API_KEY"],
+        "alchemy_api": MINIMAX_ALCHEMY_API,
+    },
+    "minimax-cn-coding-plan": {
+        "env": ["MINIMAX_CN_API_KEY"],
+        "alchemy_api": MINIMAX_ALCHEMY_API,
+    },
+}
+
 registry_path = Path(os.environ["REGISTRY_PATH"])
 registry = json.loads(registry_path.read_text(encoding="utf-8"))
 if not isinstance(registry, dict):
@@ -67,6 +87,11 @@ if missing_omit_providers:
     missing = ", ".join(missing_omit_providers)
     raise KeyError(f"OMIT_API providers missing from models registry: {missing}")
 
+missing_minimax_providers = sorted(pid for pid in MINIMAX_PROVIDER_CONTRACTS if pid not in registry)
+if missing_minimax_providers:
+    missing = ", ".join(missing_minimax_providers)
+    raise KeyError(f"MiniMax contract providers missing from models registry: {missing}")
+
 for provider_id, api_url in API_OVERRIDES.items():
     provider_data = registry[provider_id]
     if not isinstance(provider_data, dict):
@@ -79,11 +104,28 @@ for provider_id in OMIT_API_PROVIDERS:
         raise TypeError(f"Provider entry must be a dict for '{provider_id}'")
     provider_data.pop("api", None)
 
+for provider_id, provider_contract in MINIMAX_PROVIDER_CONTRACTS.items():
+    provider_data = registry[provider_id]
+    if not isinstance(provider_data, dict):
+        raise TypeError(f"Provider entry must be a dict for '{provider_id}'")
+
+    env_vars = provider_contract["env"]
+    if not isinstance(env_vars, list):
+        raise TypeError(f"MiniMax env contract must be a list for '{provider_id}'")
+
+    alchemy_api = provider_contract["alchemy_api"]
+    if not isinstance(alchemy_api, str):
+        raise TypeError(f"MiniMax alchemy_api contract must be a string for '{provider_id}'")
+
+    provider_data["env"] = list(env_vars)
+    provider_data["alchemy_api"] = alchemy_api
+
 registry_path.write_text(f"{json.dumps(registry, indent=2)}\n", encoding="utf-8")
 
 print(f"Updated models registry at: {registry_path}")
 print(f"Applied API overrides for {len(API_OVERRIDES)} providers")
 print(f"Cleared API field for {len(OMIT_API_PROVIDERS)} deployment-specific providers")
+print(f"Normalized MiniMax provider contracts for {len(MINIMAX_PROVIDER_CONTRACTS)} providers")
 PY
 
 echo "Updated models_registry.json"

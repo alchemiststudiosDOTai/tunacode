@@ -12887,7 +12887,7 @@
   "minimax-cn-coding-plan": {
     "id": "minimax-cn-coding-plan",
     "env": [
-      "MINIMAX_API_KEY"
+      "MINIMAX_CN_API_KEY"
     ],
     "npm": "@ai-sdk/anthropic",
     "api": "https://api.minimaxi.com/anthropic/v1",
@@ -13010,7 +13010,8 @@
           "output": 131072
         }
       }
-    }
+    },
+    "alchemy_api": "minimax-completions"
   },
   "novita-ai": {
     "id": "novita-ai",
@@ -22861,7 +22862,7 @@
   "minimax-cn": {
     "id": "minimax-cn",
     "env": [
-      "MINIMAX_API_KEY"
+      "MINIMAX_CN_API_KEY"
     ],
     "npm": "@ai-sdk/anthropic",
     "api": "https://api.minimaxi.com/anthropic/v1",
@@ -22984,7 +22985,8 @@
           "output": 131072
         }
       }
-    }
+    },
+    "alchemy_api": "minimax-completions"
   },
   "bailing": {
     "id": "bailing",
@@ -30350,7 +30352,8 @@
           "output": 131072
         }
       }
-    }
+    },
+    "alchemy_api": "minimax-completions"
   },
   "kimi-for-coding": {
     "id": "kimi-for-coding",
@@ -65908,7 +65911,8 @@
           "output": 131072
         }
       }
-    }
+    },
+    "alchemy_api": "minimax-completions"
   },
   "vultr": {
     "id": "vultr",
