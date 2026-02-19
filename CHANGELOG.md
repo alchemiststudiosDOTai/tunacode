@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.69] - 2026-02-19
+
+### Added
+- Inline API key entry screen for model-selection flow when provider credentials are missing
+- Unit coverage for API key entry behavior and authentication error rendering
+
+### Changed
+- Model command now reuses a named provider/model delimiter constant for provider parsing
+- MiniMax provider endpoints normalized to `/v1` contract paths in integration/unit coverage
+
+### Fixed
+- API key save flow now raises user-facing errors for filesystem write failures without swallowing unexpected exceptions
+- Headless-mode background task handling now shields request task execution and avoids timeout-driven cancellation races
+
+
 ## [0.1.67] - 2026-02-19
 
 ### Added
