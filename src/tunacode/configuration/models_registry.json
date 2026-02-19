@@ -12890,7 +12890,7 @@
       "MINIMAX_CN_API_KEY"
     ],
     "npm": "@ai-sdk/anthropic",
-    "api": "https://api.minimaxi.com/anthropic/v1",
+    "api": "https://api.minimaxi.com/v1",
     "name": "MiniMax Coding Plan (minimaxi.com)",
     "doc": "https://platform.minimaxi.com/docs/coding-plan/intro",
     "models": {
@@ -22865,7 +22865,7 @@
       "MINIMAX_CN_API_KEY"
     ],
     "npm": "@ai-sdk/anthropic",
-    "api": "https://api.minimaxi.com/anthropic/v1",
+    "api": "https://api.minimaxi.com/v1",
     "name": "MiniMax (minimaxi.com)",
     "doc": "https://platform.minimaxi.com/docs/guides/quickstart",
     "models": {
@@ -30232,7 +30232,7 @@
       "MINIMAX_API_KEY"
     ],
     "npm": "@ai-sdk/anthropic",
-    "api": "https://api.minimax.io/anthropic/v1",
+    "api": "https://api.minimax.io/v1",
     "name": "MiniMax Coding Plan (minimax.io)",
     "doc": "https://platform.minimax.io/docs/coding-plan/intro",
     "models": {
@@ -65791,7 +65791,7 @@
       "MINIMAX_API_KEY"
     ],
     "npm": "@ai-sdk/anthropic",
-    "api": "https://api.minimax.io/anthropic/v1",
+    "api": "https://api.minimax.io/v1",
     "name": "MiniMax (minimax.io)",
     "doc": "https://platform.minimax.io/docs/guides/quickstart",
     "models": {
