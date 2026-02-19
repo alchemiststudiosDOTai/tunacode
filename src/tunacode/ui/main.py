@@ -215,36 +215,40 @@ def run_headless(
         settings = state_manager.session.user_config.setdefault(USER_SETTINGS_KEY, {})
         settings[AUTO_APPROVE_SETTING_KEY] = auto_approve
 
+        request_task = asyncio.create_task(
+            process_request(
+                message=prompt,
+                model=state_manager.session.current_model,
+                state_manager=state_manager,
+                tool_callback=None,
+                streaming_callback=None,
+                tool_result_callback=None,
+                tool_start_callback=None,
+            ),
+            name="headless-process-request",
+        )
+        request_task.add_done_callback(_handle_background_task_error)
+
         try:
             agent_run = await asyncio.wait_for(
-                process_request(
-                    message=prompt,
-                    model=state_manager.session.current_model,
-                    state_manager=state_manager,
-                    tool_callback=None,
-                    streaming_callback=None,
-                    tool_result_callback=None,
-                    tool_start_callback=None,
-                ),
+                asyncio.shield(request_task),
                 timeout=timeout,
             )
-
             if output_json:
                 print(_build_trajectory_json(state_manager))
                 return 0
-
             headless_output = resolve_output(agent_run, state_manager.session.conversation.messages)
             if headless_output is None:
                 print(HEADLESS_NO_RESPONSE_ERROR, file=sys.stderr)
                 return 1
-
             print(headless_output)
             return 0
-
         except TimeoutError:
+            request_task.cancel()
             _print_headless_error(output_json, "timeout" if output_json else "Execution timed out")
             return 1
         except Exception as e:
+            request_task.cancel()
             _print_headless_error(output_json, str(e))
             return 1
 

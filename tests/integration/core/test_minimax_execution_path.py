@@ -11,7 +11,7 @@ from tunacode.core.session import StateManager
 MINIMAX_CODING_PLAN_MODEL = "minimax-coding-plan:MiniMax-M2.1"
 MINIMAX_API_KEY_ENV = "MINIMAX_API_KEY"
 MINIMAX_API_KEY_VALUE = "sk-minimax"
-MINIMAX_CHAT_COMPLETIONS_URL = "https://api.minimax.io/anthropic/v1/chat/completions"
+MINIMAX_CHAT_COMPLETIONS_URL = "https://api.minimax.io/v1/chat/completions"
 MINIMAX_ALCHEMY_API = "minimax-completions"
 
 
