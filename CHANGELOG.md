@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.67] - 2026-02-19
+
+### Added
+- First-class MiniMax alchemy routing for coding-plan and default execution paths
+- MiniMax provider contract coverage in integration and unit tests
+
+### Changed
+- Updated provider defaults and models registry to expose MiniMax API-key contract entries
+- Pinned `tiny-agent-os` dependency to `>=1.2.1` to support MiniMax provider routing
+
+
 ## [0.1.66] - 2026-02-17
 
 ### Added
