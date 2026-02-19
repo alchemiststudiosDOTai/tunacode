@@ -13,6 +13,8 @@ DEFAULT_USER_CONFIG: UserConfig = {
     "env": {
         "ANTHROPIC_API_KEY": "",
         "GEMINI_API_KEY": "",
+        "MINIMAX_API_KEY": "",
+        "MINIMAX_CN_API_KEY": "",
         "OPENAI_API_KEY": "",
         ENV_OPENAI_BASE_URL: "",
         "OPENROUTER_API_KEY": "",

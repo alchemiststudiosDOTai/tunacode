@@ -19,6 +19,10 @@ ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
 ENV_CHUTES_API_KEY = "CHUTES_API_KEY"
 OPENAI_COMPATIBLE_BASE_URL = "https://proxy.example/v1/chat/completions"
 CHUTES_CHAT_COMPLETIONS_URL = "https://llm.chutes.ai/v1/chat/completions"
+MINIMAX_CHAT_COMPLETIONS_URL = "https://api.minimax.io/anthropic/v1/chat/completions"
+MINIMAX_CN_CHAT_COMPLETIONS_URL = "https://api.minimaxi.com/anthropic/v1/chat/completions"
+MINIMAX_ALCHEMY_API = "minimax-completions"
+ENV_MINIMAX_CN_API_KEY = "MINIMAX_CN_API_KEY"
 
 
 def _build_state_manager(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> StateManager:
@@ -74,6 +78,36 @@ def test_build_tinyagent_model_uses_provider_registry_base_url_when_override_mis
     assert model.base_url == CHUTES_CHAT_COMPLETIONS_URL
 
 
+def test_build_tinyagent_model_uses_minimax_alchemy_contract_from_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    session = state_manager.session
+
+    model = agent_config._build_tinyagent_model("minimax:MiniMax-M2.1", session)
+
+    assert model.provider == "minimax"
+    assert model.id == "MiniMax-M2.1"
+    assert model.api == MINIMAX_ALCHEMY_API
+    assert model.base_url == MINIMAX_CHAT_COMPLETIONS_URL
+
+
+def test_build_tinyagent_model_uses_minimax_coding_plan_alchemy_contract_from_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    session = state_manager.session
+
+    model = agent_config._build_tinyagent_model("minimax-coding-plan:MiniMax-M2.1", session)
+
+    assert model.provider == "minimax-coding-plan"
+    assert model.id == "MiniMax-M2.1"
+    assert model.api == MINIMAX_ALCHEMY_API
+    assert model.base_url == MINIMAX_CHAT_COMPLETIONS_URL
+
+
 def test_build_tinyagent_model_raises_when_provider_has_no_api_and_override_missing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -100,6 +134,23 @@ def test_build_api_key_resolver_falls_back_to_openai_api_key(
 
     env[ENV_CHUTES_API_KEY] = ""
     assert resolver("chutes") == "sk-openai"
+
+
+def test_build_api_key_resolver_prefers_minimax_cn_provider_key(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    env = state_manager.session.user_config["env"]
+    env[ENV_OPENAI_API_KEY] = "sk-openai"
+    env[ENV_MINIMAX_CN_API_KEY] = "sk-minimax-cn"
+
+    resolver = agent_config._build_api_key_resolver(state_manager.session)
+
+    assert resolver("minimax-cn") == "sk-minimax-cn"
+
+    env[ENV_MINIMAX_CN_API_KEY] = ""
+    assert resolver("minimax-cn") == "sk-openai"
 
 
 @pytest.mark.asyncio
@@ -164,6 +215,46 @@ def test_compaction_controller_uses_provider_registry_base_url_when_override_mis
 
     assert model.provider == "chutes"
     assert model.base_url == CHUTES_CHAT_COMPLETIONS_URL
+
+
+def test_compaction_controller_build_model_threads_minimax_coding_plan_alchemy_api(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    state_manager.session.current_model = "minimax-coding-plan:MiniMax-M2.1"
+
+    controller = CompactionController(state_manager=state_manager)
+
+    model = controller._build_model()
+
+    assert model.provider == "minimax-coding-plan"
+    assert model.id == "MiniMax-M2.1"
+    assert model.api == MINIMAX_ALCHEMY_API
+    assert model.base_url == MINIMAX_CHAT_COMPLETIONS_URL
+
+
+def test_compaction_controller_uses_minimax_cn_provider_api_key(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state_manager = _build_state_manager(tmp_path, monkeypatch)
+    state_manager.session.current_model = "minimax-cn:MiniMax-M2.1"
+    env = state_manager.session.user_config["env"]
+    env[ENV_OPENAI_API_KEY] = "sk-openai"
+    env[ENV_MINIMAX_CN_API_KEY] = "sk-minimax-cn"
+
+    controller = CompactionController(state_manager=state_manager)
+
+    model = controller._build_model()
+
+    assert model.provider == "minimax-cn"
+    assert model.api == MINIMAX_ALCHEMY_API
+    assert model.base_url == MINIMAX_CN_CHAT_COMPLETIONS_URL
+    assert controller._resolve_api_key("minimax-cn") == "sk-minimax-cn"
+
+    env[ENV_MINIMAX_CN_API_KEY] = ""
+    assert controller._resolve_api_key("minimax-cn") == "sk-openai"
 
 
 @pytest.mark.asyncio

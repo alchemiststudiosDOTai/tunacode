@@ -1936,14 +1936,14 @@ wheels = [
 
 [[package]]
 name = "tiny-agent-os"
-version = "1.1.5"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/41/e7b46c3d17b65cbb4a3affcad1220d742fa77da24a218952aaa04f3c55ad/tiny_agent_os-1.1.5.tar.gz", hash = "sha256:50845ca3a2064c14557ff34ad8e415341535a56d067eaf3cae1f008167eca891", size = 203489, upload-time = "2026-02-12T23:06:19.77Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/57/6e/36af597658d3c29e51dc7aedc05e37c3278db5aee7605e9ab582c9946885/tiny_agent_os-1.2.1.tar.gz", hash = "sha256:ff09fa25c4088714d7cc82af4176e4fc02045d8d175f54d1ae1b52268c409ed1", size = 178994, upload-time = "2026-02-18T21:15:20.644Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/81/cf49248cab3b51cdb6cc730918c7af16583db3a0d4c8e7d754be5eb838eb/tiny_agent_os-1.1.5-cp310-abi3-manylinux_2_38_x86_64.whl", hash = "sha256:cdae8d71417e6deb289820644f7ad362691bb7f998c0c5c1099e7c183d42d09f", size = 4227668, upload-time = "2026-02-12T23:06:17.746Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/69/0e843e95219fb49730959eca1183d280a1e61f383aeea401fe4cd3fa59f9/tiny_agent_os-1.2.1-cp310-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:8b6c284311a71bff2b4f7bc3921c70aff0f7df4741f82b7624eff364a9c7822f", size = 4280410, upload-time = "2026-02-18T21:15:18.608Z" },
 ]
 
 [[package]]
@@ -2103,7 +2103,7 @@ requires-dist = [
     { name = "textual", specifier = ">=4.0.0,<5.0.0" },
     { name = "textual-autocomplete", specifier = ">=4.0.6" },
     { name = "textual-dev", marker = "extra == 'dev'" },
-    { name = "tiny-agent-os" },
+    { name = "tiny-agent-os", specifier = ">=1.2.1" },
     { name = "twine", marker = "extra == 'dev'" },
     { name = "typer", specifier = ">=0.15.0" },
     { name = "unimport", marker = "extra == 'dev'", specifier = ">=1.0.0" },

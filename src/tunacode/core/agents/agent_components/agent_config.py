@@ -19,6 +19,7 @@ from tinyagent.alchemy_provider import OpenAICompatModel, stream_alchemy_openai_
 
 from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
+    get_provider_alchemy_api,
     get_provider_base_url,
     get_provider_env_var,
     load_models_registry,
@@ -319,11 +320,18 @@ def _build_tinyagent_model(
     provider_id, model_id = parse_model_string(model)
     resolved_base_url = _resolve_base_url(session, provider_id)
     base_url = _require_provider_base_url(provider_id, resolved_base_url)
+    resolved_alchemy_api = get_provider_alchemy_api(provider_id)
+
+    model_kwargs: dict[str, str] = {}
+    if base_url:
+        model_kwargs["base_url"] = base_url
+    if resolved_alchemy_api:
+        model_kwargs["api"] = resolved_alchemy_api
 
     return OpenAICompatModel(
         provider=provider_id,
         id=model_id,
-        **({"base_url": base_url} if base_url else {}),
+        **model_kwargs,
     )
 
 

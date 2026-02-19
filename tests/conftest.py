@@ -89,6 +89,8 @@ def isolate_environment(monkeypatch: pytest.MonkeyPatch) -> None:
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "GEMINI_API_KEY",
+        "MINIMAX_API_KEY",
+        "MINIMAX_CN_API_KEY",
         "OPENROUTER_API_KEY",
         "TUNACODE_CONFIG",
     ]

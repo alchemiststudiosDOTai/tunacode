@@ -142,6 +142,24 @@ def get_provider_base_url(provider_id: str) -> str | None:
     return provider.get("api")
 
 
+def get_provider_alchemy_api(provider_id: str) -> str | None:
+    """Return the alchemy API routing identifier for a provider."""
+    registry = get_cached_models_registry()
+    if registry is None:
+        return None
+
+    provider = registry.get(provider_id, {})
+    alchemy_api = provider.get("alchemy_api")
+    if not isinstance(alchemy_api, str):
+        return None
+
+    normalized_alchemy_api = alchemy_api.strip()
+    if not normalized_alchemy_api:
+        return None
+
+    return normalized_alchemy_api
+
+
 def get_model_context_window(model_string: str) -> int:
     """Get context window limit for a model from cached models_registry data.
 
