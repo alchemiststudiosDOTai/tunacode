@@ -112,6 +112,8 @@ def get_provider_env_var(provider_id: str) -> str:
 def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool, str]:
     """Check if API key exists for provider.
 
+    Checks user config first, then falls back to OS environment variables.
+
     Args:
         provider_id: The provider identifier (e.g., "openai", "anthropic")
         user_config: User configuration dict containing env keys
@@ -119,10 +121,15 @@ def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool
     Returns:
         Tuple of (is_valid, env_var_name) - True if key exists and is non-empty
     """
+    import os
+
     env_var = get_provider_env_var(provider_id)
     env = user_config.get("env", {})
-    api_key = env.get(env_var, "")
-    return (bool(api_key and api_key.strip()), env_var)
+    config_key = env.get(env_var, "")
+    if config_key and config_key.strip():
+        return (True, env_var)
+    os_key = os.environ.get(env_var, "")
+    return (bool(os_key and os_key.strip()), env_var)
 
 
 def get_provider_base_url(provider_id: str) -> str | None:

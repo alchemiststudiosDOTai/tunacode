@@ -237,20 +237,23 @@ def _require_provider_base_url(provider_id: str, base_url: str | None) -> str | 
 
 
 def _build_api_key_resolver(session: SessionStateProtocol) -> Callable[[str], str | None]:
+    import os
+
     env_config = session.user_config.get("env", {})
     if not isinstance(env_config, dict):
         raise TypeError("session.user_config['env'] must be a dict")
 
     def _read_env_api_key(env_var: str) -> str | None:
+        # Check user config first, then fall back to OS environment.
         value = env_config.get(env_var)
-        if not isinstance(value, str):
-            return None
+        if isinstance(value, str) and value.strip():
+            return value.strip()
 
-        stripped = value.strip()
-        if not stripped:
-            return None
+        os_value = os.environ.get(env_var, "")
+        if os_value.strip():
+            return os_value.strip()
 
-        return stripped
+        return None
 
     def _resolve(provider_id: str) -> str | None:
         provider_env_var = get_provider_env_var(provider_id)

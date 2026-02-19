@@ -1,9 +1,4 @@
-"""Module: tunacode.core.agents.main
-Main agent functionality.
-Phase 4 migration note:
-This module now consumes **tinyagent** events directly via ``agent.stream()``.
-The legacy pydantic-ai node-based orchestrator is intentionally bypassed.
-"""
+"""Main agent functionality -- tinyagent event-stream orchestrator."""
 
 from __future__ import annotations
 
@@ -17,7 +12,12 @@ from typing import Any, cast
 from tinyagent import Agent
 
 from tunacode.constants import DEFAULT_CONTEXT_WINDOW
-from tunacode.exceptions import ContextOverflowError, GlobalRequestTimeoutError, UserAbortError
+from tunacode.exceptions import (
+    AgentError,
+    ContextOverflowError,
+    GlobalRequestTimeoutError,
+    UserAbortError,
+)
 from tunacode.types import (
     ModelName,
     NoticeCallback,
@@ -52,10 +52,7 @@ from .helpers import (
     parse_canonical_usage,
 )
 
-__all__ = [
-    "process_request",
-    "get_agent_tool",
-]
+__all__ = ["process_request", "get_agent_tool"]
 DEFAULT_MAX_ITERATIONS: int = 15
 REQUEST_ID_LENGTH: int = 8
 MILLISECONDS_PER_SECOND: int = 1000
@@ -63,16 +60,12 @@ MILLISECONDS_PER_SECOND: int = 1000
 
 @dataclass
 class AgentConfig:
-    """Configuration for agent behavior."""
-
     max_iterations: int = DEFAULT_MAX_ITERATIONS
     debug_metrics: bool = False
 
 
 @dataclass(slots=True)
 class RequestContext:
-    """Context for a single request."""
-
     request_id: str
     max_iterations: int
     debug_metrics: bool
@@ -80,8 +73,6 @@ class RequestContext:
 
 @dataclass(slots=True)
 class _TinyAgentStreamState:
-    """Mutable per-run state for tinyagent event handling."""
-
     runtime: RuntimeState
     tool_start_times: dict[str, float]
     last_assistant_message: dict[str, Any] | None = None
@@ -509,6 +500,11 @@ class RequestOrchestrator:
                 break
         elapsed_ms = (time.perf_counter() - started_at) * MILLISECONDS_PER_SECOND
         logger.lifecycle(f"Request complete ({elapsed_ms:.0f}ms)")
+
+        error_text = self._agent_error_text(agent)
+        if error_text and not is_context_overflow_error(error_text):
+            raise AgentError(error_text)
+
         assistant_text = extract_assistant_text(state.last_assistant_message)
         is_empty = not assistant_text.strip()
         self.empty_handler.track(is_empty)

@@ -71,15 +71,31 @@ class ModelCommand(Command):
         session = app.state_manager.session
 
         load_models_registry()
-        if not _validate_provider_api_key_with_notification(
+        if _validate_provider_api_key_with_notification(
             model_name,
             session.user_config,
             app,
             show_config_path=True,
         ):
+            self._apply_model_selection(app, model_name)
             return
 
-        self._apply_model_selection(app, model_name)
+        if PROVIDER_MODEL_DELIMITER not in model_name:
+            return
+
+        from tunacode.ui.screens.api_key_entry import ApiKeyEntryScreen
+
+        provider_id = model_name.split(PROVIDER_MODEL_DELIMITER, 1)[0]
+
+        def on_api_key_entry_result(result: bool | None) -> None:
+            if result is not True:
+                return
+            self._apply_model_selection(app, model_name)
+
+        app.push_screen(
+            ApiKeyEntryScreen(provider_id, app.state_manager),
+            on_api_key_entry_result,
+        )
 
     def _apply_model_selection(self, app: TextualReplApp, full_model: str) -> None:
         from tunacode.core.agents.agent_components.agent_config import invalidate_agent_cache
