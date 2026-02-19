@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.70] - 2026-02-19
+
+### Improved
+- API key UX: environment variable fallback, inline entry screen, and better error surfacing
+
 ## [0.1.69] - 2026-02-19
 
 ### Added
