@@ -133,7 +133,7 @@ class ApiKeyEntryScreen(Screen[bool | None]):
 
         try:
             save_config(self._state_manager)
-        except Exception as exc:
+        except OSError as exc:
             error_label.update(f"Failed to save configuration: {exc}")
             return
 

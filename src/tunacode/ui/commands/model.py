@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
 
 
+PROVIDER_MODEL_DELIMITER = ":"
+
+
 def _validate_provider_api_key_with_notification(
     model_string: str,
     user_config: dict,
@@ -25,10 +28,10 @@ def _validate_provider_api_key_with_notification(
 
     from tunacode.core.ui_api.configuration import validate_provider_api_key
 
-    if ":" not in model_string:
+    if PROVIDER_MODEL_DELIMITER not in model_string:
         return True
 
-    provider_id = model_string.split(":")[0]
+    provider_id = model_string.split(PROVIDER_MODEL_DELIMITER, 1)[0]
     is_valid, env_var = validate_provider_api_key(provider_id, user_config)
 
     if not is_valid:
@@ -115,7 +118,7 @@ class ModelCommand(Command):
                 self._apply_model_selection(app, full_model)
                 return
 
-            provider_id = full_model.split(":", 1)[0]
+            provider_id = full_model.split(PROVIDER_MODEL_DELIMITER, 1)[0]
 
             def on_api_key_entry_result(result: bool | None) -> None:
                 if result is not True:

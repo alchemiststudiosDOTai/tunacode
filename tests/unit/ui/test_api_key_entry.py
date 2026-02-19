@@ -8,7 +8,9 @@ from tunacode.core.session import StateManager
 from tunacode.ui.screens.api_key_entry import ApiKeyEntryScreen
 
 
-class ApiKeyEntryHostApp(App[None]):
+class TestApiKeyEntryHostApp(App[None]):
+    __test__ = False
+
     def __init__(self, state_manager: StateManager) -> None:
         super().__init__()
         self.state_manager = state_manager
@@ -26,7 +28,7 @@ def _static_text(widget: Static) -> str:
 
 async def test_api_key_entry_empty_input_shows_inline_error(monkeypatch) -> None:
     state_manager = StateManager()
-    app = ApiKeyEntryHostApp(state_manager)
+    app = TestApiKeyEntryHostApp(state_manager)
     screen = ApiKeyEntryScreen("openai", state_manager)
     dismissed_results: list[bool | None] = []
     monkeypatch.setattr(screen, "dismiss", lambda result: dismissed_results.append(result))
@@ -46,7 +48,7 @@ async def test_api_key_entry_empty_input_shows_inline_error(monkeypatch) -> None
 
 async def test_api_key_entry_valid_input_persists_and_dismisses_true(monkeypatch) -> None:
     state_manager = StateManager()
-    app = ApiKeyEntryHostApp(state_manager)
+    app = TestApiKeyEntryHostApp(state_manager)
     screen = ApiKeyEntryScreen("openai", state_manager)
     dismissed_results: list[bool | None] = []
     save_calls: list[StateManager] = []
@@ -73,7 +75,7 @@ async def test_api_key_entry_valid_input_persists_and_dismisses_true(monkeypatch
 
 async def test_api_key_entry_cancel_dismisses_none(monkeypatch) -> None:
     state_manager = StateManager()
-    app = ApiKeyEntryHostApp(state_manager)
+    app = TestApiKeyEntryHostApp(state_manager)
     screen = ApiKeyEntryScreen("openai", state_manager)
     dismissed_results: list[bool | None] = []
 
