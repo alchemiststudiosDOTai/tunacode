@@ -100,13 +100,13 @@ def get_provider_env_var(provider_id: str) -> str:
     """
     registry = get_cached_models_registry()
     if registry is None:
-        return f"{provider_id.upper()}_API_KEY"
+        return f"{provider_id.upper().replace('-', '_')}_API_KEY"
 
     provider = registry.get(provider_id, {})
     env_vars = provider.get("env", [])
     if env_vars:
         return env_vars[0]
-    return f"{provider_id.upper()}_API_KEY"
+    return f"{provider_id.upper().replace('-', '_')}_API_KEY"
 
 
 def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool, str]:

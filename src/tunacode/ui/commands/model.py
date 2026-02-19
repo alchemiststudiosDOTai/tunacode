@@ -50,77 +50,94 @@ class ModelCommand(Command):
     usage = "/model [provider:model-name]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        from tunacode.core.agents.agent_components.agent_config import (
-            invalidate_agent_cache,
-        )
-        from tunacode.core.ui_api.configuration import (
-            DEFAULT_USER_CONFIG,
-            get_model_context_window,
-            load_models_registry,
-        )
-        from tunacode.core.ui_api.user_configuration import load_config_with_defaults, save_config
+        from tunacode.core.ui_api.configuration import DEFAULT_USER_CONFIG
+        from tunacode.core.ui_api.user_configuration import load_config_with_defaults
+
+        session = app.state_manager.session
+        session.user_config = load_config_with_defaults(DEFAULT_USER_CONFIG)
+
+        if args:
+            self._handle_direct_model_selection(app, args.strip())
+            return
+
+        self._open_model_picker(app)
+
+    def _handle_direct_model_selection(self, app: TextualReplApp, model_name: str) -> None:
+        from tunacode.core.ui_api.configuration import load_models_registry
+
+        session = app.state_manager.session
+
+        load_models_registry()
+        if not _validate_provider_api_key_with_notification(
+            model_name,
+            session.user_config,
+            app,
+            show_config_path=True,
+        ):
+            return
+
+        self._apply_model_selection(app, model_name)
+
+    def _apply_model_selection(self, app: TextualReplApp, full_model: str) -> None:
+        from tunacode.core.agents.agent_components.agent_config import invalidate_agent_cache
+        from tunacode.core.ui_api.configuration import get_model_context_window
+        from tunacode.core.ui_api.user_configuration import save_config
 
         state_manager = app.state_manager
         session = state_manager.session
-        default_user_config = DEFAULT_USER_CONFIG
-        reloaded_user_config = load_config_with_defaults(default_user_config)
-        session.user_config = reloaded_user_config
 
-        if args:
-            load_models_registry()
-            model_name = args.strip()
+        session.current_model = full_model
+        session.user_config["default_model"] = full_model
+        session.conversation.max_tokens = get_model_context_window(full_model)
+        save_config(state_manager)
+        invalidate_agent_cache(full_model, state_manager)
+        app._update_resource_bar()
+        app.notify(f"Model: {full_model}")
 
-            if not _validate_provider_api_key_with_notification(
-                model_name,
+    def _open_model_picker(self, app: TextualReplApp) -> None:
+        from tunacode.ui.screens.api_key_entry import ApiKeyEntryScreen
+        from tunacode.ui.screens.model_picker import ModelPickerScreen, ProviderPickerScreen
+
+        state_manager = app.state_manager
+        session = state_manager.session
+        current_model = session.current_model
+
+        def on_model_selected(full_model: str | None) -> None:
+            if full_model is None:
+                return
+
+            if _validate_provider_api_key_with_notification(
+                full_model,
                 session.user_config,
                 app,
                 show_config_path=True,
             ):
+                self._apply_model_selection(app, full_model)
                 return
 
-            session.current_model = model_name
-            session.user_config["default_model"] = model_name
-            session.conversation.max_tokens = get_model_context_window(model_name)
-            save_config(state_manager)
-            invalidate_agent_cache(model_name, state_manager)
-            app._update_resource_bar()
-            app.notify(f"Model: {model_name}")
-        else:
-            from tunacode.ui.screens.model_picker import (
-                ModelPickerScreen,
-                ProviderPickerScreen,
-            )
+            provider_id = full_model.split(":", 1)[0]
 
-            current_model = app.state_manager.session.current_model
-
-            def on_model_selected(full_model: str | None) -> None:
-                if full_model is None:
+            def on_api_key_entry_result(result: bool | None) -> None:
+                if result is not True:
                     return
 
-                if not _validate_provider_api_key_with_notification(
-                    full_model,
-                    session.user_config,
-                    app,
-                    show_config_path=False,
-                ):
-                    return
-
-                session.current_model = full_model
-                session.user_config["default_model"] = full_model
-                session.conversation.max_tokens = get_model_context_window(full_model)
-                save_config(state_manager)
-                invalidate_agent_cache(full_model, state_manager)
-                app._update_resource_bar()
-                app.notify(f"Model: {full_model}")
-
-            def on_provider_selected(provider_id: str | None) -> None:
-                if provider_id is not None:
-                    app.push_screen(
-                        ModelPickerScreen(provider_id, current_model),
-                        on_model_selected,
-                    )
+                self._apply_model_selection(app, full_model)
 
             app.push_screen(
-                ProviderPickerScreen(current_model),
-                on_provider_selected,
+                ApiKeyEntryScreen(provider_id, state_manager),
+                on_api_key_entry_result,
             )
+
+        def on_provider_selected(provider_id: str | None) -> None:
+            if provider_id is None:
+                return
+
+            app.push_screen(
+                ModelPickerScreen(provider_id, current_model),
+                on_model_selected,
+            )
+
+        app.push_screen(
+            ProviderPickerScreen(current_model),
+            on_provider_selected,
+        )
