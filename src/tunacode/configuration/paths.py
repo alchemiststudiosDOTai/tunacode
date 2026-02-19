@@ -115,6 +115,11 @@ def _get_installed_version() -> str:
         return APP_VERSION
 
 
+def _parse_version(version_str: str) -> tuple[int, ...]:
+    """Parse a version string like '1.2.3' into a comparable tuple of ints."""
+    return tuple(int(part) for part in version_str.split("."))
+
+
 def check_for_updates() -> tuple[bool, str]:
     """Check if there's a newer version of tunacode-cli available on PyPI.
 
@@ -126,8 +131,6 @@ def check_for_updates() -> tuple[bool, str]:
     Raises:
         RuntimeError: If the PyPI version check fails.
     """
-    from packaging.version import Version
-
     current_version = _get_installed_version()
 
     result = subprocess.run(
@@ -149,7 +152,7 @@ def check_for_updates() -> tuple[bool, str]:
     versions = versions_line.split(", ")
     latest_version = versions[0].strip()
 
-    if Version(latest_version) > Version(current_version):
+    if _parse_version(latest_version) > _parse_version(current_version):
         return True, latest_version
 
     return False, current_version
