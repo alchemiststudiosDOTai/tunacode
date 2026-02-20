@@ -59,12 +59,14 @@ This means the *real* root issue is **upstream provider behavior** combined with
 
 ## Fix Implemented (Transitional, Non‑pydantic-ai specific)
 
+**Note:** This fix was written but never actually wired into the codebase. It remains as dead code pending removal or proper integration.
+
 We added a **response hook** on the shared HTTP client used by pydantic‑ai. This hook inspects `/chat/completions` responses *before* pydantic-ai attempts to parse them.
 
 ### Where
 
-- `src/tunacode/core/agents/agent_components/openai_response_validation.py`
-- Wired in `agent_config.py` via `_build_event_hooks()`
+- ~~`src/tunacode/core/agents/agent_components/openai_response_validation.py`~~ (deleted - never wired in)
+- Was planned for `agent_config.py` via `_build_event_hooks()` but never implemented
 
 ### Behavior
 
@@ -101,9 +103,8 @@ Shipped in **v0.1.54** alongside packaging update to include `system_prompt.md` 
 
 ## Files Changed
 
-- `src/tunacode/core/agents/agent_components/openai_response_validation.py`
-- `src/tunacode/core/agents/agent_components/agent_config.py`
-- `docs/codebase-map/modules/core-agents.md`
+- ~~`src/tunacode/core/agents/agent_components/openai_response_validation.py`~~ (deleted - never wired in)
+- `src/tunacode/core/agents/agent_components/agent_config.py` (planned but not implemented)
 
 ## Follow‑ups
 

@@ -50,7 +50,6 @@ src/tunacode/core/
 │   │   ├── streaming.py (302 lines) - Streaming instrumentation
 │   │   ├── orchestrator.py (289 lines) - Node processing
 │   │   ├── prune.py (285 lines) - Tool output pruning
-│   │   ├── openai_response_validation.py (267 lines) - HTTP response validation
 │   │   ├── response_state.py (129 lines) - State machine for responses
 │   │   ├── agent_helpers.py (131 lines) - Helper functions
 │   │   ├── state_transition.py (112 lines) - State transition logic

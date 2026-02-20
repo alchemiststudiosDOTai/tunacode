@@ -4,670 +4,1268 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Case Study: Replacing Glob/Grep/List-Dir with Discover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #d4d4d4;
-      --surface: #c6c6c6;
-      --surface-deep: #b5b5b5;
-      --ink: #111111;
-      --muted: #3d3d3d;
-      --accent: #1e4f8f;
-      --good: #1f6b3a;
-      --warn: #8b5a00;
-      --bad: #8e1f1f;
-      --bevel-hi: #f2f2f2;
-      --bevel-lo: #7a7a7a;
-      --bevel-mid: #a9a9a9;
-      --mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --bg: #080808;
+      --bg-subtle: #0c0c0c;
+      --surface: #0f1114;
+      --surface-raised: #161a1f;
+      --surface-hover: #1c2128;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-strong: rgba(255, 255, 255, 0.1);
+      --ink: #a8adb8;
+      --ink-strong: #e2e5eb;
+      --ink-muted: #5a5f6b;
+      --ink-faint: #2e333b;
+      --red: #e8364e;
+      --red-dim: rgba(232, 54, 78, 0.15);
+      --red-glow: rgba(232, 54, 78, 0.06);
+      --red-muted: #8b2233;
+      --green: #2dd4a0;
+      --green-dim: rgba(45, 212, 160, 0.1);
+      --amber: #e8a83e;
+      --sans: 'Outfit', -apple-system, sans-serif;
+      --mono: 'DM Mono', 'SF Mono', 'Consolas', monospace;
     }
 
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
     }
 
-    html,
     body {
-      margin: 0;
-      padding: 0;
       background: var(--bg);
       color: var(--ink);
       font-family: var(--sans);
-      line-height: 1.45;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .window {
-      max-width: 1200px;
-      margin: 24px auto;
-      border: 1px solid var(--bevel-lo);
-      box-shadow:
-        inset 1px 1px 0 var(--bevel-hi),
-        inset -1px -1px 0 var(--bevel-lo),
-        0 3px 10px rgba(0, 0, 0, 0.2);
-      background: var(--surface);
+    /* ── GRID BACKGROUND ─────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(232, 54, 78, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(232, 54, 78, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
     }
 
-    .titlebar {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 12px;
+    /* subtle vignette */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(ellipse at 50% 0%, transparent 50%, var(--bg) 100%);
+    }
+
+    /* ── NAV BAR ─────────────────────────────────────────────────────── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
       align-items: center;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--bevel-lo);
-      background: linear-gradient(#dcdcdc, #c1c1c1);
-      box-shadow: inset 0 1px 0 var(--bevel-hi);
-      font-size: 14px;
+      justify-content: space-between;
+      padding: 14px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8, 8, 8, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
 
-    .titlebar .title {
+    .navbar-brand {
+      font-family: var(--sans);
       font-weight: 700;
-      letter-spacing: 0.2px;
-    }
-
-    .status-pill {
-      border: 1px solid var(--bevel-lo);
-      background: var(--surface-deep);
-      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
-      padding: 3px 8px;
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 250px 1fr;
-      min-height: 640px;
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--bevel-lo);
-      background: #c2c2c2;
-      padding: 14px;
-    }
-
-    .sidebar h2 {
-      font-size: 13px;
-      margin: 0 0 10px;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      color: var(--ink-strong);
       text-transform: uppercase;
-      letter-spacing: 0.7px;
-      color: var(--muted);
     }
 
-    .sidebar ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      font-size: 13px;
+    .navbar-brand span {
+      color: var(--red);
     }
 
-    .sidebar li {
-      margin: 0 0 8px;
-      padding: 6px 8px;
-      border: 1px solid transparent;
+    .navbar-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
     }
 
-    .sidebar li.active {
-      border-color: var(--bevel-lo);
-      background: #d6d6d6;
-      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
+    /* ── CONTAINER ───────────────────────────────────────────────────── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── HERO ────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 0 56px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 480px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(232, 54, 78, 0.07) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .hero-kicker {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 14px 5px 0;
+    }
+
+    .hero-kicker::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--red);
+    }
+
+    .hero h1 {
+      font-family: var(--sans);
+      font-size: 2.8rem;
       font-weight: 700;
+      line-height: 1.1;
+      color: var(--ink-strong);
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
     }
 
-    .content {
-      padding: 16px;
-      display: grid;
-      gap: 14px;
+    .hero h1 em {
+      font-style: normal;
+      color: var(--red);
     }
 
-    .panel {
-      border: 1px solid var(--bevel-lo);
-      background: #d0d0d0;
-      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
+    .hero-sub {
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: var(--ink-muted);
+      max-width: 620px;
+      line-height: 1.6;
     }
 
-    .panel .panel-title {
-      margin: 0;
-      font-size: 14px;
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--bevel-lo);
-      background: linear-gradient(#d9d9d9, #c6c6c6);
+    .hero-meta {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .meta-tag {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--ink-muted);
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      letter-spacing: 0.03em;
+    }
+
+    /* ── THESIS CALLOUT ──────────────────────────────────────────────── */
+    .thesis-card {
+      margin: 0 0 56px;
+      padding: 28px 32px;
+      border: 1px solid var(--border-strong);
+      border-left: 2px solid var(--red);
+      border-radius: 8px;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thesis-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 180px;
+      background: linear-gradient(90deg, var(--red-glow), transparent);
+      pointer-events: none;
+    }
+
+    .thesis-label {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--accent);
+      color: var(--red);
+      margin-bottom: 14px;
+      position: relative;
     }
 
-    .panel .panel-body {
-      padding: 12px;
-      font-size: 14px;
+    .thesis-card blockquote {
+      font-size: 1.15rem;
+      line-height: 1.5;
+      color: var(--ink-strong);
+      font-weight: 300;
+      font-style: italic;
+      position: relative;
     }
 
+    .thesis-card .attrib {
+      margin-top: 14px;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      position: relative;
+    }
+
+    .thesis-card .attrib a {
+      color: var(--red);
+      text-decoration: none;
+    }
+
+    .thesis-card .attrib a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── METRICS GRID ────────────────────────────────────────────────── */
     .metrics {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 56px;
     }
 
     .metric {
-      border: 1px solid var(--bevel-lo);
-      background: #d9d9d9;
-      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
-      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px;
+      transition: border-color 0.2s, background 0.2s;
     }
 
-    .metric .k {
-      font-size: 12px;
+    .metric:hover {
+      border-color: var(--border-strong);
+      background: var(--surface-raised);
+    }
+
+    .metric-label {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: var(--muted);
-      margin-bottom: 4px;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
     }
 
-    .metric .v {
-      font-size: 24px;
+    .metric-val {
+      font-size: 1.8rem;
       font-weight: 700;
+      color: var(--green);
       line-height: 1;
+      letter-spacing: -0.02em;
     }
 
-    .metric .delta {
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--muted);
+    .metric-sub {
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--ink-faint);
     }
 
-    .good { color: var(--good); }
-    .warn { color: var(--warn); }
-    .bad { color: var(--bad); }
+    /* ── SECTIONS ────────────────────────────────────────────────────── */
+    .section {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .section-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--red);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+
+    .section h2 {
+      font-family: var(--sans);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--ink-strong);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .section p {
+      color: var(--ink);
+      margin-bottom: 14px;
+      max-width: 700px;
+      font-weight: 300;
+    }
+
+    .section p strong {
+      color: var(--ink-strong);
+      font-weight: 500;
+    }
+
+    /* ── CARDS (two-col, single) ─────────────────────────────────────── */
+    .card-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px 24px;
+      overflow: hidden;
+    }
+
+    .card h3 {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 14px;
+    }
+
+    .card.problem h3 { color: var(--red); }
+    .card.fix h3 { color: var(--green); }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .card ul li {
+      padding: 7px 0;
+      padding-left: 14px;
+      font-size: 0.88rem;
+      color: var(--ink);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      font-weight: 300;
+    }
+
+    .card ul li:last-child { border-bottom: none; }
+
+    .card ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 15px;
+      width: 4px;
+      height: 1px;
+      background: var(--ink-faint);
+    }
+
+    .card.problem ul li::before { background: var(--red-muted); }
+    .card.fix ul li::before { background: rgba(45, 212, 160, 0.4); }
+
+    /* ── TABLES ──────────────────────────────────────────────────────── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 0.85rem;
     }
 
-    th,
-    td {
-      text-align: left;
-      border: 1px solid #9d9d9d;
-      padding: 7px 8px;
-      vertical-align: top;
-    }
-
-    th {
-      background: #c2c2c2;
-      color: var(--muted);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      font-size: 12px;
-    }
-
-    .mono {
+    thead th {
       font-family: var(--mono);
-      font-size: 12px;
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      padding: 12px 16px;
+      text-align: left;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--ink);
+      font-weight: 300;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr:hover td { background: rgba(255, 255, 255, 0.015); }
+
+    td.mono-cell {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+    }
+
+    .v-good {
+      color: var(--green);
+      font-weight: 500;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+
+    .v-vs {
+      color: var(--ink-faint);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+    }
+
+    /* ── CODE BLOCKS ─────────────────────────────────────────────────── */
+    .code-block {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+    }
+
+    .code-file {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--ink-faint);
     }
 
     pre {
       margin: 0;
-      padding: 10px;
-      border: 1px solid #999;
-      background: #c8c8c8;
-      overflow-x: auto;
+      padding: 18px 20px;
+      background: var(--surface);
       font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.35;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      color: var(--ink);
+      overflow-x: auto;
     }
 
-    .two-col {
+    pre .cm { color: var(--ink-faint); }
+    pre .kw { color: var(--red); }
+    pre .ty { color: var(--amber); }
+    pre .fn { color: var(--green); }
+
+    .code-footer {
+      padding: 10px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-raised);
+      display: flex;
+      gap: 20px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--ink-faint);
+    }
+
+    .code-footer .bv { color: var(--amber); }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.82em;
+      background: var(--surface-raised);
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: var(--ink-strong);
+    }
+
+    /* ── FLOW COMPARISON ─────────────────────────────────────────────── */
+    .flow-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 32px 1fr;
+      gap: 0;
+      margin: 24px 0;
+      align-items: start;
+    }
+
+    .flow-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px 24px;
+    }
+
+    .flow-card h4 {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 16px;
+    }
+
+    .flow-card.active h4 { color: var(--red); }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+      color: var(--ink-faint);
+      font-size: 1.2rem;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
       gap: 10px;
+      padding: 6px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--ink);
     }
 
+    .step-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-strong);
+      flex-shrink: 0;
+    }
+
+    .flow-card.active .step-dot {
+      border-color: var(--red-muted);
+      background: var(--red-dim);
+    }
+
+    .step-line {
+      width: 1px;
+      height: 6px;
+      margin-left: 2.5px;
+      background: var(--border);
+    }
+
+    .flow-card.active .step-line {
+      background: var(--red-muted);
+    }
+
+    /* ── INSIGHT ──────────────────────────────────────────────────────── */
+    .insight {
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--red);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px 24px;
+      margin: 24px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .insight::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 120px;
+      background: linear-gradient(90deg, var(--red-glow), transparent);
+      pointer-events: none;
+    }
+
+    .insight p {
+      position: relative;
+      font-size: 0.92rem;
+      color: var(--ink-strong);
+      font-weight: 400;
+      max-width: none;
+      margin: 0;
+    }
+
+    /* ── MERMAID ──────────────────────────────────────────────────────── */
+    .mermaid-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 24px 0;
+    }
+
+    .mermaid-header {
+      padding: 10px 18px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+
+    .mermaid-wrap pre {
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+    }
+
+    /* ── RESULTS TABLE SPECIAL ───────────────────────────────────────── */
+    .mode-label {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-strong);
+    }
+
+    /* ── TIMELINE ────────────────────────────────────────────────────── */
+    .timeline {
+      margin: 28px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 6px;
+      bottom: 6px;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .tl-entry {
+      position: relative;
+      padding-bottom: 24px;
+    }
+
+    .tl-entry:last-child { padding-bottom: 0; }
+
+    .tl-entry::before {
+      content: '';
+      position: absolute;
+      left: -22px;
+      top: 6px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-strong);
+      background: var(--bg);
+    }
+
+    .tl-entry:first-child::before {
+      border-color: var(--red);
+      background: var(--red-dim);
+    }
+
+    .tl-hash {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--ink-faint);
+      margin-bottom: 3px;
+    }
+
+    .tl-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--ink-strong);
+      margin-bottom: 2px;
+    }
+
+    .tl-desc {
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    /* ── NOTE ─────────────────────────────────────────────────────────── */
     .note {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--ink-faint);
       margin-top: 8px;
-      font-size: 12px;
-      color: var(--muted);
     }
 
-    .footer {
-      padding: 10px 14px;
-      border-top: 1px solid var(--bevel-lo);
-      font-size: 12px;
-      color: var(--muted);
-      background: #c7c7c7;
+    /* ── FOOTER ───────────────────────────────────────────────────────── */
+    .site-footer {
+      margin-top: 32px;
+      padding: 28px 0;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
     }
 
-    @media (max-width: 1000px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        border-right: 0;
-        border-bottom: 1px solid var(--bevel-lo);
-      }
-
-      .metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .two-col {
-        grid-template-columns: 1fr;
-      }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--ink-faint);
     }
+
+    .footer-inner a {
+      color: var(--red);
+      text-decoration: none;
+    }
+
+    .footer-inner a:hover { text-decoration: underline; }
+
+    /* ── RESPONSIVE ───────────────────────────────────────────────────── */
+    @media (max-width: 800px) {
+      .hero h1 { font-size: 2rem; }
+      .container { padding: 0 20px; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .card-row { grid-template-columns: 1fr; }
+      .flow-grid { grid-template-columns: 1fr; gap: 12px; }
+      .flow-arrow { transform: rotate(90deg); }
+      .navbar { padding: 12px 20px; }
+      .footer-inner { flex-direction: column; gap: 8px; }
+    }
+
+    @media (max-width: 480px) {
+      .metrics { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 1.6rem; }
+    }
+
+    /* ── ENTRANCE ─────────────────────────────────────────────────────── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-kicker, .hero h1, .hero-sub, .hero-meta {
+      animation: fadeIn 0.5s ease-out both;
+    }
+    .hero h1 { animation-delay: 0.08s; }
+    .hero-sub { animation-delay: 0.16s; }
+    .hero-meta { animation-delay: 0.24s; }
+
+    .metric {
+      animation: fadeIn 0.4s ease-out both;
+    }
+    .metric:nth-child(1) { animation-delay: 0.32s; }
+    .metric:nth-child(2) { animation-delay: 0.40s; }
+    .metric:nth-child(3) { animation-delay: 0.48s; }
+    .metric:nth-child(4) { animation-delay: 0.56s; }
   </style>
 </head>
 <body>
-  <main class="window">
-    <header class="titlebar">
-      <div class="title">Case Study: Replacing Glob/Grep/List-Dir with Discover</div>
-      <div class="status-pill">Repository: tunacode</div>
-      <div class="status-pill">Audience: Agent tool designers</div>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="navbar-brand">tuna<span>code</span></div>
+    <div class="navbar-label">case study / discover benchmark</div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="container">
+    <header class="hero">
+      <div class="hero-kicker">Case Study</div>
+      <h1>Replacing Glob, Grep, and List&#8209;Dir<br>with a Single <em>Discover</em> Call</h1>
+      <p class="hero-sub">
+        A benchmark migration showing how custom tool design compresses retrieval
+        into one bounded report&mdash;and why that matters most for less&#8209;SOTA models.
+      </p>
+      <div class="hero-meta">
+        <span class="meta-tag">Repository: tunacode</span>
+        <span class="meta-tag">Audience: Agent tool designers</span>
+        <span class="meta-tag">12 real queries, no synthetic fixtures</span>
+      </div>
     </header>
 
-    <section class="layout">
-      <aside class="sidebar">
-        <h2>Sections</h2>
-        <ul>
-          <li class="active">Executive Summary</li>
-          <li>Why the first benchmark failed</li>
-          <li>How discover is implemented</li>
-          <li>How the new benchmark works</li>
-          <li>Before vs after control flow</li>
-          <li>Measured outcomes</li>
-          <li>Why custom tools help smaller models</li>
-          <li>Commit timeline</li>
-        </ul>
-      </aside>
+    <!-- THESIS -->
+    <div class="thesis-card">
+      <div class="thesis-label">Motivating Insight</div>
+      <blockquote>
+        The format choice matters as much as the model itself. LLM coding performance
+        is artificially constrained not by model capability but by the harness&mdash;the
+        tool interface that translates model outputs into action.
+      </blockquote>
+      <div class="attrib">
+        Can B&ouml;l&uuml;k, <a href="https://blog.can.ac/2026/02/12/the-harness-problem/">&ldquo;The Harness Problem&rdquo;</a> (2026)
+      </div>
+    </div>
 
-      <article class="content">
-        <section class="panel">
-          <h1 class="panel-title">Executive Summary</h1>
-          <div class="panel-body">
-            <p>
-              We replaced a synthetic benchmark with a real-repo benchmark and measured discover against the old
-              multi-call search flow. The core result: discover is not just a search primitive. It is a control surface
-              that compresses retrieval into one bounded, structured report.
-            </p>
+    <!-- METRICS -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Round Trips</div>
+        <div class="metric-val">1 vs 6</div>
+        <div class="metric-sub">discover vs legacy chain</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Output Tokens</div>
+        <div class="metric-val">~4.2x less</div>
+        <div class="metric-sub">~3.1k vs ~12.9k</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Latency</div>
+        <div class="metric-val">~9% faster</div>
+        <div class="metric-sub">cold + warm averages</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Actionability</div>
+        <div class="metric-val">0.67 vs 0.42</div>
+        <div class="metric-sub">warm mode score</div>
+      </div>
+    </div>
+  </div>
 
-            <div class="metrics">
-              <div class="metric">
-                <div class="k">Round trips</div>
-                <div class="v good">1.0 vs 6.0</div>
-                <div class="delta">discover vs legacy chain (average)</div>
-              </div>
-              <div class="metric">
-                <div class="k">Output tokens</div>
-                <div class="v good">~4.2x less</div>
-                <div class="delta">~3.1k vs ~12.9k</div>
-              </div>
-              <div class="metric">
-                <div class="k">Latency</div>
-                <div class="v good">~9% faster</div>
-                <div class="delta">cold and warm averages</div>
-              </div>
-              <div class="metric">
-                <div class="k">Actionability</div>
-                <div class="v good">0.67 vs 0.42</div>
-                <div class="delta">warm mode score</div>
-              </div>
-            </div>
-          </div>
-        </section>
+  <!-- 01: WHY FIRST BENCHMARK FAILED -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">01</span>
+        <h2>Why the First Benchmark Failed</h2>
+      </div>
+      <p>
+        The original benchmark measured the wrong thing. Synthetic repos with planted keywords
+        and a toy baseline obscured what actually matters: retrieval utility under real ambiguity.
+      </p>
 
-        <section class="panel">
-          <h2 class="panel-title">Why the First Benchmark Failed</h2>
-          <div class="panel-body">
-            <div class="two-col">
-              <div>
-                <h3>Observed issues</h3>
-                <ul>
-                  <li>Synthetic repositories had planted keywords and low ambiguity.</li>
-                  <li>The baseline was a toy loop, not the old production tool chain overhead.</li>
-                  <li>Raw speed compared unlike work: discover does scoring, symbol extraction, clustering.</li>
-                </ul>
-              </div>
-              <div>
-                <h3>Correction</h3>
-                <ul>
-                  <li>Run against TunaCode itself.</li>
-                  <li>Model old behavior as separate tool calls with adapter/decorator overhead.</li>
-                  <li>Measure retrieval utility and actionability, not file-walk speed alone.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
+      <div class="card-row">
+        <div class="card problem">
+          <h3>What went wrong</h3>
+          <ul>
+            <li>Synthetic repositories had planted keywords and low ambiguity</li>
+            <li>The baseline was a toy loop, not the old production tool chain overhead</li>
+            <li>Raw speed compared unlike work: discover does scoring, symbol extraction, clustering</li>
+          </ul>
+        </div>
+        <div class="card fix">
+          <h3>Correction applied</h3>
+          <ul>
+            <li>Run against TunaCode itself&mdash;a real, evolving codebase</li>
+            <li>Model old behavior as separate tool calls with adapter/decorator overhead</li>
+            <li>Measure retrieval utility and actionability, not file-walk speed alone</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
 
-        <section class="panel">
-          <h2 class="panel-title">How Discover is Implemented (Typed Internals, Curated Output)</h2>
-          <div class="panel-body">
-            <p>
-              Discover uses typed dataclasses internally, then emits one serialized report string. The model does not see
-              intermediate scan state. It sees the bounded report.
-            </p>
+  <!-- 02: HOW DISCOVER IS IMPLEMENTED -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">02</span>
+        <h2>How Discover is Implemented</h2>
+      </div>
+      <p>
+        Typed dataclasses internally, one serialized report string externally.
+        The model never sees intermediate scan state. It sees the bounded report.
+      </p>
 
-            <pre>Core types in <span class="mono">src/tunacode/tools/discover.py</span>
-- Relevance (enum)
-- FileEntry(path, relevance, role, key_symbols, imports_from, line_count, excerpt)
-- ConceptCluster(name, description, files)
-- DiscoveryReport(query, summary, clusters, file_tree, ...)
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-title">Core Types + Pipeline</span>
+          <span class="code-file">src/tunacode/tools/discover.py</span>
+        </div>
+        <pre><span class="cm">-- Core types --</span>
+<span class="ty">Relevance</span>       <span class="cm">(enum)</span>
+<span class="ty">FileEntry</span>       <span class="cm">(path, relevance, role, key_symbols, imports_from, line_count, excerpt)</span>
+<span class="ty">ConceptCluster</span>  <span class="cm">(name, description, files)</span>
+<span class="ty">DiscoveryReport</span> <span class="cm">(query, summary, clusters, file_tree, ...)</span>
 
-Pipeline
-extract_terms -> generate_patterns -> collect_candidates -> evaluate_prospects
--> cluster -> build_tree -> DiscoveryReport -> to_context()
+<span class="cm">-- Pipeline --</span>
+<span class="fn">extract_terms</span> -> <span class="fn">generate_patterns</span> -> <span class="fn">collect_candidates</span> -> <span class="fn">evaluate_prospects</span>
+  -> <span class="fn">cluster</span> -> <span class="fn">build_tree</span> -> <span class="ty">DiscoveryReport</span> -> <span class="fn">to_context()</span>
 
-Tool boundary
-async def discover(...):
-    report = await asyncio.to_thread(_discover_sync, ...)
-    return report.to_context()</pre>
+<span class="cm">-- Tool boundary --</span>
+<span class="kw">async def</span> discover(...):
+    report = <span class="kw">await</span> asyncio.to_thread(_discover_sync, ...)
+    <span class="kw">return</span> report.to_context()</pre>
+        <div class="code-footer">
+          <span>MAX_REPORT_FILES <span class="bv">20</span></span>
+          <span>MAX_PREVIEW_LINES <span class="bv">200</span></span>
+          <span>MAX_GLOB_CANDIDATES <span class="bv">150</span></span>
+        </div>
+      </div>
+    </section>
+  </div>
 
-            <p class="note">
-              Bounded output controls are explicit: <span class="mono">MAX_REPORT_FILES=20</span>,
-              <span class="mono">MAX_PREVIEW_LINES=200</span>,
-              <span class="mono">MAX_GLOB_CANDIDATES=150</span>.
-            </p>
-          </div>
-        </section>
+  <!-- 03: BENCHMARK DESIGN -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">03</span>
+        <h2>How the Real Benchmark Works</h2>
+      </div>
+      <p>
+        The rewritten benchmark in <code>tests/benchmarks/bench_discover.py</code> compares
+        <strong>discover</strong> (one tool call via tinyagent adapter) against the
+        <strong>legacy chain</strong> (<code>list_dir -> glob -> grep -> read_file</code>
+        via separate tool calls).
+      </p>
 
-        <section class="panel">
-          <h2 class="panel-title">How the Real Benchmark Works</h2>
-          <div class="panel-body">
-            <p>
-              The benchmark rewrite in <span class="mono">tests/benchmarks/bench_discover.py</span> compares:
-            </p>
-            <ul>
-              <li><strong>discover path:</strong> one tool call via tinyagent adapter</li>
-              <li><strong>legacy path:</strong> <span class="mono">list_dir -> glob -> grep -> read_file</span> chain via separate tool calls</li>
-            </ul>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Measurement</th>
+              <th>Why it matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Latency</td>
+              <td class="mono-cell">per-query cold/warm + p50/p95</td>
+              <td>Real responsiveness under setup overhead</td>
+            </tr>
+            <tr>
+              <td>Tool calls</td>
+              <td class="mono-cell">calls per successful retrieval</td>
+              <td>Round-trip and orchestration burden</td>
+            </tr>
+            <tr>
+              <td>Output footprint</td>
+              <td class="mono-cell">ceil(chars / 4) estimated tokens</td>
+              <td>Context cost and prompt pressure</td>
+            </tr>
+            <tr>
+              <td>File recall</td>
+              <td class="mono-cell">hits on expected file set</td>
+              <td>Did we find the right files</td>
+            </tr>
+            <tr>
+              <td>Symbol recall</td>
+              <td class="mono-cell">hits on expected symbol set</td>
+              <td>Did we return useful handles for edits</td>
+            </tr>
+            <tr>
+              <td>Actionability</td>
+              <td class="mono-cell">top-rank hit or sufficient recall</td>
+              <td>Can the agent choose the next action immediately</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>Dimension</th>
-                  <th>What we measure</th>
-                  <th>Why it matters</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Latency</td>
-                  <td>Per-query cold/warm + p50/p95</td>
-                  <td>Real responsiveness under setup overhead</td>
-                </tr>
-                <tr>
-                  <td>Tool calls</td>
-                  <td>Calls per successful retrieval</td>
-                  <td>Round-trip and orchestration burden</td>
-                </tr>
-                <tr>
-                  <td>Output footprint</td>
-                  <td>Estimated tokens (ceil(chars / 4))</td>
-                  <td>Context cost and prompt pressure</td>
-                </tr>
-                <tr>
-                  <td>File recall</td>
-                  <td>Hits on expected file set</td>
-                  <td>Did we find the right files</td>
-                </tr>
-                <tr>
-                  <td>Symbol recall</td>
-                  <td>Hits on expected symbol set</td>
-                  <td>Did we return useful handles for edits</td>
-                </tr>
-                <tr>
-                  <td>Actionability</td>
-                  <td>Top-rank hit or sufficient symbol recall</td>
-                  <td>Can the agent choose next action immediately</td>
-                </tr>
-              </tbody>
-            </table>
+      <p class="note">Query set: 12 real TunaCode topics (compaction, cache manager, LSP diagnostics,
+      model picker, tool registration, etc.). No synthetic fixtures.</p>
+    </section>
+  </div>
 
-            <p class="note">
-              Query set: 12 real TunaCode topics (compaction, cache manager, LSP diagnostics, model picker,
-              tool registration, etc.). No synthetic fixtures.
-            </p>
-          </div>
-        </section>
+  <!-- 04: CONTROL FLOW -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">04</span>
+        <h2>Before vs After: Control Flow</h2>
+      </div>
+      <p>
+        The classic <code>glob -> grep -> read</code> flow is flexible, but it pushes planning,
+        branching, and synthesis work onto the model. That is exactly where less-SOTA models
+        become inconsistent. Discover shifts that work into the tool.
+      </p>
 
+      <div class="flow-grid">
+        <div class="flow-card">
+          <h4>Legacy (model-managed)</h4>
+          <div class="step"><span class="step-dot"></span> query</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> list_dir</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> glob</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> grep</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> read_file (N times)</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> reconcile noisy outputs</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> choose next file</div>
+        </div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-card active">
+          <h4>Discover (tool-managed)</h4>
+          <div class="step"><span class="step-dot"></span> query</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> discover</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> typed report</div>
+          <div class="step-line"></div>
+          <div class="step"><span class="step-dot"></span> choose next file</div>
+        </div>
+      </div>
 
-        <section class="panel">
-          <h2 class="panel-title">Before vs After: Control Flow and Determinism</h2>
-          <div class="panel-body">
-            <p>
-              The classic <span class="mono">glob -&gt; grep -&gt; read</span> flow is flexible, but it pushes planning, branching, and synthesis work onto the model. That is exactly where less-SOTA models become inconsistent. Discover shifts that work into the tool and returns one curated report.
-            </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Legacy chain</th>
+              <th>Discover flow</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Query interpretation</td>
+              <td>Model invents patterns, retries search terms, decides file scopes</td>
+              <td>Tool extracts terms and expands concepts with a fixed internal pipeline</td>
+            </tr>
+            <tr>
+              <td>Retrieval</td>
+              <td>Multiple calls and manual narrowing across raw outputs</td>
+              <td>Single call with bounded candidate collection and scoring</td>
+            </tr>
+            <tr>
+              <td>Context handoff</td>
+              <td>Raw text from different tools, mixed granularity</td>
+              <td>One typed report: clusters, symbols, roles, excerpts</td>
+            </tr>
+            <tr>
+              <td>Weaker model behavior</td>
+              <td>Higher variance: more branch points and interpretation burden</td>
+              <td>More deterministic: fewer branches, clearer next target</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>Step</th>
-                  <th>Legacy chain (model-managed)</th>
-                  <th>Discover flow (tool-managed)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Query interpretation</td>
-                  <td>Model invents patterns, retries search terms, and decides file scopes.</td>
-                  <td>Tool extracts terms and expands concepts with a fixed internal pipeline.</td>
-                </tr>
-                <tr>
-                  <td>Retrieval</td>
-                  <td>Multiple calls and manual narrowing across raw outputs.</td>
-                  <td>Single call with bounded candidate collection and scoring.</td>
-                </tr>
-                <tr>
-                  <td>Context handoff</td>
-                  <td>Raw text from different tools, mixed granularity.</td>
-                  <td>One typed report serialized as clusters, symbols, roles, and excerpts.</td>
-                </tr>
-                <tr>
-                  <td>Decision quality on weaker models</td>
-                  <td>Higher variance: more branch points and interpretation burden.</td>
-                  <td>More deterministic: fewer branches and clearer next target selection.</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="two-col" style="margin-top: 10px;">
-              <div>
-                <h3>Legacy flow (agent composes search manually)</h3>
-                <pre>query
-  -&gt; list_dir
-  -&gt; glob
-  -&gt; grep
-  -&gt; read_file (N times)
-  -&gt; reconcile noisy outputs
-  -&gt; choose next file</pre>
-              </div>
-              <div>
-                <h3>Discover flow (agent receives one report)</h3>
-                <pre>query
-  -&gt; discover
-  -&gt; typed report (clusters + symbols + excerpts)
-  -&gt; choose next file</pre>
-              </div>
-            </div>
-
-            <h3 style="margin-top: 10px;">Discover iterative retrieval flowchart (Mermaid)</h3>
-            <pre class="mono">flowchart TD
-    A[Natural Language Query] --&gt; B[Generate initial glob patterns&lt;br/&gt;file endings + related terms]
-    B --&gt; C[Glob aggressively 3x&lt;br/&gt;to build prospect list]
-    C --&gt; D[Add all prospects to Queue]
+      <div class="mermaid-wrap">
+        <div class="mermaid-header">Iterative Retrieval Flowchart (Mermaid)</div>
+        <pre>flowchart TD
+    A[Natural Language Query] --> B[Generate initial glob patterns + related terms]
+    B --> C[Glob aggressively 3x to build prospect list]
+    C --> D[Add all prospects to Queue]
 
     subgraph Iterative Processing
-        E{Queue empty?} --&gt;|No| F[Take next prospect]
-        F --&gt; G[Read first 200 lines]
-        G --&gt; H{Relevant&lt;br/&gt;based on current context?}
-        H --&gt;|Yes| I[Extract structured info&lt;br/&gt;Update ontological map]
-        I --&gt; J[Discover new related files&lt;br/&gt;Add them to Queue]
-        J --&gt; E
-        H --&gt;|No| K{Maybe later?}
-        K --&gt;|Yes, requeue| L[Push back to Queue&lt;br/&gt;with lower priority]
-        L --&gt; E
-        K --&gt;|No, discard| M[Discard prospect]
-        M --&gt; E
+        E{Queue empty?} -->|No| F[Take next prospect]
+        F --> G[Read first 200 lines]
+        G --> H{Relevant based on current context?}
+        H -->|Yes| I[Extract structured info + Update ontological map]
+        I --> J[Discover new related files + Add them to Queue]
+        J --> E
+        H -->|No| K{Maybe later?}
+        K -->|Yes, requeue| L[Push back to Queue with lower priority]
+        L --> E
+        K -->|No, discard| M[Discard prospect]
+        M --> E
     end
 
-    E --&gt;|Yes| N[Consolidate ontological map]
-    N --&gt; O[Generate concise typed report&lt;br/&gt;for main agent]
-    O --&gt; P[Render Mermaid chart of ontology]</pre>
+    E -->|Yes| N[Consolidate ontological map]
+    N --> O[Generate concise typed report for main agent]
+    O --> P[Render Mermaid chart of ontology]</pre>
+      </div>
 
-            <p class="note">
-              This is the core steering advantage: custom tools remove planning entropy. Less-smart models no longer need to invent a search strategy mid-flight; they can execute a deterministic loop and act on a single high-signal report.
-            </p>
-          </div>
-        </section>
-        <section class="panel">
-          <h2 class="panel-title">Measured Outcomes (Saved Baseline Run)</h2>
-          <div class="panel-body">
-            <table>
-              <thead>
-                <tr>
-                  <th>Mode</th>
-                  <th>Avg Latency (discover)</th>
-                  <th>Avg Latency (legacy)</th>
-                  <th>Calls</th>
-                  <th>Avg Tokens</th>
-                  <th>File Recall</th>
-                  <th>Symbol Recall</th>
-                  <th>Actionable</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Cold</td>
-                  <td>2587 ms</td>
-                  <td>2811 ms</td>
-                  <td>1.0 vs 6.0</td>
-                  <td>3063 vs 12858</td>
-                  <td>0.67 vs 0.46</td>
-                  <td>0.50 vs 0.29</td>
-                  <td>0.67 vs 0.50</td>
-                </tr>
-                <tr>
-                  <td>Warm</td>
-                  <td>2597 ms</td>
-                  <td>2832 ms</td>
-                  <td>1.0 vs 6.0</td>
-                  <td>3063 vs 12984</td>
-                  <td>0.67 vs 0.40</td>
-                  <td>0.50 vs 0.31</td>
-                  <td>0.67 vs 0.42</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="two-col" style="margin-top: 10px;">
-              <div>
-                <h3>Interpretation</h3>
-                <ul>
-                  <li>Discover reduced round trips by 6x.</li>
-                  <li>Discover reduced context footprint by about 4.2x.</li>
-                  <li>Discover was faster despite richer processing.</li>
-                  <li>Discover improved retrieval quality on this query set.</li>
-                </ul>
-              </div>
-              <div>
-                <h3>What this does not claim</h3>
-                <ul>
-                  <li>Not a universal claim across all repositories.</li>
-                  <li>Not a claim that clustering alone drives wins.</li>
-                  <li>Not a replacement for task-level evals.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2 class="panel-title">Why Custom Tools Help Less-SOTA Models</h2>
-          <div class="panel-body">
-            <p>
-              Frontier models can brute-force noisy tool logs better than mid-tier models. Less-SOTA models are more
-              sensitive to branchy search plans, noisy outputs, and ranking ambiguity. Custom tools narrow that gap by
-              packaging retrieval into a higher-level primitive with explicit structure.
-            </p>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Failure mode (weaker model)</th>
-                  <th>Custom tool mitigation</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Loses thread across 3-6 tool calls</td>
-                  <td>Single-call report with summary + clusters + symbols</td>
-                </tr>
-                <tr>
-                  <td>Wastes tokens on irrelevant raw output</td>
-                  <td>Bounded report size and relevance filtering</td>
-                </tr>
-                <tr>
-                  <td>Picks wrong file from weak ranking signals</td>
-                  <td>Role labeling, symbol extraction, relevance tiers</td>
-                </tr>
-                <tr>
-                  <td>Higher variance in planning quality</td>
-                  <td>Stable output shape per query</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <p>
-              The practical strategy is not "make the model smarter" first. It is "make the interface to code search
-              less lossy" first.
-            </p>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2 class="panel-title">Commit Timeline</h2>
-          <div class="panel-body">
-            <table>
-              <thead>
-                <tr>
-                  <th>Commit</th>
-                  <th>Change</th>
-                  <th>Impact</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="mono">bd441d7e</td>
-                  <td>Add discover tool + tests + prompt</td>
-                  <td>Introduced unified discovery primitive</td>
-                </tr>
-                <tr>
-                  <td class="mono">03b23121</td>
-                  <td>Remove glob/grep/list_dir</td>
-                  <td>Full cutover to discover-first workflow</td>
-                </tr>
-                <tr>
-                  <td class="mono">92d32415</td>
-                  <td>Rewrite benchmark on real repo</td>
-                  <td>Replaced synthetic benchmark with end-to-end A/B harness</td>
-                </tr>
-                <tr>
-                  <td class="mono">71b67edc</td>
-                  <td>Hook exclusion for benchmark file length</td>
-                  <td>Allows large benchmark harness to pass pre-commit</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </article>
+      <div class="insight">
+        <p>
+          This is the core steering advantage: custom tools remove planning entropy. Less-smart
+          models no longer need to invent a search strategy mid-flight; they execute a deterministic
+          loop and act on a single high-signal report.
+        </p>
+      </div>
     </section>
+  </div>
 
-    <footer class="footer">
-      Sources: code + git history in this repository only. Benchmark values are from the saved run output generated by
-      <span class="mono">tests/benchmarks/bench_discover.py</span> after the benchmark rewrite.
+  <!-- 05: MEASURED OUTCOMES -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">05</span>
+        <h2>Measured Outcomes</h2>
+      </div>
+      <p>Saved baseline run from <code>tests/benchmarks/bench_discover.py</code> after the benchmark rewrite.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Mode</th>
+              <th>Latency</th>
+              <th>Calls</th>
+              <th>Tokens</th>
+              <th>File Recall</th>
+              <th>Symbol Recall</th>
+              <th>Actionable</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="mode-label">Cold</span></td>
+              <td><span class="v-good">2587 ms</span> <span class="v-vs">vs 2811</span></td>
+              <td><span class="v-good">1.0</span> <span class="v-vs">vs 6.0</span></td>
+              <td><span class="v-good">3063</span> <span class="v-vs">vs 12858</span></td>
+              <td><span class="v-good">0.67</span> <span class="v-vs">vs 0.46</span></td>
+              <td><span class="v-good">0.50</span> <span class="v-vs">vs 0.29</span></td>
+              <td><span class="v-good">0.67</span> <span class="v-vs">vs 0.50</span></td>
+            </tr>
+            <tr>
+              <td><span class="mode-label">Warm</span></td>
+              <td><span class="v-good">2597 ms</span> <span class="v-vs">vs 2832</span></td>
+              <td><span class="v-good">1.0</span> <span class="v-vs">vs 6.0</span></td>
+              <td><span class="v-good">3063</span> <span class="v-vs">vs 12984</span></td>
+              <td><span class="v-good">0.67</span> <span class="v-vs">vs 0.40</span></td>
+              <td><span class="v-good">0.50</span> <span class="v-vs">vs 0.31</span></td>
+              <td><span class="v-good">0.67</span> <span class="v-vs">vs 0.42</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-row">
+        <div class="card fix">
+          <h3>Interpretation</h3>
+          <ul>
+            <li>Discover reduced round trips by 6x</li>
+            <li>Context footprint reduced by about 4.2x</li>
+            <li>Faster despite richer processing (scoring, clustering, symbol extraction)</li>
+            <li>Improved retrieval quality on this query set</li>
+          </ul>
+        </div>
+        <div class="card problem">
+          <h3>What this does not claim</h3>
+          <ul>
+            <li>Not a universal claim across all repositories</li>
+            <li>Not a claim that clustering alone drives wins</li>
+            <li>Not a replacement for task-level evals</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 06: WHY CUSTOM TOOLS HELP -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">06</span>
+        <h2>Why Custom Tools Help Less-SOTA Models</h2>
+      </div>
+      <p>
+        Frontier models can brute-force noisy tool logs better than mid-tier models. Less-SOTA
+        models are more sensitive to branchy search plans, noisy outputs, and ranking ambiguity.
+        Custom tools narrow that gap by packaging retrieval into a higher-level primitive.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Failure mode (weaker model)</th>
+              <th>Custom tool mitigation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Loses thread across 3&ndash;6 tool calls</td>
+              <td>Single-call report with summary + clusters + symbols</td>
+            </tr>
+            <tr>
+              <td>Wastes tokens on irrelevant raw output</td>
+              <td>Bounded report size and relevance filtering</td>
+            </tr>
+            <tr>
+              <td>Picks wrong file from weak ranking signals</td>
+              <td>Role labeling, symbol extraction, relevance tiers</td>
+            </tr>
+            <tr>
+              <td>Higher variance in planning quality</td>
+              <td>Stable output shape per query</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight">
+        <p>
+          The practical strategy is not &ldquo;make the model smarter&rdquo; first.
+          It is &ldquo;make the interface to code search less lossy&rdquo; first.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 07: COMMIT TIMELINE -->
+  <div class="container">
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">07</span>
+        <h2>Commit Timeline</h2>
+      </div>
+
+      <div class="timeline">
+        <div class="tl-entry">
+          <div class="tl-hash">92d32415</div>
+          <div class="tl-title">Rewrite benchmark on real repo</div>
+          <div class="tl-desc">Replaced synthetic benchmark with end-to-end A/B harness</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-hash">71b67edc</div>
+          <div class="tl-title">Hook exclusion for benchmark file length</div>
+          <div class="tl-desc">Allows large benchmark harness to pass pre-commit</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-hash">03b23121</div>
+          <div class="tl-title">Remove glob/grep/list_dir</div>
+          <div class="tl-desc">Full cutover to discover-first workflow</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-hash">bd441d7e</div>
+          <div class="tl-title">Add discover tool + tests + prompt</div>
+          <div class="tl-desc">Introduced unified discovery primitive</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="container">
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>Sources: code + git history in this repository only</span>
+        <span>Benchmark: tests/benchmarks/bench_discover.py</span>
+        <span>Inspired by <a href="https://blog.can.ac/2026/02/12/the-harness-problem/">The Harness Problem</a></span>
+      </div>
     </footer>
-  </main>
+  </div>
+
 </body>
 </html>
