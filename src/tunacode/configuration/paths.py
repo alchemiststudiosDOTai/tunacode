@@ -123,6 +123,9 @@ def _parse_version(version_str: str) -> tuple[int, ...]:
 def check_for_updates() -> tuple[bool, str]:
     """Check if there's a newer version of tunacode-cli available on PyPI.
 
+    Uses the PyPI JSON API directly so this works regardless of how the
+    package was installed (pip, pipx, uv tool, etc.).
+
     Returns:
         tuple: (has_update, latest_version)
             - has_update (bool): True if a newer version is available
@@ -131,26 +134,22 @@ def check_for_updates() -> tuple[bool, str]:
     Raises:
         RuntimeError: If the PyPI version check fails.
     """
+    import json
+    import urllib.request
+
     current_version = _get_installed_version()
 
-    result = subprocess.run(
-        ["pip", "index", "versions", "tunacode-cli"],
-        capture_output=True,
-        text=True,
-    )
+    PYPI_URL = "https://pypi.org/pypi/tunacode-cli/json"
+    PYPI_TIMEOUT_SECONDS = 10
 
-    if result.returncode != 0:
-        msg = f"pip index versions failed: {result.stderr.strip()}"
-        raise RuntimeError(msg)
+    try:
+        with urllib.request.urlopen(PYPI_URL, timeout=PYPI_TIMEOUT_SECONDS) as resp:  # nosec B310 — hardcoded https URL
+            data = json.loads(resp.read())
+    except Exception as exc:
+        msg = f"Failed to check PyPI for updates: {exc}"
+        raise RuntimeError(msg) from exc
 
-    output = result.stdout
-    if "Available versions:" not in output:
-        msg = f"Unexpected pip output: {output.strip()}"
-        raise RuntimeError(msg)
-
-    versions_line = output.split("Available versions:")[1].strip()
-    versions = versions_line.split(", ")
-    latest_version = versions[0].strip()
+    latest_version = data["info"]["version"]
 
     if _parse_version(latest_version) > _parse_version(current_version):
         return True, latest_version

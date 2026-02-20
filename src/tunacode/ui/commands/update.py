@@ -13,17 +13,45 @@ PACKAGE_NAME = "tunacode-cli"
 UPDATE_INSTALL_TIMEOUT_SECONDS = 120
 
 
+def _is_tool_install() -> bool:
+    """Detect whether tunacode is running inside an isolated tool venv.
+
+    Returns True when the install looks like pipx or ``uv tool`` (the
+    executable lives under a path that contains a tool-managed venv).
+    """
+    import sys
+
+    exe = sys.executable
+    # pipx venvs:   ~/.local/pipx/venvs/<pkg>/...
+    # uv tool:      ~/.local/share/uv/tools/<pkg>/...
+    return "/pipx/venvs/" in exe or "/uv/tools/" in exe
+
+
 def _get_package_manager_command(package: str) -> tuple[list[str], str] | None:
-    """Get package manager command and name.
+    """Get the correct upgrade command for the user's install method.
+
+    Handles three scenarios:
+    1. ``uv tool install`` -> ``uv tool upgrade``
+    2. ``pipx install``    -> ``pipx upgrade``
+    3. Plain pip/uv pip    -> ``uv pip install --upgrade`` / ``pip install --upgrade``
 
     Returns:
         tuple(list[str], str) for command and manager name, or None if unavailable.
     """
     import shutil
 
+    if _is_tool_install():
+        uv_path = shutil.which("uv")
+        if uv_path:
+            return ([uv_path, "tool", "upgrade", package], "uv tool")
+
+        pipx_path = shutil.which("pipx")
+        if pipx_path:
+            return ([pipx_path, "upgrade", package], "pipx")
+
     uv_path = shutil.which("uv")
     if uv_path:
-        return ([uv_path, "pip", "install", "--upgrade", package], "uv")
+        return ([uv_path, "pip", "install", "--upgrade", package], "uv pip")
 
     pip_path = shutil.which("pip")
     if pip_path:
