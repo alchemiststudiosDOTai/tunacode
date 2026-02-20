@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tool_prompt>
+    <description>
+Find and map code related to a concept, feature, or module.
+
+Describe what you're looking for in natural language. The tool extracts search
+terms, generates glob patterns, reads file previews, scores relevance, and
+returns a compact structured report.
+
+USE THIS TOOL instead of manually chaining glob, grep, and read_file when
+you need to understand where a concept lives in the codebase.
+
+Examples:
+- "where is auth handled"
+- "database schema and migrations"
+- "tool registration and execution pipeline"
+- "how does compaction work"
+- "error handling and retry logic"
+
+The report includes:
+- File clusters grouped by directory
+- Relevance markers (high/medium)
+- Key symbols (functions, classes) per file
+- Import dependencies
+- Compact excerpts of the most relevant lines
+- A file tree of relevant paths
+
+Parameters:
+- query (required): Natural language description of what to find
+- directory (optional): Project root to search from (default: current directory)
+
+Returns up to 20 most relevant files. For broad queries, narrow your
+description to get more focused results.
+    </description>
+</tool_prompt>
