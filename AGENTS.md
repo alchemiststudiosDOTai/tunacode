@@ -61,7 +61,7 @@ The TUI design is heavily inspired by the classic **NeXTSTEP** user interface. T
 
 ## Scope & Maintenance
 
-- Backward compatibility only if low maintenance cost.
+- No cutover shims, aliases, or dual-path compatibility layers. Do full replacement everywhere in the same change.
 - Delete dead code (never guard it).
 - Always run `ruff .`.
 - Use `git commit -n` if pre-commit hooks block rollback.

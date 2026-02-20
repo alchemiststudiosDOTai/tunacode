@@ -21,7 +21,7 @@ class ClearCommand(Command):
     async def execute(self, app: TextualReplApp, args: str) -> None:
         session = app.state_manager.session
 
-        app.rich_log.clear()
+        app.chat_container.clear()
 
         # PRESERVE messages - needed for /resume
         # PRESERVE total_tokens - represents conversation size

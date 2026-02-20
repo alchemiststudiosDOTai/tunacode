@@ -79,19 +79,19 @@ class UpdateCommand(Command):
         from tunacode.ui.screens.update_confirm import UpdateConfirmScreen
 
         installed_version = get_installed_version()
-        app.rich_log.write("Checking for updates...")
+        app.chat_container.write("Checking for updates...")
 
         try:
             has_update, latest_version = await asyncio.to_thread(check_for_updates)
         except RuntimeError as exc:
-            app.rich_log.write(f"Update check failed: {exc}")
+            app.chat_container.write(f"Update check failed: {exc}")
             return
 
         if not has_update:
-            app.rich_log.write(f"Already on latest version ({installed_version})")
+            app.chat_container.write(f"Already on latest version ({installed_version})")
             return
 
-        app.rich_log.write(f"Installed: {installed_version}  ->  Latest: {latest_version}")
+        app.chat_container.write(f"Installed: {installed_version}  ->  Latest: {latest_version}")
 
         def on_update_confirmed(confirmed: bool | None) -> None:
             """Handle user's response to update confirmation."""
@@ -101,11 +101,11 @@ class UpdateCommand(Command):
 
             pkg_cmd_result = _get_package_manager_command(PACKAGE_NAME)
             if not pkg_cmd_result:
-                app.rich_log.write("No package manager found (uv or pip)")
+                app.chat_container.write("No package manager found (uv or pip)")
                 return
 
             cmd, pkg_mgr = pkg_cmd_result
-            app.rich_log.write(f"Installing with {pkg_mgr}...")
+            app.chat_container.write(f"Installing with {pkg_mgr}...")
 
             async def install_update() -> None:
                 try:
@@ -119,11 +119,11 @@ class UpdateCommand(Command):
 
                     if result.returncode == 0:
                         msg = f"Updated to {latest_version}! Restart tunacode to use it."
-                        app.rich_log.write(msg)
+                        app.chat_container.write(msg)
                     else:
-                        app.rich_log.write(f"Update failed: {result.stderr.strip()}")
+                        app.chat_container.write(f"Update failed: {result.stderr.strip()}")
                 except Exception as e:
-                    app.rich_log.write(f"Error: {e}")
+                    app.chat_container.write(f"Error: {e}")
 
             app.run_worker(install_update(), exclusive=False)
 

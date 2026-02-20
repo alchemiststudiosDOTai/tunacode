@@ -40,7 +40,7 @@ def _validate_provider_api_key_with_notification(
         if show_config_path:
             config_path = ApplicationSettings().paths.config_file
             msg += f"\n[dim]Config: {config_path}[/dim]"
-        app.rich_log.write(msg)
+        app.chat_container.write(msg)
 
     return is_valid
 

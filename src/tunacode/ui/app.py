@@ -186,11 +186,6 @@ class TextualReplApp(App[None]):
         yield self.status_bar
 
     @property
-    def rich_log(self) -> ChatContainer:
-        """Backward compatibility alias for chat_container."""
-        return self.chat_container
-
-    @property
     def supported_themes(self) -> dict[str, Theme]:
         return {
             theme_name: self.available_themes[theme_name]
@@ -243,7 +238,7 @@ class TextualReplApp(App[None]):
         logger.set_state_manager(self.state_manager)
 
         def _write_tui(renderable: RenderableType) -> None:
-            self.rich_log.write(renderable)
+            self.chat_container.write(renderable)
 
         logger.set_tui_callback(_write_tui)
 
@@ -254,7 +249,7 @@ class TextualReplApp(App[None]):
             self._update_slopgotchi,
         )
         self._update_resource_bar()
-        show_welcome(self.rich_log)
+        show_welcome(self.chat_container)
 
     async def _request_worker(self) -> Never:
         while True:
@@ -263,7 +258,7 @@ class TextualReplApp(App[None]):
                 await self._process_request(request)
             except Exception as e:
                 content, meta = render_exception(e)
-                self.rich_log.write(content, panel_meta=meta)
+                self.chat_container.write(content, panel_meta=meta)
             finally:
                 self.request_queue.task_done()
 
@@ -297,7 +292,7 @@ class TextualReplApp(App[None]):
             self.notify("Cancelled")
         except Exception as e:
             content, meta = render_exception(e)
-            self.rich_log.write(content, panel_meta=meta)
+            self.chat_container.write(content, panel_meta=meta)
         finally:
             self._current_request_task = None
             self._loading_indicator_shown = False
@@ -369,11 +364,11 @@ class TextualReplApp(App[None]):
         from datetime import datetime
 
         timestamp = datetime.now().strftime("%I:%M %p").lstrip("0")
-        self.rich_log.write("")
-        render_width = max(1, self.rich_log.size.width - 2)
+        self.chat_container.write("")
+        render_width = max(1, self.chat_container.size.width - 2)
         user_block = format_user_message(message.text, STYLE_PRIMARY, width=render_width)
         user_block.append(f"│ you {timestamp}", style=f"dim {STYLE_PRIMARY}")
-        self.rich_log.write(user_block)
+        self.chat_container.write(user_block)
 
     def on_tool_result_display(self, message: ToolResultDisplay) -> None:
         max_line_width = self.tool_panel_max_width()
@@ -416,7 +411,7 @@ class TextualReplApp(App[None]):
 
     def _show_system_notice(self, notice: str) -> None:
         notice_text = Text(notice, style=STYLE_WARNING)
-        self.rich_log.write(notice_text)
+        self.chat_container.write(notice_text)
 
     def _replay_session_messages(self) -> None:
         """Render loaded session messages to ChatContainer."""
@@ -434,7 +429,7 @@ class TextualReplApp(App[None]):
                 user_block = Text()
                 user_block.append(f"| {content}\n", style=STYLE_PRIMARY)
                 user_block.append("| (restored)", style=f"dim {STYLE_PRIMARY}")
-                self.rich_log.write(user_block)
+                self.chat_container.write(user_block)
                 continue
             if role != "assistant":
                 continue
@@ -442,8 +437,8 @@ class TextualReplApp(App[None]):
             content = get_content(msg)
             if not content:
                 continue
-            self.rich_log.write(Text("agent:", style="accent"))
-            self.rich_log.write(Markdown(content))
+            self.chat_container.write(Text("agent:", style="accent"))
+            self.chat_container.write(Markdown(content))
 
     def _context_panel_supported_for_width(self, width: int) -> bool:
         return width >= self.CONTEXT_PANEL_MIN_TERMINAL_WIDTH
@@ -493,7 +488,7 @@ class TextualReplApp(App[None]):
         self.shell_runner.start(raw_cmd)
 
     def write_shell_output(self, renderable: RenderableType) -> None:
-        self.rich_log.write(renderable)
+        self.chat_container.write(renderable)
 
     def shell_status_running(self) -> None:
         self.status_bar.update_running_action("shell")

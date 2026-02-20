@@ -32,4 +32,4 @@ class HelpCommand(Command):
         table.add_row("!<cmd>", "Run shell command")
         table.add_row("exit", "Exit TunaCode (legacy bare command)")
 
-        app.rich_log.write(table)
+        app.chat_container.write(table)

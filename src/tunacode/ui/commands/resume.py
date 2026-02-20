@@ -128,7 +128,7 @@ class ResumeCommand(Command):
         await app.state_manager.save_session()
 
         if await app.state_manager.load_session(session_id):
-            app.rich_log.clear()
+            app.chat_container.clear()
             app._replay_session_messages()
             app._update_resource_bar()
 
@@ -137,7 +137,7 @@ class ResumeCommand(Command):
                 f"Loaded session {session_id[:8]} ({target['message_count']} messages)\n",
                 style="green",
             )
-            app.rich_log.write(loaded_msg)
+            app.chat_container.write(loaded_msg)
             app.notify("Session loaded")
         else:
             app.notify("Failed to load session", severity="error")
