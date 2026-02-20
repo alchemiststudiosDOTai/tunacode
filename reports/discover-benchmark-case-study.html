@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Case Study: Replacing Glob/Grep/List-Dir with Discover</title>
+  <style>
+    :root {
+      --bg: #d4d4d4;
+      --surface: #c6c6c6;
+      --surface-deep: #b5b5b5;
+      --ink: #111111;
+      --muted: #3d3d3d;
+      --accent: #1e4f8f;
+      --good: #1f6b3a;
+      --warn: #8b5a00;
+      --bad: #8e1f1f;
+      --bevel-hi: #f2f2f2;
+      --bevel-lo: #7a7a7a;
+      --bevel-mid: #a9a9a9;
+      --mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+
+    .window {
+      max-width: 1200px;
+      margin: 24px auto;
+      border: 1px solid var(--bevel-lo);
+      box-shadow:
+        inset 1px 1px 0 var(--bevel-hi),
+        inset -1px -1px 0 var(--bevel-lo),
+        0 3px 10px rgba(0, 0, 0, 0.2);
+      background: var(--surface);
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bevel-lo);
+      background: linear-gradient(#dcdcdc, #c1c1c1);
+      box-shadow: inset 0 1px 0 var(--bevel-hi);
+      font-size: 14px;
+    }
+
+    .titlebar .title {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .status-pill {
+      border: 1px solid var(--bevel-lo);
+      background: var(--surface-deep);
+      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
+      padding: 3px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      min-height: 640px;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--bevel-lo);
+      background: #c2c2c2;
+      padding: 14px;
+    }
+
+    .sidebar h2 {
+      font-size: 13px;
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted);
+    }
+
+    .sidebar ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 13px;
+    }
+
+    .sidebar li {
+      margin: 0 0 8px;
+      padding: 6px 8px;
+      border: 1px solid transparent;
+    }
+
+    .sidebar li.active {
+      border-color: var(--bevel-lo);
+      background: #d6d6d6;
+      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
+      font-weight: 700;
+    }
+
+    .content {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--bevel-lo);
+      background: #d0d0d0;
+      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
+    }
+
+    .panel .panel-title {
+      margin: 0;
+      font-size: 14px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--bevel-lo);
+      background: linear-gradient(#d9d9d9, #c6c6c6);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+    }
+
+    .panel .panel-body {
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--bevel-lo);
+      background: #d9d9d9;
+      box-shadow: inset 1px 1px 0 var(--bevel-hi), inset -1px -1px 0 var(--bevel-mid);
+      padding: 10px;
+    }
+
+    .metric .k {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .metric .v {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .metric .delta {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      border: 1px solid #9d9d9d;
+      padding: 7px 8px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #c2c2c2;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-size: 12px;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 10px;
+      border: 1px solid #999;
+      background: #c8c8c8;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .note {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .footer {
+      padding: 10px 14px;
+      border-top: 1px solid var(--bevel-lo);
+      font-size: 12px;
+      color: var(--muted);
+      background: #c7c7c7;
+    }
+
+    @media (max-width: 1000px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--bevel-lo);
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="window">
+    <header class="titlebar">
+      <div class="title">Case Study: Replacing Glob/Grep/List-Dir with Discover</div>
+      <div class="status-pill">Repository: tunacode</div>
+      <div class="status-pill">Audience: Agent tool designers</div>
+    </header>
+
+    <section class="layout">
+      <aside class="sidebar">
+        <h2>Sections</h2>
+        <ul>
+          <li class="active">Executive Summary</li>
+          <li>Why the first benchmark failed</li>
+          <li>How discover is implemented</li>
+          <li>How the new benchmark works</li>
+          <li>Before vs after control flow</li>
+          <li>Measured outcomes</li>
+          <li>Why custom tools help smaller models</li>
+          <li>Commit timeline</li>
+        </ul>
+      </aside>
+
+      <article class="content">
+        <section class="panel">
+          <h1 class="panel-title">Executive Summary</h1>
+          <div class="panel-body">
+            <p>
+              We replaced a synthetic benchmark with a real-repo benchmark and measured discover against the old
+              multi-call search flow. The core result: discover is not just a search primitive. It is a control surface
+              that compresses retrieval into one bounded, structured report.
+            </p>
+
+            <div class="metrics">
+              <div class="metric">
+                <div class="k">Round trips</div>
+                <div class="v good">1.0 vs 6.0</div>
+                <div class="delta">discover vs legacy chain (average)</div>
+              </div>
+              <div class="metric">
+                <div class="k">Output tokens</div>
+                <div class="v good">~4.2x less</div>
+                <div class="delta">~3.1k vs ~12.9k</div>
+              </div>
+              <div class="metric">
+                <div class="k">Latency</div>
+                <div class="v good">~9% faster</div>
+                <div class="delta">cold and warm averages</div>
+              </div>
+              <div class="metric">
+                <div class="k">Actionability</div>
+                <div class="v good">0.67 vs 0.42</div>
+                <div class="delta">warm mode score</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">Why the First Benchmark Failed</h2>
+          <div class="panel-body">
+            <div class="two-col">
+              <div>
+                <h3>Observed issues</h3>
+                <ul>
+                  <li>Synthetic repositories had planted keywords and low ambiguity.</li>
+                  <li>The baseline was a toy loop, not the old production tool chain overhead.</li>
+                  <li>Raw speed compared unlike work: discover does scoring, symbol extraction, clustering.</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Correction</h3>
+                <ul>
+                  <li>Run against TunaCode itself.</li>
+                  <li>Model old behavior as separate tool calls with adapter/decorator overhead.</li>
+                  <li>Measure retrieval utility and actionability, not file-walk speed alone.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">How Discover is Implemented (Typed Internals, Curated Output)</h2>
+          <div class="panel-body">
+            <p>
+              Discover uses typed dataclasses internally, then emits one serialized report string. The model does not see
+              intermediate scan state. It sees the bounded report.
+            </p>
+
+            <pre>Core types in <span class="mono">src/tunacode/tools/discover.py</span>
+- Relevance (enum)
+- FileEntry(path, relevance, role, key_symbols, imports_from, line_count, excerpt)
+- ConceptCluster(name, description, files)
+- DiscoveryReport(query, summary, clusters, file_tree, ...)
+
+Pipeline
+extract_terms -> generate_patterns -> collect_candidates -> evaluate_prospects
+-> cluster -> build_tree -> DiscoveryReport -> to_context()
+
+Tool boundary
+async def discover(...):
+    report = await asyncio.to_thread(_discover_sync, ...)
+    return report.to_context()</pre>
+
+            <p class="note">
+              Bounded output controls are explicit: <span class="mono">MAX_REPORT_FILES=20</span>,
+              <span class="mono">MAX_PREVIEW_LINES=200</span>,
+              <span class="mono">MAX_GLOB_CANDIDATES=150</span>.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">How the Real Benchmark Works</h2>
+          <div class="panel-body">
+            <p>
+              The benchmark rewrite in <span class="mono">tests/benchmarks/bench_discover.py</span> compares:
+            </p>
+            <ul>
+              <li><strong>discover path:</strong> one tool call via tinyagent adapter</li>
+              <li><strong>legacy path:</strong> <span class="mono">list_dir -> glob -> grep -> read_file</span> chain via separate tool calls</li>
+            </ul>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Dimension</th>
+                  <th>What we measure</th>
+                  <th>Why it matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Latency</td>
+                  <td>Per-query cold/warm + p50/p95</td>
+                  <td>Real responsiveness under setup overhead</td>
+                </tr>
+                <tr>
+                  <td>Tool calls</td>
+                  <td>Calls per successful retrieval</td>
+                  <td>Round-trip and orchestration burden</td>
+                </tr>
+                <tr>
+                  <td>Output footprint</td>
+                  <td>Estimated tokens (ceil(chars / 4))</td>
+                  <td>Context cost and prompt pressure</td>
+                </tr>
+                <tr>
+                  <td>File recall</td>
+                  <td>Hits on expected file set</td>
+                  <td>Did we find the right files</td>
+                </tr>
+                <tr>
+                  <td>Symbol recall</td>
+                  <td>Hits on expected symbol set</td>
+                  <td>Did we return useful handles for edits</td>
+                </tr>
+                <tr>
+                  <td>Actionability</td>
+                  <td>Top-rank hit or sufficient symbol recall</td>
+                  <td>Can the agent choose next action immediately</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p class="note">
+              Query set: 12 real TunaCode topics (compaction, cache manager, LSP diagnostics, model picker,
+              tool registration, etc.). No synthetic fixtures.
+            </p>
+          </div>
+        </section>
+
+
+        <section class="panel">
+          <h2 class="panel-title">Before vs After: Control Flow and Determinism</h2>
+          <div class="panel-body">
+            <p>
+              The classic <span class="mono">glob -&gt; grep -&gt; read</span> flow is flexible, but it pushes planning, branching, and synthesis work onto the model. That is exactly where less-SOTA models become inconsistent. Discover shifts that work into the tool and returns one curated report.
+            </p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Step</th>
+                  <th>Legacy chain (model-managed)</th>
+                  <th>Discover flow (tool-managed)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Query interpretation</td>
+                  <td>Model invents patterns, retries search terms, and decides file scopes.</td>
+                  <td>Tool extracts terms and expands concepts with a fixed internal pipeline.</td>
+                </tr>
+                <tr>
+                  <td>Retrieval</td>
+                  <td>Multiple calls and manual narrowing across raw outputs.</td>
+                  <td>Single call with bounded candidate collection and scoring.</td>
+                </tr>
+                <tr>
+                  <td>Context handoff</td>
+                  <td>Raw text from different tools, mixed granularity.</td>
+                  <td>One typed report serialized as clusters, symbols, roles, and excerpts.</td>
+                </tr>
+                <tr>
+                  <td>Decision quality on weaker models</td>
+                  <td>Higher variance: more branch points and interpretation burden.</td>
+                  <td>More deterministic: fewer branches and clearer next target selection.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="two-col" style="margin-top: 10px;">
+              <div>
+                <h3>Legacy flow (agent composes search manually)</h3>
+                <pre>query
+  -&gt; list_dir
+  -&gt; glob
+  -&gt; grep
+  -&gt; read_file (N times)
+  -&gt; reconcile noisy outputs
+  -&gt; choose next file</pre>
+              </div>
+              <div>
+                <h3>Discover flow (agent receives one report)</h3>
+                <pre>query
+  -&gt; discover
+  -&gt; typed report (clusters + symbols + excerpts)
+  -&gt; choose next file</pre>
+              </div>
+            </div>
+
+            <h3 style="margin-top: 10px;">Discover iterative retrieval flowchart (Mermaid)</h3>
+            <pre class="mono">flowchart TD
+    A[Natural Language Query] --&gt; B[Generate initial glob patterns&lt;br/&gt;file endings + related terms]
+    B --&gt; C[Glob aggressively 3x&lt;br/&gt;to build prospect list]
+    C --&gt; D[Add all prospects to Queue]
+
+    subgraph Iterative Processing
+        E{Queue empty?} --&gt;|No| F[Take next prospect]
+        F --&gt; G[Read first 200 lines]
+        G --&gt; H{Relevant&lt;br/&gt;based on current context?}
+        H --&gt;|Yes| I[Extract structured info&lt;br/&gt;Update ontological map]
+        I --&gt; J[Discover new related files&lt;br/&gt;Add them to Queue]
+        J --&gt; E
+        H --&gt;|No| K{Maybe later?}
+        K --&gt;|Yes, requeue| L[Push back to Queue&lt;br/&gt;with lower priority]
+        L --&gt; E
+        K --&gt;|No, discard| M[Discard prospect]
+        M --&gt; E
+    end
+
+    E --&gt;|Yes| N[Consolidate ontological map]
+    N --&gt; O[Generate concise typed report&lt;br/&gt;for main agent]
+    O --&gt; P[Render Mermaid chart of ontology]</pre>
+
+            <p class="note">
+              This is the core steering advantage: custom tools remove planning entropy. Less-smart models no longer need to invent a search strategy mid-flight; they can execute a deterministic loop and act on a single high-signal report.
+            </p>
+          </div>
+        </section>
+        <section class="panel">
+          <h2 class="panel-title">Measured Outcomes (Saved Baseline Run)</h2>
+          <div class="panel-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Avg Latency (discover)</th>
+                  <th>Avg Latency (legacy)</th>
+                  <th>Calls</th>
+                  <th>Avg Tokens</th>
+                  <th>File Recall</th>
+                  <th>Symbol Recall</th>
+                  <th>Actionable</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Cold</td>
+                  <td>2587 ms</td>
+                  <td>2811 ms</td>
+                  <td>1.0 vs 6.0</td>
+                  <td>3063 vs 12858</td>
+                  <td>0.67 vs 0.46</td>
+                  <td>0.50 vs 0.29</td>
+                  <td>0.67 vs 0.50</td>
+                </tr>
+                <tr>
+                  <td>Warm</td>
+                  <td>2597 ms</td>
+                  <td>2832 ms</td>
+                  <td>1.0 vs 6.0</td>
+                  <td>3063 vs 12984</td>
+                  <td>0.67 vs 0.40</td>
+                  <td>0.50 vs 0.31</td>
+                  <td>0.67 vs 0.42</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="two-col" style="margin-top: 10px;">
+              <div>
+                <h3>Interpretation</h3>
+                <ul>
+                  <li>Discover reduced round trips by 6x.</li>
+                  <li>Discover reduced context footprint by about 4.2x.</li>
+                  <li>Discover was faster despite richer processing.</li>
+                  <li>Discover improved retrieval quality on this query set.</li>
+                </ul>
+              </div>
+              <div>
+                <h3>What this does not claim</h3>
+                <ul>
+                  <li>Not a universal claim across all repositories.</li>
+                  <li>Not a claim that clustering alone drives wins.</li>
+                  <li>Not a replacement for task-level evals.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">Why Custom Tools Help Less-SOTA Models</h2>
+          <div class="panel-body">
+            <p>
+              Frontier models can brute-force noisy tool logs better than mid-tier models. Less-SOTA models are more
+              sensitive to branchy search plans, noisy outputs, and ranking ambiguity. Custom tools narrow that gap by
+              packaging retrieval into a higher-level primitive with explicit structure.
+            </p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Failure mode (weaker model)</th>
+                  <th>Custom tool mitigation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Loses thread across 3-6 tool calls</td>
+                  <td>Single-call report with summary + clusters + symbols</td>
+                </tr>
+                <tr>
+                  <td>Wastes tokens on irrelevant raw output</td>
+                  <td>Bounded report size and relevance filtering</td>
+                </tr>
+                <tr>
+                  <td>Picks wrong file from weak ranking signals</td>
+                  <td>Role labeling, symbol extraction, relevance tiers</td>
+                </tr>
+                <tr>
+                  <td>Higher variance in planning quality</td>
+                  <td>Stable output shape per query</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p>
+              The practical strategy is not "make the model smarter" first. It is "make the interface to code search
+              less lossy" first.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">Commit Timeline</h2>
+          <div class="panel-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Commit</th>
+                  <th>Change</th>
+                  <th>Impact</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">bd441d7e</td>
+                  <td>Add discover tool + tests + prompt</td>
+                  <td>Introduced unified discovery primitive</td>
+                </tr>
+                <tr>
+                  <td class="mono">03b23121</td>
+                  <td>Remove glob/grep/list_dir</td>
+                  <td>Full cutover to discover-first workflow</td>
+                </tr>
+                <tr>
+                  <td class="mono">92d32415</td>
+                  <td>Rewrite benchmark on real repo</td>
+                  <td>Replaced synthetic benchmark with end-to-end A/B harness</td>
+                </tr>
+                <tr>
+                  <td class="mono">71b67edc</td>
+                  <td>Hook exclusion for benchmark file length</td>
+                  <td>Allows large benchmark harness to pass pre-commit</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </article>
+    </section>
+
+    <footer class="footer">
+      Sources: code + git history in this repository only. Benchmark values are from the saved run output generated by
+      <span class="mono">tests/benchmarks/bench_discover.py</span> after the benchmark rewrite.
+    </footer>
+  </main>
+</body>
+</html>
