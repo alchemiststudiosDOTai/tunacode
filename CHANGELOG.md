@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.71] - 2026-02-20
+
 ### Added
 - `discover` tool: unified code discovery replacing manual glob/grep/read chains with a single natural-language query
 

@@ -1999,7 +1999,7 @@ wheels = [
 
 [[package]]
 name = "tunacode-cli"
-version = "0.1.70"
+version = "0.1.71"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
