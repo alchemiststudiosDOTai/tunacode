@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.72] - 2026-02-20
+
+### Fixed
+- `/update` command now works for global installs (`pipx`, `uv tool`). Version check uses PyPI JSON API instead of shelling out to `pip`. Upgrade detects tool-managed venvs and runs the correct upgrade command.
+
 ## [0.1.71] - 2026-02-20
 
 ### Added
