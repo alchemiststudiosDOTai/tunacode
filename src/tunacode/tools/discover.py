@@ -136,6 +136,8 @@ class DiscoveryReport:
 # Concept expansion — maps root concepts to related filename/content terms
 # ---------------------------------------------------------------------------
 
+# Intentionally curated for common software domains. Update as new
+# recurring concepts emerge in real queries.
 CONCEPT_EXPANSIONS: dict[str, list[str]] = {
     "auth": ["auth", "login", "session", "token", "jwt", "oauth",
              "credential", "permission", "role", "passport", "sso"],
@@ -183,7 +185,12 @@ def _extract_search_terms(query: str) -> dict[str, list[str]]:
             continue
         matched = False
         for concept, expansions in CONCEPT_EXPANSIONS.items():
-            if word.startswith(concept) or concept.startswith(word):
+            # Require exact match or that the overlap is meaningful (>=4 chars)
+            # to avoid short words like "typ" expanding the "type" concept.
+            if word == concept or (
+                len(word) >= 4
+                and (word.startswith(concept) or concept.startswith(word))
+            ):
                 filename_terms.extend(expansions[:4])
                 content_terms.extend(expansions)
                 matched = True
@@ -206,16 +213,24 @@ def _extract_search_terms(query: str) -> dict[str, list[str]]:
 # Glob pattern generation — aggressive, cheap, cast a wide net
 # ---------------------------------------------------------------------------
 
-def _detect_dominant_extensions(project_root: Path, sample_limit: int = 300) -> list[str]:
-    """Sample the project to find the most common source extensions."""
+def _detect_dominant_extensions(
+    project_root: Path,
+    sample_limit: int = 300,
+    walk_limit: int = 5000,
+) -> list[str]:
+    """Sample the project to find the most common source extensions.
+
+    Caps both source file matches (sample_limit) and total paths walked
+    (walk_limit) to avoid unbounded iteration on large repos.
+    """
     ext_counts: dict[str, int] = {}
-    count = 0
-    for p in project_root.rglob("*"):
-        if count >= sample_limit:
+    source_count = 0
+    for walked, p in enumerate(project_root.rglob("*")):
+        if walked >= walk_limit or source_count >= sample_limit:
             break
         if p.is_file() and p.suffix in SOURCE_EXTENSIONS:
             ext_counts[p.suffix] = ext_counts.get(p.suffix, 0) + 1
-            count += 1
+            source_count += 1
     sorted_exts = sorted(ext_counts.items(), key=lambda x: -x[1])
     return [ext for ext, c in sorted_exts if c > 2][:6]
 
@@ -238,26 +253,45 @@ def _generate_glob_patterns(terms: dict[str, list[str]], extensions: list[str]) 
 # Candidate collection — glob + ignore filtering
 # ---------------------------------------------------------------------------
 
+def _extract_terms_from_patterns(patterns: list[str]) -> set[str]:
+    """Extract core search terms from glob patterns for single-walk matching."""
+    terms: set[str] = set()
+    for pat in patterns:
+        core = pat.replace("**/", "").replace("/**", "").replace("*", "")
+        for ext in SOURCE_EXTENSIONS:
+            if core.endswith(ext):
+                core = core[: -len(ext)]
+                break
+        if core:
+            terms.add(core.lower())
+    return terms
+
+
 def _collect_candidates(
     patterns: list[str],
     root: Path,
     ignore_manager: IgnoreManager,
     max_candidates: int = MAX_GLOB_CANDIDATES,
 ) -> list[Path]:
-    """Run glob patterns, filter through ignore manager, deduplicate."""
+    """Walk the tree once, test each source file against all pattern terms."""
+    terms = _extract_terms_from_patterns(patterns)
     candidates: dict[str, Path] = {}
 
-    for pattern in patterns:
-        for match in root.glob(pattern):
-            if not match.is_file():
-                continue
-            if match.suffix not in SOURCE_EXTENSIONS:
-                continue
-            if ignore_manager.should_ignore(match):
-                continue
-            key = str(match.resolve())
-            if key not in candidates:
-                candidates[key] = match
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix not in SOURCE_EXTENSIONS:
+            continue
+        if ignore_manager.should_ignore(path):
+            continue
+
+        path_lower = str(path).lower()
+        if not any(t in path_lower for t in terms):
+            continue
+
+        key = str(path.resolve())
+        if key not in candidates:
+            candidates[key] = path
+        if len(candidates) >= max_candidates:
+            break
 
     result = sorted(candidates.values(), key=lambda p: len(p.parts))
     return result[:max_candidates]

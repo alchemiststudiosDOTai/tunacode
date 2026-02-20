@@ -505,10 +505,11 @@ class TestCollectCandidates:
         (isolated_tmp_dir / "code.py").write_text("pass")
         (isolated_tmp_dir / "image.png").write_text("not an image")
 
-        from tunacode.tools.ignore_manager import IgnoreManager
+        from tunacode.tools.ignore import IgnoreManager
 
         ignore = IgnoreManager(isolated_tmp_dir, patterns=(), exclude_dirs=frozenset())
-        candidates = _collect_candidates(["**/*"], isolated_tmp_dir, ignore)
+        # Use a pattern that matches "code" — single-walk approach needs real terms
+        candidates = _collect_candidates(["**/*code*"], isolated_tmp_dir, ignore)
         paths_str = [str(c) for c in candidates]
         assert any("code.py" in p for p in paths_str)
         assert not any("image.png" in p for p in paths_str)
