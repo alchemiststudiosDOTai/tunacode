@@ -26,6 +26,7 @@ DEFAULT_USER_CONFIG: UserConfig = {
         "global_request_timeout": 120.0,
         "guide_file": GUIDE_FILE_NAME,
         "theme": "dracula",
+        "stream_agent_text": False,
         "ripgrep": {
             "timeout": 10,
             "max_results": 100,

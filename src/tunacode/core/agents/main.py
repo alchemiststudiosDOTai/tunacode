@@ -527,13 +527,13 @@ class RequestOrchestrator:
             return
 
         if event_type == "text_delta":
+            # Keep legacy debug accumulator for abort handling.
+            session = self.state_manager.session
+            session._debug_raw_stream_accum += delta
             if self.streaming_callback is None:
                 return
             # Streaming callback is a UI hook; keep it best-effort.
             await self.streaming_callback(delta)
-            # Keep legacy debug accumulator for abort handling.
-            session = self.state_manager.session
-            session._debug_raw_stream_accum += delta
             return
 
         if event_type == "thinking_delta":

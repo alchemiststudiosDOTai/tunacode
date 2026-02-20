@@ -50,6 +50,18 @@ async def test_text_delta_routes_to_streaming_and_updates_debug_accumulator() ->
     assert state_manager.session._debug_raw_stream_accum == "hello"
 
 
+async def test_text_delta_updates_debug_accumulator_without_streaming_callback() -> None:
+    orchestrator, state_manager = _build_orchestrator(
+        streaming_chunks=None,
+        thinking_chunks=[],
+    )
+
+    event = SimpleNamespace(assistant_message_event={"type": "text_delta", "delta": "hello"})
+    await orchestrator._handle_message_update(event)
+
+    assert state_manager.session._debug_raw_stream_accum == "hello"
+
+
 async def test_thinking_delta_routes_without_streaming_callback() -> None:
     thought_chunks: list[str] = []
     orchestrator, state_manager = _build_orchestrator(

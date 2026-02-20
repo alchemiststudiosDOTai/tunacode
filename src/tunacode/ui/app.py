@@ -100,6 +100,9 @@ class TextualReplApp(App[None]):
     THINKING_MAX_RENDER_LINES: int = DEFAULT_THINKING_MAX_LINES
     THINKING_MAX_RENDER_CHARS: int = DEFAULT_THINKING_MAX_CHARS
     THINKING_THROTTLE_MS: float = STREAM_THROTTLE_MS
+    USER_SETTINGS_KEY: str = "settings"
+    STREAM_AGENT_TEXT_SETTING_KEY: str = "stream_agent_text"
+    STREAM_AGENT_TEXT_DEFAULT: bool = False
     CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
     DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
     CONTEXT_PANEL_MIN_TERMINAL_WIDTH: int = 80
@@ -209,6 +212,19 @@ class TextualReplApp(App[None]):
             finally:
                 self.request_queue.task_done()
 
+    def _should_stream_agent_text(self) -> bool:
+        user_config = self.state_manager.session.user_config
+        settings_value = user_config.get(self.USER_SETTINGS_KEY, {})
+        if not isinstance(settings_value, dict):
+            return self.STREAM_AGENT_TEXT_DEFAULT
+        stream_setting = settings_value.get(
+            self.STREAM_AGENT_TEXT_SETTING_KEY,
+            self.STREAM_AGENT_TEXT_DEFAULT,
+        )
+        if isinstance(stream_setting, bool):
+            return stream_setting
+        return self.STREAM_AGENT_TEXT_DEFAULT
+
     async def _process_request(self, message: str) -> None:
         session = self.state_manager.session
         self._request_start_time = time.monotonic()
@@ -220,13 +236,15 @@ class TextualReplApp(App[None]):
         self._clear_thinking_state()
         try:
             model_name = session.current_model or "openai/gpt-4o"
+            should_stream_agent_text = self._should_stream_agent_text()
+            streaming_callback = self._streaming_callback if should_stream_agent_text else None
             self._current_request_task = asyncio.create_task(
                 process_request(
                     message=message,
                     model=ModelName(model_name),
                     state_manager=self.state_manager,
                     tool_callback=build_textual_tool_callback(),
-                    streaming_callback=self._streaming_callback,
+                    streaming_callback=streaming_callback,
                     thinking_callback=self._thinking_callback,
                     tool_result_callback=build_tool_result_callback(self),
                     tool_start_callback=build_tool_start_callback(self),

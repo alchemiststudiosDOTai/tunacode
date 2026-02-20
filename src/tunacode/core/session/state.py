@@ -36,7 +36,7 @@ class SessionState:
     spinner: Any | None = None
     debug_mode: bool = False
     undo_initialized: bool = False
-    show_thoughts: bool = False
+    show_thoughts: bool = True
     conversation: ConversationState = field(default_factory=ConversationState)
     compaction: CompactionRecord | None = None
     task: TaskState = field(default_factory=TaskState)
