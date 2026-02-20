@@ -17,10 +17,6 @@ from pathlib import Path
 from tunacode.tools.decorators import base_tool
 from tunacode.tools.ignore import IgnoreManager, get_ignore_manager
 
-# ---------------------------------------------------------------------------
-# Output types — the ONLY thing the model sees
-# ---------------------------------------------------------------------------
-
 MAX_REPORT_FILES = 20
 MAX_PREVIEW_LINES = 200
 MAX_GLOB_CANDIDATES = 150
@@ -28,7 +24,6 @@ MAX_EXCERPT_LINES = 3
 MAX_SYMBOLS_PER_FILE = 8
 MAX_IMPORTS_PER_FILE = 8
 
-# Extensions we consider source/doc files
 SOURCE_EXTENSIONS = frozenset({
     ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java",
     ".rb", ".php", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift",
@@ -37,7 +32,6 @@ SOURCE_EXTENSIONS = frozenset({
     ".cfg", ".conf", ".sql",
 })
 
-# Python keywords that leak into naive symbol extraction
 _PYTHON_KEYWORDS = frozenset({
     "False", "None", "True", "and", "as", "assert", "async", "await",
     "break", "class", "continue", "def", "del", "elif", "else",
@@ -46,7 +40,6 @@ _PYTHON_KEYWORDS = frozenset({
     "return", "try", "while", "with", "yield",
 })
 
-# JS/TS keywords that leak similarly
 _JS_KEYWORDS = frozenset({
     "const", "let", "var", "function", "class", "export", "default",
     "import", "from", "return", "if", "else", "for", "while", "do",
@@ -132,12 +125,6 @@ class DiscoveryReport:
         return "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
-# Concept expansion — maps root concepts to related filename/content terms
-# ---------------------------------------------------------------------------
-
-# Intentionally curated for common software domains. Update as new
-# recurring concepts emerge in real queries.
 CONCEPT_EXPANSIONS: dict[str, list[str]] = {
     "auth": ["auth", "login", "session", "token", "jwt", "oauth",
              "credential", "permission", "role", "passport", "sso"],
@@ -172,7 +159,6 @@ def _extract_search_terms(query: str) -> dict[str, list[str]]:
     """Extract exact identifiers, filename terms, and content terms from natural language."""
     words = set(re.findall(r"[a-zA-Z_][a-zA-Z0-9_]{2,}", query.lower()))
 
-    # Exact identifiers: CamelCase, snake_case, dotted
     exact: list[str] = re.findall(r"[A-Z][a-zA-Z0-9]+(?:[A-Z][a-zA-Z0-9]+)+", query)
     exact += re.findall(r"[a-z]+(?:_[a-z]+)+", query)
     exact += re.findall(r"[\w]+\.[\w]+", query)
@@ -185,8 +171,6 @@ def _extract_search_terms(query: str) -> dict[str, list[str]]:
             continue
         matched = False
         for concept, expansions in CONCEPT_EXPANSIONS.items():
-            # Require exact match or that the overlap is meaningful (>=4 chars)
-            # to avoid short words like "typ" expanding the "type" concept.
             if word == concept or (
                 len(word) >= 4
                 and (word.startswith(concept) or concept.startswith(word))
@@ -208,10 +192,6 @@ def _extract_search_terms(query: str) -> dict[str, list[str]]:
         "content": list(dict.fromkeys(content_terms)),
     }
 
-
-# ---------------------------------------------------------------------------
-# Glob pattern generation — aggressive, cheap, cast a wide net
-# ---------------------------------------------------------------------------
 
 def _detect_dominant_extensions(
     project_root: Path,
@@ -248,10 +228,6 @@ def _generate_glob_patterns(terms: dict[str, list[str]], extensions: list[str]) 
 
     return list(dict.fromkeys(patterns))
 
-
-# ---------------------------------------------------------------------------
-# Candidate collection — glob + ignore filtering
-# ---------------------------------------------------------------------------
 
 def _extract_terms_from_patterns(patterns: list[str]) -> set[str]:
     """Extract core search terms from glob patterns for single-walk matching."""
@@ -297,10 +273,6 @@ def _collect_candidates(
     return result[:max_candidates]
 
 
-# ---------------------------------------------------------------------------
-# Prospect evaluation — read first N lines, score, keep or skip
-# ---------------------------------------------------------------------------
-
 @dataclass
 class _Prospect:
     path: Path
@@ -330,7 +302,6 @@ def _evaluate_prospect(
     preview = "\n".join(all_lines[:max_preview_lines])
     preview_lower = preview.lower()
 
-    # --- Scoring ---
     exact_hits = sum(1 for t in terms["exact"] if t in preview)
     content_hits = sum(1 for t in terms["content"] if t.lower() in preview_lower)
     path_lower = str(path).lower()
@@ -338,7 +309,6 @@ def _evaluate_prospect(
 
     score = (exact_hits * 3.0) + (content_hits * 1.0) + (filename_hits * 2.0)
 
-    # --- Threshold ---
     if exact_hits >= 1 or content_hits >= 3 or (filename_hits >= 2 and content_hits >= 1):
         relevance = Relevance.HIGH
     elif content_hits >= 2 or (filename_hits >= 1 and content_hits >= 1):
