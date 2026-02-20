@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<tool_prompt>
-    <description>
-List files and directories. Requires absolute path.
-Prefer Glob/Grep when you know what to search for.
-    </description>
-</tool_prompt>

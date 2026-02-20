@@ -32,9 +32,6 @@ from tunacode.types import ModelName
 from tunacode.tools.bash import bash
 from tunacode.tools.decorators import to_tinyagent_tool
 from tunacode.tools.discover import discover
-from tunacode.tools.glob import glob
-from tunacode.tools.grep import grep
-from tunacode.tools.list_dir import list_dir
 from tunacode.tools.read_file import read_file
 from tunacode.tools.update_file import update_file
 from tunacode.tools.web_fetch import web_fetch
@@ -179,9 +176,6 @@ def _build_tools() -> list[AgentTool]:
     return [
         to_tinyagent_tool(bash),
         to_tinyagent_tool(discover),
-        to_tinyagent_tool(glob),
-        to_tinyagent_tool(grep),
-        to_tinyagent_tool(list_dir),
         to_tinyagent_tool(read_file),
         to_tinyagent_tool(update_file),
         to_tinyagent_tool(web_fetch),

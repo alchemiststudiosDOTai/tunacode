@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<tool_prompt>
-    <description>
-Fast file pattern matching. Supports glob patterns like "**/*.py" or "src/**/*.ts".
-Returns matching file paths sorted by modification time.
-    </description>
-</tool_prompt>
