@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `discover` tool: unified code discovery replacing manual glob/grep/read chains with a single natural-language query
 
+### Improved
+- Replaced the synthetic `discover` benchmark with a real-repo harness in `tests/benchmarks/bench_discover.py` comparing single-call `discover` against the legacy `list_dir -> glob -> grep -> read_file` chain
+- Benchmark output now reports end-to-end metrics that matter for agent workflows: cold/warm latency (including p50/p95), tool-call count, output token footprint, file/symbol recall, and actionability
+- Current baseline run on TunaCode shows `discover` at 1.0 average tool calls vs 6.0 for legacy (6x fewer round trips), ~4.2x fewer output tokens (~3.1k vs ~12.9k), ~9% lower latency (cold: 2587ms vs 2811ms, warm: 2597ms vs 2832ms), and higher retrieval quality/actionability
+
 ### Removed
 - `glob` tool (replaced by `discover`)
 - `grep` tool and `grep_components/` module (replaced by `discover`)

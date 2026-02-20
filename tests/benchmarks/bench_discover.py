@@ -1,7 +1,17 @@
-"""Benchmark: discover tool -- speed, accuracy, and comparison vs legacy chain.
+"""Real-repo benchmark for discover vs a legacy multi-tool search chain.
 
-Generates synthetic repos of varying sizes, runs known queries against them,
-and measures wall time + precision/recall against ground-truth expected files.
+This benchmark runs on the TunaCode repository itself and compares:
+
+- discover (single tool call with structured report)
+- legacy chain (list_dir -> glob -> grep -> read_file previews)
+
+It measures:
+- latency (cold + warm)
+- tool-call count
+- output token footprint (character-based estimate)
+- file recall against hand-labeled expectations
+- symbol recall against hand-labeled expectations
+- actionability (can the next file be chosen immediately)
 
 Usage:
     uv run python tests/benchmarks/bench_discover.py
@@ -9,537 +19,910 @@ Usage:
 
 from __future__ import annotations
 
-import random
-import tempfile
+import asyncio
+import math
+import os
+import re
+import statistics
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from textwrap import dedent
+from typing import Any
 
-from tunacode.tools.discover import _discover_sync
+from tinyagent import AgentTool
+
+from tunacode.tools.cache_accessors.ignore_manager_cache import clear_ignore_manager_cache
+from tunacode.tools.cache_accessors.ripgrep_cache import clear_ripgrep_cache
+from tunacode.tools.cache_accessors.xml_prompts_cache import clear_xml_prompts_cache
+from tunacode.tools.decorators import base_tool, to_tinyagent_tool
+from tunacode.tools.discover import _extract_search_terms, discover
+from tunacode.tools.ignore import get_ignore_manager
+from tunacode.tools.read_file import read_file
+from tunacode.tools.utils.ripgrep import RipgrepExecutor
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-SEED = 42
-SMALL_FILES = 50
-MEDIUM_FILES = 500
-LARGE_FILES = 2000
-
-LEGACY_PREVIEW_LINES = 200
-
-# ---------------------------------------------------------------------------
-# Content templates -- realistic Python files seeded with domain terms
-# ---------------------------------------------------------------------------
-
-_AUTH_TEMPLATE_A = dedent("""\
-    from app.auth import jwt_handler
-
-    class AuthService:
-        \"\"\"Handles authentication and token validation.\"\"\"
-
-        def validate_token(self, token: str) -> bool:
-            return jwt_handler.verify(token)
-
-        def login(self, username: str, password: str) -> str:
-            session = create_session(username)
-            return session.token
-""")
-
-_AUTH_TEMPLATE_B = dedent("""\
-    from app.models import User
-
-    def check_credentials(user: User, password: str) -> bool:
-        \"\"\"Verify user credentials against stored hash.\"\"\"
-        return verify_password(password, user.password_hash)
-
-    def issue_jwt(user_id: int) -> str:
-        return encode_jwt({"sub": user_id})
-""")
-
-_DB_TEMPLATE_A = dedent("""\
-    from sqlalchemy import Column, Integer, String
-    from app.db import Base
-
-    class UserModel(Base):
-        \"\"\"User database model with schema definition.\"\"\"
-        __tablename__ = "users"
-        id = Column(Integer, primary_key=True)
-        name = Column(String(100))
-
-    def run_migration():
-        Base.metadata.create_all(engine)
-""")
-
-_DB_TEMPLATE_B = dedent("""\
-    from app.db import session_factory
-
-    class Repository:
-        \"\"\"Generic database repository for query operations.\"\"\"
-        def get_by_id(self, model_class, record_id: int):
-            with session_factory() as session:
-                return session.query(model_class).get(record_id)
-""")
-
-_API_TEMPLATE_A = dedent("""\
-    from flask import Blueprint, request, jsonify
-
-    api_bp = Blueprint("api", __name__)
-
-    @api_bp.route("/users", methods=["GET"])
-    def list_users():
-        \"\"\"API endpoint for listing users.\"\"\"
-        return jsonify(get_all_users())
-
-    @api_bp.route("/users/<int:uid>", methods=["GET"])
-    def get_user(uid: int):
-        return jsonify(get_user_by_id(uid))
-""")
-
-_API_TEMPLATE_B = dedent("""\
-    from app.middleware import require_auth
-
-    class UserController:
-        \"\"\"Controller handling user API requests and routing.\"\"\"
-        @require_auth
-        def handle_create(self, request):
-            data = request.json
-            return create_user(data)
-""")
-
-_ERROR_TEMPLATE_A = dedent("""\
-    import logging
-
-    class RetryError(Exception):
-        \"\"\"Raised when all retry attempts are exhausted.\"\"\"
-        pass
-
-    def with_retry(fn, max_attempts: int = 3):
-        \"\"\"Retry a function with exponential backoff on error.\"\"\"
-        for attempt in range(max_attempts):
-            try:
-                return fn()
-            except Exception as e:
-                logging.warning("Attempt %d failed: %s", attempt + 1, e)
-                if attempt == max_attempts - 1:
-                    raise RetryError("All attempts failed") from e
-""")
-
-_ERROR_TEMPLATE_B = dedent("""\
-    class ErrorHandler:
-        \"\"\"Centralized error handling with fallback strategies.\"\"\"
-        def handle_exception(self, exc: Exception) -> None:
-            if isinstance(exc, ConnectionError):
-                self.retry_connection()
-            elif isinstance(exc, ValueError):
-                self.log_validation_error(exc)
-            else:
-                raise
-""")
-
-_TOOL_TEMPLATE_A = dedent("""\
-    from functools import wraps
-
-    TOOL_REGISTRY: dict[str, callable] = {}
-
-    def register_tool(name: str):
-        \"\"\"Decorator to register a tool in the global registry.\"\"\"
-        def decorator(fn):
-            @wraps(fn)
-            def wrapper(*args, **kwargs):
-                return fn(*args, **kwargs)
-            TOOL_REGISTRY[name] = wrapper
-            return wrapper
-        return decorator
-
-    @register_tool("bash")
-    def bash_tool(command: str) -> str:
-        \"\"\"Execute a bash command.\"\"\"
-        pass
-""")
-
-_TOOL_TEMPLATE_B = dedent("""\
-    from app.tools.registry import TOOL_REGISTRY
-
-    class ToolExecutor:
-        \"\"\"Executes registered tools by name.\"\"\"
-        def execute(self, tool_name: str, **kwargs):
-            if tool_name not in TOOL_REGISTRY:
-                raise KeyError(f"Unknown tool: {tool_name}")
-            return TOOL_REGISTRY[tool_name](**kwargs)
-""")
-
-_NOISE_A = dedent("""\
-    import math
-
-    def compute_fibonacci(n: int) -> int:
-        \"\"\"Compute nth Fibonacci number.\"\"\"
-        if n <= 1:
-            return n
-        a, b = 0, 1
-        for _ in range(2, n + 1):
-            a, b = b, a + b
-        return b
-""")
-
-_NOISE_B = dedent("""\
-    import os
-    import sys
-
-    def format_bytes(size: int) -> str:
-        \"\"\"Format byte count as human-readable string.\"\"\"
-        for unit in ("B", "KB", "MB", "GB"):
-            if size < 1024:
-                return f"{size:.1f}{unit}"
-            size /= 1024
-        return f"{size:.1f}TB"
-""")
-
-_NOISE_C = dedent("""\
-    class StringUtils:
-        @staticmethod
-        def snake_to_camel(s: str) -> str:
-            parts = s.split("_")
-            return parts[0] + "".join(
-                p.capitalize() for p in parts[1:]
-            )
-
-        @staticmethod
-        def truncate(s: str, length: int = 80) -> str:
-            if len(s) > length:
-                return s[:length] + "..."
-            return s
-""")
-
-DOMAIN_TEMPLATES: dict[str, list[str]] = {
-    "auth": [_AUTH_TEMPLATE_A, _AUTH_TEMPLATE_B],
-    "database": [_DB_TEMPLATE_A, _DB_TEMPLATE_B],
-    "api": [_API_TEMPLATE_A, _API_TEMPLATE_B],
-    "error": [_ERROR_TEMPLATE_A, _ERROR_TEMPLATE_B],
-    "tool": [_TOOL_TEMPLATE_A, _TOOL_TEMPLATE_B],
-}
-
-NOISE_TEMPLATES = [_NOISE_A, _NOISE_B, _NOISE_C]
-
-DOMAIN_DIRS: dict[str, list[str]] = {
-    "auth": ["auth", "security", "session"],
-    "database": ["db", "models", "migrations"],
-    "api": ["api", "routes", "controllers"],
-    "error": ["errors", "exceptions", "retry"],
-    "tool": ["tools", "commands", "executors"],
-}
-
-NOISE_DIRS = [
-    "utils", "helpers", "lib", "common",
-    "internal", "support", "misc",
-]
-
-
-# ---------------------------------------------------------------------------
-# Ground-truth queries
-# ---------------------------------------------------------------------------
-
-@dataclass
-class BenchQuery:
-    label: str
-    query: str
-    expected_domains: list[str]
-
-
-QUERIES = [
-    BenchQuery(
-        "auth + token",
-        "authentication and token validation",
-        ["auth"],
-    ),
-    BenchQuery(
-        "db + schema",
-        "database models and schema",
-        ["database"],
-    ),
-    BenchQuery(
-        "error + retry",
-        "error handling and retry",
-        ["error"],
-    ),
-    BenchQuery(
-        "api + routing",
-        "API endpoints and routing",
-        ["api"],
-    ),
-    BenchQuery(
-        "tool registration",
-        "tool registration",
-        ["tool"],
-    ),
-]
-
-
-# ---------------------------------------------------------------------------
-# Synthetic repo generation
-# ---------------------------------------------------------------------------
-
-def _generate_repo(
-    root: Path,
-    file_count: int,
-    rng: random.Random,
-) -> dict[str, set[str]]:
-    """Generate a synthetic repo.
-
-    Returns {domain: set(relative_paths)} for ground truth.
-    """
-    domains = list(DOMAIN_TEMPLATES.keys())
-    ground_truth: dict[str, set[str]] = {d: set() for d in domains}
-
-    domain_count = int(file_count * 0.6)
-    noise_count = file_count - domain_count
-    files_per_domain = domain_count // len(domains)
-
-    for domain in domains:
-        dirs = DOMAIN_DIRS[domain]
-        templates = DOMAIN_TEMPLATES[domain]
-        for i in range(files_per_domain):
-            dir_name = rng.choice(dirs)
-            dir_path = root / "src" / dir_name
-            dir_path.mkdir(parents=True, exist_ok=True)
-            filename = f"{domain}_{i:03d}.py"
-            filepath = dir_path / filename
-            filepath.write_text(rng.choice(templates))
-            rel = str(filepath.relative_to(root))
-            ground_truth[domain].add(rel)
-
-    for i in range(noise_count):
-        dir_name = rng.choice(NOISE_DIRS)
-        dir_path = root / "src" / dir_name
-        dir_path.mkdir(parents=True, exist_ok=True)
-        filename = f"util_{i:03d}.py"
-        filepath = dir_path / filename
-        filepath.write_text(rng.choice(NOISE_TEMPLATES))
-
-    return ground_truth
-
-
-# ---------------------------------------------------------------------------
-# Legacy chain -- simulates old glob -> grep -> read workflow
-# ---------------------------------------------------------------------------
-
-LEGACY_SEARCH_TERMS: dict[str, list[str]] = {
-    "authentication and token validation": [
-        "auth", "token", "jwt", "login", "credential",
-    ],
-    "database models and schema": [
-        "database", "model", "schema", "migration", "orm",
-    ],
-    "error handling and retry": [
-        "error", "exception", "retry", "fallback",
-    ],
-    "API endpoints and routing": [
-        "api", "route", "endpoint", "controller", "handler",
-    ],
-    "tool registration": [
-        "tool", "register", "registry", "decorator",
-    ],
-}
-
-
-def _legacy_chain(query: str, root: Path) -> list[str]:
-    """Simulate old glob -> grep -> read chain."""
-    terms = LEGACY_SEARCH_TERMS.get(query, query.lower().split())
-
-    # Step 1: glob -- find files whose paths match terms
-    candidates: list[Path] = []
-    for path in root.rglob("*.py"):
-        path_lower = str(path).lower()
-        if any(t in path_lower for t in terms):
-            candidates.append(path)
-
-    # Step 2: grep -- search content for term matches
-    matches: list[str] = []
-    for path in candidates:
-        try:
-            text = path.read_text(errors="replace")
-        except OSError:
-            continue
-        lines = text.splitlines()[:LEGACY_PREVIEW_LINES]
-        preview_lower = "\n".join(lines).lower()
-        hits = sum(1 for t in terms if t in preview_lower)
-        if hits >= 2:
-            matches.append(str(path.relative_to(root)))
-
-    return matches
-
-
-# ---------------------------------------------------------------------------
-# Metrics
-# ---------------------------------------------------------------------------
-
-@dataclass
-class BenchResult:
-    query_label: str
-    discover_ms: float
-    legacy_ms: float
-    precision: float
-    recall: float
-    f1: float
-    discover_files: int
-    legacy_files: int
-
-
-def _compute_metrics(
-    found: set[str],
-    expected: set[str],
-) -> tuple[float, float, float]:
-    """Compute precision, recall, F1."""
-    if not found:
-        return (0.0, 0.0, 0.0)
-    true_positives = len(found & expected)
-    precision = true_positives / len(found) if found else 0.0
-    recall = true_positives / len(expected) if expected else 0.0
-    denom = precision + recall
-    f1 = (2 * precision * recall / denom) if denom > 0 else 0.0
-    return precision, recall, f1
-
-
-# ---------------------------------------------------------------------------
-# Run benchmark
-# ---------------------------------------------------------------------------
-
-def _run_benchmark(
-    repo_label: str,
-    file_count: int,
-    rng: random.Random,
-) -> list[BenchResult]:
-    results: list[BenchResult] = []
-
-    with tempfile.TemporaryDirectory(
-        prefix=f"bench_{repo_label}_",
-    ) as tmpdir:
-        root = Path(tmpdir)
-        ground_truth = _generate_repo(root, file_count, rng)
-
-        for q in QUERIES:
-            expected: set[str] = set()
-            for domain in q.expected_domains:
-                expected |= ground_truth[domain]
-
-            # --- Discover ---
-            t0 = time.perf_counter()
-            report = _discover_sync(q.query, str(root))
-            discover_ms = (time.perf_counter() - t0) * 1000
-
-            discover_paths: set[str] = set()
-            for cluster in report.clusters:
-                for f in cluster.files:
-                    try:
-                        rel = str(Path(f.path).relative_to(root))
-                    except ValueError:
-                        rel = f.path
-                    discover_paths.add(rel)
-
-            # --- Legacy chain ---
-            t0 = time.perf_counter()
-            legacy_list = _legacy_chain(q.query, root)
-            legacy_ms = (time.perf_counter() - t0) * 1000
-
-            # --- Metrics (for discover) ---
-            precision, recall, f1 = _compute_metrics(
-                discover_paths, expected,
-            )
-
-            results.append(BenchResult(
-                query_label=q.label,
-                discover_ms=discover_ms,
-                legacy_ms=legacy_ms,
-                precision=precision,
-                recall=recall,
-                f1=f1,
-                discover_files=len(discover_paths),
-                legacy_files=len(legacy_list),
-            ))
-
-    return results
-
-
-# ---------------------------------------------------------------------------
-# Table output
-# ---------------------------------------------------------------------------
-
-COL_QUERY = 28
-COL_NUM = 10
-COL_METRIC = 7
-
-HEADER = (
-    f"{'Query':<{COL_QUERY}} "
-    f"{'Discover':>{COL_NUM}} "
-    f"{'Legacy':>{COL_NUM}} "
-    f"{'Prec':>{COL_METRIC}} "
-    f"{'Recall':>{COL_METRIC}} "
-    f"{'F1':>{COL_METRIC}} "
-    f"{'D-files':>{COL_METRIC}} "
-    f"{'L-files':>{COL_METRIC}}"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+MODE_COLD = "cold"
+MODE_WARM = "warm"
+
+COLD_RUNS_PER_QUERY = 1
+WARM_RUNS_PER_QUERY = 2
+
+TOKEN_CHARS_PER_TOKEN = 4.0
+PERCENTILE_P50 = 0.50
+PERCENTILE_P95 = 0.95
+
+ACTIONABLE_TOP_FILE_RANK = 3
+ACTIONABLE_SYMBOL_RECALL_THRESHOLD = 0.50
+
+LEGACY_LIST_MAX_FILES = 250
+LEGACY_GLOB_MAX_FILES = 400
+LEGACY_GREP_MAX_MATCHES = 200
+LEGACY_GREP_TERM_LIMIT = 8
+LEGACY_READ_FILE_LIMIT = 3
+LEGACY_READ_LINE_LIMIT = 120
+
+BENCH_TOOL_CALL_ID = "bench-call-id"
+
+HIDDEN_PREFIX = "."
+
+SOURCE_EXTENSIONS = frozenset(
+    {
+        ".py",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".go",
+        ".rs",
+        ".java",
+        ".md",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".json",
+    }
 )
 
-SEP = "-" * len(HEADER)
+DISCOVER_FILE_PATTERN = re.compile(r"[★◆]\s+`([^`]+)`")
+DISCOVER_DEFINES_PATTERN = re.compile(r"defines:\s*(.+)")
+
+SYMBOL_PATTERNS = (
+    re.compile(r"(?:async\s+def|def|class)\s+([a-zA-Z_][a-zA-Z0-9_]*)"),
+    re.compile(r"function\s+([a-zA-Z_][a-zA-Z0-9_]*)"),
+    re.compile(r"(?:export\s+)?class\s+([a-zA-Z_][a-zA-Z0-9_]*)"),
+    re.compile(r"(?:pub\s+)?(?:fn|struct|enum|trait)\s+([a-zA-Z_][a-zA-Z0-9_]*)"),
+)
+
+# ---------------------------------------------------------------------------
+# Ground truth query set (real TunaCode files)
+# ---------------------------------------------------------------------------
 
 
-def _format_row(r: BenchResult) -> str:
-    return (
-        f"{r.query_label:<{COL_QUERY}} "
-        f"{r.discover_ms:>{COL_NUM}.1f} "
-        f"{r.legacy_ms:>{COL_NUM}.1f} "
-        f"{r.precision:>{COL_METRIC}.2f} "
-        f"{r.recall:>{COL_METRIC}.2f} "
-        f"{r.f1:>{COL_METRIC}.2f} "
-        f"{r.discover_files:>{COL_METRIC}} "
-        f"{r.legacy_files:>{COL_METRIC}}"
+@dataclass(frozen=True)
+class BenchmarkQuery:
+    label: str
+    query: str
+    expected_files: tuple[str, ...]
+    expected_symbols: tuple[str, ...]
+
+
+QUERIES: tuple[BenchmarkQuery, ...] = (
+    BenchmarkQuery(
+        label="decorators + tinyagent",
+        query="tool decorators and tinyagent adapter registration",
+        expected_files=("src/tunacode/tools/decorators.py",),
+        expected_symbols=("base_tool", "to_tinyagent_tool"),
+    ),
+    BenchmarkQuery(
+        label="discover clustering",
+        query="discover relevance scoring and concept clustering",
+        expected_files=("src/tunacode/tools/discover.py",),
+        expected_symbols=("_cluster_prospects", "_evaluate_prospect"),
+    ),
+    BenchmarkQuery(
+        label="ignore cache + mtime",
+        query="ignore manager cache invalidation using gitignore mtime",
+        expected_files=(
+            "src/tunacode/tools/cache_accessors/ignore_manager_cache.py",
+            "src/tunacode/tools/ignore_manager.py",
+        ),
+        expected_symbols=("get_ignore_manager", "get_gitignore_mtime_ns"),
+    ),
+    BenchmarkQuery(
+        label="ripgrep execution",
+        query="ripgrep binary resolution and async subprocess search",
+        expected_files=("src/tunacode/tools/utils/ripgrep.py",),
+        expected_symbols=("get_ripgrep_binary_path", "RipgrepExecutor"),
+    ),
+    BenchmarkQuery(
+        label="agent tool registration",
+        query="where agent config registers tools for tinyagent",
+        expected_files=("src/tunacode/core/agents/agent_components/agent_config.py",),
+        expected_symbols=("_build_tools", "get_or_create_agent"),
+    ),
+    BenchmarkQuery(
+        label="compaction pipeline",
+        query="compaction controller with context summarizer flow",
+        expected_files=(
+            "src/tunacode/core/compaction/controller.py",
+            "src/tunacode/core/compaction/summarizer.py",
+        ),
+        expected_symbols=("CompactionController", "ContextSummarizer"),
+    ),
+    BenchmarkQuery(
+        label="web fetch safety",
+        query="web fetch url validation and html conversion",
+        expected_files=("src/tunacode/tools/web_fetch.py",),
+        expected_symbols=("_validate_url", "_convert_html_to_text"),
+    ),
+    BenchmarkQuery(
+        label="lsp diagnostics",
+        query="lsp client diagnostics and settings checks",
+        expected_files=(
+            "src/tunacode/tools/lsp/client.py",
+            "src/tunacode/tools/lsp/diagnostics.py",
+        ),
+        expected_symbols=("LSPClient", "maybe_prepend_lsp_diagnostics"),
+    ),
+    BenchmarkQuery(
+        label="cache manager strategy",
+        query="cache manager entries and mtime strategy logic",
+        expected_files=(
+            "src/tunacode/infrastructure/cache/manager.py",
+            "src/tunacode/infrastructure/cache/strategies.py",
+        ),
+        expected_symbols=("CacheManager", "MtimeStrategy"),
+    ),
+    BenchmarkQuery(
+        label="model picker filtering",
+        query="model picker option filtering and highlight index",
+        expected_files=("src/tunacode/ui/screens/model_picker.py",),
+        expected_symbols=("_filter_visible_items", "_choose_highlight_index"),
+    ),
+    BenchmarkQuery(
+        label="tool renderer registry",
+        query="tool renderer registration and renderer lookup",
+        expected_files=("src/tunacode/ui/renderers/tools/base.py",),
+        expected_symbols=("tool_renderer", "get_renderer"),
+    ),
+    BenchmarkQuery(
+        label="session state objects",
+        query="session state and state manager objects",
+        expected_files=("src/tunacode/core/session/state.py",),
+        expected_symbols=("SessionState", "StateManager"),
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Bench result models
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class StrategyRun:
+    strategy: str
+    latency_ms: float
+    tool_calls: int
+    output_chars: int
+    files: list[str]
+    symbols: list[str]
+    clusters: int
+
+
+@dataclass
+class MeasuredRun:
+    mode: str
+    query_label: str
+    strategy: str
+    latency_ms: float
+    tool_calls: float
+    output_tokens: float
+    file_recall: float
+    symbol_recall: float
+    first_hit_rank: float
+    actionable: float
+    clusters: float
+
+
+# ---------------------------------------------------------------------------
+# Legacy chain tools (real tool-call overhead, no synthetic repository)
+# ---------------------------------------------------------------------------
+
+
+def _normalize_relative_path(path_text: str, root: Path) -> str:
+    path_text = path_text.strip()
+    if not path_text:
+        return ""
+
+    candidate = Path(path_text)
+    resolved = candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+
+    try:
+        rel = resolved.relative_to(root)
+    except ValueError:
+        return resolved.as_posix()
+
+    return rel.as_posix()
+
+
+def _is_hidden_path(path: Path) -> bool:
+    return any(part.startswith(HIDDEN_PREFIX) for part in path.parts)
+
+
+def _collect_list_dir_files(root: Path, max_files: int) -> list[str]:
+    ignore_manager = get_ignore_manager(root)
+    collected: list[str] = []
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dir_path = Path(dirpath)
+
+        filtered_dirs: list[str] = []
+        for dirname in sorted(dirnames):
+            child_dir = dir_path / dirname
+            if _is_hidden_path(child_dir.relative_to(root)):
+                continue
+            if ignore_manager.should_ignore_dir(child_dir):
+                continue
+            filtered_dirs.append(dirname)
+        dirnames[:] = filtered_dirs
+
+        for filename in sorted(filenames):
+            child_file = dir_path / filename
+            rel_path = child_file.relative_to(root)
+            if _is_hidden_path(rel_path):
+                continue
+            if ignore_manager.should_ignore(child_file):
+                continue
+            collected.append(rel_path.as_posix())
+            if len(collected) >= max_files:
+                return collected
+
+    return collected
+
+
+@base_tool
+async def legacy_list_dir(directory: str = ".", max_files: int = LEGACY_LIST_MAX_FILES) -> str:
+    root = Path(directory).resolve()
+    files = await asyncio.to_thread(_collect_list_dir_files, root, max_files)
+    return "\n".join(files)
+
+
+def _collect_glob_candidates(root: Path, query: str, max_files: int) -> list[str]:
+    ignore_manager = get_ignore_manager(root)
+    terms = _extract_search_terms(query)["filename"]
+    lowered_terms = tuple(term.lower() for term in terms)
+
+    if not lowered_terms:
+        return []
+
+    candidates: list[str] = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix not in SOURCE_EXTENSIONS:
+            continue
+        if ignore_manager.should_ignore(path):
+            continue
+
+        rel = path.relative_to(root).as_posix()
+        rel_lower = rel.lower()
+        if not any(term in rel_lower for term in lowered_terms):
+            continue
+
+        candidates.append(rel)
+        if len(candidates) >= max_files:
+            break
+
+    return candidates
+
+
+@base_tool
+async def legacy_glob(
+    query: str,
+    directory: str = ".",
+    max_files: int = LEGACY_GLOB_MAX_FILES,
+) -> str:
+    root = Path(directory).resolve()
+    candidates = await asyncio.to_thread(_collect_glob_candidates, root, query, max_files)
+    return "\n".join(candidates)
+
+
+def _build_legacy_grep_pattern(query: str) -> str:
+    terms = _extract_search_terms(query)["content"]
+    compact_terms: list[str] = []
+
+    for term in terms:
+        normalized_term = term.strip().lower()
+        if len(normalized_term) < 3:
+            continue
+        if normalized_term in compact_terms:
+            continue
+        compact_terms.append(normalized_term)
+        if len(compact_terms) >= LEGACY_GREP_TERM_LIMIT:
+            break
+
+    if not compact_terms:
+        return ""
+
+    escaped = [re.escape(term) for term in compact_terms]
+    return "|".join(escaped)
+
+
+def _parse_path_lines(text: str, root: Path) -> list[str]:
+    ranked_paths: list[str] = []
+    seen: set[str] = set()
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        head = line.split(":", 1)[0]
+        normalized = _normalize_relative_path(head, root)
+        if not normalized:
+            continue
+        if normalized in seen:
+            continue
+
+        candidate_path = root / normalized
+        if not candidate_path.exists():
+            continue
+
+        seen.add(normalized)
+        ranked_paths.append(normalized)
+
+    return ranked_paths
+
+
+@base_tool
+async def legacy_grep(
+    query: str,
+    directory: str = ".",
+    candidates: str = "",
+    max_matches: int = LEGACY_GREP_MAX_MATCHES,
+) -> str:
+    root = Path(directory).resolve()
+    candidate_set = set(_parse_path_lines(candidates, root))
+
+    pattern = _build_legacy_grep_pattern(query)
+    if not pattern:
+        return ""
+
+    executor = RipgrepExecutor()
+    lines = await executor.search(
+        pattern=pattern,
+        path=str(root),
+        max_matches=max_matches,
+        case_insensitive=True,
     )
+
+    filtered: list[str] = []
+    for line in lines:
+        file_head = line.split(":", 1)[0]
+        normalized = _normalize_relative_path(file_head, root)
+        if not normalized:
+            continue
+
+        if candidate_set and normalized not in candidate_set:
+            continue
+
+        filtered.append(line)
+        if len(filtered) >= max_matches:
+            break
+
+    return "\n".join(filtered)
+
+
+# ---------------------------------------------------------------------------
+# Parsing and metrics
+# ---------------------------------------------------------------------------
+
+
+def _estimate_tokens(output_chars: int) -> int:
+    if output_chars <= 0:
+        return 0
+    return math.ceil(output_chars / TOKEN_CHARS_PER_TOKEN)
+
+
+def _extract_symbols(text: str) -> list[str]:
+    found: list[str] = []
+    seen: set[str] = set()
+
+    for pattern in SYMBOL_PATTERNS:
+        for symbol in pattern.findall(text):
+            if symbol in seen:
+                continue
+            seen.add(symbol)
+            found.append(symbol)
+
+    return found
+
+
+def _parse_discover_files(output_text: str, root: Path) -> list[str]:
+    matches = DISCOVER_FILE_PATTERN.findall(output_text)
+    files: list[str] = []
+    seen: set[str] = set()
+
+    for raw_path in matches:
+        normalized = _normalize_relative_path(raw_path, root)
+        if not normalized:
+            continue
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        files.append(normalized)
+
+    return files
+
+
+def _parse_discover_symbols(output_text: str) -> list[str]:
+    symbols: list[str] = []
+    seen: set[str] = set()
+
+    for line in output_text.splitlines():
+        match = DISCOVER_DEFINES_PATTERN.search(line)
+        if match is None:
+            continue
+
+        items = [item.strip() for item in match.group(1).split(",")]
+        for item in items:
+            if not item:
+                continue
+            if item in seen:
+                continue
+            seen.add(item)
+            symbols.append(item)
+
+    return symbols
+
+
+def _count_discover_clusters(output_text: str) -> int:
+    return sum(1 for line in output_text.splitlines() if line.startswith("## "))
+
+
+def _safe_recall(hit_count: int, total_count: int) -> float:
+    if total_count <= 0:
+        return 1.0
+    return hit_count / total_count
+
+
+def _first_hit_rank(files: list[str], expected_files: set[str]) -> int:
+    for index, path in enumerate(files, start=1):
+        if path in expected_files:
+            return index
+    return 0
+
+
+def _score_run(mode: str, query: BenchmarkQuery, run: StrategyRun) -> MeasuredRun:
+    expected_files_set = set(query.expected_files)
+    expected_symbols_set = {symbol.lower() for symbol in query.expected_symbols}
+
+    found_files_set = set(run.files)
+    found_symbols_set = {symbol.lower() for symbol in run.symbols}
+
+    file_hits = len(found_files_set & expected_files_set)
+    symbol_hits = len(found_symbols_set & expected_symbols_set)
+
+    file_recall = _safe_recall(file_hits, len(expected_files_set))
+    symbol_recall = _safe_recall(symbol_hits, len(expected_symbols_set))
+
+    rank = _first_hit_rank(run.files, expected_files_set)
+
+    rank_is_actionable = rank > 0 and rank <= ACTIONABLE_TOP_FILE_RANK
+    symbol_is_actionable = symbol_recall >= ACTIONABLE_SYMBOL_RECALL_THRESHOLD
+    actionable = rank_is_actionable or symbol_is_actionable
+
+    return MeasuredRun(
+        mode=mode,
+        query_label=query.label,
+        strategy=run.strategy,
+        latency_ms=run.latency_ms,
+        tool_calls=float(run.tool_calls),
+        output_tokens=float(_estimate_tokens(run.output_chars)),
+        file_recall=file_recall,
+        symbol_recall=symbol_recall,
+        first_hit_rank=float(rank),
+        actionable=1.0 if actionable else 0.0,
+        clusters=float(run.clusters),
+    )
+
+
+def _avg(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return statistics.mean(values)
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+
+    ordered = sorted(values)
+    scaled_index = (len(ordered) - 1) * percentile
+    lower_index = math.floor(scaled_index)
+    upper_index = math.ceil(scaled_index)
+
+    if lower_index == upper_index:
+        return ordered[lower_index]
+
+    lower_value = ordered[lower_index]
+    upper_value = ordered[upper_index]
+    fraction = scaled_index - lower_index
+
+    return lower_value + (upper_value - lower_value) * fraction
+
+
+# ---------------------------------------------------------------------------
+# Tool invocation
+# ---------------------------------------------------------------------------
+
+
+def _drop_updates(_: Any) -> None:
+    return
+
+
+def _tool_result_to_text(result: Any) -> str:
+    content = getattr(result, "content", None)
+    if not isinstance(content, list):
+        return str(result)
+
+    chunks: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            chunks.append(str(item))
+            continue
+
+        text = item.get("text")
+        if isinstance(text, str):
+            chunks.append(text)
+
+    return "\n".join(chunks)
+
+
+async def _invoke_tool(tool: AgentTool, args: dict[str, Any]) -> str:
+    result = await tool.execute(BENCH_TOOL_CALL_ID, args, None, _drop_updates)
+    return _tool_result_to_text(result)
+
+
+# ---------------------------------------------------------------------------
+# Benchmark strategy runners
+# ---------------------------------------------------------------------------
+
+
+async def _run_discover(query: BenchmarkQuery, root: Path) -> StrategyRun:
+    discover_tool = to_tinyagent_tool(discover)
+
+    start = time.perf_counter()
+    output_text = await _invoke_tool(discover_tool, {"query": query.query, "directory": str(root)})
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+
+    files = _parse_discover_files(output_text, root)
+    symbols = _parse_discover_symbols(output_text)
+    clusters = _count_discover_clusters(output_text)
+
+    return StrategyRun(
+        strategy="discover",
+        latency_ms=elapsed_ms,
+        tool_calls=1,
+        output_chars=len(output_text),
+        files=files,
+        symbols=symbols,
+        clusters=clusters,
+    )
+
+
+async def _run_legacy_chain(query: BenchmarkQuery, root: Path) -> StrategyRun:
+    list_tool = to_tinyagent_tool(legacy_list_dir, name="list_dir")
+    glob_tool = to_tinyagent_tool(legacy_glob, name="glob")
+    grep_tool = to_tinyagent_tool(legacy_grep, name="grep")
+    read_tool = to_tinyagent_tool(read_file, name="read_file")
+
+    start = time.perf_counter()
+
+    list_output = await _invoke_tool(
+        list_tool,
+        {"directory": str(root), "max_files": LEGACY_LIST_MAX_FILES},
+    )
+
+    glob_output = await _invoke_tool(
+        glob_tool,
+        {
+            "query": query.query,
+            "directory": str(root),
+            "max_files": LEGACY_GLOB_MAX_FILES,
+        },
+    )
+
+    grep_output = await _invoke_tool(
+        grep_tool,
+        {
+            "query": query.query,
+            "directory": str(root),
+            "candidates": glob_output,
+            "max_matches": LEGACY_GREP_MAX_MATCHES,
+        },
+    )
+
+    ranked_files = _parse_path_lines(grep_output, root)
+    if not ranked_files:
+        ranked_files = _parse_path_lines(glob_output, root)
+
+    read_targets = ranked_files[:LEGACY_READ_FILE_LIMIT]
+
+    read_outputs: list[str] = []
+    for rel_path in read_targets:
+        read_output = await _invoke_tool(
+            read_tool,
+            {
+                "filepath": str((root / rel_path).resolve()),
+                "limit": LEGACY_READ_LINE_LIMIT,
+            },
+        )
+        read_outputs.append(read_output)
+
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+
+    output_segments = [list_output, glob_output, grep_output, *read_outputs]
+    output_chars = sum(len(segment) for segment in output_segments)
+
+    symbols = _extract_symbols("\n".join([grep_output, *read_outputs]))
+
+    return StrategyRun(
+        strategy="legacy",
+        latency_ms=elapsed_ms,
+        tool_calls=3 + len(read_outputs),
+        output_chars=output_chars,
+        files=ranked_files,
+        symbols=symbols,
+        clusters=0,
+    )
+
+
+def _clear_benchmark_caches() -> None:
+    clear_ignore_manager_cache()
+    clear_ripgrep_cache()
+    clear_xml_prompts_cache()
+
+
+async def _prime_warm_caches(root: Path) -> None:
+    seed_query = QUERIES[0]
+    _clear_benchmark_caches()
+    await _run_discover(seed_query, root)
+    await _run_legacy_chain(seed_query, root)
+
+
+async def _run_mode(mode: str, root: Path) -> list[MeasuredRun]:
+    if mode not in {MODE_COLD, MODE_WARM}:
+        raise ValueError(f"Unknown benchmark mode: {mode}")
+
+    if mode == MODE_WARM:
+        await _prime_warm_caches(root)
+
+    run_count = COLD_RUNS_PER_QUERY if mode == MODE_COLD else WARM_RUNS_PER_QUERY
+    measured: list[MeasuredRun] = []
+
+    for query in QUERIES:
+        for _ in range(run_count):
+            if mode == MODE_COLD:
+                _clear_benchmark_caches()
+            discover_run = await _run_discover(query, root)
+            measured.append(_score_run(mode, query, discover_run))
+
+            if mode == MODE_COLD:
+                _clear_benchmark_caches()
+            legacy_run = await _run_legacy_chain(query, root)
+            measured.append(_score_run(mode, query, legacy_run))
+
+    return measured
+
+
+# ---------------------------------------------------------------------------
+# Reporting
+# ---------------------------------------------------------------------------
+
+
+def _rows_for(measured: list[MeasuredRun], mode: str, strategy: str) -> list[MeasuredRun]:
+    return [row for row in measured if row.mode == mode and row.strategy == strategy]
+
+
+def _rows_for_query(
+    measured: list[MeasuredRun],
+    mode: str,
+    strategy: str,
+    query_label: str,
+) -> list[MeasuredRun]:
+    return [
+        row
+        for row in measured
+        if row.mode == mode and row.strategy == strategy and row.query_label == query_label
+    ]
+
+
+def _print_mode_table(measured: list[MeasuredRun], mode: str) -> None:
+    col_query = 26
+    col_num = 8
+
+    header = (
+        f"{'Query':<{col_query}} "
+        f"{'D-ms':>{col_num}} "
+        f"{'L-ms':>{col_num}} "
+        f"{'D-tok':>{col_num}} "
+        f"{'L-tok':>{col_num}} "
+        f"{'D-call':>{col_num}} "
+        f"{'L-call':>{col_num}} "
+        f"{'D-frec':>{col_num}} "
+        f"{'L-frec':>{col_num}} "
+        f"{'D-srec':>{col_num}} "
+        f"{'L-srec':>{col_num}} "
+        f"{'D-act':>{col_num}} "
+        f"{'L-act':>{col_num}}"
+    )
+
+    print(f"\n--- {mode.upper()} ---")
+    print(header)
+    print("-" * len(header))
+
+    for query in QUERIES:
+        discover_rows = _rows_for_query(measured, mode, "discover", query.label)
+        legacy_rows = _rows_for_query(measured, mode, "legacy", query.label)
+
+        d_ms = _avg([row.latency_ms for row in discover_rows])
+        l_ms = _avg([row.latency_ms for row in legacy_rows])
+
+        d_tok = _avg([row.output_tokens for row in discover_rows])
+        l_tok = _avg([row.output_tokens for row in legacy_rows])
+
+        d_calls = _avg([row.tool_calls for row in discover_rows])
+        l_calls = _avg([row.tool_calls for row in legacy_rows])
+
+        d_file_recall = _avg([row.file_recall for row in discover_rows])
+        l_file_recall = _avg([row.file_recall for row in legacy_rows])
+
+        d_symbol_recall = _avg([row.symbol_recall for row in discover_rows])
+        l_symbol_recall = _avg([row.symbol_recall for row in legacy_rows])
+
+        d_actionable = _avg([row.actionable for row in discover_rows])
+        l_actionable = _avg([row.actionable for row in legacy_rows])
+
+        print(
+            f"{query.label:<{col_query}} "
+            f"{d_ms:>{col_num}.1f} "
+            f"{l_ms:>{col_num}.1f} "
+            f"{d_tok:>{col_num}.0f} "
+            f"{l_tok:>{col_num}.0f} "
+            f"{d_calls:>{col_num}.1f} "
+            f"{l_calls:>{col_num}.1f} "
+            f"{d_file_recall:>{col_num}.2f} "
+            f"{l_file_recall:>{col_num}.2f} "
+            f"{d_symbol_recall:>{col_num}.2f} "
+            f"{l_symbol_recall:>{col_num}.2f} "
+            f"{d_actionable:>{col_num}.2f} "
+            f"{l_actionable:>{col_num}.2f}"
+        )
+
+    discover_rows = _rows_for(measured, mode, "discover")
+    legacy_rows = _rows_for(measured, mode, "legacy")
+
+    print("-" * len(header))
+    print(
+        f"{'AVG':<{col_query}} "
+        f"{_avg([row.latency_ms for row in discover_rows]):>{col_num}.1f} "
+        f"{_avg([row.latency_ms for row in legacy_rows]):>{col_num}.1f} "
+        f"{_avg([row.output_tokens for row in discover_rows]):>{col_num}.0f} "
+        f"{_avg([row.output_tokens for row in legacy_rows]):>{col_num}.0f} "
+        f"{_avg([row.tool_calls for row in discover_rows]):>{col_num}.1f} "
+        f"{_avg([row.tool_calls for row in legacy_rows]):>{col_num}.1f} "
+        f"{_avg([row.file_recall for row in discover_rows]):>{col_num}.2f} "
+        f"{_avg([row.file_recall for row in legacy_rows]):>{col_num}.2f} "
+        f"{_avg([row.symbol_recall for row in discover_rows]):>{col_num}.2f} "
+        f"{_avg([row.symbol_recall for row in legacy_rows]):>{col_num}.2f} "
+        f"{_avg([row.actionable for row in discover_rows]):>{col_num}.2f} "
+        f"{_avg([row.actionable for row in legacy_rows]):>{col_num}.2f}"
+    )
+
+
+def _print_strategy_distribution(measured: list[MeasuredRun], mode: str) -> None:
+    discover_rows = _rows_for(measured, mode, "discover")
+    legacy_rows = _rows_for(measured, mode, "legacy")
+
+    discover_latencies = [row.latency_ms for row in discover_rows]
+    legacy_latencies = [row.latency_ms for row in legacy_rows]
+
+    discover_calls = _avg([row.tool_calls for row in discover_rows])
+    legacy_calls = _avg([row.tool_calls for row in legacy_rows])
+
+    discover_tokens = _avg([row.output_tokens for row in discover_rows])
+    legacy_tokens = _avg([row.output_tokens for row in legacy_rows])
+
+    discover_actionable = _avg([row.actionable for row in discover_rows])
+    legacy_actionable = _avg([row.actionable for row in legacy_rows])
+
+    discover_file_recall = _avg([row.file_recall for row in discover_rows])
+    legacy_file_recall = _avg([row.file_recall for row in legacy_rows])
+
+    discover_symbol_recall = _avg([row.symbol_recall for row in discover_rows])
+    legacy_symbol_recall = _avg([row.symbol_recall for row in legacy_rows])
+
+    call_ratio = legacy_calls / discover_calls if discover_calls > 0 else 0.0
+    token_ratio = legacy_tokens / discover_tokens if discover_tokens > 0 else 0.0
+    latency_ratio = legacy_latencies and discover_latencies
+    if latency_ratio:
+        avg_legacy_latency = _avg(legacy_latencies)
+        avg_discover_latency = _avg(discover_latencies)
+        latency_ratio_value = (
+            avg_legacy_latency / avg_discover_latency if avg_discover_latency > 0 else 0.0
+        )
+    else:
+        latency_ratio_value = 0.0
+
+    print(f"\n[{mode}] Distribution")
+    print(
+        "  discover "
+        f"p50={_percentile(discover_latencies, PERCENTILE_P50):.1f}ms "
+        f"p95={_percentile(discover_latencies, PERCENTILE_P95):.1f}ms "
+        f"calls={discover_calls:.1f} "
+        f"tokens={discover_tokens:.0f} "
+        f"file_recall={discover_file_recall:.2f} "
+        f"symbol_recall={discover_symbol_recall:.2f} "
+        f"actionable={discover_actionable:.2f}"
+    )
+    print(
+        "  legacy   "
+        f"p50={_percentile(legacy_latencies, PERCENTILE_P50):.1f}ms "
+        f"p95={_percentile(legacy_latencies, PERCENTILE_P95):.1f}ms "
+        f"calls={legacy_calls:.1f} "
+        f"tokens={legacy_tokens:.0f} "
+        f"file_recall={legacy_file_recall:.2f} "
+        f"symbol_recall={legacy_symbol_recall:.2f} "
+        f"actionable={legacy_actionable:.2f}"
+    )
+    print(
+        "  ratios   "
+        f"calls={call_ratio:.2f}x "
+        f"tokens={token_ratio:.2f}x "
+        f"latency={latency_ratio_value:.2f}x"
+    )
+
+
+def _validate_query_targets(root: Path) -> None:
+    for query in QUERIES:
+        for rel_path in query.expected_files:
+            target = root / rel_path
+            if target.exists():
+                continue
+            raise FileNotFoundError(f"Benchmark target file missing: {target}")
+
+
+async def _run_all_modes(root: Path) -> list[MeasuredRun]:
+    cold_rows = await _run_mode(MODE_COLD, root)
+    warm_rows = await _run_mode(MODE_WARM, root)
+    return [*cold_rows, *warm_rows]
 
 
 def main() -> None:
-    tiers = [
-        ("small", SMALL_FILES),
-        ("medium", MEDIUM_FILES),
-        ("large", LARGE_FILES),
-    ]
+    _validate_query_targets(REPO_ROOT)
 
-    print("=" * len(HEADER))
-    print("Discover Tool Benchmark -- Speed + Accuracy + Comparison")
-    print("=" * len(HEADER))
-    print(
-        "Times in ms. Prec/Recall/F1 measured for "
-        "discover against ground truth.\n"
-    )
+    print("=" * 92)
+    print("Discover Benchmark (Real TunaCode Repo)")
+    print("=" * 92)
+    print(f"Repo root: {REPO_ROOT}")
+    print(f"Queries: {len(QUERIES)}")
+    print(f"Modes: cold({COLD_RUNS_PER_QUERY} run/query), warm({WARM_RUNS_PER_QUERY} runs/query)")
+    print("Token estimate: ceil(chars / 4)")
 
-    for label, count in tiers:
-        print(f"--- {label} ({count} files) ---")
-        print(HEADER)
-        print(SEP)
+    measured = asyncio.run(_run_all_modes(REPO_ROOT))
 
-        results = _run_benchmark(label, count, random.Random(SEED))
+    _print_mode_table(measured, MODE_COLD)
+    _print_strategy_distribution(measured, MODE_COLD)
 
-        for r in results:
-            print(_format_row(r))
-
-        avg_discover = sum(r.discover_ms for r in results) / len(results)
-        avg_legacy = sum(r.legacy_ms for r in results) / len(results)
-        avg_f1 = sum(r.f1 for r in results) / len(results)
-        speedup = (
-            avg_legacy / avg_discover
-            if avg_discover > 0
-            else float("inf")
-        )
-
-        print(SEP)
-        print(
-            f"{'AVG':<{COL_QUERY}} "
-            f"{avg_discover:>{COL_NUM}.1f} "
-            f"{avg_legacy:>{COL_NUM}.1f} "
-            f"{'':>{COL_METRIC}} "
-            f"{'':>{COL_METRIC}} "
-            f"{avg_f1:>{COL_METRIC}.2f}"
-        )
-        print(f"  Speedup: {speedup:.1f}x\n")
+    _print_mode_table(measured, MODE_WARM)
+    _print_strategy_distribution(measured, MODE_WARM)
 
 
 if __name__ == "__main__":
