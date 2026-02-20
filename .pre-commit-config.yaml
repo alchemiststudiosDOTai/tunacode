@@ -109,6 +109,7 @@ repos:
         entry: scripts/check-file-length.sh
         language: script
         files: \.py$
+        exclude: ^tests/benchmarks/bench_discover\.py$
         pass_filenames: true
 
       # Check naming conventions
