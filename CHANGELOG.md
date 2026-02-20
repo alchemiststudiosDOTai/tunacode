@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.73] - 2026-02-20
+
+### Changed
+- Extracted thinking state and lifecycle management from app.py into dedicated classes
+- System prompt tooling refresh
+- Temporarily disabled live text streaming; default thoughts ON
+- Removed rich_log alias and enforced full cutover
+- Trimmed app.py docstrings to stay under 600-line hook limit
+
+### Fixed
+- Eliminated blank space between chat content and streaming output
+
+### Removed
+- Dead code: unused openai_response_validation.py
+- Added orphan module detection to CI and removed dead code from agent_helpers
+
 ## [0.1.72] - 2026-02-20
 
 ### Fixed
