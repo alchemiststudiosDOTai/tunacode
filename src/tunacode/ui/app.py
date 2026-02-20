@@ -579,10 +579,7 @@ class TextualReplApp(App[None]):
         await thinking_callback(self, delta)
 
     async def _streaming_callback(self, chunk: str) -> None:
-        """Handle streaming text chunks from the agent.
-        Accumulates chunks and updates the streaming output panel
-        with throttled UI updates to reduce visual churn.
-        """
+        """Accumulate streaming chunks and throttle UI updates."""
         self._current_stream_text += chunk
         is_first_chunk = not self.streaming_output.has_class("active")
         if is_first_chunk:
@@ -594,11 +591,7 @@ class TextualReplApp(App[None]):
             self.streaming_output.update(self._current_stream_text)
 
     def update_lsp_for_file(self, filepath: str) -> None:
-        """Update ResourceBar LSP status based on file type.
-
-        Args:
-            filepath: Path to the file being edited
-        """
+        """Update ResourceBar LSP status based on file type."""
         from tunacode.core.ui_api.lsp_status import get_lsp_server_info
 
         info = get_lsp_server_info(filepath)
