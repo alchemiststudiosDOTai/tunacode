@@ -2,6 +2,7 @@ digraph tunacode_layers {
   rankdir=TB;
   node [shape=box, style=filled, fontname=Arial];
 
+  test_dead_code [label="test_dead_code"];
   ui [label="ui"];
   core [label="core"];
   tools [label="tools"];
@@ -18,17 +19,17 @@ digraph tunacode_layers {
   configuration -> types [label="4"];
   core -> configuration [label="16"];
   core -> constants [label="5"];
-  core -> exceptions [label="3"];
+  core -> exceptions [label="2"];
   core -> infrastructure [label="3"];
-  core -> tools [label="10"];
-  core -> types [label="15"];
+  core -> tools [label="8"];
+  core -> types [label="16"];
   core -> utils [label="6"];
   exceptions -> types [label="1"];
   infrastructure -> types [label="1"];
-  tools -> configuration [label="5"];
-  tools -> exceptions [label="10"];
+  tools -> configuration [label="4"];
+  tools -> exceptions [label="6"];
   tools -> infrastructure [label="3"];
-  ui -> core [label="58"];
+  ui -> core [label="62"];
   utils -> configuration [label="2"];
   utils -> types [label="2"];
 }
