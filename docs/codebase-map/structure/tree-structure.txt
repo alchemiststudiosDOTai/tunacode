@@ -24,7 +24,6 @@ src/tunacode/
 │   │   │   ├── __init__.py
 │   │   │   ├── agent_config.py
 │   │   │   ├── agent_helpers.py
-│   │   │   ├── openai_response_validation.py
 │   │   │   └── state_transition.py
 │   │   ├── resume/
 │   │   │   ├── __init__.py

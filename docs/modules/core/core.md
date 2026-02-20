@@ -25,7 +25,6 @@ The engine. Takes a user message, routes it through a tinyagent `Agent`, handles
 | `agent_components/agent_config.py` | `get_or_create_agent()` -- builds or retrieves a cached tinyagent `Agent`. Configures: system prompt, tools, model, stream function, API key resolver, compaction transform. `invalidate_agent_cache()` clears both module and session caches after abort/timeout. |
 | `agent_components/agent_helpers.py` | Human-readable tool descriptions for UI panels. `create_empty_response_message()` builds the intervention prompt when the model returns nothing. |
 | `agent_components/state_transition.py` | `AgentStateMachine` -- thread-safe FSM with states: `USER_INPUT -> ASSISTANT -> TOOL_EXECUTION -> RESPONSE`. `AGENT_TRANSITION_RULES` defines valid edges. |
-| `agent_components/openai_response_validation.py` | `validate_openai_chat_completion_response()` -- intercepts non-streaming HTTP responses from OpenAI-compatible providers, checks for error payloads and missing fields, raises `AgentError` with troubleshooting steps. |
 | `resume/sanitize.py` | Cleans persisted session messages for safe resume (removes dangling tool calls, fixes structural violations). |
 | `resume/sanitize_debug.py` | Debug instrumentation for sanitization. |
 

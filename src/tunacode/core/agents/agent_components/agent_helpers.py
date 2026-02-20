@@ -1,12 +1,10 @@
 """Helper functions for agent operations to reduce code duplication."""
 
-from collections.abc import Callable
 from typing import Any
 
 from tunacode.types import CanonicalToolCall
 
 RECENT_TOOL_LIMIT = 3
-QUERY_DISPLAY_LIMIT = 60
 
 
 def _describe_read_file(tool_args: dict[str, Any]) -> str:
@@ -14,51 +12,10 @@ def _describe_read_file(tool_args: dict[str, Any]) -> str:
     return f"Reading `{path}`" if path else "Reading file"
 
 
-def _describe_list_dir(tool_args: dict[str, Any]) -> str:
-    directory = tool_args.get("directory", "")
-    return f"Listing directory `{directory}`" if directory else "Listing directory"
-
-
-def _describe_grep(tool_args: dict[str, Any]) -> str:
-    pattern = tool_args.get("pattern", "")
-    include_files = tool_args.get("include_files", "")
-    if pattern and include_files:
-        return f"Searching for `{pattern}` in `{include_files}`"
-    if pattern:
-        return f"Searching for `{pattern}`"
-    return "Searching files"
-
-
-def _describe_glob(tool_args: dict[str, Any]) -> str:
-    pattern = tool_args.get("pattern", "")
-    return f"Finding files matching `{pattern}`" if pattern else "Finding files"
-
-
-def _describe_research(tool_args: dict[str, Any]) -> str:
-    query = tool_args.get("query", "")
-    if not query:
-        return "Researching codebase"
-    truncated = len(query) > QUERY_DISPLAY_LIMIT
-    query_display = query[:QUERY_DISPLAY_LIMIT] + "..." if truncated else query
-    return f"Researching: {query_display}"
-
-
-_TOOL_DESCRIBERS: dict[str, Callable[[dict[str, Any]], str]] = {
-    "read_file": _describe_read_file,
-    "list_dir": _describe_list_dir,
-    "grep": _describe_grep,
-    "glob": _describe_glob,
-    "research_codebase": _describe_research,
-}
-
-
 def get_tool_description(tool_name: str, tool_args: dict[str, Any]) -> str:
     """Get a descriptive string for a tool call."""
     tool_desc = tool_name
-    if tool_name in ["grep", "glob"] and isinstance(tool_args, dict):
-        pattern = tool_args.get("pattern", "")
-        tool_desc = f"{tool_name}('{pattern}')"
-    elif tool_name == "read_file" and isinstance(tool_args, dict):
+    if tool_name == "read_file" and isinstance(tool_args, dict):
         path = tool_args.get("file_path", tool_args.get("filepath", ""))
         tool_desc = f"{tool_name}('{path}')"
     return tool_desc
@@ -69,9 +26,8 @@ def get_readable_tool_description(tool_name: str, tool_args: dict[str, Any]) -> 
     if not isinstance(tool_args, dict):
         return f"Executing `{tool_name}`"
 
-    describer = _TOOL_DESCRIBERS.get(tool_name)
-    if describer:
-        return describer(tool_args)
+    if tool_name == "read_file":
+        return _describe_read_file(tool_args)
     return f"Executing `{tool_name}`"
 
 
@@ -113,7 +69,7 @@ Please take one of these specific actions:
 1. **Search yielded no results?** → Try alternative search terms or broader patterns
 2. **Found what you need?** → Call the submit tool to finalize
 3. **Encountering a blocker?** → Explain the specific issue preventing progress
-4. **Need more context?** → Use list_dir or expand your search scope
+4. **Need more context?** → Use discover or expand your search scope
 
 **Expected in your response:**
 - Execute at least one tool OR provide substantial analysis

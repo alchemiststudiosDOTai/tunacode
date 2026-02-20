@@ -22,6 +22,8 @@ jobs:
         run: |
           uv run unimport --check --gitignore --exclude 'venv/*' --exclude '.venv/*' --exclude '.uv-cache/*' --exclude '.uv_cache/*' src
           uv run vulture --min-confidence 80 scripts/utils/vulture_whitelist.py src
+      - name: Check for orphan modules
+        run: uv run python scripts/check_unused_modules.py
 
 
   deptry:
