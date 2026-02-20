@@ -164,6 +164,7 @@ class TextualReplApp(App[None]):
             with Container(id="viewport"):
                 yield self.chat_container
                 yield self.loading_indicator
+                yield self.streaming_output
             with (
                 Container(id="context-rail", classes=self.CONTEXT_PANEL_COLLAPSED_CLASS) as rail,
                 Container(id="context-panel"),
@@ -179,7 +180,6 @@ class TextualReplApp(App[None]):
                 self._field_cost = context_panel_widgets.field_cost
                 self._field_files = context_panel_widgets.field_files
                 yield from context_panel_widgets.widgets
-        yield self.streaming_output
         yield self.editor
         yield FileAutoComplete(self.editor)
         yield CommandAutoComplete(self.editor)

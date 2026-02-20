@@ -168,8 +168,7 @@ LoadingIndicator.active {
 }
 
 /* ============================================
- * STREAMING OUTPUT - Fixed dock between viewport and editor
- * Stays anchored while RichLog scrolls independently
+ * STREAMING OUTPUT - Inside viewport, below chat container
  * ============================================ */
 #streaming-output {
     height: auto;
@@ -179,11 +178,6 @@ LoadingIndicator.active {
     padding: 0 1;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    border-top: solid $bevel-light;
-    border-left: solid $bevel-light;
-    border-bottom: solid $bevel-dark;
-    border-right: solid $bevel-dark;
-    outline: solid $border;
 }
 
 #streaming-output.active {
