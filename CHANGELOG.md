@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `discover` tool: unified code discovery replacing manual glob/grep/read chains with a single natural-language query
+
+### Removed
+- `glob` tool (replaced by `discover`)
+- `grep` tool and `grep_components/` module (replaced by `discover`)
+- `list_dir` tool (replaced by `discover` + `bash`)
+
 ## [0.1.70] - 2026-02-19
 
 ### Improved
