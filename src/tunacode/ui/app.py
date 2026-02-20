@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import time
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Never
 
 from rich.console import RenderableType
@@ -55,7 +53,6 @@ from tunacode.ui.renderers.panels import tool_panel_smart
 from tunacode.ui.renderers.thinking import (
     DEFAULT_THINKING_MAX_CHARS,
     DEFAULT_THINKING_MAX_LINES,
-    render_thinking_panel,
 )
 from tunacode.ui.repl_support import (
     FILE_EDIT_TOOLS,
@@ -67,12 +64,10 @@ from tunacode.ui.repl_support import (
 )
 from tunacode.ui.shell_runner import ShellRunner
 from tunacode.ui.slopgotchi import (
-    SLOPGOTCHI_AUTO_MOVE_INTERVAL_SECONDS,
     SlopgotchiHandler,
     SlopgotchiPanelState,
 )
 from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
-from tunacode.ui.welcome import show_welcome
 from tunacode.ui.widgets import (
     ChatContainer,
     CommandAutoComplete,
@@ -194,62 +189,14 @@ class TextualReplApp(App[None]):
         }
 
     def on_mount(self) -> None:
-        user_config = self.state_manager.session.user_config
-        saved_theme = user_config.get("settings", {}).get("theme", THEME_NAME)
-        if saved_theme not in SUPPORTED_THEME_NAMES:
-            saved_theme = THEME_NAME
-        self.theme = saved_theme
+        from tunacode.ui.lifecycle import on_mount as lifecycle_on_mount
 
-        # Initialize session persistence metadata
-        from tunacode.core.ui_api.system_paths import get_project_id
-
-        session = self.state_manager.session
-        session.project_id = get_project_id()
-        session.working_directory = os.getcwd()
-        if not session.created_at:
-            session.created_at = datetime.now(UTC).isoformat()
-
-        if self._show_setup:
-            from tunacode.ui.screens import SetupScreen
-
-            self.push_screen(SetupScreen(self.state_manager), self._on_setup_complete)
-        else:
-            self._start_repl()
+        lifecycle_on_mount(self)
 
     async def on_unmount(self) -> None:
-        """Save session before app exits."""
-        if self._slopgotchi_timer is not None:
-            self._slopgotchi_timer.stop()
-            self._slopgotchi_timer = None
-        await self.state_manager.save_session()
+        from tunacode.ui.lifecycle import on_unmount as lifecycle_on_unmount
 
-    def _on_setup_complete(self, completed: bool | None) -> None:
-        """Called when setup screen is dismissed."""
-        if completed:
-            self._update_resource_bar()
-        self._start_repl()
-
-    def _start_repl(self) -> None:
-        """Initialize REPL components after setup."""
-        from tunacode.core.logging import get_logger
-
-        # Initialize logging with TUI callback
-        logger = get_logger()
-        logger.set_state_manager(self.state_manager)
-
-        def _write_tui(renderable: RenderableType) -> None:
-            self.chat_container.write(renderable)
-
-        logger.set_tui_callback(_write_tui)
-
-        self.set_focus(self.editor)
-        self.run_worker(self._request_worker, exclusive=False)
-        self._slopgotchi_timer = self.set_interval(
-            SLOPGOTCHI_AUTO_MOVE_INTERVAL_SECONDS,
-            self._update_slopgotchi,
-        )
-        self._update_resource_bar()
-        show_welcome(self.chat_container)
+        await lifecycle_on_unmount(self)
 
     async def _request_worker(self) -> Never:
         while True:
@@ -583,70 +530,29 @@ class TextualReplApp(App[None]):
         self._refresh_context_panel()
 
     def _hide_thinking_output(self) -> None:
-        thinking_panel_widget = self._thinking_panel_widget
-        if thinking_panel_widget is None:
-            return
+        from tunacode.ui.thinking_state import hide_thinking_output
 
-        self._thinking_panel_widget = None
-        if thinking_panel_widget.parent is None:
-            return
-
-        thinking_panel_widget.remove()
+        hide_thinking_output(self)
 
     def _clear_thinking_state(self) -> None:
-        self._current_thinking_text = ""
-        self._last_thinking_update = 0.0
-        self._hide_thinking_output()
+        from tunacode.ui.thinking_state import clear_thinking_state
+
+        clear_thinking_state(self)
 
     def _finalize_thinking_state_after_request(self) -> None:
-        if not self.state_manager.session.show_thoughts:
-            self._clear_thinking_state()
-            return
-        self._refresh_thinking_output(force=True)
+        from tunacode.ui.thinking_state import finalize_thinking_state_after_request
+
+        finalize_thinking_state_after_request(self)
 
     def _refresh_thinking_output(self, force: bool = False) -> None:
-        if not self.state_manager.session.show_thoughts:
-            return
-        if not self._current_thinking_text:
-            self._hide_thinking_output()
-            return
+        from tunacode.ui.thinking_state import refresh_thinking_output
 
-        thinking_panel_widget = self._thinking_panel_widget
-        is_first_render = thinking_panel_widget is None
-        now = time.monotonic()
-        elapsed_ms = (now - self._last_thinking_update) * self.MILLISECONDS_PER_SECOND
-        if not force and not is_first_render and elapsed_ms < self.THINKING_THROTTLE_MS:
-            return
-
-        self._last_thinking_update = now
-        thinking_content, thinking_panel_meta = render_thinking_panel(
-            self._current_thinking_text,
-            max_lines=self.THINKING_MAX_RENDER_LINES,
-            max_chars=self.THINKING_MAX_RENDER_CHARS,
-        )
-
-        if thinking_panel_widget is None:
-            self._thinking_panel_widget = self.chat_container.write(
-                thinking_content,
-                expand=True,
-                panel_meta=thinking_panel_meta,
-            )
-            return
-
-        thinking_panel_widget.update(thinking_content)
-        self.chat_container.scroll_end(animate=False)
+        refresh_thinking_output(self, force)
 
     async def _thinking_callback(self, delta: str) -> None:
-        self._current_thinking_text += delta
-        current_char_count = len(self._current_thinking_text)
-        overflow_char_count = current_char_count - self.THINKING_BUFFER_CHAR_LIMIT
-        if overflow_char_count > 0:
-            self._current_thinking_text = self._current_thinking_text[overflow_char_count:]
+        from tunacode.ui.thinking_state import thinking_callback
 
-        if not self.state_manager.session.show_thoughts:
-            return
-
-        self._refresh_thinking_output()
+        await thinking_callback(self, delta)
 
     async def _streaming_callback(self, chunk: str) -> None:
         """Handle streaming text chunks from the agent.
