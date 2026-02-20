@@ -4,7 +4,7 @@
 Execute bash commands. Use for git, npm, docker, and system operations.
 - Quote paths with spaces: cd "/path with spaces"
 - Chain commands with &amp;&amp; or ;
-- Prefer Grep/Glob/Read tools over grep/find/cat commands
+- Use the discover tool for code search instead of grep/find/ls
 - Optional timeout in milliseconds (default 120000, max 600000)
     </description>
 </tool_prompt>

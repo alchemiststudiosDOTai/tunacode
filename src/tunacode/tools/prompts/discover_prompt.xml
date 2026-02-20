@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tool_prompt>
     <description>
-Find and map code related to a concept, feature, or module.
+Your primary search tool. Use discover for ALL code search and exploration tasks.
 
-Describe what you're looking for in natural language. The tool extracts search
-terms, generates glob patterns, reads file previews, scores relevance, and
-returns a compact structured report.
+Describe what you want to find in natural language. The tool extracts search
+terms, walks the project tree, scores file relevance, and returns a structured
+report — replacing manual glob, grep, and read_file chains in a single call.
 
-USE THIS TOOL instead of manually chaining glob, grep, and read_file when
-you need to understand where a concept lives in the codebase.
+You MUST use this tool when you need to:
+- Find where a concept, feature, or module lives in the codebase
+- Understand how files relate to each other around a topic
+- Locate function definitions, class hierarchies, or import graphs
+- Explore unfamiliar areas of the codebase before making changes
 
 Examples:
 - "where is auth handled"
@@ -30,6 +33,7 @@ Parameters:
 - directory (optional): Project root to search from (default: current directory)
 
 Returns up to 20 most relevant files. For broad queries, narrow your
-description to get more focused results.
+description to get more focused results. Use read_file after discovery
+to inspect specific files in detail.
     </description>
 </tool_prompt>
