@@ -409,10 +409,6 @@ def _build_excerpt(
     return " | ".join(t[2][:120] for t in top)
 
 
-# ---------------------------------------------------------------------------
-# Clustering — group by directory, sort by relevance, cap at MAX_REPORT_FILES
-# ---------------------------------------------------------------------------
-
 def _cluster_prospects(
     prospects: list[_Prospect],
 ) -> tuple[list[ConceptCluster], list[str]]:
@@ -517,10 +513,6 @@ def _build_relevant_tree(prospects: list[_Prospect], root: Path) -> str:
     return "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
-# Sync pipeline — runs in a thread to avoid blocking the event loop
-# ---------------------------------------------------------------------------
-
 def _discover_sync(query: str, project_root: str) -> DiscoveryReport:
     """Synchronous discovery pipeline. Offloaded to a thread by the async wrapper."""
     root = Path(project_root).resolve()
@@ -558,10 +550,6 @@ def _discover_sync(query: str, project_root: str) -> DiscoveryReport:
         overflow_dirs=overflow_dirs,
     )
 
-
-# ---------------------------------------------------------------------------
-# Tool entry point — the one tool the model calls
-# ---------------------------------------------------------------------------
 
 @base_tool
 async def discover(
