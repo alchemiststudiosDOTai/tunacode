@@ -20,6 +20,8 @@ from textual.widgets import LoadingIndicator, Static
 if TYPE_CHECKING:
     from textual.theme import Theme
 
+    from tunacode.ui.lifecycle import AppLifecycle
+
 from tunacode.core.agents.main import process_request
 from tunacode.core.debug import log_resource_bar_update
 from tunacode.core.logging import get_logger
@@ -118,6 +120,7 @@ class TextualReplApp(App[None]):
 
         self.state_manager: StateManager = state_manager
         self._show_setup: bool = show_setup
+        self._lifecycle: AppLifecycle | None = None
         self.request_queue: asyncio.Queue[str] = asyncio.Queue()
 
         self._current_request_task: asyncio.Task | None = None
@@ -192,14 +195,17 @@ class TextualReplApp(App[None]):
         }
 
     def on_mount(self) -> None:
-        from tunacode.ui.lifecycle import on_mount as lifecycle_on_mount
+        from tunacode.ui.lifecycle import AppLifecycle
 
-        lifecycle_on_mount(self)
+        lifecycle = AppLifecycle(self)
+        self._lifecycle = lifecycle
+        lifecycle.mount()
 
     async def on_unmount(self) -> None:
-        from tunacode.ui.lifecycle import on_unmount as lifecycle_on_unmount
-
-        await lifecycle_on_unmount(self)
+        lifecycle = self._lifecycle
+        if lifecycle is None:
+            raise RuntimeError("AppLifecycle was not initialized before unmount")
+        await lifecycle.unmount()
 
     async def _request_worker(self) -> Never:
         while True:
