@@ -43,6 +43,7 @@ from tunacode.core.ui_api.shared_types import ModelName
 from tunacode.ui.context_panel import (
     build_context_gauge,
     build_context_panel_widgets,
+    build_dau_sparkline,
     build_files_field,
     is_widget_within_field,
     token_color,
@@ -144,6 +145,7 @@ class TextualReplApp(App[None]):
         self._field_files: Static | None = None
         self._slopgotchi_state: SlopgotchiPanelState = SlopgotchiPanelState()
 
+        self._field_dau: Static | None = None
         self._field_slopgotchi: Static | None = None
         self._slopgotchi_handler: SlopgotchiHandler | None = None
         self._slopgotchi_timer: Timer | None = None
@@ -180,6 +182,7 @@ class TextualReplApp(App[None]):
                 self._field_context = context_panel_widgets.field_context
                 self._field_cost = context_panel_widgets.field_cost
                 self._field_files = context_panel_widgets.field_files
+                self._field_dau = context_panel_widgets.field_dau
                 yield from context_panel_widgets.widgets
         yield self.editor
         yield FileAutoComplete(self.editor)
@@ -506,6 +509,12 @@ class TextualReplApp(App[None]):
         files_title, files_content = build_files_field(self._edited_files)
         field_files.border_title = files_title
         field_files.update(files_content)
+
+        field_dau = self._field_dau
+        if field_dau is not None:
+            from tunacode.core.dau import recent_counts
+
+            field_dau.update(build_dau_sparkline(recent_counts()))
 
         handler = self._slopgotchi_handler
         if handler is not None:

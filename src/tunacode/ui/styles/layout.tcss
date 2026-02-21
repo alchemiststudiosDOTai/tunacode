@@ -120,6 +120,12 @@ ResourceBar.hidden {
     padding: 0 1;
 }
 
+/* DAU activity sparkline field */
+#field-dau {
+    height: 4;
+    padding: 0 1;
+}
+
 /* Files field - can grow but caps out */
 #field-files {
     max-height: 16;

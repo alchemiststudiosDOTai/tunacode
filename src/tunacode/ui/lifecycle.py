@@ -77,6 +77,7 @@ class AppLifecycle:
             return
         self._repl_started = True
 
+        self._record_dau()
         self._setup_logger()
 
         app = self._app
@@ -101,6 +102,12 @@ class AppLifecycle:
             app.chat_container.write(renderable)
 
         logger.set_tui_callback(write_tui)
+
+    def _record_dau(self) -> None:
+        """Record this session for the DAU activity chart."""
+        from tunacode.core.dau import record_session
+
+        record_session()
 
     def _start_slopgotchi_timer(self) -> None:
         """Start periodic slopgotchi updates."""

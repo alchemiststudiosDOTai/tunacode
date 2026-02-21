@@ -20,6 +20,10 @@ from tunacode.ui.styles import (
 
 CONTEXT_GAUGE_WIDTH: int = 24
 
+# Unicode block elements ordered by ascending height for sparkline rendering.
+_SPARK_CHARS = "▁▂▃▄▅▆▇█"
+_SPARK_LEVELS = len(_SPARK_CHARS) - 1
+
 
 class InspectorField(Static):
     """Context inspector field with text selection disabled."""
@@ -35,6 +39,7 @@ class ContextPanelWidgets:
     field_context: InspectorField
     field_cost: InspectorField
     field_files: InspectorField
+    field_dau: InspectorField
 
 
 def build_context_panel_widgets() -> ContextPanelWidgets:
@@ -73,12 +78,20 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
     )
     field_files.border_title = "Files"
 
+    field_dau = InspectorField(
+        "",
+        id="field-dau",
+        classes="inspector-field",
+    )
+    field_dau.border_title = "Activity"
+
     widgets: tuple[Static, ...] = (
         field_slopgotchi,
         field_model,
         field_context,
         field_cost,
         field_files,
+        field_dau,
     )
 
     return ContextPanelWidgets(
@@ -88,6 +101,7 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
         field_context=field_context,
         field_cost=field_cost,
         field_files=field_files,
+        field_dau=field_dau,
     )
 
 
@@ -143,6 +157,22 @@ def build_files_field(edited_files: set[str]) -> tuple[str, Text]:
             content.append("\n")
 
     return border_title, content
+
+
+def build_dau_sparkline(counts: list[float]) -> Text:
+    """Render a text-based sparkline from daily session *counts*."""
+    peak = max(counts) if counts else 0.0
+    today = int(counts[-1]) if counts else 0
+
+    spark = Text()
+    for value in counts:
+        level = int(value / peak * _SPARK_LEVELS) if peak > 0 else 0
+        spark.append(_SPARK_CHARS[level], style=STYLE_ACCENT)
+
+    spark.append(f"\n{today} today", style=STYLE_MUTED)
+    if peak > 0:
+        spark.append(f"  peak {int(peak)}", style=f"dim {STYLE_MUTED}")
+    return spark
 
 
 def is_widget_within_field(widget: DOMNode | None, root: DOMNode, *, field_id: str) -> bool:
