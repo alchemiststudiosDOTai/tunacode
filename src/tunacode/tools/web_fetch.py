@@ -1,17 +1,12 @@
-"""
-Web fetch tool for TunaCode - HTTP GET requests with HTML-to-text conversion.
+"""Web fetch tool — HTTP GET with HTML-to-text conversion.
 
-This tool provides web content fetching with:
-- HTTP GET requests with configurable timeout
-- HTML-to-text conversion for readable output
-- URL security validation (blocks localhost, private IPs, file://)
-- Content size limiting (5MB max)
-
-CLAUDE_ANCHOR[web-fetch-module]: HTTP GET with HTML-to-text conversion
+Fetches a URL, validates it against SSRF targets, converts HTML to
+readable markdown-ish text, and truncates oversized responses.
 """
+
+from __future__ import annotations
 
 import ipaddress
-import re
 from urllib.parse import urlparse
 
 import html2text
@@ -21,92 +16,79 @@ from tunacode.exceptions import ToolRetryError
 
 from tunacode.tools.decorators import base_tool
 
+# ---------------------------------------------------------------------------
 # Constants
-MAX_CONTENT_SIZE = 5 * 1024 * 1024  # 5MB
-MAX_OUTPUT_SIZE = 100 * 1024  # 100KB for output truncation
+# ---------------------------------------------------------------------------
+
+MAX_CONTENT_BYTES = 5 * 1024 * 1024  # 5 MB download cap
+MAX_OUTPUT_BYTES = 100 * 1024  # 100 KB returned to caller
+TIMEOUT_FLOOR = 5
+TIMEOUT_CEILING = 120
 DEFAULT_TIMEOUT = 60  # seconds
+MAX_REDIRECTS = 5
 USER_AGENT = "TunaCode/1.0 (https://tunacode.xyz)"
+TRUNCATION_MARKER = "\n\n... [Content truncated due to size] ..."
 
-# Private IP ranges to block
-PRIVATE_IP_PATTERNS = [
-    re.compile(r"^127\."),  # 127.x.x.x
-    re.compile(r"^10\."),  # 10.x.x.x
-    re.compile(r"^172\.(1[6-9]|2[0-9]|3[01])\."),  # 172.16-31.x.x
-    re.compile(r"^192\.168\."),  # 192.168.x.x
-    re.compile(r"^0\."),  # 0.x.x.x
-    re.compile(r"^169\.254\."),  # Link-local
-    re.compile(r"^::1$"),  # IPv6 localhost
-    re.compile(r"^fe80:"),  # IPv6 link-local
-    re.compile(r"^fc00:"),  # IPv6 unique local
-    re.compile(r"^fd00:"),  # IPv6 unique local
-]
+ALLOWED_SCHEMES = frozenset({"http", "https"})
 
-# Blocked hostnames
-BLOCKED_HOSTNAMES = frozenset(
-    [
-        "localhost",
-        "localhost.localdomain",
-        "local",
-        "0.0.0.0",  # nosec B104 - this is a blocklist, not a bind address
-        "127.0.0.1",
-        "::1",
-    ]
-)
+BLOCKED_HOSTNAMES = frozenset({
+    "localhost",
+    "localhost.localdomain",
+    "local",
+    "0.0.0.0",  # nosec B104 — blocklist entry, not a bind address
+    "127.0.0.1",
+    "::1",
+})
+
+HTTP_ERROR_MESSAGES: dict[int, str] = {
+    403: "Access forbidden (403): {url}. The page may require authentication.",
+    404: "Page not found (404): {url}. Check the URL.",
+    429: "Rate limited (429): {url}. Try again later.",
+}
 
 
-def _is_private_ip(ip_str: str) -> bool:
-    """Check if an IP address is private/reserved."""
-    for pattern in PRIVATE_IP_PATTERNS:
-        if pattern.match(ip_str):
-            return True
+# ---------------------------------------------------------------------------
+# URL validation
+# ---------------------------------------------------------------------------
 
+def _is_blocked_ip(hostname: str) -> bool:
+    """Return True if *hostname* resolves to a private/reserved address."""
     try:
-        ip = ipaddress.ip_address(ip_str)
-        return ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local
+        addr = ipaddress.ip_address(hostname)
     except ValueError:
         return False
+    return addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local
 
 
 def _validate_url(url: str) -> str:
-    """Validate URL for security.
+    """Validate *url* for security and return the cleaned string.
 
-    Args:
-        url: URL to validate
-
-    Returns:
-        Validated URL
-
-    Raises:
-        ToolRetryError: If URL is invalid or blocked
+    Raises ``ToolRetryError`` on empty input, bad scheme, missing host,
+    localhost, or private-IP targets.
     """
-    if not url or not url.strip():
+    url = url.strip()
+    if not url:
         raise ToolRetryError("URL cannot be empty.")
 
-    url = url.strip()
+    parsed = urlparse(url)
 
-    try:
-        parsed = urlparse(url)
-    except Exception as err:
-        raise ToolRetryError(f"Invalid URL format: {url}") from err
-
-    # Check scheme
-    if parsed.scheme not in ("http", "https"):
+    if parsed.scheme not in ALLOWED_SCHEMES:
         raise ToolRetryError(
             f"Invalid URL scheme '{parsed.scheme}'. Only http:// and https:// are allowed."
         )
 
-    # Check hostname presence
-    if not parsed.hostname:
+    hostname = parsed.hostname
+    if not hostname:
         raise ToolRetryError(f"URL missing hostname: {url}")
 
-    hostname = parsed.hostname.lower()
+    hostname_lower = hostname.lower()
 
-    # Block known localhost hostnames
-    if hostname in BLOCKED_HOSTNAMES:
-        raise ToolRetryError(f"Blocked URL: {url}. Cannot fetch from localhost or local addresses.")
+    if hostname_lower in BLOCKED_HOSTNAMES:
+        raise ToolRetryError(
+            f"Blocked URL: {url}. Cannot fetch from localhost or local addresses."
+        )
 
-    # Check if hostname is an IP address and validate
-    if _is_private_ip(hostname):
+    if _is_blocked_ip(hostname_lower):
         raise ToolRetryError(
             f"Blocked URL: {url}. Cannot fetch from private or reserved IP addresses."
         )
@@ -114,15 +96,12 @@ def _validate_url(url: str) -> str:
     return url
 
 
-def _convert_html_to_text(html_content: str) -> str:
-    """Convert HTML to readable plain text.
+# ---------------------------------------------------------------------------
+# Response processing
+# ---------------------------------------------------------------------------
 
-    Args:
-        html_content: Raw HTML content
-
-    Returns:
-        Plain text extracted from HTML
-    """
+def _html_to_text(html: str) -> str:
+    """Convert raw HTML into readable plain text."""
     converter = html2text.HTML2Text()
     converter.ignore_links = False
     converter.ignore_images = True
@@ -130,100 +109,73 @@ def _convert_html_to_text(html_content: str) -> str:
     converter.body_width = 80
     converter.unicode_snob = True
     converter.skip_internal_links = True
-
-    return converter.handle(html_content)
-
-
-def _truncate_output(content: str, max_size: int = MAX_OUTPUT_SIZE) -> str:
-    """Truncate content if it exceeds max size.
-
-    Args:
-        content: Content to truncate
-        max_size: Maximum size in bytes
-
-    Returns:
-        Truncated content with indicator if truncated
-    """
-    if len(content.encode("utf-8")) <= max_size:
-        return content
-
-    # Truncate to approximate character count
-    truncated = content[: max_size // 2]
-    return truncated + "\n\n... [Content truncated due to size] ..."
+    return converter.handle(html)
 
 
-def _raise_content_too_large(size: int) -> None:
-    """Raise ToolRetryError for oversized content."""
-    raise ToolRetryError(
-        f"Content too large ({size // 1024 // 1024}MB). "
-        f"Maximum allowed is {MAX_CONTENT_SIZE // 1024 // 1024}MB."
-    )
-
-
-async def _head_check_size(client: httpx.AsyncClient, validated_url: str) -> None:
-    """Pre-flight HEAD request to reject oversized responses early."""
-    try:
-        head_response = await client.head(validated_url)
-        content_length = head_response.headers.get("content-length")
-        if content_length and int(content_length) > MAX_CONTENT_SIZE:
-            _raise_content_too_large(int(content_length))
-    except httpx.HTTPError:
-        pass  # HEAD failed, proceed with GET
-
-
-def _decode_response(content: bytes) -> str:
-    """Decode response bytes, falling back to latin-1."""
+def _decode(content: bytes) -> str:
+    """Decode response bytes with a latin-1 fallback."""
     try:
         return content.decode("utf-8")
     except UnicodeDecodeError:
         return content.decode("latin-1", errors="replace")
 
 
-def _maybe_convert_html(text_content: str, content_type: str) -> str:
-    """Convert HTML to text if the response is HTML."""
-    if "text/html" in content_type or "<html" in text_content[:1000].lower():
-        return _convert_html_to_text(text_content)
-    return text_content
+def _truncate(text: str, max_bytes: int = MAX_OUTPUT_BYTES) -> str:
+    """Trim *text* to roughly *max_bytes* UTF-8, appending a marker if cut."""
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+
+    # Decode back to avoid splitting inside a multi-byte character.
+    truncated = encoded[:max_bytes].decode("utf-8", errors="ignore")
+    return truncated + TRUNCATION_MARKER
 
 
-async def _fetch_and_process(client: httpx.AsyncClient, validated_url: str) -> str:
-    """Fetch URL content, validate redirect, decode, and convert."""
-    await _head_check_size(client, validated_url)
+def _raise_content_too_large(size: int) -> None:
+    size_mb = size // (1024 * 1024)
+    limit_mb = MAX_CONTENT_BYTES // (1024 * 1024)
+    raise ToolRetryError(f"Content too large ({size_mb}MB). Maximum allowed is {limit_mb}MB.")
 
-    response = await client.get(validated_url)
-    response.raise_for_status()
 
+def _process_response(response: httpx.Response, original_url: str) -> str:
+    """Validate, decode, optionally convert HTML, and truncate the response."""
     final_url = str(response.url)
-    if final_url != validated_url:
+    if final_url != original_url:
         _validate_url(final_url)
 
-    content = response.content
-    if len(content) > MAX_CONTENT_SIZE:
-        _raise_content_too_large(len(content))
+    raw = response.content
+    if len(raw) > MAX_CONTENT_BYTES:
+        _raise_content_too_large(len(raw))
 
-    text_content = _decode_response(content)
+    text = _decode(raw)
+
     content_type = response.headers.get("content-type", "").lower()
-    text_content = _maybe_convert_html(text_content, content_type)
-    return _truncate_output(text_content)
+    is_html = "text/html" in content_type or "<html" in text[:1000].lower()
+    if is_html:
+        text = _html_to_text(text)
+
+    return _truncate(text)
 
 
-_HTTP_STATUS_MESSAGES: dict[int, str] = {
-    404: "Page not found (404): {url}. Check the URL.",
-    403: "Access forbidden (403): {url}. The page may require authentication.",
-    429: "Rate limited (429): {url}. Try again later.",
-}
+# ---------------------------------------------------------------------------
+# HTTP error mapping
+# ---------------------------------------------------------------------------
 
+def _handle_status_error(url: str, exc: httpx.HTTPStatusError) -> None:
+    """Re-raise *exc* as a ``ToolRetryError`` with a user-friendly message."""
+    status = exc.response.status_code
+    template = HTTP_ERROR_MESSAGES.get(status)
 
-def _handle_http_error(url: str, err: httpx.HTTPStatusError) -> None:
-    """Convert httpx.HTTPStatusError to ToolRetryError."""
-    status = err.response.status_code
-    template = _HTTP_STATUS_MESSAGES.get(status)
     if template:
-        raise ToolRetryError(template.format(url=url)) from err
+        raise ToolRetryError(template.format(url=url)) from exc
     if status >= 500:
-        raise ToolRetryError(f"Server error ({status}): {url}. The server may be down.") from err
-    raise ToolRetryError(f"HTTP error {status} fetching {url}") from err
+        raise ToolRetryError(f"Server error ({status}): {url}. The server may be down.") from exc
+    raise ToolRetryError(f"HTTP error {status} fetching {url}") from exc
 
+
+# ---------------------------------------------------------------------------
+# Public tool
+# ---------------------------------------------------------------------------
 
 @base_tool
 async def web_fetch(
@@ -233,31 +185,44 @@ async def web_fetch(
     """Fetch web content from a URL and return as readable text.
 
     Args:
-        url: The URL to fetch (http:// or https://)
-        timeout: Request timeout in seconds (default: 60)
+        url: The URL to fetch (http:// or https://).
+        timeout: Request timeout in seconds (default: 60).
 
     Returns:
-        Readable text content from the URL
+        Readable text content from the URL.
     """
     validated_url = _validate_url(url)
-    timeout = max(5, min(timeout, 120))
+    clamped_timeout = max(TIMEOUT_FLOOR, min(timeout, TIMEOUT_CEILING))
 
     try:
         async with httpx.AsyncClient(
-            timeout=httpx.Timeout(timeout),
+            timeout=httpx.Timeout(clamped_timeout),
             follow_redirects=True,
-            max_redirects=5,
+            max_redirects=MAX_REDIRECTS,
             headers={"User-Agent": USER_AGENT},
         ) as client:
-            return await _fetch_and_process(client, validated_url)
+            # Pre-flight size check — best-effort, failures are ignored.
+            try:
+                head = await client.head(validated_url)
+                length = head.headers.get("content-length")
+                if length and int(length) > MAX_CONTENT_BYTES:
+                    _raise_content_too_large(int(length))
+            except httpx.HTTPError:
+                pass
 
-    except httpx.TimeoutException as err:
-        msg = f"Request timed out after {timeout} seconds. Try again or use a shorter timeout."
-        raise ToolRetryError(msg) from err
-    except httpx.TooManyRedirects as err:
-        msg = f"Too many redirects while fetching {url}. The URL may be invalid."
-        raise ToolRetryError(msg) from err
-    except httpx.HTTPStatusError as err:
-        _handle_http_error(url, err)
-    except httpx.RequestError as err:
-        raise ToolRetryError(f"Failed to connect to {url}: {err}") from err
+            response = await client.get(validated_url)
+            response.raise_for_status()
+            return _process_response(response, validated_url)
+
+    except httpx.TimeoutException as exc:
+        raise ToolRetryError(
+            f"Request timed out after {clamped_timeout}s. Try again or use a shorter timeout."
+        ) from exc
+    except httpx.TooManyRedirects as exc:
+        raise ToolRetryError(
+            f"Too many redirects while fetching {url}. The URL may be invalid."
+        ) from exc
+    except httpx.HTTPStatusError as exc:
+        _handle_status_error(url, exc)
+    except httpx.RequestError as exc:
+        raise ToolRetryError(f"Failed to connect to {url}: {exc}") from exc
