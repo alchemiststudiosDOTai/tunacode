@@ -10,7 +10,10 @@ from tunacode.core.compaction.controller import (
     apply_compaction_messages,
     get_or_create_compaction_controller,
 )
-from tunacode.core.compaction.types import COMPACTION_STATUS_COMPACTED
+from tunacode.core.compaction.types import (
+    COMPACTION_STATUS_COMPACTED,
+    COMPACTION_STATUS_FAILED,
+)
 from tunacode.core.ui_api.messaging import estimate_messages_tokens
 
 from tunacode.ui.commands.base import Command
@@ -61,12 +64,18 @@ class CompactCommand(Command):
                 max_tokens=conversation.max_tokens,
                 signal=None,
             )
+        except Exception as exc:
+            app.notify(f"Compaction failed: {exc}", severity="error")
+            app.chat_container.write(f"Compaction failed: {exc}")
+            return
         finally:
             controller.set_status_callback(None)
             app._update_compaction_status(False)
             app._update_resource_bar()
 
         if compaction_outcome is None:
+            app.notify("Compaction failed: no result returned", severity="error")
+            app.chat_container.write("Compaction failed: no result returned")
             return
 
         compacted_history = apply_compaction_messages(
@@ -74,6 +83,12 @@ class CompactCommand(Command):
             compaction_outcome.messages,
         )
         await app.state_manager.save_session()
+
+        if compaction_outcome.status == COMPACTION_STATUS_FAILED:
+            error_detail = compaction_outcome.detail or compaction_outcome.reason
+            app.notify(f"Compaction failed: {error_detail}", severity="error")
+            app.chat_container.write(f"Compaction failed: {error_detail}")
+            return
 
         if compaction_outcome.status != COMPACTION_STATUS_COMPACTED:
             app.notify(
