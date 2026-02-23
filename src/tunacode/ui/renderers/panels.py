@@ -72,6 +72,15 @@ PANEL_STYLES: dict[PanelType, dict[str, str]] = {
     },
 }
 
+STATUS_TO_TOOL_PANEL_CLASS: dict[str, str] = {
+    "completed": "completed",
+    "failed": "failed",
+    "error": "failed",
+    "running": "running",
+}
+HASHLINE_EDIT_CSS_TOKEN: str = "hashline-edit"
+UPDATE_FILE_CSS_CLASS: str = "tool-update-file"
+
 
 @dataclass
 class ToolDisplayData:
@@ -369,6 +378,57 @@ def _truncate_search_results(
     return results[:max_display], max_display, total
 
 
+def _normalize_css_token(value: str) -> str:
+    lowered = value.strip().lower()
+    normalized_chars = [character if character.isalnum() else "-" for character in lowered]
+    normalized = "".join(normalized_chars)
+    return "-".join(segment for segment in normalized.split("-") if segment)
+
+
+def _tool_identity_css_classes(tool_name: str) -> str:
+    normalized_name = _normalize_css_token(tool_name)
+    if not normalized_name:
+        return ""
+
+    classes = [f"tool-{normalized_name}"]
+    if normalized_name == HASHLINE_EDIT_CSS_TOKEN:
+        classes.append(UPDATE_FILE_CSS_CLASS)
+    return " ".join(classes)
+
+
+def _status_css_class(status: str) -> str:
+    normalized_status = _normalize_css_token(status)
+    if not normalized_status:
+        return ""
+    return STATUS_TO_TOOL_PANEL_CLASS.get(normalized_status, normalized_status)
+
+
+def _merge_css_classes(*class_groups: str) -> str:
+    merged_classes: list[str] = []
+    seen: set[str] = set()
+    for class_group in class_groups:
+        for css_class in class_group.split():
+            if not css_class or css_class in seen:
+                continue
+            seen.add(css_class)
+            merged_classes.append(css_class)
+    return " ".join(merged_classes)
+
+
+def _augment_tool_panel_meta(meta: PanelMeta, *, tool_name: str, status: str) -> PanelMeta:
+    css_class = _merge_css_classes(
+        meta.css_class,
+        "tool-panel",
+        _tool_identity_css_classes(tool_name),
+        _status_css_class(status),
+    )
+    return PanelMeta(
+        css_class=css_class,
+        border_title=meta.border_title,
+        border_subtitle=meta.border_subtitle,
+    )
+
+
 def tool_panel(
     name: str,
     status: str,
@@ -437,6 +497,8 @@ def tool_panel_smart(
     Returns (content, PanelMeta) for the caller to apply via
     ChatContainer.write(panel_meta=...).
     """
+    panel_result: tuple[RenderableType, PanelMeta] | None = None
+
     # Only apply custom renderers for completed tools with results
     if status == "completed" and result:
         from tunacode.ui.renderers.tools import get_renderer
@@ -445,17 +507,20 @@ def tool_panel_smart(
         if renderer is not None:
             render_result = renderer(args, result, duration_ms, max_line_width)
             if render_result is not None:
-                return render_result
+                panel_result = render_result
 
-    # Fallback to generic panel for unsupported tools or failed renders
-    return tool_panel(
-        name,
-        status,
-        args,
-        result,
-        duration_ms=duration_ms,
-        max_line_width=max_line_width,
-    )
+    if panel_result is None:
+        panel_result = tool_panel(
+            name,
+            status,
+            args,
+            result,
+            duration_ms=duration_ms,
+            max_line_width=max_line_width,
+        )
+
+    content, panel_meta = panel_result
+    return content, _augment_tool_panel_meta(panel_meta, tool_name=name, status=status)
 
 
 def _try_parse_search_result(

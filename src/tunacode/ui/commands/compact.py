@@ -54,6 +54,7 @@ class CompactCommand(Command):
 
         tokens_before = estimate_messages_tokens(history)
         compaction_outcome = None
+        app.chat_container.write("Compacting context...")
         try:
             compaction_outcome = await controller.force_compact(
                 history,
@@ -79,12 +80,19 @@ class CompactCommand(Command):
                 f"Compaction skipped: {compaction_outcome.reason}",
                 severity="warning",
             )
+            app.chat_container.write(f"Compaction skipped: {compaction_outcome.reason}")
             return
 
         removed_count = len(history) - len(compacted_history)
         tokens_after = estimate_messages_tokens(compacted_history)
         reclaimed_tokens = max(0, tokens_before - tokens_after)
         app.notify(
+            COMPACT_COMPLETE_TEMPLATE.format(
+                removed=removed_count,
+                tokens=reclaimed_tokens,
+            )
+        )
+        app.chat_container.write(
             COMPACT_COMPLETE_TEMPLATE.format(
                 removed=removed_count,
                 tokens=reclaimed_tokens,

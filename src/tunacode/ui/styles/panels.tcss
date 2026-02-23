@@ -83,6 +83,23 @@
     outline: solid $error;
 }
 
+/* File tools follow explicit read/update state flow */
+.tool-panel.tool-read-file,
+.tool-panel.tool-update-file {
+    tint: $primary 4%;
+}
+
+.tool-panel.tool-read-file.completed,
+.tool-panel.tool-update-file.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-read-file.failed,
+.tool-panel.tool-update-file.failed {
+    tint: $error 8%;
+}
+
+
 /* Error panels - recovery states */
 .error-panel {
     outline: solid $error;

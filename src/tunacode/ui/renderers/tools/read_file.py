@@ -60,6 +60,48 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
 
         return None
 
+    def _extract_file_body(self, result: str) -> str | None:
+        """Extract raw file payload between tags, tolerating missing closing tag."""
+        file_open_tag = "<file>"
+        file_close_tag = "</file>"
+
+        start_index = result.find(file_open_tag)
+        if start_index < 0:
+            return None
+
+        body_start = start_index + len(file_open_tag)
+        file_body = result[body_start:]
+
+        if file_body.startswith("\r\n"):
+            file_body = file_body[2:]
+        elif file_body.startswith("\n"):
+            file_body = file_body[1:]
+
+        close_index = file_body.find(file_close_tag)
+        if close_index >= 0:
+            file_body = file_body[:close_index]
+
+        normalized_body = file_body.strip("\r\n")
+        if not normalized_body:
+            return None
+        return normalized_body
+
+    def _parse_line_content(self, line: str) -> tuple[int, str] | None:
+        """Parse a read_file content line into (line_number, content)."""
+        if "|" not in line:
+            return None
+
+        line_ref, line_content = line.split("|", 1)
+
+        line_number_text = line_ref
+        if ":" in line_ref:
+            line_number_text, _hash = line_ref.split(":", 1)
+
+        if not line_number_text.isdigit():
+            return None
+
+        return int(line_number_text), line_content
+
     def _parse_content_lines(
         self, lines: list[str]
     ) -> tuple[list[tuple[int, str]], str, int, bool]:
@@ -71,18 +113,15 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         end_message = ""
         total_lines = 0
         has_more = False
-        line_pattern = re.compile(r"^(\d+)\|\s?(.*)")
-
         for line in lines:
             end_meta = self._parse_end_message(line)
             if end_meta is not None:
                 end_message, total_lines, has_more = end_meta
                 continue
 
-            match = line_pattern.match(line)
-            if match:
-                content_lines.append((int(match.group(1)), match.group(2)))
-
+            parsed_line = self._parse_line_content(line)
+            if parsed_line is not None:
+                content_lines.append(parsed_line)
         return content_lines, end_message, total_lines, has_more
 
     def parse_result(self, args: dict[str, Any] | None, result: str) -> ReadFileData | None:
@@ -90,8 +129,8 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
 
         Expected format:
             <file>
-            00001| line content
-            00002| line content
+            1:ab|line content
+            2:cd|line content
             ...
 
             (File has more lines. Use 'offset' to read beyond line N)
@@ -106,11 +145,11 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         if not result or "<file>" not in result:
             return None
 
-        file_match = re.search(r"<file>\n(.*?)\n</file>", result, re.DOTALL)
-        if not file_match:
+        file_body = self._extract_file_body(result)
+        if file_body is None:
             return None
 
-        lines = file_match.group(1).strip().splitlines()
+        lines = file_body.splitlines()
         if not lines:
             return None
 
