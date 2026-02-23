@@ -35,6 +35,7 @@ class ContextPanelWidgets:
     field_context: InspectorField
     field_cost: InspectorField
     field_files: InspectorField
+    field_compaction: InspectorField
 
 
 def build_context_panel_widgets() -> ContextPanelWidgets:
@@ -73,12 +74,20 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
     )
     field_files.border_title = "Files"
 
+    field_compaction = InspectorField(
+        "",
+        id="field-compaction",
+        classes="inspector-field",
+    )
+    field_compaction.border_title = "Compaction"
+
     widgets: tuple[Static, ...] = (
         field_slopgotchi,
         field_model,
         field_context,
         field_cost,
         field_files,
+        field_compaction,
     )
 
     return ContextPanelWidgets(
@@ -88,6 +97,7 @@ def build_context_panel_widgets() -> ContextPanelWidgets:
         field_context=field_context,
         field_cost=field_cost,
         field_files=field_files,
+        field_compaction=field_compaction,
     )
 
 
@@ -153,3 +163,10 @@ def is_widget_within_field(widget: DOMNode | None, root: DOMNode, *, field_id: s
         current = current.parent
 
     return False
+
+
+def build_compaction_field(*, is_compacting: bool) -> Text:
+    """Build compaction status display for context panel."""
+    if is_compacting:
+        return Text("Compacting...", style=f"bold {STYLE_WARNING}")
+    return Text("")

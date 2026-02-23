@@ -41,6 +41,7 @@ from tunacode.core.ui_api.messaging import estimate_messages_tokens
 from tunacode.core.ui_api.shared_types import ModelName
 
 from tunacode.ui.context_panel import (
+    build_compaction_field,
     build_context_gauge,
     build_context_panel_widgets,
     build_files_field,
@@ -112,25 +113,20 @@ class TextualReplApp(App[None]):
 
     def __init__(self, *, state_manager: StateManager, show_setup: bool = False) -> None:
         super().__init__()
-
         self.register_theme(build_tunacode_theme())
         self.register_theme(build_nextstep_theme())
         for theme in wrap_builtin_themes(self.available_themes):
             self.register_theme(theme)
         self.theme = THEME_NAME
-
         self.state_manager: StateManager = state_manager
         self._show_setup: bool = show_setup
         self._lifecycle: AppLifecycle | None = None
         self.request_queue: asyncio.Queue[str] = asyncio.Queue()
-
         self._current_request_task: asyncio.Task | None = None
         self._loading_indicator_shown: bool = False
         self._request_start_time: float = 0.0
         self._esc_handler: EscHandler = EscHandler()
-
         self.shell_runner = ShellRunner(self)
-
         self.chat_container: ChatContainer
         self.editor: Editor
         self.resource_bar: ResourceBar
@@ -143,6 +139,7 @@ class TextualReplApp(App[None]):
         self._field_context: Static | None = None
         self._field_cost: Static | None = None
         self._field_files: Static | None = None
+        self._field_compaction: Static | None = None
         self._slopgotchi_state: SlopgotchiPanelState = SlopgotchiPanelState()
 
         self._field_slopgotchi: Static | None = None
@@ -181,6 +178,7 @@ class TextualReplApp(App[None]):
                 self._field_context = context_panel_widgets.field_context
                 self._field_cost = context_panel_widgets.field_cost
                 self._field_files = context_panel_widgets.field_files
+                self._field_compaction = context_panel_widgets.field_compaction
                 yield from context_panel_widgets.widgets
         yield self.editor
         yield FileAutoComplete(self.editor)
@@ -530,6 +528,8 @@ class TextualReplApp(App[None]):
 
     def _update_compaction_status(self, active: bool) -> None:
         self.resource_bar.update_compaction_status(active)
+        if self._field_compaction is not None:
+            self._field_compaction.update(build_compaction_field(is_compacting=active))
 
     def _update_resource_bar(self) -> None:
         session = self.state_manager.session
