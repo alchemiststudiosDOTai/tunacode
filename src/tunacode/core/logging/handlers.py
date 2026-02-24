@@ -1,19 +1,30 @@
-"""Handler protocol and implementations for TunaCode logging."""
+"""Handler implementations for TunaCode logging.
 
+Provides stdlib ``logging.Handler`` subclasses:
+- ``FileHandler``: rotating file handler with structured formatting.
+- ``TUIHandler``: Rich-formatted handler for debug TUI output.
+"""
+
+from __future__ import annotations
+
+import logging
+import logging.handlers
 import os
-from abc import ABC, abstractmethod
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 
 from rich.console import RenderableType
 
 from tunacode.core.logging.levels import LogLevel
-from tunacode.core.logging.records import LogRecord
+from tunacode.core.logging.redaction import TUNACODE_EXTRA_ATTR
 
 TuiWriteCallback = Callable[[RenderableType], None]
 
+# ---------------------------------------------------------------------------
 # Lifecycle log prefixes for semantic coloring
-# These must match the prefixes used in lifecycle log calls throughout the codebase
+# ---------------------------------------------------------------------------
+
 LIFECYCLE_PREFIX_ITERATION = "--- Iteration"
 LIFECYCLE_PREFIX_TOKENS = "Tokens:"
 LIFECYCLE_PREFIX_TOOLS = "Tools:"
@@ -50,20 +61,126 @@ _LIFECYCLE_FULL_STYLES: list[tuple[str, str]] = [
 ]
 
 
-class Handler(ABC):
-    """Base handler protocol for log output destinations."""
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-    def __init__(self, min_level: LogLevel = LogLevel.DEBUG):
-        self.min_level = min_level
-        self._enabled = True
 
-    @abstractmethod
-    def emit(self, record: LogRecord) -> None:
-        """Write a log record to the destination."""
+def _default_log_path() -> Path:
+    """Return XDG-compliant log path."""
+    xdg_data = os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share"))
+    return Path(xdg_data) / "tunacode" / "logs" / "tunacode.log"
 
-    def should_handle(self, record: LogRecord) -> bool:
-        """Check if this handler should process the record."""
-        return self._enabled and record.level >= self.min_level
+
+def _get_extra(record: logging.LogRecord) -> dict[str, object]:
+    """Return the tunacode_extra dict attached to a stdlib LogRecord."""
+    return getattr(record, TUNACODE_EXTRA_ATTR, {}) or {}
+
+
+# ---------------------------------------------------------------------------
+# Structured file formatter
+# ---------------------------------------------------------------------------
+
+
+class StructuredFormatter(logging.Formatter):
+    """Format records as structured log lines for the file handler.
+
+    Produces lines like:
+        2024-01-15T10:30:45.123456+00:00 [INFO   ] req=abc123 iter=5 Operation completed
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        ts = datetime.now(UTC).isoformat()
+        level_name = record.levelname.ljust(7)
+        parts: list[str] = [f"{ts} [{level_name}]"]
+
+        extra = _get_extra(record)
+
+        source = extra.get("source", "")
+        if source:
+            parts.append(f"[{source}]")
+
+        request_id = extra.get("request_id", "")
+        if request_id:
+            parts.append(f"req={request_id}")
+
+        iteration = extra.get("iteration", 0)
+        if iteration:
+            parts.append(f"iter={iteration}")
+
+        tool_name = extra.get("tool_name", "")
+        if tool_name:
+            parts.append(f"tool={tool_name}")
+
+        duration_ms = extra.get("duration_ms", 0.0)
+        if duration_ms:
+            parts.append(f"dur={duration_ms:.1f}ms")
+
+        parts.append(record.getMessage())
+        return " ".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# FileHandler — stdlib RotatingFileHandler subclass
+# ---------------------------------------------------------------------------
+
+
+class FileHandler(logging.handlers.RotatingFileHandler):
+    """Rotating file handler writing to ~/.local/share/tunacode/logs/tunacode.log.
+
+    Delegates rotation to stdlib ``RotatingFileHandler``.
+    """
+
+    MAX_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
+    BACKUP_COUNT: int = 5
+
+    def __init__(
+        self,
+        log_path: Path | None = None,
+        min_level: int = logging.DEBUG,
+    ) -> None:
+        path = log_path or _default_log_path()
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        self._log_path = path
+
+        super().__init__(
+            filename=str(path),
+            maxBytes=self.MAX_SIZE_BYTES,
+            backupCount=self.BACKUP_COUNT,
+            encoding="utf-8",
+        )
+        self.setLevel(min_level)
+        self.setFormatter(StructuredFormatter())
+
+    @property
+    def log_path(self) -> Path:
+        return self._log_path
+
+
+# ---------------------------------------------------------------------------
+# TUIHandler — Rich-formatted handler for debug mode
+# ---------------------------------------------------------------------------
+
+
+class TUIHandler(logging.Handler):
+    """Handler that pipes logs to RichLog when debug_mode is ON.
+
+    Only active when explicitly enabled.  Uses a callback to write to the
+    TUI without importing the UI layer.
+    """
+
+    def __init__(
+        self,
+        write_callback: TuiWriteCallback | None = None,
+        min_level: int = logging.DEBUG,
+    ) -> None:
+        super().__init__(min_level)
+        self._write_callback = write_callback
+        self._enabled = False
+
+    def set_write_callback(self, callback: TuiWriteCallback) -> None:
+        """Set the callback for writing to TUI (injected from app)."""
+        self._write_callback = callback
 
     def enable(self) -> None:
         self._enabled = True
@@ -71,125 +188,29 @@ class Handler(ABC):
     def disable(self) -> None:
         self._enabled = False
 
-
-class FileHandler(Handler):
-    """Handler that writes logs to a rotating file.
-
-    Writes to ~/.local/share/tunacode/logs/tunacode.log with rotation.
-    """
-
-    MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
-    BACKUP_COUNT = 5
-
-    def __init__(
-        self,
-        log_path: Path | None = None,
-        min_level: LogLevel = LogLevel.DEBUG,
-    ):
-        super().__init__(min_level)
-        self._log_path = log_path or self._default_log_path()
-        self._ensure_log_dir()
-
-    def _default_log_path(self) -> Path:
-        """Get XDG-compliant log path."""
-        xdg_data = os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share"))
-        return Path(xdg_data) / "tunacode" / "logs" / "tunacode.log"
-
-    def _ensure_log_dir(self) -> None:
-        self._log_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-
-    @property
-    def log_path(self) -> Path:
-        return self._log_path
-
-    def _rotate_if_needed(self) -> None:
-        """Rotate log file if it exceeds max size."""
-        if not self._log_path.exists():
+    def emit(self, record: logging.LogRecord) -> None:
+        if not self._enabled:
             return
-        if self._log_path.stat().st_size < self.MAX_SIZE_BYTES:
-            return
-
-        # Rotate existing backups
-        for i in range(self.BACKUP_COUNT - 1, 0, -1):
-            old = self._log_path.with_suffix(f".log.{i}")
-            new = self._log_path.with_suffix(f".log.{i + 1}")
-            if old.exists():
-                old.rename(new)
-
-        # Current -> .log.1
-        self._log_path.rename(self._log_path.with_suffix(".log.1"))
-
-    def emit(self, record: LogRecord) -> None:
-        if not self.should_handle(record):
-            return
-
-        self._rotate_if_needed()
-
-        line = self._format_record(record)
-        with open(self._log_path, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
-
-    def _format_record(self, record: LogRecord) -> str:
-        """Format record as structured log line."""
-        ts = record.timestamp.isoformat()
-        level = record.level.name.ljust(7)
-        parts = [f"{ts} [{level}]"]
-
-        if record.source:
-            parts.append(f"[{record.source}]")
-        if record.request_id:
-            parts.append(f"req={record.request_id}")
-        if record.iteration:
-            parts.append(f"iter={record.iteration}")
-        if record.tool_name:
-            parts.append(f"tool={record.tool_name}")
-        if record.duration_ms:
-            parts.append(f"dur={record.duration_ms:.1f}ms")
-
-        parts.append(record.message)
-        return " ".join(parts)
-
-
-class TUIHandler(Handler):
-    """Handler that pipes logs to RichLog when debug_mode is ON.
-
-    Only active when debug_mode=True in SessionState.
-    Uses a callback to write to the TUI without importing ui layer.
-    """
-
-    def __init__(
-        self,
-        write_callback: TuiWriteCallback | None = None,
-        min_level: LogLevel = LogLevel.DEBUG,
-    ):
-        super().__init__(min_level)
-        self._write_callback = write_callback
-
-    def set_write_callback(self, callback: TuiWriteCallback) -> None:
-        """Set the callback for writing to TUI (injected from app)."""
-        self._write_callback = callback
-
-    def emit(self, record: LogRecord) -> None:
-        if not self.should_handle(record):
+        if record.levelno < self.level:
             return
         if self._write_callback is None:
             return
 
-        text = self._format_record(record)
+        text = self._format_rich(record)
         self._write_callback(text)
 
-    def _format_record(self, record: LogRecord) -> RenderableType:
+    def _format_rich(self, record: logging.LogRecord) -> RenderableType:
         """Format record as Rich Text with styling based on content type."""
         from rich.text import Text
 
-        msg = record.message
+        msg = record.getMessage()
 
         # Detect lifecycle log type from message content and apply colors
         if msg.startswith("[LIFECYCLE]"):
             return self._format_lifecycle_record(msg[11:].strip())
 
         # Standard level-based styling
-        style_map = {
+        style_map: dict[int, str] = {
             LogLevel.DEBUG: "dim",
             LogLevel.INFO: "",
             LogLevel.WARNING: "yellow",
@@ -198,18 +219,21 @@ class TUIHandler(Handler):
             LogLevel.TOOL: "green",
         }
 
-        style = style_map.get(record.level, "")
-        prefix = f"[{record.level.name}]"
+        style = style_map.get(record.levelno, "")
+        prefix = f"[{record.levelname}]"
 
         text = Text()
         text.append(prefix, style="bold " + style)
         text.append(" ")
-        text.append(record.message, style=style)
+        text.append(msg, style=style)
 
-        if record.tool_name:
-            text.append(f" ({record.tool_name})", style="dim")
-        if record.duration_ms:
-            text.append(f" [{record.duration_ms:.0f}ms]", style="dim")
+        extra = _get_extra(record)
+        tool_name = extra.get("tool_name", "")
+        if tool_name:
+            text.append(f" ({tool_name})", style="dim")
+        duration_ms = extra.get("duration_ms", 0.0)
+        if duration_ms:
+            text.append(f" [{duration_ms:.0f}ms]", style="dim")
 
         return text
 
@@ -230,11 +254,11 @@ class TUIHandler(Handler):
                 text.append(msg, style=style)
                 return text
 
-        # Iteration complete - dim
+        # Iteration complete — dim
         if msg.startswith("Iteration") and "complete" in msg:
             text.append(msg, style="dim")
             return text
 
-        # Default - dim for other lifecycle logs
+        # Default — dim for other lifecycle logs
         text.append(msg, style="dim")
         return text

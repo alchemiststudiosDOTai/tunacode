@@ -1,47 +1,61 @@
-"""LogManager singleton for unified logging across TunaCode."""
+"""LogManager singleton for unified logging across TunaCode.
+
+Wraps Python's stdlib ``logging`` module.  The singleton ``LogManager``
+configures a named logger (``"tunacode"``) with:
+
+- A ``RotatingFileHandler`` that is always active.
+- A ``TUIHandler`` that is enabled only in debug mode.
+- A ``RedactingFilter`` that scrubs sensitive data from every record.
+"""
 
 from __future__ import annotations
 
+import logging
 import threading
-from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
-from tunacode.core.logging.handlers import FileHandler, Handler, TUIHandler, TuiWriteCallback
-from tunacode.core.logging.levels import LogLevel
-from tunacode.core.logging.records import LogRecord
+from tunacode.core.logging.handlers import FileHandler, TUIHandler, TuiWriteCallback
+from tunacode.core.logging.levels import THOUGHT_LEVEL, TOOL_LEVEL, LogLevel
+from tunacode.core.logging.redaction import TUNACODE_EXTRA_ATTR, RedactingFilter
 from tunacode.core.types import StateManagerProtocol
 
-LOG_RECORD_EXTRA_FIELD: str = "extra"
-LOG_RECORD_TOOL_NAME_FIELD: str = "tool_name"
-LOG_RECORD_FIELD_NAMES: set[str] = {field.name for field in fields(LogRecord)}
-LOG_RECORD_INLINE_FIELDS: set[str] = LOG_RECORD_FIELD_NAMES - {LOG_RECORD_EXTRA_FIELD}
 LIFECYCLE_PREFIX: str = "[LIFECYCLE]"
+LOGGER_NAME: str = "tunacode"
 
 
 class LogManager:
     """Singleton manager for all logging operations.
 
-    Thread-safe singleton that routes log records to registered handlers.
-    File handler is always active; TUI handler only when debug_mode=True.
+    Thread-safe singleton that wraps a stdlib ``logging.Logger`` and routes
+    records to registered handlers.  File handler is always active; TUI
+    handler only when ``debug_mode=True``.
     """
 
     _instance: LogManager | None = None
     _instance_lock = threading.RLock()
 
     def __init__(self) -> None:
-        self._handlers: list[Handler] = []
+        self._logger = logging.getLogger(LOGGER_NAME)
+        self._logger.setLevel(logging.DEBUG)
+        self._logger.propagate = False
+
+        # Clear any leftover handlers/filters from previous instances (tests).
+        self._logger.handlers.clear()
+        self._logger.filters.clear()
+
         self._state_manager: StateManagerProtocol | None = None
-        self._lock = threading.RLock()
 
         # Always register file handler
         self._file_handler = FileHandler()
-        self._handlers.append(self._file_handler)
+        self._logger.addHandler(self._file_handler)
 
         # TUI handler (disabled until debug_mode)
         self._tui_handler = TUIHandler()
-        self._tui_handler.disable()
-        self._handlers.append(self._tui_handler)
+        self._logger.addHandler(self._tui_handler)
+
+        # Redaction filter scrubs every record before handlers see it.
+        self._logger.addFilter(RedactingFilter())
 
     @classmethod
     def get_instance(cls) -> LogManager:
@@ -56,6 +70,9 @@ class LogManager:
     def reset_instance(cls) -> None:
         """Reset singleton (for testing)."""
         with cls._instance_lock:
+            if cls._instance is not None:
+                cls._instance._logger.handlers.clear()
+                cls._instance._logger.filters.clear()
             cls._instance = None
 
     def set_state_manager(self, state_manager: StateManagerProtocol) -> None:
@@ -85,74 +102,55 @@ class LogManager:
             return False
         return getattr(self._state_manager.session, "debug_mode", False)
 
-    def log(self, record: LogRecord) -> None:
-        """Route a log record to all handlers."""
-        with self._lock:
-            for handler in self._handlers:
-                handler.emit(record)
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
-    def _build_record(self, level: LogLevel, message: str, **kwargs: Any) -> LogRecord:
-        record_kwargs, extra = _split_log_kwargs(kwargs)
-        record_kwargs[LOG_RECORD_EXTRA_FIELD] = extra
-        return LogRecord(level=level, message=message, **record_kwargs)
+    @staticmethod
+    def _flatten_extra(kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Merge caller kwargs and optional nested ``extra`` dict into one flat dict."""
+        result = dict(kwargs)
+        nested = result.pop("extra", None)
+        if isinstance(nested, dict):
+            result.update(nested)
+        return result
 
+    def _log(self, level: int, message: str, **kwargs: Any) -> None:
+        """Emit a log record at *level* with structured extra data."""
+        extra_data = self._flatten_extra(kwargs)
+        self._logger.log(level, message, extra={TUNACODE_EXTRA_ATTR: extra_data})
+
+    # ------------------------------------------------------------------
     # Convenience methods
+    # ------------------------------------------------------------------
+
     def debug(self, message: str, **kwargs: Any) -> None:
-        self.log(self._build_record(LogLevel.DEBUG, message, **kwargs))
+        self._log(LogLevel.DEBUG, message, **kwargs)
 
     def info(self, message: str, **kwargs: Any) -> None:
-        self.log(self._build_record(LogLevel.INFO, message, **kwargs))
+        self._log(LogLevel.INFO, message, **kwargs)
 
     def warning(self, message: str, **kwargs: Any) -> None:
-        self.log(self._build_record(LogLevel.WARNING, message, **kwargs))
+        self._log(LogLevel.WARNING, message, **kwargs)
 
     def error(self, message: str, **kwargs: Any) -> None:
-        self.log(self._build_record(LogLevel.ERROR, message, **kwargs))
+        self._log(LogLevel.ERROR, message, **kwargs)
 
     def thought(self, message: str, **kwargs: Any) -> None:
-        self.log(self._build_record(LogLevel.THOUGHT, message, **kwargs))
+        self._log(THOUGHT_LEVEL, message, **kwargs)
 
     def tool(self, tool_name: str, message: str, **kwargs: Any) -> None:
-        tool_kwargs = {LOG_RECORD_TOOL_NAME_FIELD: tool_name, **kwargs}
-        self.log(self._build_record(LogLevel.TOOL, message, **tool_kwargs))
+        kwargs["tool_name"] = tool_name
+        self._log(TOOL_LEVEL, message, **kwargs)
 
     def lifecycle(self, message: str, **kwargs: Any) -> None:
         """Emit lifecycle debug logs only when debug_mode is enabled."""
         if not self.debug_mode:
             return
         lifecycle_message = f"{LIFECYCLE_PREFIX} {message}"
-        self.log(self._build_record(LogLevel.DEBUG, lifecycle_message, **kwargs))
+        self._log(LogLevel.DEBUG, lifecycle_message, **kwargs)
 
 
 def get_logger() -> LogManager:
     """Get the global LogManager instance."""
     return LogManager.get_instance()
-
-
-def _split_log_kwargs(kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Split kwargs into LogRecord fields and extra context."""
-    if not kwargs:
-        return {}, {}
-
-    raw_extra = kwargs.get(LOG_RECORD_EXTRA_FIELD)
-    extra = _normalize_extra(raw_extra)
-
-    record_kwargs: dict[str, Any] = {}
-    for key, value in kwargs.items():
-        if key == LOG_RECORD_EXTRA_FIELD:
-            continue
-        if key in LOG_RECORD_INLINE_FIELDS:
-            record_kwargs[key] = value
-            continue
-        extra[key] = value
-
-    return record_kwargs, extra
-
-
-def _normalize_extra(raw_extra: Any) -> dict[str, Any]:
-    """Normalize user-provided extra payload."""
-    if raw_extra is None:
-        return {}
-    if isinstance(raw_extra, dict):
-        return dict(raw_extra)
-    raise TypeError(f"{LOG_RECORD_EXTRA_FIELD} must be a dict, got {type(raw_extra).__name__}")
