@@ -52,6 +52,7 @@ from .helpers import (
     is_context_overflow_error,
     parse_canonical_usage,
 )
+from .query_handoff import build_query_handoff
 
 __all__ = ["process_request", "get_agent_tool"]
 DEFAULT_MAX_ITERATIONS: int = 15
@@ -139,7 +140,9 @@ class RequestOrchestrator:
         notice_callback: NoticeCallback | None = None,
         compaction_status_callback: CompactionStatusCallback | None = None,
     ) -> None:
-        self.message = message
+        self.user_message = message
+        self.handoff = build_query_handoff(message)
+        self.message = self.handoff.message_for_main_agent
         self.model = model
         self.state_manager = state_manager
         self.tool_callback = tool_callback
@@ -239,7 +242,7 @@ class RequestOrchestrator:
         task_state = self.state_manager.session.task
         if task_state.original_query:
             return
-        task_state.original_query = self.message
+        task_state.original_query = self.user_message
 
     def _configure_compaction_callbacks(self) -> None:
         self.compaction_controller.set_status_callback(self.compaction_status_callback)
@@ -664,7 +667,7 @@ class RequestOrchestrator:
         self.empty_handler.track(is_empty)
         if is_empty and self.empty_handler.should_intervene():
             await self.empty_handler.prompt_action(
-                self.message,
+                self.user_message,
                 "empty",
                 runtime.iteration_count or 1,
             )
