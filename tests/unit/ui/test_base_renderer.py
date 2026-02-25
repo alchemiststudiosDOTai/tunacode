@@ -9,10 +9,7 @@ from tunacode.ui.renderers.tools.base import (
     truncate_line,
 )
 from tunacode.ui.renderers.tools.bash import BashRenderer
-from tunacode.ui.renderers.tools.glob import GlobRenderer
-from tunacode.ui.renderers.tools.grep import GrepRenderer
 from tunacode.ui.renderers.tools.hashline_edit import HashlineEditRenderer
-from tunacode.ui.renderers.tools.list_dir import ListDirRenderer
 from tunacode.ui.renderers.tools.read_file import ReadFileRenderer
 from tunacode.ui.renderers.tools.web_fetch import WebFetchRenderer
 
@@ -25,11 +22,8 @@ TEST_MAX_LINES: int = 100
 def test_registry_contains_unified_renderers() -> None:
     """Verify unified renderers are registered."""
     renderers = list_renderers()
-    assert "list_dir" in renderers
     assert "bash" in renderers
     assert "read_file" in renderers
-    assert "glob" in renderers
-    assert "grep" in renderers
     assert "hashline_edit" in renderers
     assert "web_fetch" in renderers
 
@@ -62,11 +56,8 @@ def test_truncate_content_returns_counts() -> None:
 
 # All renderers that MUST use BaseToolRenderer
 UNIFIED_RENDERERS = {
-    "list_dir": ListDirRenderer,
     "bash": BashRenderer,
     "read_file": ReadFileRenderer,
-    "glob": GlobRenderer,
-    "grep": GrepRenderer,
     "hashline_edit": HashlineEditRenderer,
     "web_fetch": WebFetchRenderer,
 }
