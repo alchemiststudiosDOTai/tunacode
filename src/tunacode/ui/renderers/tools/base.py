@@ -147,8 +147,8 @@ def tool_renderer(tool_name: str) -> Callable[[RenderFunc], RenderFunc]:
         Decorator that registers the function and returns it unchanged
 
     Example:
-        @tool_renderer("list_dir")
-        def render_list_dir(args, result, duration_ms, max_line_width):
+        @tool_renderer("bash")
+        def render_bash(args, result, duration_ms, max_line_width):
             ...
     """
 
