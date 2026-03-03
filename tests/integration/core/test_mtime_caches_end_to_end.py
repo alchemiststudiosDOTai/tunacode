@@ -43,7 +43,7 @@ def test_tunacode_context_cache_invalidates_on_mtime_ns(
     second = load_tunacode_context()
 
     assert first == second
-    assert "one" in first
+    assert "one" in first[0]
 
     agents_path.write_text("two\n", encoding="utf-8")
 
@@ -54,7 +54,7 @@ def test_tunacode_context_cache_invalidates_on_mtime_ns(
     third = load_tunacode_context()
 
     assert third != first
-    assert "two" in third
+    assert "two" in third[0]
 
 
 def test_ignore_manager_cache_invalidates_on_mtime_ns(
