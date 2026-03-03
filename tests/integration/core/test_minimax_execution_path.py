@@ -59,8 +59,10 @@ async def test_minimax_coding_plan_execution_path_uses_minimax_alchemy_contract(
         return _FakeResponse()
 
     monkeypatch.setattr(agent_config, "stream_alchemy_openai_completions", _fake_stream)
-    monkeypatch.setattr(agent_config, "load_system_prompt", lambda _base_path, model=None: "")
-    monkeypatch.setattr(agent_config, "load_tunacode_context", lambda: "")
+    monkeypatch.setattr(
+        agent_config, "load_system_prompt", lambda _base_path, model=None: ("", None)
+    )
+    monkeypatch.setattr(agent_config, "load_tunacode_context", lambda: ("", None))
 
     agent = agent_config.get_or_create_agent(MINIMAX_CODING_PLAN_MODEL, state_manager)
     response_text = await agent.prompt_text("Reply with ok")
