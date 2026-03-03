@@ -91,6 +91,7 @@ Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
 
 [tool.ruff]
 line-length = 100
+src = ["src"]
 
 [tool.ruff.lint]
 select = [

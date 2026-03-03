@@ -10,6 +10,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
+from tinyagent import Agent
+
 from tunacode.constants import DEFAULT_CONTEXT_WINDOW
 from tunacode.exceptions import (
     AgentError,
@@ -38,8 +40,6 @@ from tunacode.core.compaction.types import CompactionOutcome
 from tunacode.core.debug import log_usage_update
 from tunacode.core.logging import get_logger
 from tunacode.core.types import RuntimeState, StateManagerProtocol
-
-from tinyagent import Agent
 
 from . import agent_components as ac
 from .helpers import (
@@ -717,9 +717,8 @@ class RequestOrchestrator:
 
 def get_agent_tool() -> tuple[type[Any], type[Any]]:
     """Return the (Agent, AgentTool) classes."""
-    from tinyagent.agent_types import AgentTool as ToolCls
-
     from tinyagent import Agent as AgentCls
+    from tinyagent.agent_types import AgentTool as ToolCls
 
     return AgentCls, ToolCls
 
