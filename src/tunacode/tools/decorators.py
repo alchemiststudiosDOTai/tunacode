@@ -154,10 +154,10 @@ def to_tinyagent_tool(
         A tinyAgent ``AgentTool``.
     """
 
-    from tinyagent import AgentTool, AgentToolResult
-
     from tunacode.prompts.versioning import get_or_compute_prompt_version
     from tunacode.types.canonical import PromptVersion
+
+    from tinyagent import AgentTool, AgentToolResult
 
     tool_name = name or func.__name__
     tool_label = label or tool_name
@@ -191,10 +191,7 @@ def to_tinyagent_tool(
             bound = sig.bind(**args)
             bound.apply_defaults()
         except TypeError as exc:
-            raise ToolRetryError(
-                f"Invalid arguments for tool '{tool_name}': {exc}. "
-                f"Expected schema: {parameters_schema}"
-            ) from exc
+            raise ToolRetryError(f"Invalid arguments for tool '{tool_name}': {exc}") from exc
 
         result = await func(**cast(dict[str, Any], bound.arguments))
 

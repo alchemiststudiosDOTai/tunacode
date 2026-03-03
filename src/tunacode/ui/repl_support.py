@@ -187,6 +187,13 @@ def _truncate_for_safety(content: str | None) -> str | None:
     return truncated_result
 
 
+def _is_validation_error(result: str | None) -> bool:
+    """Check if result is a validation error that should go to model, not user."""
+    if result is None:
+        return False
+    return "Invalid arguments for tool" in result and "missing a required argument" in result
+
+
 def build_tool_result_callback(app: AppForCallbacks) -> ToolResultCallback:
     def _callback(
         tool_name: ToolName,
@@ -203,6 +210,10 @@ def build_tool_result_callback(app: AppForCallbacks) -> ToolResultCallback:
 
         app.status_bar.complete_running_action(tool_name)
         app.status_bar.update_last_action(tool_name)
+
+        # Don't show validation errors to users - they go back to model for retry
+        if status == "failed" and _is_validation_error(result):
+            return
 
         safe_result = _truncate_for_safety(result)
 
