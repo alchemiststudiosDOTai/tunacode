@@ -29,8 +29,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from tinyagent import AgentTool
-
 from tunacode.tools.cache_accessors.ignore_manager_cache import clear_ignore_manager_cache
 from tunacode.tools.cache_accessors.ripgrep_cache import clear_ripgrep_cache
 from tunacode.tools.cache_accessors.xml_prompts_cache import clear_xml_prompts_cache
@@ -39,6 +37,8 @@ from tunacode.tools.discover import _extract_search_terms, discover
 from tunacode.tools.ignore import get_ignore_manager
 from tunacode.tools.read_file import read_file
 from tunacode.tools.utils.ripgrep import RipgrepExecutor
+
+from tinyagent import AgentTool
 
 # ---------------------------------------------------------------------------
 # Constants
