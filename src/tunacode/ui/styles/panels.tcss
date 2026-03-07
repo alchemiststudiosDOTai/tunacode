@@ -110,6 +110,87 @@
     tint: $error 8%;
 }
 
+/* Shell execution */
+.tool-panel.tool-bash {
+    tint: $warning 4%;
+}
+
+.tool-panel.tool-bash.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-bash.failed {
+    tint: $error 8%;
+}
+
+/* Search tools share a subtle accent tint */
+.tool-panel.tool-glob,
+.tool-panel.tool-grep {
+    tint: $accent 4%;
+}
+
+.tool-panel.tool-glob.completed,
+.tool-panel.tool-grep.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-glob.failed,
+.tool-panel.tool-grep.failed {
+    tint: $error 8%;
+}
+
+/* File write */
+.tool-panel.tool-write-file {
+    tint: $primary 4%;
+}
+
+.tool-panel.tool-write-file.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-write-file.failed {
+    tint: $error 8%;
+}
+
+/* Web fetch */
+.tool-panel.tool-web-fetch {
+    tint: $secondary 4%;
+}
+
+.tool-panel.tool-web-fetch.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-web-fetch.failed {
+    tint: $error 8%;
+}
+
+/* Directory listing */
+.tool-panel.tool-list-dir {
+    tint: $accent 4%;
+}
+
+.tool-panel.tool-list-dir.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-list-dir.failed {
+    tint: $error 8%;
+}
+
+/* Code discovery */
+.tool-panel.tool-discover {
+    tint: $secondary 4%;
+}
+
+.tool-panel.tool-discover.completed {
+    tint: $success 6%;
+}
+
+.tool-panel.tool-discover.failed {
+    tint: $error 8%;
+}
+
 
 /* Error panels - recovery states */
 .error-panel {
