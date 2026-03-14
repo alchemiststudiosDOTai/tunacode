@@ -30,7 +30,7 @@ def _build_app() -> SimpleNamespace:
         _update_resource_bar=lambda: None,
         _update_slopgotchi=lambda: None,
         set_focus=lambda _target: None,
-        run_worker=lambda _worker, exclusive=False: None,
+        run_worker=lambda _worker, **_kwargs: None,
         set_interval=lambda _interval, _callback: "timer",
     )
 

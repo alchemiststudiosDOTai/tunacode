@@ -113,22 +113,30 @@ class TmuxSession:
         shell_cmd = " && ".join(launch_parts)
         self._run_tmux("new-session", "-d", "-s", self.name, "-x", "220", "-y", "50", shell_cmd)
 
-        deadline = time.monotonic() + STARTUP_READY_TIMEOUT_SECONDS
-        while time.monotonic() < deadline:
-            if self.ready_file.is_file():
-                return
-            time.sleep(STARTUP_POLL_INTERVAL_SECONDS)
+        try:
+            deadline = time.monotonic() + STARTUP_READY_TIMEOUT_SECONDS
+            while time.monotonic() < deadline:
+                if self.ready_file.is_file():
+                    return
+                time.sleep(STARTUP_POLL_INTERVAL_SECONDS)
 
-        raise TimeoutError(
-            "Timed out waiting for tunacode tmux session readiness file.\n"
-            f"{self._startup_diagnostics()}"
-        )
+            diagnostics = self._startup_diagnostics()
+        except Exception:
+            self.kill()
+            raise
+
+        self.kill()
+        raise TimeoutError(self._build_startup_timeout_message(diagnostics))
+
+    def _build_startup_timeout_message(self, diagnostics: str) -> str:
+        """Build the startup timeout error message."""
+        return f"Timed out waiting for tunacode tmux session readiness file.\n{diagnostics}"
 
     def _startup_diagnostics(self) -> str:
         """Collect pane and ready-file diagnostics for startup failures."""
         try:
             pane_output = self.capture()
-        except Exception as exc:  # pragma: no cover - best-effort timeout diagnostics
+        except (RuntimeError, subprocess.TimeoutExpired) as exc:  # pragma: no cover
             pane_output = f"<capture failed: {exc}>"
         ready_exists = self.ready_file.exists()
         ready_contents = self.ready_file.read_text(encoding="utf-8") if ready_exists else ""
@@ -179,7 +187,7 @@ def wait_for_capture(
     predicate: Callable[[str], bool],
     *,
     description: str,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> str:
     """Poll the pane until *predicate* matches. Returns captured output."""
     deadline = time.monotonic() + timeout
@@ -220,7 +228,7 @@ def wait_for_stable_capture(
     predicate: Callable[[str], bool],
     *,
     description: str,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
     initial_output: str | None = None,
 ) -> str:
     """Poll until matching pane output stops changing across consecutive captures."""
@@ -252,20 +260,21 @@ def wait_for_capture_then_stable(
     predicate: Callable[[str], bool],
     *,
     description: str,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> str:
     """Wait for a matching capture, then for that matching state to settle."""
+    deadline = time.monotonic() + timeout
     matched_output = wait_for_capture(
         session,
         predicate,
         description=description,
-        timeout=timeout,
+        timeout=max(0.0, deadline - time.monotonic()),
     )
     return wait_for_stable_capture(
         session,
         predicate,
         description=description,
-        timeout=timeout,
+        timeout=max(0.0, deadline - time.monotonic()),
         initial_output=matched_output,
     )
 
@@ -277,7 +286,7 @@ def send_and_wait_for_completion(
     description: str,
     pane_predicate: Callable[[str], bool] | None = None,
     side_effect_predicate: Callable[[], bool] | None = None,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> str:
     """Send a request, wait for expected evidence, then wait for the pane to settle."""
     baseline = session.capture()

@@ -1,7 +1,7 @@
 # Tunacode Development Makefile
 # Provides convenient shortcuts for common development tasks
 
-.PHONY: help dev-setup install run test test-tmux lint clean
+.PHONY: all help dev-setup install run test test-tmux lint clean
 
 # Default target shows help
 help:
