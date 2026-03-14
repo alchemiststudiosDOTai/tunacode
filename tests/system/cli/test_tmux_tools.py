@@ -7,7 +7,6 @@ These are true system tests -- they exercise the full stack (TUI, agent loop,
 tool dispatch, rendering). They require a live API key and tmux.
 """
 
-import json
 import os
 import shlex
 import shutil
@@ -34,33 +33,30 @@ TMUX_HISTORY_LINES = "-10000"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VENV_DIR = REPO_ROOT / ".venv"
 API_KEY_ENV_VAR = "MINIMAX_API_KEY"
-TUNACODE_CONFIG_PATH = Path.home() / ".config" / "tunacode.json"
+TEST_API_KEY_ENV_VAR = "TUNACODE_TEST_API_KEY"
+RUN_TMUX_TESTS_ENV_VAR = "TUNACODE_RUN_TMUX_TESTS"
 
 # ---------------------------------------------------------------------------
 # Markers & skip guards
 # ---------------------------------------------------------------------------
 
 _missing_tmux = not shutil.which(TMUX_BINARY)
-
-
-def _has_api_key() -> bool:
-    """Check env var first, then fall back to tunacode's config file."""
-    if os.environ.get(API_KEY_ENV_VAR):
-        return True
-    try:
-        config = json.loads(TUNACODE_CONFIG_PATH.read_text())
-        key = config.get("env", {}).get(API_KEY_ENV_VAR, "")
-        return bool(key)
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return False
-
-
-_missing_api_key = not _has_api_key()
+_missing_tmux_env_vars = [
+    env_var
+    for env_var in (RUN_TMUX_TESTS_ENV_VAR, TEST_API_KEY_ENV_VAR)
+    if not os.environ.get(env_var)
+]
+_missing_tmux_env_reason = (
+    "tmux suite is opt-in; set " + ", ".join(_missing_tmux_env_vars)
+    if _missing_tmux_env_vars
+    else ""
+)
 
 pytestmark = [
+    pytest.mark.integration,
     pytest.mark.tmux,
     pytest.mark.skipif(_missing_tmux, reason="tmux is not installed"),
-    pytest.mark.skipif(_missing_api_key, reason=f"{API_KEY_ENV_VAR} not found in env or config"),
+    pytest.mark.skipif(bool(_missing_tmux_env_vars), reason=_missing_tmux_env_reason),
     pytest.mark.timeout(DEFAULT_TIMEOUT_SECONDS),
 ]
 
