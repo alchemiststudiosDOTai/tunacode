@@ -1,41 +1,49 @@
 # Dependency Layers
 
-Generated: 2026-02-15
+Generated: 2026-03-14
 
 ## Layer Order (topological)
 
 ```
-ui
-core
-tools
-utils
 configuration
 constants
+core
 exceptions
 infrastructure
+skills
+test_dead_code
+tools
 types
+ui
+utils
 ```
 
 ## Layer-to-Layer Imports
 
 | From | To | Count |
 |------|----|-------|
-| configuration | constants | 6 |
+| configuration | constants | 7 |
 | configuration | exceptions | 1 |
 | configuration | infrastructure | 2 |
 | configuration | types | 4 |
-| core | configuration | 16 |
+| core | configuration | 15 |
 | core | constants | 5 |
-| core | exceptions | 3 |
+| core | exceptions | 2 |
 | core | infrastructure | 3 |
-| core | tools | 10 |
-| core | types | 15 |
+| core | skills | 4 |
+| core | tools | 9 |
+| core | types | 17 |
 | core | utils | 6 |
 | exceptions | types | 1 |
-| infrastructure | types | 1 |
-| tools | configuration | 5 |
-| tools | exceptions | 10 |
+| infrastructure | skills | 1 |
+| infrastructure | types | 2 |
+| skills | core | 1 |
+| skills | infrastructure | 1 |
+| tools | configuration | 3 |
+| tools | exceptions | 6 |
 | tools | infrastructure | 3 |
-| ui | core | 58 |
+| tools | types | 1 |
+| ui | core | 61 |
+| ui | skills | 8 |
 | utils | configuration | 2 |
 | utils | types | 2 |
