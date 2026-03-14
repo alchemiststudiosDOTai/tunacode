@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.console import RenderableType
 
 if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
+
+
+TEST_READY_FILE_ENV_VAR = "TUNACODE_TEST_READY_FILE"
 
 
 class AppLifecycle:
@@ -88,6 +92,27 @@ class AppLifecycle:
         from tunacode.ui.welcome import show_welcome
 
         show_welcome(app.chat_container)
+        self._emit_ready_file_if_configured()
+
+    def _emit_ready_file_if_configured(self) -> None:
+        """Write a test-only readiness marker after the REPL is fully initialized."""
+        ready_file = os.environ.get(TEST_READY_FILE_ENV_VAR)
+        if not ready_file:
+            return
+
+        ready_path = Path(ready_file).expanduser()
+        ready_path.parent.mkdir(parents=True, exist_ok=True)
+        ready_path.write_text(
+            "\n".join(
+                [
+                    "ready",
+                    f"timestamp={datetime.now(UTC).isoformat()}",
+                    f"cwd={os.getcwd()}",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
 
     def _setup_logger(self) -> None:
         """Initialize logger output to the app chat container."""
