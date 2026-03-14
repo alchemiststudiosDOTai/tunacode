@@ -11,6 +11,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from collections.abc import Callable, Generator
@@ -35,6 +36,7 @@ VENV_DIR = REPO_ROOT / ".venv"
 API_KEY_ENV_VAR = "MINIMAX_API_KEY"
 TEST_API_KEY_ENV_VAR = "TUNACODE_TEST_API_KEY"
 RUN_TMUX_TESTS_ENV_VAR = "TUNACODE_RUN_TMUX_TESTS"
+TEST_READY_FILE_ENV_VAR = "TUNACODE_TEST_READY_FILE"
 
 # ---------------------------------------------------------------------------
 # Markers & skip guards
@@ -72,6 +74,8 @@ class TmuxSession:
     def __init__(self, name: str, *, working_directory: Path | None = None) -> None:
         self.name = name
         self.working_directory = working_directory
+        self._temp_dir = Path(tempfile.mkdtemp(prefix=f"{SESSION_PREFIX}_"))
+        self.ready_file = self._temp_dir / "ready.txt"
 
     # -- tmux primitives -----------------------------------------------------
 
@@ -90,32 +94,56 @@ class TmuxSession:
 
     def start(self) -> None:
         """Create a detached session and launch tunacode inside it."""
-        activate = f"source {VENV_DIR / 'bin' / 'activate'}"
-        launch = "tunacode"
-        if self.working_directory is None:
-            shell_cmd = f"{activate} && {launch}"
-        else:
+        self.ready_file.parent.mkdir(parents=True, exist_ok=True)
+        self.ready_file.unlink(missing_ok=True)
+
+        launch_parts: list[str] = []
+        if self.working_directory is not None:
             quoted_working_directory = shlex.quote(str(self.working_directory))
-            shell_cmd = f"cd {quoted_working_directory} && {activate} && {launch}"
+            launch_parts.append(f"cd {quoted_working_directory}")
+
+        launch_parts.extend(
+            [
+                f"export {TEST_READY_FILE_ENV_VAR}={shlex.quote(str(self.ready_file))}",
+                f"export {API_KEY_ENV_VAR}={shlex.quote(os.environ[TEST_API_KEY_ENV_VAR])}",
+                f"source {VENV_DIR / 'bin' / 'activate'}",
+                "tunacode",
+            ]
+        )
+        shell_cmd = " && ".join(launch_parts)
         self._run_tmux("new-session", "-d", "-s", self.name, "-x", "220", "-y", "50", shell_cmd)
 
         deadline = time.monotonic() + STARTUP_READY_TIMEOUT_SECONDS
-        last_output = ""
         while time.monotonic() < deadline:
-            output = self.capture()
-            last_output = output
-            if any(line.lstrip().startswith("│ >") for line in output.splitlines()):
+            if self.ready_file.is_file():
                 return
             time.sleep(STARTUP_POLL_INTERVAL_SECONDS)
 
         raise TimeoutError(
-            "Timed out waiting for tunacode tmux session to render the editor prompt.\n"
-            f"Last capture:\n{last_output or self.capture()}"
+            "Timed out waiting for tunacode tmux session readiness file.\n"
+            f"{self._startup_diagnostics()}"
+        )
+
+    def _startup_diagnostics(self) -> str:
+        """Collect pane and ready-file diagnostics for startup failures."""
+        try:
+            pane_output = self.capture()
+        except Exception as exc:  # pragma: no cover - best-effort timeout diagnostics
+            pane_output = f"<capture failed: {exc}>"
+        ready_exists = self.ready_file.exists()
+        ready_contents = self.ready_file.read_text(encoding="utf-8") if ready_exists else ""
+        return (
+            f"session={self.name}\n"
+            f"ready_file={self.ready_file}\n"
+            f"ready_file_exists={ready_exists}\n"
+            f"ready_file_contents={ready_contents!r}\n"
+            f"pane_capture:\n{pane_output}"
         )
 
     def kill(self) -> None:
         """Kill the tmux session (ignore errors if already dead)."""
         self._run_tmux("kill-session", "-t", self.name, check=False)
+        shutil.rmtree(self._temp_dir, ignore_errors=True)
 
     def send(self, text: str) -> None:
         """Type *text* followed by Enter into the session."""
