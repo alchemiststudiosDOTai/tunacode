@@ -1,7 +1,7 @@
 # Tunacode Development Makefile
 # Provides convenient shortcuts for common development tasks
 
-.PHONY: help dev-setup install run test lint clean
+.PHONY: help dev-setup install run test test-tmux lint clean
 
 # Default target shows help
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make install    - Install/update dependencies"
 	@echo "  make run        - Run the development server"
 	@echo "  make test       - Run test suite"
+	@echo "  make test-tmux  - Run the tmux system test suite"
 	@echo "  make lint       - Run linters and formatters"
 	@echo "  make clean      - Clean build artifacts"
 	@echo ""
@@ -30,6 +31,10 @@ run:
 # Run test suite
 test:
 	uv run pytest
+
+# Run tmux system test suite
+test-tmux:
+	uv run pytest tests/system/cli/test_tmux_tools.py
 
 # Run linters
 lint:
