@@ -196,49 +196,106 @@ def wait_for_capture(
     )
 
 
-def wait_for_text(
+STABLE_CAPTURE_POLLS = 2
+
+
+def output_contains_all(output: str, *needles: str) -> bool:
+    """Return True when all *needles* are present in *output*."""
+    return all(needle in output for needle in needles)
+
+
+def output_contains_in_order(output: str, *needles: str) -> bool:
+    """Return True when all *needles* appear in *output* in the given order."""
+    start_index = 0
+    for needle in needles:
+        match_index = output.find(needle, start_index)
+        if match_index == -1:
+            return False
+        start_index = match_index + len(needle)
+    return True
+
+
+def wait_for_stable_capture(
     session: TmuxSession,
-    needle: str,
-    *,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS,
-) -> str:
-    """Poll the pane until *needle* appears. Returns captured output."""
-    return wait_for_capture(
-        session,
-        lambda output: needle in output,
-        description=f"{needle!r} in pane",
-        timeout=timeout,
-    )
-
-
-def wait_for_all_text(
-    session: TmuxSession,
-    *needles: str,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS,
-) -> str:
-    """Poll the pane until all *needles* appear together."""
-    joined = ", ".join(repr(needle) for needle in needles)
-    return wait_for_capture(
-        session,
-        lambda output: all(needle in output for needle in needles),
-        description=f"all of [{joined}] in pane",
-        timeout=timeout,
-    )
-
-
-def wait_for_condition(
-    predicate: Callable[[], bool],
+    predicate: Callable[[str], bool],
     *,
     description: str,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
-) -> None:
-    """Poll until *predicate* returns True."""
+    initial_output: str | None = None,
+) -> str:
+    """Poll until matching pane output stops changing across consecutive captures."""
     deadline = time.monotonic() + timeout
+    last_output = initial_output or session.capture()
+    stable_polls = 0
     while time.monotonic() < deadline:
-        if predicate():
-            return
         time.sleep(POLL_INTERVAL_SECONDS)
-    raise TimeoutError(f"Timed out after {timeout}s waiting for {description}.")
+        output = session.capture()
+        if not predicate(output):
+            last_output = output
+            stable_polls = 0
+            continue
+        if output == last_output:
+            stable_polls += 1
+            if stable_polls >= STABLE_CAPTURE_POLLS:
+                return output
+        else:
+            last_output = output
+            stable_polls = 0
+    raise TimeoutError(
+        f"Timed out after {timeout}s waiting for stable {description}.\n"
+        f"Last capture:\n{last_output or session.capture()}"
+    )
+
+
+def wait_for_capture_then_stable(
+    session: TmuxSession,
+    predicate: Callable[[str], bool],
+    *,
+    description: str,
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+) -> str:
+    """Wait for a matching capture, then for that matching state to settle."""
+    matched_output = wait_for_capture(
+        session,
+        predicate,
+        description=description,
+        timeout=timeout,
+    )
+    return wait_for_stable_capture(
+        session,
+        predicate,
+        description=description,
+        timeout=timeout,
+        initial_output=matched_output,
+    )
+
+
+def send_and_wait_for_completion(
+    session: TmuxSession,
+    prompt: str,
+    *,
+    description: str,
+    pane_predicate: Callable[[str], bool] | None = None,
+    side_effect_predicate: Callable[[], bool] | None = None,
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+) -> str:
+    """Send a request, wait for expected evidence, then wait for the pane to settle."""
+    baseline = session.capture()
+    session.send(prompt)
+
+    def request_completed(output: str) -> bool:
+        return (
+            output != baseline
+            and (pane_predicate(output) if pane_predicate is not None else True)
+            and (side_effect_predicate() if side_effect_predicate is not None else True)
+        )
+
+    return wait_for_capture_then_stable(
+        session,
+        request_completed,
+        description=description,
+        timeout=timeout,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -250,10 +307,13 @@ def test_bash_tool() -> None:
     """bash tool: run a command and verify rendered stdout."""
     marker = f"hello-{uuid.uuid4().hex[:8]}"
     with tmux_session() as s:
-        s.send(
-            f"You MUST call the bash tool. Run: printf {marker}. Do not answer until the tool runs."
+        output = send_and_wait_for_completion(
+            s,
+            "You MUST call the bash tool. Run: "
+            f"printf {marker}. Do not answer until the tool runs.",
+            description="bash tool stdout",
+            pane_predicate=lambda pane: output_contains_all(pane, "stdout:", marker),
         )
-        output = wait_for_all_text(s, "stdout:", marker)
         assert marker in output, f"Expected {marker!r} in output:\n{output}"
 
 
@@ -264,10 +324,12 @@ def test_read_file_tool(tmp_path: Path) -> None:
     target.write_text(f"alpha\n{marker}\nomega\n")
 
     with tmux_session() as s:
-        s.send(
-            f"You MUST call the read_file tool. Read {target}. Do not answer until the tool runs."
+        output = send_and_wait_for_completion(
+            s,
+            f"You MUST call the read_file tool. Read {target}. Do not answer until the tool runs.",
+            description="read_file tool output",
+            pane_predicate=lambda pane: marker in pane,
         )
-        output = wait_for_text(s, marker)
         assert marker in output, f"Expected {marker!r} in output:\n{output}"
 
 
@@ -277,16 +339,16 @@ def test_write_file_tool() -> None:
     content_marker = f"hello-from-tunacode-{uuid.uuid4().hex[:8]}"
     try:
         with tmux_session() as s:
-            s.send(
+            send_and_wait_for_completion(
+                s,
                 f"You MUST call the write_file tool. Create {target} with content "
-                f'"{content_marker}". Do not answer until the tool runs.'
+                f'"{content_marker}". Do not answer until the tool runs.',
+                description="write_file side effect",
+                side_effect_predicate=lambda: target.exists()
+                and content_marker in target.read_text(encoding="utf-8"),
             )
-            wait_for_condition(
-                lambda: target.exists() and content_marker in target.read_text(),
-                description=f"{target} to contain {content_marker!r}",
-            )
-            assert content_marker in target.read_text(), (
-                f"File contents do not contain marker: {target.read_text()!r}"
+            assert content_marker in target.read_text(encoding="utf-8"), (
+                f"File contents do not contain marker: {target.read_text(encoding='utf-8')!r}"
             )
     finally:
         target.unlink(missing_ok=True)
@@ -298,18 +360,18 @@ def test_hashline_edit_tool(tmp_path: Path) -> None:
     original_line = "color = red"
     expected_line = "color = blue"
     try:
-        target.write_text(original_line)
+        target.write_text(original_line, encoding="utf-8")
         with tmux_session() as s:
-            s.send(
+            send_and_wait_for_completion(
+                s,
                 "You MUST call read_file, then hashline_edit. "
                 f"Read {target}, then change 'color = red' to 'color = blue'. "
-                "Do not answer until both tools run."
+                "Do not answer until both tools run.",
+                description="hashline_edit side effect",
+                side_effect_predicate=lambda: target.exists()
+                and expected_line in target.read_text(encoding="utf-8"),
             )
-            wait_for_condition(
-                lambda: target.exists() and expected_line in target.read_text(),
-                description=f"{target} to contain {expected_line!r}",
-            )
-            updated = target.read_text()
+            updated = target.read_text(encoding="utf-8")
             assert expected_line in updated, f"Expected {expected_line!r} in:\n{updated}"
     finally:
         target.unlink(missing_ok=True)
@@ -318,11 +380,13 @@ def test_hashline_edit_tool(tmp_path: Path) -> None:
 def test_discover_tool() -> None:
     """discover tool: search for a known tool implementation and verify structured output."""
     with tmux_session() as s:
-        s.send(
+        output = send_and_wait_for_completion(
+            s,
             "You MUST call the discover tool. Query: write_file tool implementation. "
-            "Do not answer until the tool runs."
+            "Do not answer until the tool runs.",
+            description="discover tool output",
+            pane_predicate=lambda pane: output_contains_all(pane, "scanned:", "write_file.py"),
         )
-        output = wait_for_all_text(s, "scanned:", "write_file.py")
         assert "scanned:" in output, f"Expected 'scanned:' stats in discover output:\n{output}"
 
 
@@ -330,12 +394,12 @@ def test_web_fetch_tool() -> None:
     """web_fetch tool: fetch example.com and verify success or tool-level failure output."""
     url = "https://example.com/"
     with tmux_session() as s:
-        s.send(f"You MUST call the web_fetch tool. Fetch {url}. Do not answer until the tool runs.")
-        output = wait_for_capture(
+        output = send_and_wait_for_completion(
             s,
-            lambda pane: f"url: {url}" in pane
-            and ("example domain" in pane.lower() or f"failed to connect to {url}" in pane.lower()),
+            f"You MUST call the web_fetch tool. Fetch {url}. Do not answer until the tool runs.",
             description="web_fetch result or connection error",
+            pane_predicate=lambda pane: f"url: {url}" in pane
+            and ("example domain" in pane.lower() or f"failed to connect to {url}" in pane.lower()),
         )
         assert f"url: {url}" in output, f"Expected web_fetch params for {url}:\n{output}"
         assert (
@@ -375,15 +439,30 @@ def test_loaded_skill_is_used_via_absolute_referenced_path(tmp_path: Path) -> No
     )
 
     with tmux_session(working_directory=tmp_path) as s:
-        s.send(f"/skills {skill_name}")
-        load_output = wait_for_text(s, f"Loaded skill: {skill_name}")
+        load_output = send_and_wait_for_completion(
+            s,
+            f"/skills {skill_name}",
+            description="skill load confirmation",
+            pane_predicate=lambda pane: output_contains_all(
+                pane,
+                f"Loaded skill: {skill_name}",
+                skill_description,
+            ),
+        )
         assert skill_description in load_output, (
             f"Expected skill description in load output:\n{load_output}"
         )
 
-        s.send("What is the tmux skill token? Use the loaded skill and do not guess.")
-        tool_output = wait_for_text(s, "token.txt")
-        assert "token.txt" in tool_output, f"Expected token file read in output:\n{tool_output}"
-
-        final_output = wait_for_all_text(s, token, "This skill is loaded and being used.")
+        final_output = send_and_wait_for_completion(
+            s,
+            "What is the tmux skill token? Use the loaded skill and do not guess.",
+            description="skill token read and final response",
+            pane_predicate=lambda pane: output_contains_in_order(
+                pane,
+                "token.txt",
+                token,
+                "This skill is loaded and being used.",
+            ),
+        )
+        assert "token.txt" in final_output, f"Expected token file read in output:\n{final_output}"
         assert token in final_output, f"Expected token in output:\n{final_output}"
