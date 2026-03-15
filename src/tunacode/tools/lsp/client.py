@@ -12,7 +12,6 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from tunacode.tools.lsp.servers import get_language_id
 
@@ -53,7 +52,7 @@ class LSPClient:
         self._diagnostics: dict[str, list[Diagnostic]] = {}
         self._initialized = False
         self._reader_task: asyncio.Task[None] | None = None
-        self._pending_requests: dict[int, asyncio.Future[dict[str, Any] | None]] = {}
+        self._pending_requests: dict[int, asyncio.Future[dict[str, object] | None]] = {}
         self._shutdown_requested = False
 
     async def start(self) -> bool:
@@ -113,7 +112,7 @@ class LSPClient:
         # Send initialized notification
         await self._notify("initialized", {})
 
-    async def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any] | None:
+    async def _request(self, method: str, params: dict[str, object]) -> dict[str, object] | None:
         """Send a JSON-RPC request and wait for response.
 
         Args:
@@ -128,7 +127,7 @@ class LSPClient:
 
         # Create a future to receive the response
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[dict[str, Any] | None] = loop.create_future()
+        future: asyncio.Future[dict[str, object] | None] = loop.create_future()
         self._pending_requests[request_id] = future
 
         message = {
@@ -146,7 +145,7 @@ class LSPClient:
         finally:
             self._pending_requests.pop(request_id, None)
 
-    async def _notify(self, method: str, params: dict[str, Any]) -> None:
+    async def _notify(self, method: str, params: dict[str, object]) -> None:
         """Send a JSON-RPC notification (no response expected).
 
         Args:
@@ -160,7 +159,7 @@ class LSPClient:
         }
         await self._send(message)
 
-    async def _send(self, message: dict[str, Any]) -> None:
+    async def _send(self, message: dict[str, object]) -> None:
         """Send a JSON-RPC message to the server.
 
         Args:
@@ -202,7 +201,7 @@ class LSPClient:
             if method == "textDocument/publishDiagnostics":
                 self._handle_diagnostics(message.get("params", {}))
 
-    async def _receive_one(self) -> dict[str, Any] | None:
+    async def _receive_one(self) -> dict[str, object] | None:
         """Receive a single JSON-RPC message.
 
         Returns:
@@ -235,7 +234,7 @@ class LSPClient:
         except (TimeoutError, asyncio.IncompleteReadError, json.JSONDecodeError):
             return None
 
-    def _handle_diagnostics(self, params: dict[str, Any]) -> None:
+    def _handle_diagnostics(self, params: dict[str, object]) -> None:
         """Handle publishDiagnostics notification.
 
         Args:

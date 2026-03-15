@@ -13,7 +13,7 @@ Legacy pydantic-ai message formats are intentionally **not** supported.
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 from tinyagent.agent_types import (
     AssistantMessage,
@@ -92,14 +92,14 @@ CANONICAL_TO_ROLE: dict[MessageRole, str] = {
 # -----------------------------------------------------------------------------
 
 
-def _coerce_role(message: dict[str, Any]) -> str:
+def _coerce_role(message: dict[str, object]) -> str:
     role = message.get(KEY_ROLE)
     if not isinstance(role, str) or not role:
         raise TypeError("Agent message is missing a non-empty 'role' string")
     return role
 
 
-def _coerce_content_items(message: dict[str, Any]) -> list[Any]:
+def _coerce_content_items(message: dict[str, object]) -> list[object]:
     content = message.get(KEY_CONTENT)
     if content is None:
         return []
@@ -108,30 +108,30 @@ def _coerce_content_items(message: dict[str, Any]) -> list[Any]:
     raise TypeError(f"Agent message '{KEY_CONTENT}' must be a list, got {type(content).__name__}")
 
 
-def _coerce_content_item(item: Any) -> dict[str, Any]:
+def _coerce_content_item(item: object) -> dict[str, object]:
     if not isinstance(item, dict):
         raise TypeError(f"Content item must be a dict, got {type(item).__name__}")
     return item
 
 
-def _coerce_text_item(item: dict[str, Any]) -> str:
+def _coerce_text_item(item: dict[str, object]) -> str:
     text_value = item.get(KEY_TEXT, "")
     return text_value if isinstance(text_value, str) else str(text_value)
 
 
-def _coerce_thinking_item(item: dict[str, Any]) -> str:
+def _coerce_thinking_item(item: dict[str, object]) -> str:
     thinking_value = item.get(KEY_THINKING, "")
     return thinking_value if isinstance(thinking_value, str) else str(thinking_value)
 
 
-def _coerce_image_item(item: dict[str, Any]) -> str:
+def _coerce_image_item(item: dict[str, object]) -> str:
     url = item.get(KEY_URL)
     if isinstance(url, str) and url:
         return url
     return DEFAULT_IMAGE_PLACEHOLDER
 
 
-def _coerce_tool_call_item(item: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+def _coerce_tool_call_item(item: dict[str, object]) -> tuple[str, str, dict[str, object]]:
     tool_call_id = item.get(KEY_ID)
     if not isinstance(tool_call_id, str) or not tool_call_id:
         raise TypeError("tool_call content item is missing non-empty 'id'")
@@ -146,10 +146,10 @@ def _coerce_tool_call_item(item: dict[str, Any]) -> tuple[str, str, dict[str, An
             f"tool_call '{KEY_ARGUMENTS}' must be a dict, got {type(arguments).__name__}"
         )
 
-    return tool_call_id, tool_name, cast(dict[str, Any], arguments)
+    return tool_call_id, tool_name, cast(dict[str, object], arguments)
 
 
-def _content_items_to_text(content_items: list[Any]) -> str:
+def _content_items_to_text(content_items: list[object]) -> str:
     segments: list[str] = []
 
     for raw_item in content_items:
@@ -185,7 +185,7 @@ def _content_items_to_text(content_items: list[Any]) -> str:
 # -----------------------------------------------------------------------------
 
 
-def _to_canonical_tool_message(message: dict[str, Any]) -> CanonicalMessage:
+def _to_canonical_tool_message(message: dict[str, object]) -> CanonicalMessage:
     tool_call_id = message.get(KEY_TOOL_CALL_ID)
     if not isinstance(tool_call_id, str) or not tool_call_id:
         raise TypeError("tool_result message is missing non-empty 'tool_call_id'")
@@ -197,7 +197,7 @@ def _to_canonical_tool_message(message: dict[str, Any]) -> CanonicalMessage:
     return CanonicalMessage(role=MessageRole.TOOL, parts=parts, timestamp=None)
 
 
-def _system_content_item_to_part(item_type: object, item: dict[str, Any]) -> CanonicalPart:
+def _system_content_item_to_part(item_type: object, item: dict[str, object]) -> CanonicalPart:
     if item_type == CONTENT_TYPE_TEXT:
         return SystemPromptPart(content=_coerce_text_item(item))
 
@@ -207,7 +207,7 @@ def _system_content_item_to_part(item_type: object, item: dict[str, Any]) -> Can
     raise ValueError(f"System message content must be text/image, got: {item_type!r}")
 
 
-def _non_system_content_item_to_part(item_type: object, item: dict[str, Any]) -> CanonicalPart:
+def _non_system_content_item_to_part(item_type: object, item: dict[str, object]) -> CanonicalPart:
     if item_type == CONTENT_TYPE_TEXT:
         return TextPart(content=_coerce_text_item(item))
 
@@ -227,7 +227,7 @@ def _non_system_content_item_to_part(item_type: object, item: dict[str, Any]) ->
 def _content_items_to_parts(
     *,
     canonical_role: MessageRole,
-    content_items: list[Any],
+    content_items: list[object],
 ) -> tuple[CanonicalPart, ...]:
     parts: list[CanonicalPart] = []
 
@@ -247,9 +247,9 @@ def _content_items_to_parts(
     return tuple(parts)
 
 
-def _coerce_agent_message_dict(message: Any) -> dict[str, Any]:
+def _coerce_agent_message_dict(message: object) -> dict[str, object]:
     if isinstance(message, dict):
-        return cast(dict[str, Any], message)
+        return cast(dict[str, object], message)
 
     if not isinstance(
         message,
@@ -264,10 +264,10 @@ def _coerce_agent_message_dict(message: Any) -> dict[str, Any]:
             f"got {type(serialized_message).__name__}"
         )
 
-    return cast(dict[str, Any], serialized_message)
+    return cast(dict[str, object], serialized_message)
 
 
-def to_canonical(message: Any) -> CanonicalMessage:
+def to_canonical(message: object) -> CanonicalMessage:
     """Convert a tinyagent message payload to canonical format."""
 
     if isinstance(message, CanonicalMessage):
@@ -292,13 +292,13 @@ def to_canonical(message: Any) -> CanonicalMessage:
     return CanonicalMessage(role=canonical_role, parts=parts, timestamp=None)
 
 
-def to_canonical_list(messages: list[Any]) -> list[CanonicalMessage]:
+def to_canonical_list(messages: list[object]) -> list[CanonicalMessage]:
     """Convert a list of messages to canonical format."""
 
     return [to_canonical(msg) for msg in messages]
 
 
-def _tool_message_from_canonical(message: CanonicalMessage) -> dict[str, Any]:
+def _tool_message_from_canonical(message: CanonicalMessage) -> dict[str, object]:
     tool_return_parts = [p for p in message.parts if isinstance(p, ToolReturnPart)]
     if len(tool_return_parts) != 1:
         raise ValueError(
@@ -326,7 +326,7 @@ def _canonical_part_to_content_item(
     *,
     message_role: MessageRole,
     part: CanonicalPart,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     if isinstance(part, TextPart):
         return {
             KEY_TYPE: CONTENT_TYPE_TEXT,
@@ -377,7 +377,7 @@ def _canonical_part_to_content_item(
     raise TypeError(f"Unsupported canonical part type: {type(part).__name__}")
 
 
-def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
+def from_canonical(message: CanonicalMessage) -> dict[str, object]:
     """Convert a canonical message back into a tinyagent-style dict."""
 
     role = CANONICAL_TO_ROLE.get(message.role)
@@ -395,7 +395,7 @@ def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
     return {KEY_ROLE: role, KEY_CONTENT: content}
 
 
-def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]]:
+def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, object]]:
     """Convert a list of canonical messages back to tinyagent dict messages."""
 
     return [from_canonical(msg) for msg in messages]
@@ -406,7 +406,7 @@ def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]
 # -----------------------------------------------------------------------------
 
 
-def get_content(message: Any) -> str:
+def get_content(message: object) -> str:
     """Extract normalized text content from any supported message representation."""
 
     if isinstance(message, CanonicalMessage):
@@ -416,21 +416,21 @@ def get_content(message: Any) -> str:
     return canonical.get_text_content()
 
 
-def get_tool_call_ids(message: Any) -> set[str]:
+def get_tool_call_ids(message: object) -> set[str]:
     """Return tool call IDs present in a message."""
 
     canonical = to_canonical(message)
     return canonical.get_tool_call_ids()
 
 
-def get_tool_return_ids(message: Any) -> set[str]:
+def get_tool_return_ids(message: object) -> set[str]:
     """Return tool return IDs present in a message."""
 
     canonical = to_canonical(message)
     return canonical.get_tool_return_ids()
 
 
-def find_dangling_tool_calls(messages: list[Any]) -> set[str]:
+def find_dangling_tool_calls(messages: list[object]) -> set[str]:
     """Return tool_call_ids that do not have matching tool_result messages."""
 
     call_ids: set[str] = set()

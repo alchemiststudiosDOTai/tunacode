@@ -24,7 +24,7 @@ import types
 import typing
 from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast, get_args, get_origin
+from typing import TYPE_CHECKING, ParamSpec, TypeVar, cast, get_args, get_origin
 
 from tunacode.exceptions import (
     FileOperationError,
@@ -43,8 +43,8 @@ R = TypeVar("R")
 
 
 def base_tool(
-    func: Callable[P, Coroutine[Any, Any, R]],
-) -> Callable[P, Coroutine[Any, Any, R]]:
+    func: Callable[P, Coroutine[object, object, R]],
+) -> Callable[P, Coroutine[object, object, R]]:
     """Wrap an async tool with consistent error handling.
 
     - ``ToolRetryError`` pass-through (signals that the model should try again).
@@ -80,8 +80,8 @@ def base_tool(
 
 
 def file_tool(
-    func: Callable[..., Coroutine[Any, Any, str]],
-) -> Callable[..., Coroutine[Any, Any, str]]:
+    func: Callable[..., Coroutine[object, object, str]],
+) -> Callable[..., Coroutine[object, object, str]]:
     """Wrap a file tool with path-specific error handling.
 
     Specialized handling for common file operation errors:
@@ -99,7 +99,7 @@ def file_tool(
     """
 
     @wraps(func)
-    async def wrapper(filepath: str, *args: Any, **kwargs: Any) -> str:
+    async def wrapper(filepath: str, *args: object, **kwargs: object) -> str:
         try:
             return await func(filepath, *args, **kwargs)
         except FileNotFoundError as err:
@@ -132,7 +132,7 @@ def file_tool(
 
 
 def to_tinyagent_tool(
-    func: Callable[..., Coroutine[Any, Any, Any]],
+    func: Callable[..., Coroutine[object, object, object]],
     *,
     name: str | None = None,
     label: str | None = None,
@@ -191,7 +191,7 @@ def to_tinyagent_tool(
         except TypeError as exc:
             raise ToolRetryError(f"Invalid arguments for tool '{tool_name}': {exc}") from exc
 
-        result = await func(**cast(dict[str, Any], bound.arguments))
+        result = await func(**cast(dict[str, object], bound.arguments))
         if not isinstance(result, str):
             raise ToolExecutionError(
                 tool_name=tool_name,
@@ -304,7 +304,7 @@ def _python_type_to_json_schema(annotation: object) -> dict[str, object]:
     return an empty schema so the provider still accepts the tool.
     """
 
-    if annotation in (inspect.Parameter.empty, Any):
+    if annotation is inspect.Parameter.empty:
         return {}
 
     if annotation in (None, type(None)):  # noqa: E721

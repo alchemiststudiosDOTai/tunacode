@@ -6,7 +6,6 @@ beyond Python stdlib.
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 # Identity types - string wrappers for semantic clarity
 ModelName = str
@@ -26,28 +25,28 @@ ConfigPath = Path
 ConfigFile = Path
 
 # Configuration types
-UserConfig = dict[str, Any]
+UserConfig = dict[str, object]
 EnvConfig = dict[str, str]
-InputSessions = dict[str, Any]
-AgentConfig = dict[str, Any]
+InputSessions = dict[str, object]
+AgentConfig = dict[str, object]
 
 # Tool types
-ToolArgs = dict[str, Any]
+ToolArgs = dict[str, object]
 ToolResult = str
 
 # Error handling types
-ErrorContext = dict[str, Any]
+ErrorContext = dict[str, object]
 OriginalError = Exception | None
 ErrorMessage = str
 
 # Diff types
-UpdateOperation = dict[str, Any]
+UpdateOperation = dict[str, object]
 DiffLine = str
 DiffHunk = list[DiffLine]
 
 # Validation types
 ValidationResult = bool | str
-Validator = Callable[[Any], ValidationResult]
+Validator = Callable[[object], ValidationResult]
 
 # Token/Cost types
 TokenCount = int
@@ -55,4 +54,4 @@ CostAmount = float
 
 # Command types
 CommandArgs = list[str]
-CommandResult = Any | None
+CommandResult = object | None

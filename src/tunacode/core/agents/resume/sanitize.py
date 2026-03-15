@@ -15,7 +15,8 @@ Legacy pydantic-ai message formats are intentionally **not** supported.
 
 from __future__ import annotations
 
-from typing import Any, cast
+import logging
+from typing import cast
 
 from tunacode.types import ToolCallId
 from tunacode.utils.messaging import find_dangling_tool_calls
@@ -56,20 +57,20 @@ MIN_CONSECUTIVE_REQUEST_WINDOW: int = 2
 # -----------------------------------------------------------------------------
 
 
-def _coerce_message_dict(message: Any) -> dict[str, Any]:
+def _coerce_message_dict(message: object) -> dict[str, object]:
     if not isinstance(message, dict):
         raise TypeError(
             f"sanitize expects tinyagent dict messages only; got {type(message).__name__}"
         )
-    return cast(dict[str, Any], message)
+    return cast(dict[str, object], message)
 
 
-def _get_role(message: dict[str, Any]) -> str:
+def _get_role(message: dict[str, object]) -> str:
     role = message.get(KEY_ROLE)
     return role if isinstance(role, str) else ""
 
 
-def _get_content_items(message: dict[str, Any]) -> list[Any]:
+def _get_content_items(message: dict[str, object]) -> list[object]:
     content = message.get(KEY_CONTENT)
     if content is None:
         return []
@@ -78,7 +79,7 @@ def _get_content_items(message: dict[str, Any]) -> list[Any]:
     raise TypeError(f"Message '{KEY_CONTENT}' must be a list, got {type(content).__name__}")
 
 
-def _is_empty_assistant_message(message: dict[str, Any]) -> bool:
+def _is_empty_assistant_message(message: dict[str, object]) -> bool:
     role = _get_role(message)
     if role != ROLE_ASSISTANT:
         return False
@@ -105,10 +106,10 @@ def _is_empty_assistant_message(message: dict[str, Any]) -> bool:
 
 
 def _filter_assistant_tool_calls(
-    message: dict[str, Any],
+    message: dict[str, object],
     dangling_tool_call_ids: set[ToolCallId],
-    logger: Any,
-) -> tuple[dict[str, Any], bool]:
+    logger: logging.Logger,
+) -> tuple[dict[str, object], bool]:
     role = _get_role(message)
     if role != ROLE_ASSISTANT:
         return message, False
@@ -117,7 +118,7 @@ def _filter_assistant_tool_calls(
     if not content_items:
         return message, False
 
-    filtered: list[Any] = []
+    filtered: list[object] = []
     removed_any = False
 
     for item in content_items:
@@ -158,7 +159,7 @@ def _filter_assistant_tool_calls(
 # -----------------------------------------------------------------------------
 
 
-def find_dangling_tool_call_ids(messages: list[Any]) -> set[ToolCallId]:
+def find_dangling_tool_call_ids(messages: list[object]) -> set[ToolCallId]:
     """Return tool_call_ids that never received a tool_result message."""
 
     dangling = find_dangling_tool_calls(messages)
@@ -166,7 +167,7 @@ def find_dangling_tool_call_ids(messages: list[Any]) -> set[ToolCallId]:
 
 
 def remove_dangling_tool_calls(
-    messages: list[Any],
+    messages: list[object],
     tool_registry: ToolCallRegistry,
     dangling_tool_call_ids: set[ToolCallId] | None = None,
 ) -> bool:
@@ -185,7 +186,7 @@ def remove_dangling_tool_calls(
 
     logger = get_logger()
     removed_any = False
-    kept: list[Any] = []
+    kept: list[object] = []
 
     for raw_message in messages:
         message = _coerce_message_dict(raw_message)
@@ -220,7 +221,7 @@ def remove_dangling_tool_calls(
 # -----------------------------------------------------------------------------
 
 
-def remove_empty_responses(messages: list[Any]) -> bool:
+def remove_empty_responses(messages: list[object]) -> bool:
     """Remove assistant messages with no content items."""
 
     if not messages:
@@ -251,12 +252,12 @@ def remove_empty_responses(messages: list[Any]) -> bool:
 # -----------------------------------------------------------------------------
 
 
-def _is_request_message(message: Any) -> bool:
+def _is_request_message(message: object) -> bool:
     msg = _coerce_message_dict(message)
     return _get_role(msg) in REQUEST_ROLES
 
 
-def remove_consecutive_requests(messages: list[Any]) -> bool:
+def remove_consecutive_requests(messages: list[object]) -> bool:
     """Remove consecutive user/system messages, keeping only the last in each run."""
 
     if len(messages) < MIN_CONSECUTIVE_REQUEST_WINDOW:
@@ -300,13 +301,13 @@ def remove_consecutive_requests(messages: list[Any]) -> bool:
 # -----------------------------------------------------------------------------
 
 
-def sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
+def sanitize_history_for_resume(messages: list[object]) -> list[object]:
     """Return a sanitized copy of message history suitable for tinyagent resume."""
 
     if not messages:
         return []
 
-    sanitized: list[Any] = []
+    sanitized: list[object] = []
     for raw_message in messages:
         message = _coerce_message_dict(raw_message)
         role = _get_role(message)
@@ -323,7 +324,7 @@ def sanitize_history_for_resume(messages: list[Any]) -> list[Any]:
 
 
 def run_cleanup_loop(
-    messages: list[Any],
+    messages: list[object],
     tool_registry: ToolCallRegistry,
 ) -> tuple[bool, set[ToolCallId]]:
     """Run iterative cleanup until message history stabilizes."""

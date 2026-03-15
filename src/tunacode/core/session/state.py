@@ -12,7 +12,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from pydantic import ValidationError
 from tinyagent.agent_types import (
@@ -38,13 +37,13 @@ class SessionState:
     """CLAUDE_ANCHOR[session-state]: Core session state container"""
 
     user_config: UserConfig = field(default_factory=dict)
-    agents: dict[str, Any] = field(
+    agents: dict[str, object] = field(
         default_factory=dict
-    )  # Keep as dict[str, Any] for agent instances
+    )  # Keep as dict[str, object] for agent instances
     agent_versions: dict[str, int] = field(default_factory=dict)
     # Keep session default in sync with configuration default
     current_model: ModelName = DEFAULT_USER_CONFIG["default_model"]
-    spinner: Any | None = None
+    spinner: object | None = None
     debug_mode: bool = False
     undo_initialized: bool = False
     show_thoughts: bool = True
@@ -55,7 +54,7 @@ class SessionState:
     usage: UsageState = field(default_factory=UsageState)
     session_id: SessionId = field(default_factory=lambda: str(uuid.uuid4()))
     input_sessions: InputSessions = field(default_factory=dict)
-    current_task: Any | None = None
+    current_task: object | None = None
     # Persistence fields
     project_id: str = ""
     created_at: str = ""
@@ -66,11 +65,11 @@ class SessionState:
     current_recursion_depth: int = 0
     max_recursion_depth: int = 5
     parent_task_id: str | None = None
-    task_hierarchy: dict[str, Any] = field(default_factory=dict)
+    task_hierarchy: dict[str, object] = field(default_factory=dict)
     iteration_budgets: dict[str, int] = field(default_factory=dict)
-    recursive_context_stack: list[dict[str, Any]] = field(default_factory=list)
+    recursive_context_stack: list[dict[str, object]] = field(default_factory=list)
     # Runtime-only service cache
-    _compaction_controller: Any | None = None
+    _compaction_controller: object | None = None
     # Streaming debug instrumentation (see core/agents/agent_components/streaming.py)
     _debug_events: list[str] = field(default_factory=list)
     _debug_raw_stream_accum: str = ""
@@ -123,12 +122,12 @@ class StateManager:
     def usage(self) -> UsageState:
         return self._session.usage
 
-    def push_recursive_context(self, context: dict[str, Any]) -> None:
+    def push_recursive_context(self, context: dict[str, object]) -> None:
         """Push a new context onto the recursive execution stack."""
         self._session.recursive_context_stack.append(context)
         self._session.current_recursion_depth = (self._session.current_recursion_depth or 0) + 1
 
-    def pop_recursive_context(self) -> dict[str, Any] | None:
+    def pop_recursive_context(self) -> dict[str, object] | None:
         """Pop the current context from the recursive execution stack."""
         if self._session.recursive_context_stack:
             self._session.current_recursion_depth = max(
@@ -170,10 +169,10 @@ class StateManager:
         storage_dir = get_session_storage_dir()
         return storage_dir / f"{self._session.project_id}_{self._session.session_id}.json"
 
-    def _serialize_messages(self) -> list[dict[str, Any]]:
+    def _serialize_messages(self) -> list[dict[str, object]]:
         """Serialize in-memory tinyagent message models to JSON dictionaries."""
 
-        serialized_messages: list[dict[str, Any]] = []
+        serialized_messages: list[dict[str, object]] = []
         for idx, message in enumerate(self._session.conversation.messages):
             if not isinstance(message, _AGENT_MESSAGE_TYPES):
                 message_type = type(message).__name__
@@ -193,7 +192,7 @@ class StateManager:
 
         return serialized_messages
 
-    def _deserialize_message(self, raw_message: Any, *, index: int) -> AgentMessage:
+    def _deserialize_message(self, raw_message: object, *, index: int) -> AgentMessage:
         if not isinstance(raw_message, dict):
             raise TypeError(
                 "Session messages must be tinyagent JSON objects; "
@@ -217,7 +216,7 @@ class StateManager:
                 f"Session message at index {index} failed validation for role '{role}': {exc}"
             ) from exc
 
-    def _deserialize_messages(self, data: Any) -> list[AgentMessage]:
+    def _deserialize_messages(self, data: object) -> list[AgentMessage]:
         """Deserialize persisted JSON messages into tinyagent message models."""
 
         if data is None:
@@ -232,14 +231,14 @@ class StateManager:
 
         return deserialized_messages
 
-    def _serialize_compaction(self) -> dict[str, Any] | None:
+    def _serialize_compaction(self) -> dict[str, object] | None:
         record = self._session.compaction
         if record is None:
             return None
 
         return record.to_dict()
 
-    def _deserialize_compaction(self, data: Any) -> CompactionRecord | None:
+    def _deserialize_compaction(self, data: object) -> CompactionRecord | None:
         if data is None:
             return None
 
@@ -250,12 +249,12 @@ class StateManager:
 
     def _split_thought_messages(
         self,
-        messages: list[Any],
-    ) -> tuple[list[str], list[dict[str, Any]]]:
+        messages: list[object],
+    ) -> tuple[list[str], list[dict[str, object]]]:
         """Separate legacy thought entries from persisted message history."""
 
         thoughts: list[str] = []
-        cleaned_messages: list[dict[str, Any]] = []
+        cleaned_messages: list[dict[str, object]] = []
 
         for index, message in enumerate(messages):
             if not isinstance(message, dict):
@@ -274,7 +273,7 @@ class StateManager:
 
         return thoughts, cleaned_messages
 
-    def _deserialize_thoughts(self, raw_thoughts: Any) -> list[str]:
+    def _deserialize_thoughts(self, raw_thoughts: object) -> list[str]:
         if raw_thoughts is None:
             return []
 
@@ -291,23 +290,23 @@ class StateManager:
 
         return thoughts
 
-    def _write_session_file(self, session_file: Path, session_data: dict[str, Any]) -> None:
+    def _write_session_file(self, session_file: Path, session_data: dict[str, object]) -> None:
         session_file.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         with open(session_file, "w") as f:
             json.dump(session_data, f, indent=2)
 
-    def _read_session_data(self, session_file: Path) -> dict[str, Any]:
+    def _read_session_data(self, session_file: Path) -> dict[str, object]:
         with open(session_file) as f:
             return json.load(f)
 
-    def _coerce_str_value(self, value: Any, default: str) -> str:
+    def _coerce_str_value(self, value: object, default: str) -> str:
         if value is None:
             return default
         if isinstance(value, str):
             return value
         return str(value)
 
-    def _deserialize_selected_skill_names(self, data: Any) -> list[str]:
+    def _deserialize_selected_skill_names(self, data: object) -> list[str]:
         if data is None:
             return []
 
@@ -423,7 +422,7 @@ class StateManager:
         from tunacode.configuration.paths import get_session_storage_dir
 
         storage_dir = get_session_storage_dir()
-        sessions: list[dict[str, Any]] = []
+        sessions: list[dict[str, object]] = []
 
         if not self._session.project_id:
             return sessions

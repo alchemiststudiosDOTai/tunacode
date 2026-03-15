@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from tinyagent.agent_types import AgentMessage
 
@@ -53,7 +52,7 @@ class RuntimeState:
     tool_registry: ToolCallRegistry = field(default_factory=ToolCallRegistry)
     operation_cancelled: bool = False
     is_streaming_active: bool = False
-    streaming_panel: Any | None = None
+    streaming_panel: object | None = None
 
 
 @dataclass(slots=True)

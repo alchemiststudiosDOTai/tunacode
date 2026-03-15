@@ -6,7 +6,7 @@ creating circular imports with the concrete implementation.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from tunacode.core.compaction.types import CompactionRecord
@@ -22,7 +22,7 @@ from tunacode.core.types.state_structures import (
 class SessionStateProtocol(Protocol):
     """Protocol for session state access."""
 
-    user_config: dict[str, Any]
+    user_config: dict[str, object]
     current_model: str
     debug_mode: bool
     show_thoughts: bool
@@ -31,9 +31,9 @@ class SessionStateProtocol(Protocol):
     usage: UsageState
     conversation: ConversationState
     compaction: CompactionRecord | None
-    agents: dict[str, Any]
+    agents: dict[str, object]
     agent_versions: dict[str, int]
-    _compaction_controller: Any | None
+    _compaction_controller: object | None
     _debug_events: list[str]
     _debug_raw_stream_accum: str
     # Persistence fields
@@ -77,11 +77,11 @@ class StateManagerProtocol(Protocol):
         ...
 
     # Recursive execution methods
-    def push_recursive_context(self, context: dict[str, Any]) -> None:
+    def push_recursive_context(self, context: dict[str, object]) -> None:
         """Push a context onto the recursive stack."""
         ...
 
-    def pop_recursive_context(self) -> dict[str, Any] | None:
+    def pop_recursive_context(self) -> dict[str, object] | None:
         """Pop and return the top context."""
         ...
 
@@ -102,6 +102,6 @@ class StateManagerProtocol(Protocol):
         """Load a session from disk by ID."""
         ...
 
-    def list_sessions(self) -> list[dict[str, Any]]:
+    def list_sessions(self) -> list[dict[str, object]]:
         """List available saved sessions."""
         ...
