@@ -42,9 +42,7 @@ class _TinyAgentStreamState:
 
 
 def coerce_error_text(value: object) -> str:
-    if isinstance(value, str):
-        return value
-    return ""
+    return value if isinstance(value, str) else ""
 
 
 def is_context_overflow_error(error_text: str) -> bool:
@@ -64,16 +62,12 @@ def parse_canonical_usage(raw_usage: object) -> UsageMetrics:
         raise RuntimeError(f"Assistant message usage contract violation: {exc}") from exc
 
 
-def is_tinyagent_message(value: object) -> bool:
-    return isinstance(value, _AGENT_MESSAGE_TYPES)
-
-
 def coerce_tinyagent_history(messages: Iterable[object]) -> list[AgentMessage]:
     message_list = list(messages)
     if not message_list:
         return []
 
-    if all(is_tinyagent_message(message) for message in message_list):
+    if all(isinstance(message, _AGENT_MESSAGE_TYPES) for message in message_list):
         return [cast(AgentMessage, message) for message in message_list]
 
     raise TypeError(
@@ -86,11 +80,9 @@ def extract_tool_result_text(result: AgentToolResult | None) -> str | None:
     if result is None:
         return None
 
-    parts: list[str] = []
-    for item in result.content:
-        if not isinstance(item, TextContent):
-            continue
-        if isinstance(item.text, str):
-            parts.append(item.text)
-
-    return "".join(parts) if parts else None
+    text_parts = [
+        item.text
+        for item in result.content
+        if isinstance(item, TextContent) and isinstance(item.text, str)
+    ]
+    return "".join(text_parts) if text_parts else None
