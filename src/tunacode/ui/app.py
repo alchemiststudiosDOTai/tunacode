@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Never
 
 from rich.console import RenderableType
 from rich.text import Text
+from tinyagent.agent_types import AgentMessage
 from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -524,7 +525,7 @@ class TextualReplApp(App[None]):
         if handler is not None:
             handler._refresh()
 
-    def _estimate_conversation_tokens(self, messages: list[object]) -> int:
+    def _estimate_conversation_tokens(self, messages: list[AgentMessage]) -> int:
         if not messages:
             return 0
 

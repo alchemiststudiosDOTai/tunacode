@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
+
+from tinyagent.agent_types import JsonObject
 
 from tunacode.types import ToolCallId
 from tunacode.utils.messaging import adapter
@@ -180,7 +182,7 @@ def _parse_tool_result_content(raw_content: list[object]) -> list[ToolResultCont
 
 
 def _parse_message(raw_message: object) -> ResumeMessage:
-    adapter.to_canonical(raw_message)
+    adapter.to_canonical(cast(JsonObject, raw_message))
     message = _coerce_dict(raw_message, context="resume message")
     role = message.get("role")
     raw_content = _coerce_content_items(message)
