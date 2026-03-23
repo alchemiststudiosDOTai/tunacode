@@ -61,6 +61,7 @@ KEY_TEXT: str = "text"
 KEY_THINKING: str = "thinking"
 KEY_ID: str = "id"
 KEY_NAME: str = "name"
+KEY_TOOL_NAME: str = "tool_name"
 KEY_ARGUMENTS: str = "arguments"
 KEY_URL: str = "url"
 KEY_MIME_TYPE: str = "mime_type"
@@ -198,7 +199,7 @@ def _to_canonical_tool_message(message: dict[str, Any]) -> CanonicalMessage:
     if not isinstance(tool_call_id, str) or not tool_call_id:
         raise TypeError("tool_result message is missing non-empty 'tool_call_id'")
 
-    tool_name = message.get(KEY_NAME)
+    tool_name = message.get(KEY_TOOL_NAME)
     if not isinstance(tool_name, str):
         tool_name = None
 
@@ -376,7 +377,7 @@ def _tool_message_from_canonical(message: CanonicalMessage) -> dict[str, Any]:
     return {
         KEY_ROLE: ROLE_TOOL_RESULT,
         KEY_TOOL_CALL_ID: part.tool_call_id,
-        KEY_NAME: part.result.tool_name,
+        KEY_TOOL_NAME: part.result.tool_name,
         KEY_CONTENT: content_items,
         KEY_DETAILS: part.result.details,
         KEY_IS_ERROR: part.result.is_error,
