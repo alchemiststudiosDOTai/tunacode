@@ -243,6 +243,7 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
     worker_call = worker_calls[0]
     assert worker_call["exit_on_error"] is False
     assert worker_call["name"] == "process_request"
+    assert worker_call["thread"] is True
     assert len(process_request_calls) == 1
     process_request_call = process_request_calls[0]
     assert process_request_call["message"] == "hello"
@@ -250,6 +251,7 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
     assert process_request_call["thinking_callback"] is not None
     assert process_request_call["notice_callback"] is not None
     assert process_request_call["compaction_status_callback"] is not None
+    assert callable(process_request_call["cancel_requested"])
     assert app._current_request_task is None
     assert app._request_bridge is None
     assert timer.stopped is True

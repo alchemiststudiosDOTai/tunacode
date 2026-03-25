@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from tunacode.ui.input_latency_debug import log_input_latency
+
 if TYPE_CHECKING:
     from textual.widgets import Static
 
@@ -88,18 +90,34 @@ def refresh_thinking_output(app: TextualReplApp, force: bool = False) -> None:
     if thinking_panel_widget is None:
         return
 
+    if not force and _editor_has_draft(app):
+        log_input_latency(
+            "thinking.refresh_paused_for_draft",
+            app=app,
+            chars=len(app._current_thinking_text),
+        )
+        return
+
     now = time.monotonic()
     elapsed_ms = (now - app._last_thinking_update) * app.MILLISECONDS_PER_SECOND
     if not force and _has_recent_editor_keypress(app):
+        log_input_latency("thinking.refresh_deferred_keypress", app=app, elapsed_ms=elapsed_ms)
         return
 
     thinking_throttle_ms = _current_thinking_throttle_ms(app)
     if not force and elapsed_ms < thinking_throttle_ms:
+        log_input_latency(
+            "thinking.refresh_throttled",
+            app=app,
+            elapsed_ms=elapsed_ms,
+            throttle_ms=thinking_throttle_ms,
+        )
         return
 
     from tunacode.ui.renderers.thinking import render_thinking_panel
 
     app._last_thinking_update = now
+    render_started_at = time.monotonic()
     thinking_content, thinking_panel_meta = render_thinking_panel(
         app._current_thinking_text,
         max_lines=app.THINKING_MAX_RENDER_LINES,
@@ -109,6 +127,12 @@ def refresh_thinking_output(app: TextualReplApp, force: bool = False) -> None:
     thinking_panel_widget.border_subtitle = thinking_panel_meta.border_subtitle
     thinking_panel_widget.update(thinking_content)
     thinking_panel_widget.add_class("active")
+    log_input_latency(
+        "thinking.refresh_rendered",
+        app=app,
+        chars=len(app._current_thinking_text),
+        duration_ms=(time.monotonic() - render_started_at) * app.MILLISECONDS_PER_SECOND,
+    )
 
 
 async def thinking_callback(app: TextualReplApp, delta: str) -> None:

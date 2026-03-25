@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections.abc import Callable
 from typing import cast
 
 from tinyagent.agent import Agent, extract_text
@@ -122,6 +123,7 @@ class RequestOrchestrator:
         tool_start_callback: ToolStartCallback | None = None,
         notice_callback: NoticeCallback | None = None,
         compaction_status_callback: CompactionStatusCallback | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> None:
         self.message = message
         self.model = model
@@ -132,6 +134,7 @@ class RequestOrchestrator:
         self.tool_start_callback = tool_start_callback
         self.notice_callback = notice_callback
         self.compaction_status_callback = compaction_status_callback
+        self.cancel_requested = cancel_requested
         self.compaction_controller = get_or_create_compaction_controller(state_manager)
         self._active_stream_state: _TinyAgentStreamState | None = None
 
@@ -160,7 +163,9 @@ class RequestOrchestrator:
         conversation = session.conversation
         agent = ac.get_or_create_agent(self.model, self.state_manager)
         self.compaction_controller.set_status_callback(self.compaction_status_callback)
+        self._raise_if_cancel_requested()
         compacted_history = await self._compact_history_for_request(conversation.messages)
+        self._raise_if_cancel_requested()
         baseline_message_count = len(conversation.messages)
         pre_request_history = list(conversation.messages)
         agent.replace_messages(compacted_history)
@@ -186,6 +191,14 @@ class RequestOrchestrator:
                 invalidate_cache=False,
             )
             raise
+
+    def _raise_if_cancel_requested(self, *, agent: Agent | None = None) -> None:
+        cancel_requested = self.cancel_requested
+        if cancel_requested is None or not cancel_requested():
+            return
+        if agent is not None:
+            agent.abort()
+        raise asyncio.CancelledError
 
     def _initialize_request(self) -> int:
         request_id = str(uuid.uuid4())[:REQUEST_ID_LENGTH]
@@ -246,7 +259,9 @@ class RequestOrchestrator:
 
         conversation = self.state_manager.session.conversation
         apply_compaction_messages(self.state_manager, pre_request_history)
+        self._raise_if_cancel_requested(agent=agent)
         forced_history = await self._force_compact_history(pre_request_history)
+        self._raise_if_cancel_requested(agent=agent)
         agent.replace_messages(forced_history)
         self.state_manager.session._debug_raw_stream_accum = ""
         await self._run_stream(
@@ -593,6 +608,7 @@ class RequestOrchestrator:
         started_at = time.perf_counter()
         try:
             async for event in agent.stream(self.message):
+                self._raise_if_cancel_requested(agent=agent)
                 should_stop = await self._dispatch_stream_event(
                     event=event,
                     agent=agent,
@@ -600,6 +616,7 @@ class RequestOrchestrator:
                     max_iterations=max_iterations,
                     baseline_message_count=baseline_message_count,
                 )
+                self._raise_if_cancel_requested(agent=agent)
                 if should_stop:
                     break
         finally:
@@ -665,6 +682,7 @@ async def process_request(
     tool_start_callback: ToolStartCallback | None = None,
     notice_callback: NoticeCallback | None = None,
     compaction_status_callback: CompactionStatusCallback | None = None,
+    cancel_requested: Callable[[], bool] | None = None,
 ) -> Agent:
     orchestrator = RequestOrchestrator(
         message,
@@ -676,5 +694,6 @@ async def process_request(
         tool_start_callback,
         notice_callback,
         compaction_status_callback,
+        cancel_requested,
     )
     return await orchestrator.run()

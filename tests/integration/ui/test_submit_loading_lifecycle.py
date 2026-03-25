@@ -110,13 +110,16 @@ async def test_escape_cancels_live_request_and_propagates_cancelled_error(
     started = asyncio.Event()
     cancelled = asyncio.Event()
 
-    async def _fake_process_request(**_: object) -> None:
+    async def _fake_process_request(
+        cancel_requested: object | None = None,
+        **_: object,
+    ) -> None:
         started.set()
-        try:
-            await asyncio.Event().wait()
-        except asyncio.CancelledError:
-            cancelled.set()
-            raise
+        while True:
+            if callable(cancel_requested) and cancel_requested():
+                cancelled.set()
+                raise asyncio.CancelledError
+            await asyncio.sleep(0.01)
 
     async with app.run_test() as pilot:
         with patch(
@@ -134,3 +137,36 @@ async def test_escape_cancels_live_request_and_propagates_cancelled_error(
             await _wait_until(cancelled.is_set, timeout=0.5)
             await _wait_until(lambda: app._current_request_task is None, timeout=1.0)
             await _wait_until(lambda: not app.loading_indicator.has_class("active"), timeout=1.0)
+
+
+@pytest.mark.asyncio
+async def test_process_request_runs_off_the_ui_thread(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    home_dir = tmp_path / "home"
+    data_dir = tmp_path / "xdg-data"
+    ready_file = tmp_path / "ready.txt"
+    home_dir.mkdir()
+    data_dir.mkdir()
+    monkeypatch.setenv("HOME", str(home_dir))
+    monkeypatch.setenv("XDG_DATA_HOME", str(data_dir))
+    monkeypatch.setenv("TUNACODE_TEST_READY_FILE", str(ready_file))
+
+    state_manager = StateManager()
+    state_manager.save_session = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    app = TextualReplApp(state_manager=state_manager)
+    request_thread_ids: list[int] = []
+
+    async def _fake_process_request(**_: object) -> None:
+        request_thread_ids.append(threading.get_ident())
+
+    async with app.run_test():
+        with patch(
+            "tunacode.core.agents.main.process_request",
+            new=_fake_process_request,
+        ):
+            await app._process_request("thread me")
+
+    assert request_thread_ids
+    assert request_thread_ids[0] != app._thread_id

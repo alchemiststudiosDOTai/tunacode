@@ -47,6 +47,7 @@ from tunacode.ui.context_panel import (
 )
 from tunacode.ui.esc.handler import EscHandler
 from tunacode.ui.esc.types import RequestTask
+from tunacode.ui.input_latency_debug import log_input_latency
 from tunacode.ui.renderers.thinking import (
     DEFAULT_THINKING_MAX_CHARS,
     DEFAULT_THINKING_MAX_LINES,
@@ -151,6 +152,7 @@ class TextualReplApp(App[None]):
         self._slopgotchi_timer: Timer | None = None
         self._request_bridge: RequestUiBridge | None = None
         self._delta_flush_timer: Timer | None = None
+        self._input_latency_debug_origin: float = time.monotonic()
 
         self._current_thinking_text: str = ""
         self._last_thinking_update: float = 0.0
@@ -254,15 +256,23 @@ class TextualReplApp(App[None]):
             return
         self._loading_indicator_shown = True
         self.loading_indicator.add_class("active")
+        log_input_latency("loading.show", app=self)
 
     def _hide_loading_indicator(self) -> None:
         if not self._loading_indicator_shown:
             return
         self._loading_indicator_shown = False
         self.loading_indicator.remove_class("active")
+        log_input_latency("loading.hide", app=self)
 
     def _queue_request_after_refresh(self, message: str) -> None:
-        self.call_after_refresh(lambda: self.request_queue.put_nowait(message))
+        log_input_latency("request.schedule_after_refresh", app=self, message_len=len(message))
+
+        def _enqueue_request() -> None:
+            log_input_latency("request.queue_put", app=self, message_len=len(message))
+            self.request_queue.put_nowait(message)
+
+        self.call_after_refresh(_enqueue_request)
 
     def _start_delta_flush_timer(self) -> None:
         self._delta_flush_timer = self.set_interval(
@@ -282,6 +292,7 @@ class TextualReplApp(App[None]):
         if bridge is None:
             return
 
+        started_at = time.monotonic()
         stream_chunk = bridge.drain_streaming()
         if stream_chunk:
             await self.streaming.callback(stream_chunk)
@@ -290,9 +301,20 @@ class TextualReplApp(App[None]):
         if thinking_chunk:
             await self._thinking_callback(thinking_chunk)
 
+        if stream_chunk or thinking_chunk:
+            duration_ms = (time.monotonic() - started_at) * self.MILLISECONDS_PER_SECOND
+            log_input_latency(
+                "request.delta_flush",
+                app=self,
+                stream_chars=len(stream_chunk),
+                thinking_chars=len(thinking_chunk),
+                duration_ms=duration_ms,
+            )
+
     async def _process_request(self, message: str) -> None:
         session = self.state_manager.session
         self._request_start_time = time.monotonic()
+        log_input_latency("request.process_start", app=self, message_len=len(message))
         self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
         self.chat_container.clear_insertion_anchor()
         self._update_compaction_status(False)
@@ -309,7 +331,12 @@ class TextualReplApp(App[None]):
             from tunacode.core.agents.main import process_request
             from tunacode.core.ui_api.shared_types import ModelName
 
-            worker: Worker[object] = self.run_worker(
+            worker: Worker[object] | None = None
+
+            def _request_cancelled() -> bool:
+                return bool(worker is not None and worker.is_cancelled)
+
+            worker = self.run_worker(
                 process_request(
                     message=message,
                     model=ModelName(model_name),
@@ -322,11 +349,18 @@ class TextualReplApp(App[None]):
                     tool_start_callback=None,
                     notice_callback=bridge.notice_callback,
                     compaction_status_callback=bridge.compaction_status_callback,
+                    cancel_requested=_request_cancelled,
                 ),
                 exit_on_error=False,
                 name="process_request",
+                thread=True,
             )
             self._current_request_task = worker
+            log_input_latency(
+                "request.worker_started",
+                app=self,
+                worker_thread=getattr(worker, "_thread_worker", False),
+            )
             await worker.wait()
         except WorkerCancelled:
             self.notify("Cancelled")
@@ -373,6 +407,12 @@ class TextualReplApp(App[None]):
             self._update_resource_bar()
             # Auto-save session after processing
             await self.state_manager.save_session()
+            log_input_latency(
+                "request.process_complete",
+                app=self,
+                duration_ms=(time.monotonic() - self._request_start_time)
+                * self.MILLISECONDS_PER_SECOND,
+            )
 
     def _get_latest_response_text(self) -> str | None:
         from tinyagent.agent_types import AssistantMessage, TextContent
@@ -402,6 +442,12 @@ class TextualReplApp(App[None]):
     async def on_editor_submit_requested(self, message: EditorSubmitRequested) -> None:
         from tunacode.ui.commands import handle_command
 
+        log_input_latency(
+            "editor.submit_requested",
+            app=self,
+            message_len=len(message.text),
+            was_pasted=message.was_pasted,
+        )
         if await handle_command(self, message.text):
             return
         normalized_message = normalize_agent_message_text(message.text)
@@ -415,6 +461,11 @@ class TextualReplApp(App[None]):
         user_block.append(f"│ you {timestamp}", style=f"dim {STYLE_PRIMARY}")
         self.chat_container.write(user_block).add_class("user-message")
         self._queue_request_after_refresh(normalized_message)
+        log_input_latency(
+            "editor.submit_queued",
+            app=self,
+            normalized_len=len(normalized_message),
+        )
 
     def on_tui_log_display(self, message: TuiLogDisplay) -> None:
         self.chat_container.write(message.renderable)

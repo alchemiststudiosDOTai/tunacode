@@ -63,6 +63,16 @@ def test_refresh_thinking_output_defers_incremental_update_while_user_is_activel
     assert app._thinking_panel_widget.updates == []
 
 
+def test_refresh_thinking_output_pauses_live_panel_while_draft_exists() -> None:
+    app = _FakeApp()
+    app._last_thinking_update = time.monotonic() - 1.0
+    app._last_editor_keypress_at = 0.0
+
+    refresh_thinking_output(app)
+
+    assert app._thinking_panel_widget.updates == []
+
+
 def test_refresh_thinking_output_force_bypasses_recent_keypress_deferral() -> None:
     app = _FakeApp()
     app._last_thinking_update = time.monotonic() - 1.0

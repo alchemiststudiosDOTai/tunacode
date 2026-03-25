@@ -15,6 +15,8 @@ from textual.geometry import Offset, Region, Size
 from textual.strip import Strip
 from textual.widgets import Input
 
+from tunacode.ui.input_latency_debug import log_input_latency
+
 from .messages import EditorSubmitRequested
 
 
@@ -61,6 +63,7 @@ class Editor(Input):
         self._paste_after_typed_text: bool = False
         self._wrap_cache: _WrappedEditorState | None = None
         self._wrap_cache_key: tuple[object, ...] | None = None
+        self._last_rendered_latency_value: str = ""
 
     @property
     def has_paste_buffer(self) -> bool:
@@ -83,6 +86,12 @@ class Editor(Input):
             app = getattr(self, "app", None)
             if app is not None:
                 app._last_editor_keypress_at = time.monotonic()
+                log_input_latency(
+                    "editor.key_received",
+                    app=app,
+                    key=event.key,
+                    char=event.character or "",
+                )
 
         has_paste_buffer = bool(getattr(self, "has_paste_buffer", False))
         if has_paste_buffer and not self.value and event.key == "backspace":
@@ -191,6 +200,11 @@ class Editor(Input):
     def _watch_value(self, value: str) -> None:
         super()._watch_value(value)
         self._invalidate_wrap_cache()
+        if not value:
+            self._last_rendered_latency_value = ""
+        app = getattr(self, "app", None)
+        if app is not None:
+            log_input_latency("editor.value_changed", app=app, value_len=len(value))
 
     def _watch__suggestion(self, value: str) -> None:  # noqa: ARG002
         del value
@@ -232,6 +246,17 @@ class Editor(Input):
         state = self._wrapped_state()
         if y < 0 or y >= len(state.lines):
             return Strip.blank(self.size.width)
+
+        if y == 0 and self.value and self.value != self._last_rendered_latency_value:
+            app = getattr(self, "app", None)
+            if app is not None:
+                self._last_rendered_latency_value = self.value
+                log_input_latency(
+                    "editor.first_render",
+                    app=app,
+                    value_len=len(self.value),
+                    wrapped_lines=len(state.lines),
+                )
 
         console = self.app.console
         segments = list(
