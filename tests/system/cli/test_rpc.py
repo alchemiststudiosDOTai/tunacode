@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import os
-import select
 import subprocess
+import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from queue import Empty, Queue
 from typing import Any
 
 RPC_TIMEOUT_SECONDS = 5.0
@@ -62,10 +63,21 @@ def _send_raw(process: subprocess.Popen[str], line: str) -> None:
 
 def _read_line(process: subprocess.Popen[str], timeout: float = RPC_TIMEOUT_SECONDS) -> str | None:
     assert process.stdout is not None
-    ready, _, _ = select.select([process.stdout], [], [], timeout)
-    if not ready:
+
+    line_queue: Queue[str] = Queue(maxsize=1)
+
+    def _reader() -> None:
+        line_queue.put(process.stdout.readline())
+
+    threading.Thread(target=_reader, daemon=True).start()
+    try:
+        line = line_queue.get(timeout=timeout)
+    except Empty:
         return None
-    return process.stdout.readline()
+
+    if line == "":
+        return None
+    return line
 
 
 def _read_json_record(
