@@ -10,7 +10,6 @@ def test_state_manager_loads_default_model_context_window_on_cold_cache(
     monkeypatch,
 ) -> None:
     home_dir = tmp_path / "home"
-    home_dir.mkdir(parents=True)
 
     clear_all()
     try:

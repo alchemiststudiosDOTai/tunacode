@@ -31,7 +31,6 @@ async def test_submit_loading_indicator_lifecycle_remains_responsive(
     home_dir = tmp_path / "home"
     data_dir = tmp_path / "xdg-data"
     ready_file = tmp_path / "ready.txt"
-    home_dir.mkdir()
     data_dir.mkdir()
     monkeypatch.setenv("HOME", str(home_dir))
     monkeypatch.setenv("XDG_DATA_HOME", str(data_dir))

@@ -34,6 +34,11 @@ def _get_state_manager() -> StateManager:
     return state_manager
 
 
+def _reset_state_manager() -> None:
+    global state_manager
+    state_manager = None
+
+
 def _handle_background_task_error(task: asyncio.Task) -> None:
     try:
         exception = task.exception()
@@ -66,42 +71,45 @@ def _apply_base_url_override(state_manager: StateManager, base_url: str | None) 
 
 async def _run_textual_app(*, model: str | None, baseurl: str | None, show_setup: bool) -> None:
     try:
-        sm = _get_state_manager()
-    except ConfigurationError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return
+        try:
+            sm = _get_state_manager()
+        except ConfigurationError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return
 
-    _apply_base_url_override(sm, baseurl)
+        _apply_base_url_override(sm, baseurl)
 
-    update_task = asyncio.create_task(asyncio.to_thread(check_for_updates), name="update_check")
-    update_task.add_done_callback(_handle_background_task_error)
+        update_task = asyncio.create_task(asyncio.to_thread(check_for_updates), name="update_check")
+        update_task.add_done_callback(_handle_background_task_error)
 
-    if model:
-        sm.session.current_model = model
+        if model:
+            sm.session.current_model = model
 
-    try:
-        await run_textual_repl(sm, show_setup=show_setup)
-    except (KeyboardInterrupt, UserAbortError):
-        update_task.cancel()
-        return
-    except Exception as exc:
-        if isinstance(exc, ConfigurationError):
-            print(f"Error: {exc}")
+        try:
+            await run_textual_repl(sm, show_setup=show_setup)
+        except (KeyboardInterrupt, UserAbortError):
+            update_task.cancel()
+            return
+        except Exception as exc:
+            if isinstance(exc, ConfigurationError):
+                print(f"Error: {exc}")
+                update_task.cancel()
+                return
+
+            import traceback
+
+            print(f"Error: {exc}\n\nTraceback:\n{traceback.format_exc()}")
             update_task.cancel()
             return
 
-        import traceback
-
-        print(f"Error: {exc}\n\nTraceback:\n{traceback.format_exc()}")
-        update_task.cancel()
-        return
-
-    try:
-        has_update, latest_version = await update_task
-        if has_update:
-            print(f"Update available: {latest_version}")
-    except asyncio.CancelledError:
-        return
+        try:
+            has_update, latest_version = await update_task
+            if has_update:
+                print(f"Update available: {latest_version}")
+        except asyncio.CancelledError:
+            return
+    finally:
+        _reset_state_manager()
 
 
 def _run_textual_cli(*, model: str | None, baseurl: str | None, show_setup: bool) -> None:
@@ -211,56 +219,61 @@ def run_headless(
     from tunacode.core.agents.main import process_request
 
     async def async_run() -> int:
-        _validate_cwd(cwd)
-
         try:
-            sm = _get_state_manager()
-        except ConfigurationError as exc:
-            _print_headless_error(output_json, str(exc))
-            return 1
+            _validate_cwd(cwd)
 
-        if model:
-            sm.session.current_model = model
-
-        _apply_base_url_override(sm, baseurl)
-
-        _ = auto_approve
-
-        request_task = asyncio.create_task(
-            process_request(
-                message=prompt,
-                model=sm.session.current_model,
-                state_manager=sm,
-                streaming_callback=None,
-                tool_result_callback=None,
-                tool_start_callback=None,
-            ),
-            name="headless-process-request",
-        )
-        request_task.add_done_callback(_handle_background_task_error)
-
-        try:
-            agent_run = await asyncio.wait_for(
-                asyncio.shield(request_task),
-                timeout=timeout,
-            )
-            if output_json:
-                print(_build_trajectory_json(sm))
-                return 0
-            headless_output = resolve_output(agent_run, sm.session.conversation.messages)
-            if headless_output is None:
-                print(HEADLESS_NO_RESPONSE_ERROR, file=sys.stderr)
+            try:
+                sm = _get_state_manager()
+            except ConfigurationError as exc:
+                _print_headless_error(output_json, str(exc))
                 return 1
-            print(headless_output)
-            return 0
-        except TimeoutError:
-            request_task.cancel()
-            _print_headless_error(output_json, "timeout" if output_json else "Execution timed out")
-            return 1
-        except Exception as e:
-            request_task.cancel()
-            _print_headless_error(output_json, str(e))
-            return 1
+
+            if model:
+                sm.session.current_model = model
+
+            _apply_base_url_override(sm, baseurl)
+
+            _ = auto_approve
+
+            request_task = asyncio.create_task(
+                process_request(
+                    message=prompt,
+                    model=sm.session.current_model,
+                    state_manager=sm,
+                    streaming_callback=None,
+                    tool_result_callback=None,
+                    tool_start_callback=None,
+                ),
+                name="headless-process-request",
+            )
+            request_task.add_done_callback(_handle_background_task_error)
+
+            try:
+                agent_run = await asyncio.wait_for(
+                    asyncio.shield(request_task),
+                    timeout=timeout,
+                )
+                if output_json:
+                    print(_build_trajectory_json(sm))
+                    return 0
+                headless_output = resolve_output(agent_run, sm.session.conversation.messages)
+                if headless_output is None:
+                    print(HEADLESS_NO_RESPONSE_ERROR, file=sys.stderr)
+                    return 1
+                print(headless_output)
+                return 0
+            except TimeoutError:
+                request_task.cancel()
+                _print_headless_error(
+                    output_json, "timeout" if output_json else "Execution timed out"
+                )
+                return 1
+            except Exception as e:
+                request_task.cancel()
+                _print_headless_error(output_json, str(e))
+                return 1
+        finally:
+            _reset_state_manager()
 
     exit_code = asyncio.run(async_run())
     raise typer.Exit(code=exit_code)

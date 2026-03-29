@@ -111,7 +111,6 @@ class TextualReplApp(App[None]):
     THINKING_THROTTLE_MS: float = STREAM_THROTTLE_MS
     THINKING_THROTTLE_WHILE_DRAFTING_MS: float = 275.0
     THINKING_DEFER_AFTER_KEYPRESS_MS: float = 150.0
-    STREAM_AGENT_TEXT_SETTING_KEY: str = "stream_agent_text"
     CONTEXT_PANEL_COLLAPSED_CLASS = "hidden"
     DEFAULT_CONTEXT_MAX_TOKENS: int = 200000
     CONTEXT_PANEL_MIN_TERMINAL_WIDTH: int = 80
@@ -238,9 +237,7 @@ class TextualReplApp(App[None]):
                 self.request_queue.task_done()
 
     def _should_stream_agent_text(self) -> bool:
-        return self.state_manager.session.user_config["settings"][
-            self.STREAM_AGENT_TEXT_SETTING_KEY
-        ]
+        return self.state_manager.session.user_config["settings"]["stream_agent_text"]
 
     def _show_loading_indicator(self) -> None:
         if self._loading_indicator_shown:
