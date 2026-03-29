@@ -6,6 +6,8 @@ import asyncio
 import threading
 import time
 import uuid
+from collections.abc import Awaitable
+from inspect import isawaitable
 from typing import cast
 
 from tinyagent.agent import Agent, extract_text
@@ -13,11 +15,13 @@ from tinyagent.agent_types import (
     AgentEndEvent,
     AgentEvent,
     AgentMessage,
+    AgentStartEvent,
     AgentTool,
     AssistantMessage,
     CustomAgentMessage,
     JsonObject,
     MessageEndEvent,
+    MessageStartEvent,
     MessageUpdateEvent,
     TextContent,
     ToolExecutionEndEvent,
@@ -25,6 +29,7 @@ from tinyagent.agent_types import (
     ToolExecutionUpdateEvent,
     ToolResultMessage,
     TurnEndEvent,
+    TurnStartEvent,
     UserMessage,
     is_agent_end_event,
     is_message_end_event,
@@ -47,6 +52,22 @@ from tunacode.types import (
     ToolResultCallback,
     ToolStartCallback,
     UsageMetrics,
+)
+from tunacode.types.runtime_events import (
+    AgentEndRuntimeEvent,
+    AgentStartRuntimeEvent,
+    CompactionStateChangedRuntimeEvent,
+    MessageEndRuntimeEvent,
+    MessageStartRuntimeEvent,
+    MessageUpdateRuntimeEvent,
+    NoticeRuntimeEvent,
+    RuntimeEvent,
+    RuntimeEventSink,
+    ToolExecutionEndRuntimeEvent,
+    ToolExecutionStartRuntimeEvent,
+    ToolExecutionUpdateRuntimeEvent,
+    TurnEndRuntimeEvent,
+    TurnStartRuntimeEvent,
 )
 from tunacode.utils.messaging import estimate_messages_tokens
 
@@ -139,7 +160,8 @@ class RequestOrchestrator:
         message: str,
         model: ModelName,
         state_manager: StateManagerProtocol,
-        streaming_callback: StreamingCallback | None,
+        runtime_event_sink: RuntimeEventSink | None = None,
+        streaming_callback: StreamingCallback | None = None,
         thinking_callback: StreamingCallback | None = None,
         tool_result_callback: ToolResultCallback | None = None,
         tool_start_callback: ToolStartCallback | None = None,
@@ -149,6 +171,7 @@ class RequestOrchestrator:
         self.message = message
         self.model = model
         self.state_manager = state_manager
+        self.runtime_event_sink = runtime_event_sink
         self.streaming_callback = streaming_callback
         self.thinking_callback = thinking_callback
         self.tool_result_callback = tool_result_callback
@@ -188,7 +211,7 @@ class RequestOrchestrator:
         agent_duration_ms = (time.perf_counter() - agent_started_at) * MILLISECONDS_PER_SECOND
         logger.lifecycle(f"Init: get_or_create_agent dur={agent_duration_ms:.1f}ms")
 
-        self.compaction_controller.set_status_callback(self.compaction_status_callback)
+        self.compaction_controller.set_status_callback(self._handle_compaction_status_changed)
 
         compaction_started_at = time.perf_counter()
         compacted_history = await self._compact_history_for_request(conversation.messages)
@@ -257,11 +280,44 @@ class RequestOrchestrator:
         return _coerce_max_iterations(session)
 
     def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
-        if self.notice_callback is None:
-            return
         notice = build_compaction_notice(outcome)
-        if notice is not None:
+        if notice is None:
+            return
+        if self.notice_callback is not None:
             self.notice_callback(notice)
+        self._emit_runtime_event_sync(NoticeRuntimeEvent(notice=notice))
+
+    def _handle_compaction_status_changed(self, active: bool) -> None:
+        if self.compaction_status_callback is not None:
+            self.compaction_status_callback(active)
+        self._emit_runtime_event_sync(CompactionStateChangedRuntimeEvent(active=active))
+
+    async def _emit_runtime_event(self, event: RuntimeEvent) -> None:
+        sink = self.runtime_event_sink
+        if sink is None:
+            return
+        result = sink(event)
+        if isawaitable(result):
+            await result
+
+    async def _await_runtime_result(self, result: Awaitable[None]) -> None:
+        await result
+
+    def _emit_runtime_event_sync(self, event: RuntimeEvent) -> None:
+        sink = self.runtime_event_sink
+        if sink is None:
+            return
+        result = sink(event)
+        if not isawaitable(result):
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(self._await_runtime_result(result))
+            return
+
+        loop.create_task(self._await_runtime_result(result))
 
     async def _compact_history_for_request(self, history: list[AgentMessage]) -> list[AgentMessage]:
         self.compaction_controller.reset_request_state()
@@ -416,10 +472,52 @@ class RequestOrchestrator:
         _ = (event_obj, baseline_message_count)
         state.runtime.iteration_count += 1
         state.runtime.current_iteration = state.runtime.iteration_count
+        await self._emit_runtime_event(
+            TurnEndRuntimeEvent(
+                message=event_obj.message,
+                tool_results=list(event_obj.tool_results),
+            )
+        )
         if state.runtime.iteration_count <= max_iterations:
             return False
         agent.abort()
         raise RuntimeError(f"Max iterations exceeded ({max_iterations}); aborted")
+
+    async def _handle_stream_agent_start(
+        self,
+        event_obj: AgentStartEvent,
+        *,
+        agent: Agent,
+        state: _TinyAgentStreamState,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (event_obj, agent, state, baseline_message_count)
+        await self._emit_runtime_event(AgentStartRuntimeEvent())
+        return False
+
+    async def _handle_stream_turn_start(
+        self,
+        event_obj: TurnStartEvent,
+        *,
+        agent: Agent,
+        state: _TinyAgentStreamState,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (event_obj, agent, state, baseline_message_count)
+        await self._emit_runtime_event(TurnStartRuntimeEvent())
+        return False
+
+    async def _handle_stream_message_start(
+        self,
+        event_obj: MessageStartEvent,
+        *,
+        agent: Agent,
+        state: _TinyAgentStreamState,
+        baseline_message_count: int,
+    ) -> bool:
+        _ = (agent, state, baseline_message_count)
+        await self._emit_runtime_event(MessageStartRuntimeEvent(message=event_obj.message))
+        return False
 
     async def _handle_stream_message_update(
         self,
@@ -431,6 +529,12 @@ class RequestOrchestrator:
     ) -> bool:
         _ = (agent, state, baseline_message_count)
         await self._handle_message_update(event_obj)
+        await self._emit_runtime_event(
+            MessageUpdateRuntimeEvent(
+                message=event_obj.message,
+                assistant_message_event=event_obj.assistant_message_event,
+            )
+        )
         return False
 
     async def _handle_stream_message_end(
@@ -443,6 +547,7 @@ class RequestOrchestrator:
     ) -> bool:
         _ = (agent, baseline_message_count)
         if not isinstance(event_obj.message, AssistantMessage):
+            await self._emit_runtime_event(MessageEndRuntimeEvent(message=event_obj.message))
             return False
         state.last_assistant_message = event_obj.message
         usage = parse_canonical_usage(event_obj.message.usage)
@@ -456,6 +561,7 @@ class RequestOrchestrator:
             last_call_usage=session.usage.last_call_usage,
             session_total_usage=session.usage.session_total_usage,
         )
+        await self._emit_runtime_event(MessageEndRuntimeEvent(message=event_obj.message))
         return False
 
     async def _handle_stream_tool_execution_start(
@@ -480,6 +586,13 @@ class RequestOrchestrator:
         state.runtime.tool_registry.start(tool_call_id)
         if self.tool_start_callback is not None:
             self.tool_start_callback(tool_name)
+        await self._emit_runtime_event(
+            ToolExecutionStartRuntimeEvent(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                args=args,
+            )
+        )
         return False
 
     async def _handle_stream_tool_execution_end(
@@ -514,10 +627,19 @@ class RequestOrchestrator:
         state.active_tool_call_ids.discard(tool_call_id)
         self._clear_tool_batch_state_if_idle(state)
 
+        callback_args = state.runtime.tool_registry.get_args(tool_call_id)
+        await self._emit_runtime_event(
+            ToolExecutionEndRuntimeEvent(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                args=callback_args,
+                result=event_obj.result,
+                is_error=event_obj.is_error,
+                duration_ms=duration_ms,
+            )
+        )
         if self.tool_result_callback is None:
             return False
-
-        callback_args = state.runtime.tool_registry.get_args(tool_call_id)
         self.tool_result_callback(
             tool_name,
             status,
@@ -536,9 +658,6 @@ class RequestOrchestrator:
         baseline_message_count: int,
     ) -> bool:
         _ = (agent, baseline_message_count)
-        if self.tool_result_callback is None:
-            return False
-
         tool_call_id = event_obj.tool_call_id
         if event_obj.args is not None:
             callback_args = event_obj.args
@@ -547,6 +666,16 @@ class RequestOrchestrator:
                 callback_args = state.runtime.tool_registry.get_args(tool_call_id)
             except ValueError:
                 callback_args = {}
+        await self._emit_runtime_event(
+            ToolExecutionUpdateRuntimeEvent(
+                tool_call_id=tool_call_id,
+                tool_name=event_obj.tool_name,
+                args=callback_args,
+                partial_result=event_obj.partial_result,
+            )
+        )
+        if self.tool_result_callback is None:
+            return False
         self.tool_result_callback(
             event_obj.tool_name,
             "running",
@@ -566,9 +695,10 @@ class RequestOrchestrator:
     ) -> bool:
         _ = (event_obj, state)
         self._persist_agent_messages(agent, baseline_message_count)
+        await self._emit_runtime_event(AgentEndRuntimeEvent(messages=list(event_obj.messages)))
         return True
 
-    async def _dispatch_stream_event(
+    async def _dispatch_stream_start_or_turn_event(
         self,
         *,
         event: AgentEvent,
@@ -576,7 +706,28 @@ class RequestOrchestrator:
         state: _TinyAgentStreamState,
         max_iterations: int,
         baseline_message_count: int,
-    ) -> bool:
+    ) -> bool | None:
+        if isinstance(event, AgentStartEvent):
+            return await self._handle_stream_agent_start(
+                event,
+                agent=agent,
+                state=state,
+                baseline_message_count=baseline_message_count,
+            )
+        if isinstance(event, TurnStartEvent):
+            return await self._handle_stream_turn_start(
+                event,
+                agent=agent,
+                state=state,
+                baseline_message_count=baseline_message_count,
+            )
+        if isinstance(event, MessageStartEvent):
+            return await self._handle_stream_message_start(
+                event,
+                agent=agent,
+                state=state,
+                baseline_message_count=baseline_message_count,
+            )
         if is_turn_end_event(event):
             return await self._handle_stream_turn_end(
                 event,
@@ -585,6 +736,16 @@ class RequestOrchestrator:
                 max_iterations=max_iterations,
                 baseline_message_count=baseline_message_count,
             )
+        return None
+
+    async def _dispatch_stream_message_or_tool_event(
+        self,
+        *,
+        event: AgentEvent,
+        agent: Agent,
+        state: _TinyAgentStreamState,
+        baseline_message_count: int,
+    ) -> bool | None:
         if isinstance(event, MessageUpdateEvent):
             return await self._handle_stream_message_update(
                 event,
@@ -627,6 +788,36 @@ class RequestOrchestrator:
                 state=state,
                 baseline_message_count=baseline_message_count,
             )
+        return None
+
+    async def _dispatch_stream_event(
+        self,
+        *,
+        event: AgentEvent,
+        agent: Agent,
+        state: _TinyAgentStreamState,
+        max_iterations: int,
+        baseline_message_count: int,
+    ) -> bool:
+        first_dispatch = await self._dispatch_stream_start_or_turn_event(
+            event=event,
+            agent=agent,
+            state=state,
+            max_iterations=max_iterations,
+            baseline_message_count=baseline_message_count,
+        )
+        if first_dispatch is not None:
+            return first_dispatch
+
+        second_dispatch = await self._dispatch_stream_message_or_tool_event(
+            event=event,
+            agent=agent,
+            state=state,
+            baseline_message_count=baseline_message_count,
+        )
+        if second_dispatch is not None:
+            return second_dispatch
+
         return False
 
     async def _run_stream(
@@ -745,6 +936,7 @@ async def process_request(
     message: str,
     model: ModelName,
     state_manager: StateManagerProtocol,
+    runtime_event_sink: RuntimeEventSink | None = None,
     streaming_callback: StreamingCallback | None = None,
     thinking_callback: StreamingCallback | None = None,
     tool_result_callback: ToolResultCallback | None = None,
@@ -756,6 +948,7 @@ async def process_request(
         message,
         model,
         state_manager,
+        runtime_event_sink,
         streaming_callback,
         thinking_callback,
         tool_result_callback,

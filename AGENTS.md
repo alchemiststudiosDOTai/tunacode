@@ -43,15 +43,16 @@ Last Updated: 2026-03-29
 - Developer entry: `Makefile` target `make run` -> `uv run tunacode`.
 
 ## Source Structure (high-level)
-- `src/tunacode/ui/` — terminal UI, widgets, screens, CSS, command shell.
+- `src/tunacode/ui/` — terminal UI, widgets, screens, CSS, command shell, and long-lived RPC mode.
 - `src/tunacode/core/` — agents, compaction, session, prompting, logging.
 - `src/tunacode/tools/` — native tinyagent tool implementations (`bash`, `discover`, `read_file`, `hashline_edit`, `web_fetch`, `write_file`) plus supporting helpers.
 - `src/tunacode/configuration/` — settings, model registry, API paths, limits, pricing, and ignore patterns.
 - `src/tunacode/infrastructure/` — caches and managers.
 - `src/tunacode/utils/` — adapters, messaging helpers, token counting, gitignore, system utilities.
-- `src/tunacode/types/` — canonical data models, callbacks, protocol types.
+- `src/tunacode/types/` — canonical data models, callbacks, shared runtime event contracts, and protocol types.
 - Shared packages: `src/tunacode/constants.py`, `src/tunacode/exceptions.py`, `src/tunacode/skills/`, `src/tunacode/prompts/`.
 - Notable sub-packages: `src/tunacode/core/ui_api/` (core→UI bridge), `src/tunacode/tools/lsp/` (LSP client integration).
+- New RPC surface: `src/tunacode/ui/rpc/` for JSONL protocol/session/transport code shared by headless integrations.
 
 ## Architecture Boundaries
 - Documented conceptual stack (bottom-up): `types -> utils -> infrastructure -> configuration -> tools -> core -> ui`.

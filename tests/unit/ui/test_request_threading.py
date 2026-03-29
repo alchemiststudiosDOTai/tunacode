@@ -216,7 +216,6 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
     notifications: list[str] = []
     worker_calls: list[dict[str, object]] = []
     process_request_calls: list[dict[str, object]] = []
-    tool_result_callback = object()
 
     async def _fake_process_request(**kwargs: object) -> None:
         process_request_calls.append(kwargs)
@@ -240,7 +239,6 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
 
     with (
         patch("tunacode.core.agents.main.process_request", new=_fake_process_request),
-        patch("tunacode.ui.app.build_tool_result_callback", return_value=tool_result_callback),
     ):
         await app._process_request("hello")
 
@@ -252,10 +250,11 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
     assert len(process_request_calls) == 1
     process_request_call = process_request_calls[0]
     assert process_request_call["message"] == "hello"
-    assert process_request_call["tool_result_callback"] is tool_result_callback
-    assert process_request_call["thinking_callback"] is not None
-    assert process_request_call["notice_callback"] is not None
-    assert process_request_call["compaction_status_callback"] is not None
+    assert process_request_call["runtime_event_sink"] is not None
+    assert process_request_call["tool_result_callback"] is None
+    assert process_request_call["thinking_callback"] is None
+    assert process_request_call["notice_callback"] is None
+    assert process_request_call["compaction_status_callback"] is None
     assert app._current_request_task is None
     assert app._request_bridge is None
     assert timer.stopped is True

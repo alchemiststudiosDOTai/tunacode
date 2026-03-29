@@ -6,6 +6,16 @@ import time
 from queue import Empty, SimpleQueue
 from typing import TYPE_CHECKING
 
+from tunacode.types.runtime_events import (
+    CompactionStateChangedRuntimeEvent,
+    MessageUpdateRuntimeEvent,
+    NoticeRuntimeEvent,
+    RuntimeEvent,
+    ToolExecutionEndRuntimeEvent,
+    ToolExecutionUpdateRuntimeEvent,
+)
+
+from tunacode.ui.repl_support import build_tool_result_callback
 from tunacode.ui.request_debug import BridgeDrainBatch
 from tunacode.ui.widgets import CompactionStatusChanged, SystemNoticeDisplay
 
@@ -20,8 +30,10 @@ class RequestUiBridge:
     and UI mutation happens later when the app flushes queued state.
     """
 
-    def __init__(self, app: TextualReplApp) -> None:
+    def __init__(self, app: TextualReplApp, *, stream_agent_text: bool = True) -> None:
         self._app = app
+        self._stream_agent_text = stream_agent_text
+        self._tool_result_callback = build_tool_result_callback(app)
         self._streaming_deltas: SimpleQueue[tuple[str, float]] = SimpleQueue()
         self._thinking_deltas: SimpleQueue[tuple[str, float]] = SimpleQueue()
 
@@ -36,6 +48,46 @@ class RequestUiBridge:
 
     def compaction_status_callback(self, active: bool) -> None:
         self._app.post_message(CompactionStatusChanged(active=active))
+
+    async def handle_runtime_event(self, event: RuntimeEvent) -> None:
+        if isinstance(event, MessageUpdateRuntimeEvent):
+            self._handle_message_update_event(event)
+            return
+        if isinstance(event, NoticeRuntimeEvent):
+            self.notice_callback(event.notice)
+            return
+        if isinstance(event, CompactionStateChangedRuntimeEvent):
+            self.compaction_status_callback(event.active)
+            return
+        if isinstance(event, ToolExecutionUpdateRuntimeEvent):
+            self._tool_result_callback(
+                event.tool_name,
+                "running",
+                event.args,
+                event.partial_result,
+                None,
+            )
+            return
+        if isinstance(event, ToolExecutionEndRuntimeEvent):
+            self._tool_result_callback(
+                event.tool_name,
+                "failed" if event.is_error else "completed",
+                event.args,
+                event.result,
+                event.duration_ms,
+            )
+
+    def _handle_message_update_event(self, event: MessageUpdateRuntimeEvent) -> None:
+        assistant_event = event.assistant_message_event
+        if assistant_event is None:
+            return
+        if not isinstance(assistant_event.delta, str) or not assistant_event.delta:
+            return
+        if assistant_event.type == "text_delta" and self._stream_agent_text:
+            self._streaming_deltas.put((assistant_event.delta, time.monotonic()))
+            return
+        if assistant_event.type == "thinking_delta":
+            self._thinking_deltas.put((assistant_event.delta, time.monotonic()))
 
     def drain_streaming(self) -> BridgeDrainBatch:
         return self._drain_queue(self._streaming_deltas)

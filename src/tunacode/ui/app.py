@@ -53,7 +53,6 @@ from tunacode.ui.renderers.thinking import (
 )
 from tunacode.ui.repl_support import (
     FILE_EDIT_TOOLS,
-    build_tool_result_callback,
     format_user_message,
     normalize_agent_message_text,
 )
@@ -327,12 +326,12 @@ class TextualReplApp(App[None]):
             self._request_debug.loading_shown(reason="request_start")
         self._show_loading_indicator()
         self._clear_thinking_state()
-        bridge = RequestUiBridge(self)
+        model_name = session.current_model or "openai/gpt-4o"
+        should_stream_agent_text = self._should_stream_agent_text()
+        bridge = RequestUiBridge(self, stream_agent_text=should_stream_agent_text)
         self._request_bridge = bridge
         self._start_delta_flush_timer()
         try:
-            model_name = session.current_model or "openai/gpt-4o"
-            should_stream_agent_text = self._should_stream_agent_text()
             from textual.worker import Worker, WorkerCancelled, WorkerFailed
 
             from tunacode.core.agents.main import process_request
@@ -343,14 +342,13 @@ class TextualReplApp(App[None]):
                     message=message,
                     model=ModelName(model_name),
                     state_manager=self.state_manager,
-                    streaming_callback=(
-                        bridge.streaming_callback if should_stream_agent_text else None
-                    ),
-                    thinking_callback=bridge.thinking_callback,
-                    tool_result_callback=build_tool_result_callback(self),
+                    runtime_event_sink=bridge.handle_runtime_event,
+                    streaming_callback=None,
+                    thinking_callback=None,
+                    tool_result_callback=None,
                     tool_start_callback=None,
-                    notice_callback=bridge.notice_callback,
-                    compaction_status_callback=bridge.compaction_status_callback,
+                    notice_callback=None,
+                    compaction_status_callback=None,
                 ),
                 exit_on_error=False,
                 name="process_request",

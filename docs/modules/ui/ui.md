@@ -20,15 +20,27 @@ The Textual-based terminal user interface for TunaCode. Handles all user interac
 
 | File | Purpose |
 |------|---------|
-| `main.py` | CLI entry point using typer. Handles `--setup`, `--model`, `--baseurl` flags, headless mode (`tunacode run`), and launches the TUI. |
+| `main.py` | CLI entry point using typer. Handles `--setup`, `--model`, `--baseurl`, and launches either the TUI or long-lived JSONL RPC mode (`tunacode rpc`). |
 | `app.py` | `TextualReplApp` — the main Textual application. Manages request queue, streaming callbacks, tool result display, ESC handler, clipboard copy shortcuts, and composes all widgets. |
 | `streaming.py` | `StreamingHandler` — owns streaming state and throttled UI updates for the streaming output widget. |
+
+### RPC Mode
+
+| File | Purpose |
+|------|---------|
+| `rpc/protocol.py` | Command parsing and response/error schema helpers for the JSONL RPC boundary. |
+| `rpc/transport.py` | LF-delimited stdin/stdout transport with compact one-object-per-line writes. |
+| `rpc/adapter.py` | Converts shared runtime events and tinyagent messages into plain wire payloads. |
+| `rpc/session.py` | Long-lived RPC session state machine: active request tracking, aborts, model changes, compaction, and persistence. |
+| `rpc/mode.py` | CLI-facing RPC loop and stdin command dispatcher. |
 
 ### REPL Support & Callbacks
 
 | File | Purpose |
 |------|---------|
-| `repl_support.py` | Helper functions and callback builders for the REPL. `run_textual_repl()` creates and runs the app. Callback builders wire core events to UI components. |
+| `repl_support.py` | Helper functions and callback builders for the REPL. `run_textual_repl()` creates and runs the app. Callback builders still support legacy UI event handling helpers. |
+| `request_bridge.py` | Thread-safe bridge that adapts shared runtime events into throttled Textual updates and UI-thread messages. |
+| `session_metadata.py` | Shared helper for initializing persisted session metadata across the TUI and RPC surfaces. |
 | `shell_runner.py` | `ShellRunner` — async shell command execution for `!cmd` syntax. Handles timeouts, cancellation (SIGINT), and formats output via NeXTSTEP panels. |
 
 ### Screens (Modal Dialogs)
@@ -109,7 +121,6 @@ This contract is enforced in `tests/unit/ui/test_command_contracts.py`.
 | `clipboard.py` | Clipboard copy helpers for selected Textual widgets. Tries OSC 52, `pyperclip`, and platform clipboard commands with verification reads when possible. |
 | `styles.py` | Color constants for UI components (`STYLE_PRIMARY`, `STYLE_WARNING`, etc.). |
 | `welcome.py` | Welcome message rendered on fresh REPL start. |
-| `headless/output.py` | Headless mode output resolution from agent responses. |
 | `logo_assets.py` | ASCII logo assets for the TUI. |
 
 ## How
@@ -169,17 +180,13 @@ _process_request()
     |
     v
 process_request(core.agents.main)
-    |-- build_textual_tool_callback()
-    |-- streaming_callback (throttled UI updates)
-    |-- build_tool_result_callback()
-    |-- build_tool_start_callback()
+    |-- runtime_event_sink
     |
     v
-Streaming events:
-    |-- message_update → StreamingHandler.callback() → streaming_output widget
-    |-- tool_execution_start → status bar "running: tool_name"
-    |-- tool_execution_end → ToolResultDisplay → ChatContainer.write()
-    |-- turn_end → update iteration count
+Runtime events:
+    |-- message_update → RequestUiBridge queue → StreamingHandler.callback() → streaming_output widget
+    |-- tool_execution_update/end → ToolResultDisplay → ChatContainer.write()
+    |-- notice / compaction_state_changed → UI-thread Textual messages
     |
     v
 Finalized:
@@ -187,6 +194,30 @@ Finalized:
     |-- render_agent_response() → ChatContainer.write()
     |-- _update_resource_bar()
     |-- await save_session()
+```
+
+### RPC Request Flow
+
+```
+tunacode rpc
+    |
+    v
+JsonRpcTransport.read_payload()
+    |
+    v
+parse_command()
+    |
+    v
+RpcSession.handle_command()
+    |
+    +-- prompt → immediate response, then background process_request(..., runtime_event_sink=...)
+    +-- abort / get_state / get_messages / set_model / compact
+    |
+    v
+runtime_event_to_wire()
+    |
+    v
+stdout JSONL events (protocol only)
 ```
 
 ### ESC Key Handling

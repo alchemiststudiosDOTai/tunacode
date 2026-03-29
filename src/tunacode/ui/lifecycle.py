@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from rich.console import RenderableType
 
+from tunacode.ui.session_metadata import initialize_session_metadata
 from tunacode.ui.widgets import TuiLogDisplay
 
 if TYPE_CHECKING:
@@ -55,14 +56,7 @@ class AppLifecycle:
 
     def _init_session_metadata(self) -> None:
         """Initialize persisted session metadata for this app launch."""
-        from tunacode.core.ui_api.system_paths import get_project_id
-
-        session = self._state_manager.session
-        session.project_id = get_project_id()
-        session.working_directory = os.getcwd()
-        if session.created_at:
-            return
-        session.created_at = datetime.now(UTC).isoformat()
+        initialize_session_metadata(self._state_manager)
 
     def _push_setup_screen(self) -> None:
         """Show setup wizard and continue startup when dismissed."""

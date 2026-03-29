@@ -2,16 +2,18 @@
 
 import asyncio
 import sys
+from pathlib import Path
 
 import typer
 
 from tunacode.core import ConfigurationError, UserAbortError
 from tunacode.core.session import StateManager
-from tunacode.core.ui_api.configuration import ApplicationSettings
+from tunacode.core.ui_api.configuration import ApplicationSettings, get_model_context_window
 from tunacode.core.ui_api.constants import ENV_OPENAI_BASE_URL
 from tunacode.core.ui_api.system_paths import check_for_updates
 
 from tunacode.ui.repl_support import run_textual_repl
+from tunacode.ui.rpc.mode import apply_rpc_cwd, run_rpc_mode, validate_rpc_cwd
 
 DEFAULT_TIMEOUT_SECONDS = 600
 BASE_URL_HELP_TEXT = "API base URL (e.g., https://openrouter.ai/api/v1)"
@@ -111,6 +113,58 @@ def _run_textual_cli(*, model: str | None, baseurl: str | None, show_setup: bool
     asyncio.run(_run_textual_app(model=model, baseurl=baseurl, show_setup=show_setup))
 
 
+async def _run_rpc_app(
+    *,
+    cwd: Path | None,
+    model: str | None,
+    baseurl: str | None,
+    auto_approve: bool,
+) -> None:
+    _ = auto_approve
+    try:
+        if cwd is not None:
+            apply_rpc_cwd(cwd)
+
+        try:
+            sm = _get_state_manager()
+        except ConfigurationError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return
+
+        _apply_base_url_override(sm, baseurl)
+
+        if model:
+            sm.session.current_model = model
+            sm.session.conversation.max_tokens = get_model_context_window(model)
+
+        await run_rpc_mode(state_manager=sm)
+    finally:
+        _reset_state_manager()
+
+
+def _run_rpc_cli(
+    *,
+    cwd: str | None,
+    model: str | None,
+    baseurl: str | None,
+    auto_approve: bool,
+) -> None:
+    try:
+        validated_cwd = validate_rpc_cwd(cwd)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        raise typer.Exit(code=1) from exc
+
+    asyncio.run(
+        _run_rpc_app(
+            cwd=validated_cwd,
+            model=model,
+            baseurl=baseurl,
+            auto_approve=auto_approve,
+        )
+    )
+
+
 @app.callback(invoke_without_command=True)
 def _default_command(
     ctx: typer.Context,
@@ -155,6 +209,28 @@ def main(
         raise typer.Exit(code=0)
 
     _run_textual_cli(model=model, baseurl=baseurl, show_setup=setup or not _config_exists())
+
+
+@app.command(name="rpc")
+def rpc(
+    cwd: str | None = typer.Option(None, "--cwd", help="Working directory for the RPC session."),
+    baseurl: str | None = typer.Option(None, "--baseurl", help=BASE_URL_HELP_TEXT),
+    model: str | None = typer.Option(
+        None, "--model", help="Default model to use (e.g., openai/gpt-4)"
+    ),
+    auto_approve: bool = typer.Option(
+        False,
+        "--auto-approve",
+        help="Accepted for protocol compatibility. Current TunaCode tools are non-interactive.",
+    ),
+) -> None:
+    """Run TunaCode in long-lived JSONL RPC mode."""
+    _run_rpc_cli(
+        cwd=cwd,
+        model=model,
+        baseurl=baseurl,
+        auto_approve=auto_approve,
+    )
 
 
 if __name__ == "__main__":
