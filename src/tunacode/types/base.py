@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, TypedDict
 
 from tinyagent.agent_types import AgentToolResult
 
@@ -24,8 +24,43 @@ ConfigPath = Path
 ConfigFile = Path
 
 # Configuration types
-UserConfig = dict[str, Any]
+
+
+class RipgrepSettings(TypedDict):
+    timeout: int
+    max_results: int
+    enable_metrics: bool
+
+
+class LspSettings(TypedDict):
+    enabled: bool
+    timeout: float
+
+
+class UserSettings(TypedDict):
+    max_retries: int
+    max_iterations: int
+    request_delay: float
+    global_request_timeout: float
+    tool_strict_validation: bool
+    theme: str
+    stream_agent_text: bool
+    max_command_output: int
+    max_tokens: int | None
+    ripgrep: RipgrepSettings
+    lsp: LspSettings
+
+
 EnvConfig = dict[str, str]
+
+
+class UserConfig(TypedDict):
+    default_model: ModelName
+    recent_models: list[ModelName]
+    env: EnvConfig
+    settings: UserSettings
+
+
 InputSessions = dict[str, Any]
 AgentConfig = dict[str, Any]
 

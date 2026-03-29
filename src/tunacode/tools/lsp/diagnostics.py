@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any
 
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.configuration.user_config import load_config
+from tunacode.types import LspSettings
 
 from tunacode.tools.lsp import format_diagnostics, get_diagnostics
 
@@ -14,22 +15,17 @@ LSP_DEFAULT_TIMEOUT_SECONDS: float = 5.0
 LSP_ORCHESTRATION_OVERHEAD_SECONDS: float = 1.0
 
 
-def _get_lsp_settings() -> dict[str, Any]:
+def _get_lsp_settings() -> LspSettings:
     config = load_config()
     if config is None:
-        return {}
-    settings = config.get("settings", {})
-    lsp_config = settings.get("lsp", {})
-    if isinstance(lsp_config, dict):
-        return lsp_config
-    return {}
+        return DEFAULT_USER_CONFIG["settings"]["lsp"]
+    return config["settings"]["lsp"]
 
 
 def is_lsp_enabled() -> bool:
     """Check if LSP diagnostics are enabled in user config."""
     try:
-        lsp_config = _get_lsp_settings()
-        return bool(lsp_config.get("enabled", False))
+        return _get_lsp_settings()["enabled"]
     except Exception:
         return False
 
@@ -37,8 +33,7 @@ def is_lsp_enabled() -> bool:
 def get_lsp_timeout() -> float:
     """Get LSP timeout from user config."""
     try:
-        lsp_config = _get_lsp_settings()
-        return float(lsp_config.get("timeout", LSP_DEFAULT_TIMEOUT_SECONDS))
+        return _get_lsp_settings()["timeout"]
     except Exception:
         return LSP_DEFAULT_TIMEOUT_SECONDS
 

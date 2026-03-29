@@ -60,7 +60,7 @@ def pytest_terminal_summary(
 
 
 @pytest.fixture(autouse=True)
-def isolate_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def isolate_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Isolate tests from environment pollution.
 
     Removes env vars that could affect test behavior.
@@ -76,6 +76,10 @@ def isolate_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     for var in sensitive_vars:
         monkeypatch.delenv(var, raising=False)
+
+    home_dir = tmp_path / "home"
+    home_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HOME", str(home_dir))
 
 
 @pytest.fixture

@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from typing import cast
 
 from tunacode.constants import DEFAULT_CONTEXT_WINDOW, MODEL_PICKER_UNFILTERED_LIMIT
-from tunacode.types import ModelsRegistryDocument, RegistryModelEntry, RegistryProviderEntry
+from tunacode.types import (
+    ModelsRegistryDocument,
+    RegistryModelEntry,
+    RegistryProviderEntry,
+    UserConfig,
+)
 
 from tunacode.infrastructure.cache.caches import models_registry as models_registry_cache
 
@@ -249,7 +254,7 @@ def get_provider_env_var(provider_id: str) -> str:
     return f"{provider_id.upper().replace('-', '_')}_API_KEY"
 
 
-def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool, str]:
+def validate_provider_api_key(provider_id: str, user_config: UserConfig) -> tuple[bool, str]:
     """Check if API key exists for provider.
 
     Checks user config first, then falls back to OS environment variables.
@@ -264,7 +269,7 @@ def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool
     import os
 
     env_var = get_provider_env_var(provider_id)
-    env = user_config.get("env", {})
+    env = user_config["env"]
     config_key = env.get(env_var, "")
     if config_key and config_key.strip():
         return (True, env_var)

@@ -64,7 +64,6 @@ from .agent_session_config import (
     SessionConfig,
     SkillsPromptState,
     _coerce_global_request_timeout,
-    _coerce_mapping,
     _coerce_max_iterations,
     _coerce_session_config,
     _compute_agent_version,
@@ -297,15 +296,10 @@ def _build_api_key_resolver(
         session = env_config
 
         def env_getter() -> Mapping[str, str]:
-            raw_user_config = _coerce_mapping(
-                cast(object, session.user_config),
-                field_name="user_config",
-            )
-            raw_env = _coerce_mapping(raw_user_config.get("env", {}), field_name="env")
             return {
                 key: value.strip()
-                for key, value in raw_env.items()
-                if isinstance(value, str) and value.strip()
+                for key, value in session.user_config["env"].items()
+                if value.strip()
             }
 
     def _read_api_key(env_var: str) -> str | None:

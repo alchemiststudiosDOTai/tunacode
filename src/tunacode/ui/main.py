@@ -20,8 +20,6 @@ from tunacode.ui.repl_support import run_textual_repl
 DEFAULT_TIMEOUT_SECONDS = 600
 BASE_URL_HELP_TEXT = "API base URL (e.g., https://openrouter.ai/api/v1)"
 HEADLESS_NO_RESPONSE_ERROR = "Error: No response generated"
-AUTO_APPROVE_SETTING_KEY = "auto_approve"
-USER_SETTINGS_KEY = "settings"
 
 app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
@@ -55,13 +53,7 @@ def _apply_base_url_override(state_manager: StateManager, base_url: str | None) 
     if not base_url:
         return
 
-    user_config = state_manager.session.user_config
-    env = user_config.get("env")
-    if env is None:
-        env = {}
-        user_config["env"] = env
-
-    env[ENV_OPENAI_BASE_URL] = base_url
+    state_manager.session.user_config["env"][ENV_OPENAI_BASE_URL] = base_url
 
 
 async def _run_textual_app(*, model: str | None, show_setup: bool) -> None:
@@ -216,8 +208,7 @@ def run_headless(
 
         _apply_base_url_override(state_manager, baseurl)
 
-        settings = state_manager.session.user_config.setdefault(USER_SETTINGS_KEY, {})
-        settings[AUTO_APPROVE_SETTING_KEY] = auto_approve
+        _ = auto_approve
 
         request_task = asyncio.create_task(
             process_request(

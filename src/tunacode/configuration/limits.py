@@ -9,14 +9,13 @@ This allows:
 
 from __future__ import annotations
 
-from typing import Any
-
-from tunacode.constants import MAX_COMMAND_OUTPUT
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
+from tunacode.types import UserSettings
 
 from tunacode.infrastructure.cache.caches import limits_settings as limits_settings_cache
 
 
-def _load_settings() -> dict[str, Any]:
+def _load_settings() -> UserSettings:
     """Load and cache settings from user config."""
 
     cached = limits_settings_cache.get_settings()
@@ -27,10 +26,7 @@ def _load_settings() -> dict[str, Any]:
     from tunacode.configuration.user_config import load_config
 
     config = load_config()
-    settings = config.get("settings", {}) if config else {}
-
-    if not isinstance(settings, dict):
-        raise TypeError(f"Expected settings to be a dict, got {type(settings).__name__}")
+    settings = config["settings"] if config is not None else DEFAULT_USER_CONFIG["settings"]
 
     limits_settings_cache.set_settings(settings)
     return settings
@@ -42,32 +38,11 @@ def clear_cache() -> None:
     limits_settings_cache.clear_settings_cache()
 
 
-def _get_limit(key: str, default: int) -> int:
-    """Get a limit value with proper precedence.
-
-    Precedence: explicit setting > standard default.
-    """
-
-    settings = _load_settings()
-
-    if key in settings:
-        return settings[key]
-
-    return default
-
-
 def get_command_limit() -> int:
     """Get max command output length for bash tool."""
-
-    return _get_limit("max_command_output", MAX_COMMAND_OUTPUT)
+    return _load_settings()["max_command_output"]
 
 
 def get_max_tokens() -> int | None:
     """Get max response tokens. Returns None if not set (no limit)."""
-
-    settings = _load_settings()
-
-    if "max_tokens" in settings:
-        return settings["max_tokens"]
-
-    return None
+    return _load_settings()["max_tokens"]

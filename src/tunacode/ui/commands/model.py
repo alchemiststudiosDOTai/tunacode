@@ -9,6 +9,8 @@ from tunacode.core.ui_api.configuration import ApplicationSettings
 from tunacode.ui.commands.base import Command
 
 if TYPE_CHECKING:
+    from tunacode.types import UserConfig
+
     from tunacode.ui.app import TextualReplApp
 
 
@@ -17,7 +19,7 @@ PROVIDER_MODEL_DELIMITER = ":"
 
 def _validate_provider_api_key_with_notification(
     model_string: str,
-    user_config: dict,
+    user_config: UserConfig,
     app: TextualReplApp,
     show_config_path: bool = False,
 ) -> bool:
@@ -108,10 +110,8 @@ class ModelCommand(Command):
         state_manager = app.state_manager
         session = state_manager.session
         old_model = session.current_model
-        old_default = session.user_config.get("default_model")
-        had_default = "default_model" in session.user_config
-        old_recent_models = copy.deepcopy(session.user_config.get("recent_models"))
-        had_recent_models = "recent_models" in session.user_config
+        old_default = session.user_config["default_model"]
+        old_recent_models = copy.deepcopy(session.user_config["recent_models"])
         old_max_tokens = session.conversation.max_tokens
         new_max_tokens = get_model_context_window(full_model)
 
@@ -126,14 +126,8 @@ class ModelCommand(Command):
             app.notify(f"Model: {full_model}")
         except Exception:
             session.current_model = old_model
-            if had_default:
-                session.user_config["default_model"] = old_default
-            else:
-                session.user_config.pop("default_model", None)
-            if had_recent_models:
-                session.user_config["recent_models"] = old_recent_models
-            else:
-                session.user_config.pop("recent_models", None)
+            session.user_config["default_model"] = old_default
+            session.user_config["recent_models"] = old_recent_models
             session.conversation.max_tokens = old_max_tokens
             raise
 

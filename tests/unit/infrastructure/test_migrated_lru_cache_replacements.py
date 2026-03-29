@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tunacode.configuration import limits
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.configuration.models import get_cached_models_registry, load_models_registry
 
 from tunacode.tools.utils.ripgrep import get_ripgrep_binary_path
@@ -68,13 +69,17 @@ def test_limits_settings_cache_requires_explicit_clear(
     config_dir.mkdir(parents=True)
 
     config_path = config_dir / "tunacode.json"
-    config_path.write_text(json.dumps({"settings": {"max_tokens": 111}}), encoding="utf-8")
+    first_config = json.loads(json.dumps(DEFAULT_USER_CONFIG))
+    first_config["settings"]["max_tokens"] = 111
+    config_path.write_text(json.dumps(first_config), encoding="utf-8")
 
     monkeypatch.setenv("HOME", str(home))
 
     assert limits.get_max_tokens() == 111
 
-    config_path.write_text(json.dumps({"settings": {"max_tokens": 222}}), encoding="utf-8")
+    second_config = json.loads(json.dumps(DEFAULT_USER_CONFIG))
+    second_config["settings"]["max_tokens"] = 222
+    config_path.write_text(json.dumps(second_config), encoding="utf-8")
 
     # Still cached (matches historical lru_cache behavior).
     assert limits.get_max_tokens() == 111
