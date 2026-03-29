@@ -29,7 +29,7 @@ class ThemeCommand(Command):
                 return
 
             app.theme = theme_name
-            app.state_manager.session.user_config.setdefault("settings", {})["theme"] = theme_name
+            app.state_manager.session.user_config["settings"]["theme"] = theme_name
             save_config(app.state_manager)
             app.notify(f"Theme: {theme_name}")
             return
@@ -41,7 +41,7 @@ class ThemeCommand(Command):
                 return
 
             config = app.state_manager.session.user_config
-            config.setdefault("settings", {})["theme"] = selected
+            config["settings"]["theme"] = selected
             save_config(app.state_manager)
             app.notify(f"Theme: {selected}")
 

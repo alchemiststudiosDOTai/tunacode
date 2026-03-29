@@ -27,8 +27,10 @@ from tunacode.types.base import (  # noqa: F401
     FileSize,
     InputSessions,
     LineNumber,
+    LspSettings,
     ModelName,
     OriginalError,
+    RipgrepSettings,
     SessionId,
     TokenCount,
     ToolArgs,
@@ -37,6 +39,7 @@ from tunacode.types.base import (  # noqa: F401
     ToolResult,
     UpdateOperation,
     UserConfig,
+    UserSettings,
     ValidationResult,
     Validator,
 )

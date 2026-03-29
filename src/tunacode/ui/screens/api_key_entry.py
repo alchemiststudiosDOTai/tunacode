@@ -124,12 +124,7 @@ class ApiKeyEntryScreen(Screen[bool | None]):
             return
 
         user_config = self._state_manager.session.user_config
-        env_config = user_config.setdefault("env", {})
-        if not isinstance(env_config, dict):
-            error_label.update("Configuration error: invalid env mapping")
-            return
-
-        env_config[self._env_var] = api_key
+        user_config["env"][self._env_var] = api_key
 
         try:
             save_config(self._state_manager)

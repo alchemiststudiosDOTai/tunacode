@@ -8,10 +8,18 @@ import json
 from json import JSONDecodeError
 from typing import Protocol
 
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.configuration.settings import ApplicationSettings
 from tunacode.constants import MODEL_PICKER_RECENT_LIMIT
 from tunacode.exceptions import ConfigurationError
-from tunacode.types import ModelName, UserConfig
+from tunacode.types import (
+    EnvConfig,
+    LspSettings,
+    ModelName,
+    RipgrepSettings,
+    UserConfig,
+    UserSettings,
+)
 
 
 class UserConfigSession(Protocol):
@@ -28,47 +36,183 @@ class UserConfigStateManager(Protocol):
         """Return the session containing user config."""
 
 
-def load_config() -> UserConfig | None:
+def _merge_config_value(default_value: object, override_value: object) -> object:
+    """Recursively merge persisted config onto defaults."""
+    if isinstance(default_value, dict) and isinstance(override_value, dict):
+        merged_value = copy.deepcopy(default_value)
+        for key, value in override_value.items():
+            if key in merged_value:
+                merged_value[key] = _merge_config_value(merged_value[key], value)
+            else:
+                merged_value[key] = copy.deepcopy(value)
+        return merged_value
+    return copy.deepcopy(override_value)
+
+
+def load_config(default_config: UserConfig | None = None) -> UserConfig | None:
     """Load user config from file.
 
     Returns None when the config file does not exist.
     Raises ConfigurationError for invalid JSON or other failures.
     """
     app_settings = ApplicationSettings()
+    config_defaults = default_config or DEFAULT_USER_CONFIG
     try:
         with open(app_settings.paths.config_file) as f:
-            return json.load(f)
+            raw_config = json.load(f)
+        merged_config = _merge_config_value(config_defaults, raw_config)
+        return validate_user_config(merged_config)
     except FileNotFoundError:
         return None
     except JSONDecodeError as err:
         msg = f"Invalid JSON in config file at {app_settings.paths.config_file}"
         raise ConfigurationError(msg) from err
+    except (KeyError, TypeError, ValueError) as err:
+        raise ConfigurationError(
+            f"Invalid user config at {app_settings.paths.config_file}: {err}"
+        ) from err
     except Exception as err:
         raise ConfigurationError(f"Failed to load configuration: {err}") from err
 
 
-def merge_user_config(default_config: UserConfig, user_config: UserConfig | None) -> UserConfig:
-    """Merge user config on top of defaults."""
-    if not user_config:
-        return copy.deepcopy(default_config)
+def _require_mapping(value: object, *, path: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise TypeError(f"{path} must be an object, got {type(value).__name__}")
+    if not all(isinstance(key, str) for key in value):
+        raise TypeError(f"{path} keys must be strings")
+    return value
 
-    merged_config = copy.deepcopy(default_config)
-    merged_config.update(user_config)
 
-    user_settings = user_config.get("settings")
-    if not user_settings:
-        return merged_config
+def _require_str(value: object, *, path: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{path} must be a string, got {type(value).__name__}")
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError(f"{path} must be a non-empty string")
+    return stripped
 
-    merged_settings = copy.deepcopy(default_config["settings"])
-    merged_settings.update(user_settings)
-    merged_config["settings"] = merged_settings
-    return merged_config
+
+def _require_int(value: object, *, path: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{path} must be an integer, got {type(value).__name__}")
+    return value
+
+
+def _require_optional_int(value: object, *, path: str) -> int | None:
+    if value is None:
+        return None
+    return _require_int(value, path=path)
+
+
+def _require_float(value: object, *, path: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise TypeError(f"{path} must be a float, got {type(value).__name__}")
+    return float(value)
+
+
+def _require_bool(value: object, *, path: str) -> bool:
+    if not isinstance(value, bool):
+        raise TypeError(f"{path} must be a bool, got {type(value).__name__}")
+    return value
+
+
+def _validate_env(value: object) -> EnvConfig:
+    raw_env = _require_mapping(value, path="env")
+    env: EnvConfig = {}
+    for key, raw_item in raw_env.items():
+        if not isinstance(raw_item, str):
+            raise TypeError(f"env.{key} must be a string, got {type(raw_item).__name__}")
+        env[key] = raw_item
+    return env
+
+
+def _validate_recent_models(value: object) -> list[ModelName]:
+    if not isinstance(value, list):
+        raise TypeError(f"recent_models must be a list, got {type(value).__name__}")
+
+    recent_models: list[ModelName] = []
+    for index, raw_model in enumerate(value):
+        recent_models.append(_require_str(raw_model, path=f"recent_models[{index}]"))
+    return recent_models
+
+
+def _validate_ripgrep_settings(value: object) -> RipgrepSettings:
+    raw_ripgrep = _require_mapping(value, path="settings.ripgrep")
+    return RipgrepSettings(
+        timeout=_require_int(raw_ripgrep["timeout"], path="settings.ripgrep.timeout"),
+        max_results=_require_int(
+            raw_ripgrep["max_results"],
+            path="settings.ripgrep.max_results",
+        ),
+        enable_metrics=_require_bool(
+            raw_ripgrep["enable_metrics"],
+            path="settings.ripgrep.enable_metrics",
+        ),
+    )
+
+
+def _validate_lsp_settings(value: object) -> LspSettings:
+    raw_lsp = _require_mapping(value, path="settings.lsp")
+    return LspSettings(
+        enabled=_require_bool(raw_lsp["enabled"], path="settings.lsp.enabled"),
+        timeout=_require_float(raw_lsp["timeout"], path="settings.lsp.timeout"),
+    )
+
+
+def _validate_settings(value: object) -> UserSettings:
+    raw_settings = _require_mapping(value, path="settings")
+    return UserSettings(
+        max_retries=_require_int(raw_settings["max_retries"], path="settings.max_retries"),
+        max_iterations=_require_int(
+            raw_settings["max_iterations"],
+            path="settings.max_iterations",
+        ),
+        request_delay=_require_float(
+            raw_settings["request_delay"],
+            path="settings.request_delay",
+        ),
+        global_request_timeout=_require_float(
+            raw_settings["global_request_timeout"],
+            path="settings.global_request_timeout",
+        ),
+        tool_strict_validation=_require_bool(
+            raw_settings["tool_strict_validation"],
+            path="settings.tool_strict_validation",
+        ),
+        theme=_require_str(raw_settings["theme"], path="settings.theme"),
+        stream_agent_text=_require_bool(
+            raw_settings["stream_agent_text"],
+            path="settings.stream_agent_text",
+        ),
+        max_command_output=_require_int(
+            raw_settings["max_command_output"],
+            path="settings.max_command_output",
+        ),
+        max_tokens=_require_optional_int(
+            raw_settings["max_tokens"],
+            path="settings.max_tokens",
+        ),
+        ripgrep=_validate_ripgrep_settings(raw_settings["ripgrep"]),
+        lsp=_validate_lsp_settings(raw_settings["lsp"]),
+    )
+
+
+def validate_user_config(value: object) -> UserConfig:
+    raw_config = _require_mapping(value, path="user_config")
+    return UserConfig(
+        default_model=_require_str(raw_config["default_model"], path="default_model"),
+        recent_models=_validate_recent_models(raw_config["recent_models"]),
+        env=_validate_env(raw_config["env"]),
+        settings=_validate_settings(raw_config["settings"]),
+    )
 
 
 def load_config_with_defaults(default_config: UserConfig) -> UserConfig:
-    """Load user config from file and merge with defaults."""
-    user_config = load_config()
-    return merge_user_config(default_config, user_config)
+    """Load user config from file, or return a full default config when missing."""
+    user_config = load_config(default_config)
+    if user_config is None:
+        return copy.deepcopy(default_config)
+    return user_config
 
 
 def get_recent_models(
@@ -81,9 +225,7 @@ def get_recent_models(
     if limit <= 0:
         return []
 
-    raw_recent_models = user_config.get("recent_models", [])
-    if not isinstance(raw_recent_models, list):
-        raise TypeError("user_config['recent_models'] must be a list")
+    raw_recent_models = user_config["recent_models"]
 
     normalized_recent_models: list[str] = []
     seen_models: set[str] = set()

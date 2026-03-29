@@ -37,7 +37,7 @@ from tunacode.configuration.pricing import (
     get_model_pricing as _get_model_pricing,
 )
 from tunacode.configuration.settings import ApplicationSettings  # noqa: F401 (re-export)
-from tunacode.types import ModelPricing, ModelsRegistryDocument
+from tunacode.types import ModelPricing, ModelsRegistryDocument, UserConfig
 
 
 def get_models_for_provider(provider_id: str) -> list[tuple[str, str]]:
@@ -60,7 +60,7 @@ def get_provider_env_var(provider_id: str) -> str:
     return _get_provider_env_var(provider_id)
 
 
-def validate_provider_api_key(provider_id: str, user_config: dict) -> tuple[bool, str]:
+def validate_provider_api_key(provider_id: str, user_config: UserConfig) -> tuple[bool, str]:
     """Check whether a provider API key is configured."""
     return _validate_provider_api_key(provider_id, user_config)
 

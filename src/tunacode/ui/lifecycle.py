@@ -47,7 +47,7 @@ class AppLifecycle:
         from tunacode.core.ui_api.constants import SUPPORTED_THEME_NAMES, THEME_NAME
 
         user_config = self._state_manager.session.user_config
-        saved_theme = user_config.get("settings", {}).get("theme", THEME_NAME)
+        saved_theme = user_config["settings"]["theme"]
         if saved_theme not in SUPPORTED_THEME_NAMES:
             self._app.theme = THEME_NAME
             return

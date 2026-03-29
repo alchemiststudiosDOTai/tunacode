@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
 
 from tinyagent.agent_types import (
     AgentMessage,
@@ -386,9 +385,7 @@ class CompactionController:
     def _resolve_base_url(self, provider_id: str) -> str | None:
         """Resolve model base URL with override-first, lazy-registry fallback."""
 
-        env_config = self._state_manager.session.user_config.get("env", {})
-        if not isinstance(env_config, dict):
-            raise TypeError("session.user_config['env'] must be a dict")
+        env_config = self._state_manager.session.user_config["env"]
 
         configured_base_url = self._normalize_chat_completions_url(
             env_config.get(ENV_OPENAI_BASE_URL)
@@ -424,9 +421,7 @@ class CompactionController:
     def _resolve_api_key(self, provider_id: str) -> str:
         provider_env_var = get_provider_env_var(provider_id)
 
-        env_config = self._state_manager.session.user_config.get("env", {})
-        if not isinstance(env_config, dict):
-            raise TypeError("session.user_config['env'] must be a dict")
+        env_config = self._state_manager.session.user_config["env"]
 
         provider_api_key = self._extract_api_key(env_config, provider_env_var)
         if provider_api_key is not None:
@@ -439,9 +434,9 @@ class CompactionController:
 
         raise MissingCompactionApiKeyError(provider_env_var)
 
-    def _extract_api_key(self, env_config: dict[str, Any], env_var: str) -> str | None:
+    def _extract_api_key(self, env_config: dict[str, str], env_var: str) -> str | None:
         raw_value = env_config.get(env_var)
-        if not isinstance(raw_value, str):
+        if raw_value is None:
             return None
 
         api_key = raw_value.strip()

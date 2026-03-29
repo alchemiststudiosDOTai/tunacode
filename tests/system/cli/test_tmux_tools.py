@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
+
 READY_TIMEOUT_SECONDS = 20.0
 RESPONSE_TIMEOUT_SECONDS = 60.0
 POLL_INTERVAL_SECONDS = 0.5
@@ -67,32 +69,12 @@ def _wait_for_pane_text(session_name: str, expected_text: str, timeout_seconds: 
 
 def _write_test_config(config_path: Path, api_key: str) -> None:
     config_path.parent.mkdir(parents=True, exist_ok=True)
+    config = json.loads(json.dumps(DEFAULT_USER_CONFIG))
+    config["default_model"] = TEST_MODEL
+    config["recent_models"] = [TEST_MODEL]
+    config["env"][PROVIDER_API_KEY_ENV_VAR] = api_key
     config_path.write_text(
-        json.dumps(
-            {
-                "default_model": TEST_MODEL,
-                "recent_models": [TEST_MODEL],
-                "env": {PROVIDER_API_KEY_ENV_VAR: api_key},
-                "settings": {
-                    "max_retries": 3,
-                    "max_iterations": 40,
-                    "request_delay": 0.0,
-                    "global_request_timeout": 600.0,
-                    "theme": "dracula",
-                    "stream_agent_text": False,
-                    "ripgrep": {
-                        "timeout": 10,
-                        "max_results": 100,
-                        "enable_metrics": False,
-                    },
-                    "lsp": {
-                        "enabled": True,
-                        "timeout": 5.0,
-                    },
-                },
-            },
-            indent=2,
-        ),
+        json.dumps(config, indent=2),
         encoding="utf-8",
     )
 

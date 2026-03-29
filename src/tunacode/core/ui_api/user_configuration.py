@@ -21,13 +21,13 @@ from tunacode.types import UserConfig
 
 
 def load_config_with_defaults(default_config: UserConfig) -> UserConfig:
-    """Load user config from disk and merge with defaults.
+    """Load user config from disk, or fall back to the default config.
 
     Args:
-        default_config: Default configuration to merge against.
+        default_config: Full default configuration to use when no config file exists.
 
     Returns:
-        The merged user configuration.
+        The validated user configuration.
     """
     return _load_config_with_defaults(default_config)
 

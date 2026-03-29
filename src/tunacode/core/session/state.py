@@ -9,6 +9,7 @@ CLAUDE_ANCHOR[state-module]: Central state management and session tracking
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import uuid
 from dataclasses import dataclass, field
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
 class SessionState:
     """CLAUDE_ANCHOR[session-state]: Core session state container"""
 
-    user_config: UserConfig = field(default_factory=dict)
+    user_config: UserConfig = field(default_factory=lambda: copy.deepcopy(DEFAULT_USER_CONFIG))
     agents: dict[str, Any] = field(
         default_factory=dict
     )  # Keep as dict[str, Any] for agent instances
@@ -81,7 +82,7 @@ class StateManager:
         self._load_user_configuration()
 
     def _load_user_configuration(self) -> None:
-        """Load user configuration from file and merge with defaults."""
+        """Load validated user configuration from file or default config."""
         from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
         from tunacode.configuration.models import get_model_context_window
         from tunacode.configuration.user_config import load_config_with_defaults
@@ -91,9 +92,7 @@ class StateManager:
         merged_user_config = load_config_with_defaults(default_user_config)
         self._session.user_config = merged_user_config
 
-        # Update current_model to match the loaded user config
-        if self._session.user_config.get("default_model"):
-            self._session.current_model = self._session.user_config["default_model"]
+        self._session.current_model = self._session.user_config["default_model"]
 
         # Initialize max_tokens from model's registry context window
         self._session.conversation.max_tokens = get_model_context_window(

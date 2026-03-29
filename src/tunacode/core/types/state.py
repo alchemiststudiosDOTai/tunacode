@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 if TYPE_CHECKING:
     from tunacode.core.compaction.types import CompactionRecord
 
+from tunacode.types import UserConfig
+
 from tunacode.core.types.state_structures import (
     ConversationState,
     RuntimeState,
@@ -22,7 +24,7 @@ from tunacode.core.types.state_structures import (
 class SessionStateProtocol(Protocol):
     """Protocol for session state access."""
 
-    user_config: dict[str, Any]
+    user_config: UserConfig
     current_model: str
     debug_mode: bool
     show_thoughts: bool

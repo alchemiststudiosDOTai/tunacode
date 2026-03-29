@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
+
+from tunacode.types import UserSettings
 
 from tunacode.infrastructure.cache import ManualStrategy, get_cache, register_cache
 
@@ -10,17 +12,15 @@ LIMITS_SETTINGS_KEY = "settings"
 register_cache(LIMITS_SETTINGS_CACHE_NAME, ManualStrategy())
 
 
-def get_settings() -> dict[str, Any] | None:
+def get_settings() -> UserSettings | None:
     cache = get_cache(LIMITS_SETTINGS_CACHE_NAME)
     cached = cache.get(LIMITS_SETTINGS_KEY)
     if cached is None:
         return None
-    if not isinstance(cached, dict):
-        raise TypeError(f"Limits settings cache value must be dict, got {type(cached).__name__}")
-    return cast(dict[str, Any], cached)
+    return cast(UserSettings, cached)
 
 
-def set_settings(settings: dict[str, Any]) -> None:
+def set_settings(settings: UserSettings) -> None:
     get_cache(LIMITS_SETTINGS_CACHE_NAME).set(LIMITS_SETTINGS_KEY, settings)
 
 
