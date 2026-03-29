@@ -20,6 +20,22 @@ HEADLESS_TIMEOUT_SECONDS = 60
 STARTUP_TIMEOUT_SECONDS = 15
 
 
+def _build_invalid_config_env(tmp_path: Path) -> dict[str, str]:
+    """Create an environment that points TunaCode at a malformed config file."""
+    home_dir = tmp_path / "home"
+    config_dir = home_dir / ".config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "tunacode.json").write_text(
+        json.dumps({"settings": {"lsp": {"timeout": "oops"}}}),
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env["HOME"] = str(home_dir)
+    env["XDG_CONFIG_HOME"] = str(config_dir)
+    return env
+
+
 class TestHeadlessModeStartup:
     """Tests for headless mode CLI startup."""
 
@@ -94,6 +110,45 @@ class TestHeadlessModeStartup:
         )
         assert result.returncode == 0
         assert "TunaCode" in result.stdout
+
+    def test_headless_version_flag_with_invalid_config(self, tmp_path: Path) -> None:
+        """Verify --version bypasses malformed config files."""
+        result = subprocess.run(
+            ["uv", "run", "tunacode", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=STARTUP_TIMEOUT_SECONDS,
+            env=_build_invalid_config_env(tmp_path),
+        )
+        assert result.returncode == 0
+        assert "tunacode" in result.stdout.lower()
+        assert "Traceback" not in result.stderr
+
+    def test_headless_help_flag_with_invalid_config(self, tmp_path: Path) -> None:
+        """Verify --help bypasses malformed config files."""
+        result = subprocess.run(
+            ["uv", "run", "tunacode", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=STARTUP_TIMEOUT_SECONDS,
+            env=_build_invalid_config_env(tmp_path),
+        )
+        assert result.returncode == 0
+        assert "TunaCode" in result.stdout
+        assert "Traceback" not in result.stderr
+
+    def test_headless_run_reports_invalid_config_cleanly(self, tmp_path: Path) -> None:
+        """Verify runtime commands fail cleanly after parsing malformed config."""
+        result = subprocess.run(
+            ["uv", "run", "tunacode", "run", "say gm", "--timeout", "30"],
+            capture_output=True,
+            text=True,
+            timeout=STARTUP_TIMEOUT_SECONDS,
+            env=_build_invalid_config_env(tmp_path),
+        )
+        assert result.returncode == 1
+        assert "Invalid user config" in result.stderr
+        assert "Traceback" not in result.stderr
 
     def test_headless_output_json_serializes_tinyagent_messages(self) -> None:
         """Verify --output-json serializes the in-memory tinyagent message models."""
@@ -201,9 +256,9 @@ class TestTUIInitialization:
     def test_tui_module_imports_cleanly(self) -> None:
         """Verify TUI modules import without errors."""
         # These imports would fail if there were circular dependencies
-        from tunacode.ui.main import state_manager
+        import tunacode.ui.main as main_module
 
-        assert state_manager is not None
+        assert main_module.state_manager is None
 
         from tunacode.ui.repl_support import build_textual_tool_callback
 

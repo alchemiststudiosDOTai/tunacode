@@ -23,7 +23,15 @@ HEADLESS_NO_RESPONSE_ERROR = "Error: No response generated"
 
 app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
-state_manager = StateManager()
+state_manager: StateManager | None = None
+
+
+def _get_state_manager() -> StateManager:
+    """Lazily construct the state manager after CLI parsing succeeds."""
+    global state_manager
+    if state_manager is None:
+        state_manager = StateManager()
+    return state_manager
 
 
 def _handle_background_task_error(task: asyncio.Task) -> None:
@@ -56,15 +64,23 @@ def _apply_base_url_override(state_manager: StateManager, base_url: str | None) 
     state_manager.session.user_config["env"][ENV_OPENAI_BASE_URL] = base_url
 
 
-async def _run_textual_app(*, model: str | None, show_setup: bool) -> None:
+async def _run_textual_app(*, model: str | None, baseurl: str | None, show_setup: bool) -> None:
+    try:
+        sm = _get_state_manager()
+    except ConfigurationError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return
+
+    _apply_base_url_override(sm, baseurl)
+
     update_task = asyncio.create_task(asyncio.to_thread(check_for_updates), name="update_check")
     update_task.add_done_callback(_handle_background_task_error)
 
     if model:
-        state_manager.session.current_model = model
+        sm.session.current_model = model
 
     try:
-        await run_textual_repl(state_manager, show_setup=show_setup)
+        await run_textual_repl(sm, show_setup=show_setup)
     except (KeyboardInterrupt, UserAbortError):
         update_task.cancel()
         return
@@ -88,8 +104,8 @@ async def _run_textual_app(*, model: str | None, show_setup: bool) -> None:
         return
 
 
-def _run_textual_cli(*, model: str | None, show_setup: bool) -> None:
-    asyncio.run(_run_textual_app(model=model, show_setup=show_setup))
+def _run_textual_cli(*, model: str | None, baseurl: str | None, show_setup: bool) -> None:
+    asyncio.run(_run_textual_app(model=model, baseurl=baseurl, show_setup=show_setup))
 
 
 @app.callback(invoke_without_command=True)
@@ -113,13 +129,8 @@ def _default_command(
     if ctx.invoked_subcommand is not None:
         if setup:
             raise typer.BadParameter("Use `tunacode --setup` without a subcommand.")
-        _apply_base_url_override(state_manager, baseurl)
-        if model:
-            state_manager.session.current_model = model
         return
-
-    _apply_base_url_override(state_manager, baseurl)
-    _run_textual_cli(model=model, show_setup=setup or not _config_exists())
+    _run_textual_cli(model=model, baseurl=baseurl, show_setup=setup or not _config_exists())
 
 
 @app.command(hidden=True)
@@ -140,8 +151,7 @@ def main(
         _print_version()
         raise typer.Exit(code=0)
 
-    _apply_base_url_override(state_manager, baseurl)
-    _run_textual_cli(model=model, show_setup=setup or not _config_exists())
+    _run_textual_cli(model=model, baseurl=baseurl, show_setup=setup or not _config_exists())
 
 
 def _validate_cwd(cwd: str | None) -> None:
@@ -203,18 +213,24 @@ def run_headless(
     async def async_run() -> int:
         _validate_cwd(cwd)
 
-        if model:
-            state_manager.session.current_model = model
+        try:
+            sm = _get_state_manager()
+        except ConfigurationError as exc:
+            _print_headless_error(output_json, str(exc))
+            return 1
 
-        _apply_base_url_override(state_manager, baseurl)
+        if model:
+            sm.session.current_model = model
+
+        _apply_base_url_override(sm, baseurl)
 
         _ = auto_approve
 
         request_task = asyncio.create_task(
             process_request(
                 message=prompt,
-                model=state_manager.session.current_model,
-                state_manager=state_manager,
+                model=sm.session.current_model,
+                state_manager=sm,
                 streaming_callback=None,
                 tool_result_callback=None,
                 tool_start_callback=None,
@@ -229,9 +245,9 @@ def run_headless(
                 timeout=timeout,
             )
             if output_json:
-                print(_build_trajectory_json(state_manager))
+                print(_build_trajectory_json(sm))
                 return 0
-            headless_output = resolve_output(agent_run, state_manager.session.conversation.messages)
+            headless_output = resolve_output(agent_run, sm.session.conversation.messages)
             if headless_output is None:
                 print(HEADLESS_NO_RESPONSE_ERROR, file=sys.stderr)
                 return 1
