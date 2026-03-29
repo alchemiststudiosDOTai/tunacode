@@ -16,8 +16,7 @@ RPC_TIMEOUT_SECONDS = 5.0
 STARTUP_QUIET_TIMEOUT_SECONDS = 0.25
 
 
-@contextmanager
-def _rpc_process(tmp_path: Path) -> Iterator[tuple[subprocess.Popen[str], Path]]:
+def _rpc_env(tmp_path: Path) -> tuple[dict[str, str], Path]:
     env = os.environ.copy()
     home_dir = tmp_path / "home"
     data_dir = tmp_path / "xdg-data"
@@ -27,6 +26,12 @@ def _rpc_process(tmp_path: Path) -> Iterator[tuple[subprocess.Popen[str], Path]]
     env["XDG_DATA_HOME"] = str(data_dir)
     env["TUNACODE_RPC_TEST_MODE"] = "1"
     env["NO_COLOR"] = "1"
+    return env, data_dir
+
+
+@contextmanager
+def _rpc_process(tmp_path: Path) -> Iterator[tuple[subprocess.Popen[str], Path]]:
+    env, data_dir = _rpc_env(tmp_path)
 
     process = subprocess.Popen(
         ["tunacode", "rpc"],
@@ -109,6 +114,22 @@ def _read_until(
 def test_rpc_starts_without_stdout_noise(tmp_path: Path) -> None:
     with _rpc_process(tmp_path) as (process, _data_dir):
         assert _read_line(process, timeout=STARTUP_QUIET_TIMEOUT_SECONDS) is None
+
+
+def test_rpc_positional_prompt_runs_one_shot_with_saved_defaults(tmp_path: Path) -> None:
+    env, _data_dir = _rpc_env(tmp_path)
+
+    result = subprocess.run(
+        ["tunacode", "rpc", "tell me a joke"],
+        capture_output=True,
+        text=True,
+        timeout=RPC_TIMEOUT_SECONDS,
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout == "echo:tell me a joke\n"
+    assert result.stderr == ""
 
 
 def test_prompt_returns_response_then_streamed_events(tmp_path: Path) -> None:

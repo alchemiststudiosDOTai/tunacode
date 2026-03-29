@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 
 import typer
+from tinyagent.agent import extract_text
+from tinyagent.agent_types import AssistantMessage
 
 from tunacode.core import ConfigurationError, UserAbortError
 from tunacode.core.session import StateManager
@@ -12,11 +14,23 @@ from tunacode.core.ui_api.configuration import ApplicationSettings, get_model_co
 from tunacode.core.ui_api.constants import ENV_OPENAI_BASE_URL
 from tunacode.core.ui_api.system_paths import check_for_updates
 
-from tunacode.ui.repl_support import run_textual_repl
-from tunacode.ui.rpc.mode import apply_rpc_cwd, run_rpc_mode, validate_rpc_cwd
+from tunacode.ui.repl_support import normalize_agent_message_text, run_textual_repl
+from tunacode.ui.rpc.mode import (
+    apply_rpc_cwd,
+    build_rpc_request_runner,
+    run_rpc_mode,
+    validate_rpc_cwd,
+)
+from tunacode.ui.session_metadata import initialize_session_metadata
 
 DEFAULT_TIMEOUT_SECONDS = 600
 BASE_URL_HELP_TEXT = "API base URL (e.g., https://openrouter.ai/api/v1)"
+NO_RESPONSE_ERROR_TEXT = "Error: No response generated"
+RPC_PROMPT_ARGUMENT = typer.Argument(
+    None,
+    metavar="PROMPT",
+    help="Optional one-shot prompt. When omitted, TunaCode starts JSONL RPC mode.",
+)
 
 app_settings = ApplicationSettings()
 app = typer.Typer(help="TunaCode - OS AI-powered development assistant")
@@ -113,6 +127,21 @@ def _run_textual_cli(*, model: str | None, baseurl: str | None, show_setup: bool
     asyncio.run(_run_textual_app(model=model, baseurl=baseurl, show_setup=show_setup))
 
 
+async def _discard_runtime_event(_event: object) -> None:
+    return None
+
+
+def _get_latest_assistant_text(state_manager: StateManager) -> str | None:
+    messages = state_manager.session.conversation.messages
+    for message in reversed(messages):
+        if not isinstance(message, AssistantMessage):
+            continue
+        content = extract_text(message).strip()
+        if content:
+            return content
+    return None
+
+
 async def _run_rpc_app(
     *,
     cwd: Path | None,
@@ -142,18 +171,84 @@ async def _run_rpc_app(
         _reset_state_manager()
 
 
+async def _run_rpc_prompt_app(
+    *,
+    cwd: Path | None,
+    model: str | None,
+    baseurl: str | None,
+    auto_approve: bool,
+    prompt: str,
+) -> int:
+    _ = auto_approve
+    try:
+        if cwd is not None:
+            apply_rpc_cwd(cwd)
+
+        try:
+            sm = _get_state_manager()
+        except ConfigurationError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+        _apply_base_url_override(sm, baseurl)
+
+        if model:
+            sm.session.current_model = model
+            sm.session.conversation.max_tokens = get_model_context_window(model)
+
+        initialize_session_metadata(sm)
+        normalized_prompt = normalize_agent_message_text(prompt)
+        request_runner = build_rpc_request_runner()
+        await request_runner(
+            message=normalized_prompt,
+            model=sm.session.current_model,
+            state_manager=sm,
+            runtime_event_sink=_discard_runtime_event,
+            streaming_callback=None,
+            thinking_callback=None,
+            tool_result_callback=None,
+            tool_start_callback=None,
+            notice_callback=None,
+            compaction_status_callback=None,
+        )
+        output = _get_latest_assistant_text(sm)
+        await sm.save_session()
+        if output is None:
+            print(NO_RESPONSE_ERROR_TEXT, file=sys.stderr)
+            return 1
+        print(output)
+        return 0
+    finally:
+        _reset_state_manager()
+
+
 def _run_rpc_cli(
     *,
     cwd: str | None,
     model: str | None,
     baseurl: str | None,
     auto_approve: bool,
+    prompt: str | None = None,
 ) -> None:
     try:
         validated_cwd = validate_rpc_cwd(cwd)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise typer.Exit(code=1) from exc
+
+    if prompt is not None:
+        exit_code = asyncio.run(
+            _run_rpc_prompt_app(
+                cwd=validated_cwd,
+                model=model,
+                baseurl=baseurl,
+                auto_approve=auto_approve,
+                prompt=prompt,
+            )
+        )
+        if exit_code != 0:
+            raise typer.Exit(code=exit_code)
+        return
 
     asyncio.run(
         _run_rpc_app(
@@ -213,6 +308,7 @@ def main(
 
 @app.command(name="rpc")
 def rpc(
+    prompt_parts: list[str] | None = RPC_PROMPT_ARGUMENT,
     cwd: str | None = typer.Option(None, "--cwd", help="Working directory for the RPC session."),
     baseurl: str | None = typer.Option(None, "--baseurl", help=BASE_URL_HELP_TEXT),
     model: str | None = typer.Option(
@@ -224,12 +320,13 @@ def rpc(
         help="Accepted for protocol compatibility. Current TunaCode tools are non-interactive.",
     ),
 ) -> None:
-    """Run TunaCode in long-lived JSONL RPC mode."""
+    """Run TunaCode in JSONL RPC mode or execute one prompt with saved defaults."""
     _run_rpc_cli(
         cwd=cwd,
         model=model,
         baseurl=baseurl,
         auto_approve=auto_approve,
+        prompt=None if not prompt_parts else " ".join(prompt_parts),
     )
 
 

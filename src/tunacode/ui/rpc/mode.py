@@ -45,7 +45,7 @@ async def run_rpc_mode(
 ) -> None:
     """Run the RPC command loop until stdin EOF."""
     resolved_transport = JsonRpcTransport() if transport is None else transport
-    request_runner = _build_request_runner()
+    request_runner = build_rpc_request_runner()
     session = RpcSession(
         state_manager=state_manager,
         transport=resolved_transport,
@@ -100,7 +100,7 @@ def apply_rpc_cwd(cwd: Path | None) -> None:
     os.chdir(cwd)
 
 
-def _build_request_runner() -> Any:
+def build_rpc_request_runner() -> Any:
     if os.environ.get(RPC_TEST_MODE_ENV_VAR):
         return _run_test_request
     from tunacode.core.agents.main import process_request
