@@ -13,7 +13,7 @@ help:
 	@echo "  make test       - Run test suite"
 	@echo "  make test-tmux  - Run the tmux system test suite"
 	@echo "  make lint       - Run linters and formatters"
-	@echo "  make check      - Run harness checks (pre-commit + pre-push stages)"
+	@echo "  make check      - Run harness checks (hooks + CI enforcement parity checks)"
 	@echo "  make clean      - Clean build artifacts"
 	@echo ""
 
@@ -41,10 +41,14 @@ test-tmux:
 lint:
 	uv run ruff check --fix .
 
-# Run full harness checks locally (without commit/push)
+# Run full harness checks locally (hooks + CI enforcement parity checks)
 check:
 	uv run pre-commit run --all-files --hook-stage pre-commit
 	uv run pre-commit run --all-files --hook-stage pre-push
+	uv run unimport --check --gitignore --exclude 'venv/*' --exclude '.venv/*' --exclude '.uv-cache/*' --exclude '.uv_cache/*' src
+	uv run vulture --min-confidence 80 scripts/utils/vulture_whitelist.py src
+	uv run python scripts/check_unused_modules.py
+	uv run deptry src/
 
 # Clean build artifacts
 clean:

@@ -14,12 +14,7 @@ from pathlib import Path
 
 def run_command(cmd: list[str], check: bool = True) -> tuple[int, str, str]:
     """Run a shell command and return exit code, stdout, stderr."""
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=False
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if check and result.returncode != 0:
         print(f"❌ Command failed: {' '.join(cmd)}")
@@ -87,9 +82,9 @@ def publish_to_pypi() -> None:
     pypirc_path = Path.home() / ".pypirc"
     with open(pypirc_path) as f:
         content = f.read()
-        for line in content.split('\n'):
-            if line.startswith('password = pypi-'):
-                token = line.split(' = ')[1].strip()
+        for line in content.split("\n"):
+            if line.startswith("password = pypi-"):
+                token = line.split(" = ")[1].strip()
                 env["TWINE_PASSWORD"] = token
                 break
         else:
@@ -98,10 +93,7 @@ def publish_to_pypi() -> None:
 
     # Upload using twine with environment variables
     result = subprocess.run(
-        ["python", "-m", "twine", "upload", "dist/*"],
-        env=env,
-        capture_output=True,
-        text=True
+        ["python", "-m", "twine", "upload", "dist/*"], env=env, capture_output=True, text=True
     )
 
     if result.returncode == 0:

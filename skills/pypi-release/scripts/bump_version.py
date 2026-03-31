@@ -29,13 +29,13 @@ def get_current_version(pyproject_path: Path) -> str:
 
 def bump_patch_version(version: str) -> str:
     """Increment the patch version number."""
-    parts = version.split('.')
+    parts = version.split(".")
     if len(parts) < 2:
         raise ValueError(f"Version format should be at least X.Y, got: {version}")
 
     # Increment the last part (patch)
     parts[-1] = str(int(parts[-1]) + 1)
-    return '.'.join(parts)
+    return ".".join(parts)
 
 
 def update_pyproject(pyproject_path: Path, old_version: str, new_version: str) -> None:
@@ -62,10 +62,7 @@ def update_constants(constants_path: Path, old_version: str, new_version: str) -
     content = constants_path.read_text()
 
     # Replace APP_VERSION = "old" with APP_VERSION = "new"
-    updated = content.replace(
-        f'APP_VERSION = "{old_version}"',
-        f'APP_VERSION = "{new_version}"'
-    )
+    updated = content.replace(f'APP_VERSION = "{old_version}"', f'APP_VERSION = "{new_version}"')
 
     if content == updated:
         raise ValueError("No version replacement made in constants.py")
@@ -79,8 +76,8 @@ def update_readme(readme_path: Path, old_version: str, new_version: str) -> bool
     content = readme_path.read_text()
 
     # Replace ## vX.Y.Z - with ## vX.Y.Z (keep any suffix after the dash)
-    pattern = rf'## v{re.escape(old_version)}\b'
-    updated = re.sub(pattern, f'## v{new_version}', content)
+    pattern = rf"## v{re.escape(old_version)}\b"
+    updated = re.sub(pattern, f"## v{new_version}", content)
 
     if content == updated:
         print("⚠ No version header found in README.md, skipping")

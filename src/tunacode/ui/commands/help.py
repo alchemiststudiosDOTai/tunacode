@@ -17,7 +17,7 @@ class HelpCommand(Command):
     name = "help"
     description = "Show available commands"
 
-    async def execute(self, app: TextualReplApp, args: str) -> None:
+    async def execute(self, app: TextualReplApp, _args: str) -> None:
         from rich.table import Table
 
         from tunacode.ui.command_registry import COMMAND_DESCRIPTIONS

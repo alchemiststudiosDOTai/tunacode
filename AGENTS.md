@@ -1,5 +1,5 @@
 # AGENTS.md
-Last Updated: 2026-03-30
+Last Updated: 2026-03-31
 
 ## Repository Orientation
 - This is `tunacode-cli`, a terminal AI coding agent with a Textual UI and tiny-agent tool loop.
@@ -12,6 +12,7 @@ Last Updated: 2026-03-30
 - `README.md` — user-facing setup, supported features, and command usage.
 - `docs/modules/index.md` — module layer map and reading order.
 - `docs/architecture/dependencies/DEPENDENCY_LAYERS.md` — generated dependency summary.
+- `docs/skills/audit-harness/SKILL.md` — strict harness-audit procedure; treat any mismatch or failed gate as critical and run checks manually one by one.
 - `docs/modules/ui/commands.md` — command model and command registration notes.
 - `scripts/check_agents_freshness.py` — validates this file is current.
 

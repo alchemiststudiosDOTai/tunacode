@@ -20,12 +20,7 @@ from pathlib import Path
 
 def run_command(cmd: list[str], check: bool = True) -> tuple[int, str, str]:
     """Run a shell command and return exit code, stdout, stderr."""
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=False
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if check and result.returncode != 0:
         print(f"❌ Command failed: {' '.join(cmd)}")
@@ -81,7 +76,7 @@ def bump_version() -> str:
     code, stdout, stderr = run_command(["python3", str(bump_script)])
 
     # Extract version from output (format: "✅ Version bump complete: X.Y.Z.W")
-    for line in stdout.split('\n'):
+    for line in stdout.split("\n"):
         if "Version bump complete:" in line:
             version = line.split(":")[-1].strip()
             return version
@@ -136,8 +131,7 @@ def monitor_workflow(version: str, timeout: int = 120) -> bool:
 
     while time.time() - start_time < timeout:
         code, stdout, _ = run_command(
-            ["gh", "run", "list", "--workflow=publish-release.yml", "--limit", "1"],
-            check=False
+            ["gh", "run", "list", "--workflow=publish-release.yml", "--limit", "1"], check=False
         )
 
         if code != 0:
@@ -145,7 +139,7 @@ def monitor_workflow(version: str, timeout: int = 120) -> bool:
             return False
 
         # Parse status from output
-        parts = stdout.strip().split('\t')
+        parts = stdout.strip().split("\t")
         if len(parts) >= 2:
             status = parts[0]
 
