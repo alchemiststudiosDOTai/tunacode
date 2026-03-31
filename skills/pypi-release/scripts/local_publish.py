@@ -93,7 +93,10 @@ def publish_to_pypi() -> None:
 
     # Upload using twine with environment variables
     result = subprocess.run(
-        ["python", "-m", "twine", "upload", "dist/*"], env=env, capture_output=True, text=True
+        [sys.executable, "-m", "twine", "upload", "dist/*"],
+        env=env,
+        capture_output=True,
+        text=True,
     )
 
     if result.returncode == 0:

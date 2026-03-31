@@ -12,6 +12,7 @@ Workflow:
 7. Report success or debug failures
 """
 
+import json
 import subprocess
 import sys
 import time
@@ -131,36 +132,51 @@ def monitor_workflow(version: str, timeout: int = 120) -> bool:
 
     while time.time() - start_time < timeout:
         code, stdout, _ = run_command(
-            ["gh", "run", "list", "--workflow=publish-release.yml", "--limit", "1"], check=False
+            [
+                "gh",
+                "run",
+                "list",
+                "--workflow=publish-release.yml",
+                "--limit",
+                "1",
+                "--json",
+                "status,conclusion",
+            ],
+            check=False,
         )
 
         if code != 0:
             print("  ⚠ Could not query workflow status")
             return False
 
-        # Parse status from output
-        parts = stdout.strip().split("\t")
-        if len(parts) >= 2:
-            status = parts[0]
+        runs = json.loads(stdout)
+        if not runs:
+            elapsed = int(time.time() - start_time)
+            print(f"  ⏳ Workflow not visible yet... ({elapsed}s elapsed)")
+            time.sleep(10)
+            continue
 
-            if status == "completed":
-                result = parts[1] if len(parts) > 1 else ""
-                if result == "success":
-                    print("  ✅ Workflow completed successfully!")
-                    return True
-                else:
-                    print(f"  ❌ Workflow failed: {result}")
-                    print("\n  View logs: gh run list --workflow=publish-release.yml --limit 1")
-                    print("  Debug with: gh run view <run-id> --log-failed")
-                    return False
+        run = runs[0]
+        status = run.get("status", "")
+        conclusion = run.get("conclusion", "")
 
-            elif status == "in_progress":
-                elapsed = int(time.time() - start_time)
-                print(f"  ⏳ Workflow running... ({elapsed}s elapsed)")
-                time.sleep(10)
+        if status == "completed":
+            if conclusion == "success":
+                print("  ✅ Workflow completed successfully!")
+                return True
             else:
-                print(f"  Status: {status}")
-                time.sleep(10)
+                print(f"  ❌ Workflow failed: {conclusion}")
+                print("\n  View logs: gh run list --workflow=publish-release.yml --limit 1")
+                print("  Debug with: gh run view <run-id> --log-failed")
+                return False
+
+        if status == "in_progress":
+            elapsed = int(time.time() - start_time)
+            print(f"  ⏳ Workflow running... ({elapsed}s elapsed)")
+            time.sleep(10)
+        else:
+            print(f"  Status: {status}")
+            time.sleep(10)
 
     print(f"  ⏱ Timeout reached after {timeout}s")
     print("  Check status manually: gh run list --workflow=publish-release.yml")
