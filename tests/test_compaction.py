@@ -15,6 +15,8 @@ from tinyagent.agent_types import (
     UserMessage,
 )
 
+from tunacode.utils.messaging import estimate_messages_tokens
+
 from tunacode.core.compaction.controller import (
     CompactionController,
     apply_compaction_messages,
@@ -28,7 +30,6 @@ from tunacode.core.compaction.types import (
     CompactionRecord,
 )
 from tunacode.core.session import StateManager
-from tunacode.utils.messaging import estimate_messages_tokens
 
 KEEP_RECENT_TOKENS = 80
 RESERVE_TOKENS = 40

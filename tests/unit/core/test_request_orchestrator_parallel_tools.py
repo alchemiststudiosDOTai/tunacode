@@ -15,12 +15,12 @@ from tinyagent.agent_types import (
 )
 
 from tunacode.types.canonical import ToolCallStatus
+from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.agents import main as agent_main
 from tunacode.core.agents.main import RequestOrchestrator, _TinyAgentStreamState
 from tunacode.core.logging.manager import get_logger
 from tunacode.core.session import StateManager
-from tunacode.utils.messaging import estimate_messages_tokens
 
 
 def _build_orchestrator_harness(
