@@ -48,7 +48,7 @@ from tunacode.types import (
     ToolStartCallback,
     UsageMetrics,
 )
-from tunacode.utils.messaging import estimate_messages_tokens
+from tunacode.utils.messaging import estimate_message_tokens, estimate_messages_tokens
 
 from tunacode.core.compaction.controller import (
     CompactionStatusCallback,
@@ -316,8 +316,13 @@ class RequestOrchestrator:
 
         if self.notice_callback is not None:
             self.notice_callback(CONTEXT_OVERFLOW_FAILURE_NOTICE)
+        estimated_tokens = conversation.total_tokens
+        if estimated_tokens == 0 and conversation.messages:
+            estimated_tokens = estimate_messages_tokens(conversation.messages)
+            conversation.total_tokens = estimated_tokens
+
         raise ContextOverflowError(
-            estimated_tokens=estimate_messages_tokens(conversation.messages),
+            estimated_tokens=estimated_tokens,
             max_tokens=conversation.max_tokens or DEFAULT_CONTEXT_WINDOW,
             model=self.model,
         )
@@ -352,6 +357,7 @@ class RequestOrchestrator:
         conversation = self.state_manager.session.conversation
         external_messages = list(conversation.messages[baseline_message_count:])
         conversation.messages = [*list(agent.state.messages), *external_messages]
+        conversation.total_tokens = estimate_messages_tokens(conversation.messages)
 
     def _remove_in_flight_tool_registry_entries(self, logger: LogManager) -> None:
         active_stream_state = self._active_stream_state
@@ -377,6 +383,9 @@ class RequestOrchestrator:
         )
         if cleanup_applied:
             session.conversation.messages = _deserialize_agent_messages(serialized_messages)
+            session.conversation.total_tokens = estimate_messages_tokens(
+                session.conversation.messages
+            )
         if cleanup_applied and dangling_tool_call_ids:
             logger.lifecycle(
                 f"Cleaned up {len(dangling_tool_call_ids)} dangling tool call(s) after abort"
@@ -396,13 +405,13 @@ class RequestOrchestrator:
         if latest_assistant_text.strip() == partial_text.strip():
             return
 
-        session.conversation.messages.append(
-            AssistantMessage(
-                content=[TextContent(text=f"[INTERRUPTED]\n\n{partial_text}")],
-                stop_reason="aborted",
-                timestamp=int(time.time() * MILLISECONDS_PER_SECOND),
-            )
+        interrupted_message = AssistantMessage(
+            content=[TextContent(text=f"[INTERRUPTED]\n\n{partial_text}")],
+            stop_reason="aborted",
+            timestamp=int(time.time() * MILLISECONDS_PER_SECOND),
         )
+        session.conversation.messages.append(interrupted_message)
+        session.conversation.total_tokens += estimate_message_tokens(interrupted_message)
 
     async def _handle_stream_turn_end(
         self,

@@ -145,8 +145,17 @@ class CompactionController:
         threshold_tokens = max_tokens - reserve - self.keep_recent_tokens
         effective_threshold = max(0, threshold_tokens)
 
-        estimated_tokens = estimate_messages_tokens(messages)
+        estimated_tokens = self._estimated_tokens(messages)
         return estimated_tokens > effective_threshold
+
+    def _estimated_tokens(self, messages: list[AgentMessage]) -> int:
+        conversation = self._state_manager.session.conversation
+        if messages is conversation.messages:
+            if conversation.total_tokens > 0 or not messages:
+                return conversation.total_tokens
+            conversation.total_tokens = estimate_messages_tokens(messages)
+            return conversation.total_tokens
+        return estimate_messages_tokens(messages)
 
     async def check_and_compact(
         self,
@@ -321,7 +330,7 @@ class CompactionController:
         previous_summary = None if previous_record is None else previous_record.summary
         previous_count = 0 if previous_record is None else previous_record.compaction_count
 
-        tokens_before = estimate_messages_tokens(all_messages)
+        tokens_before = self._estimated_tokens(all_messages)
         retained_tokens = estimate_messages_tokens(retained_messages)
         summary_tokens = estimate_tokens(summary)
         tokens_after = retained_tokens + summary_tokens
@@ -471,7 +480,9 @@ def apply_compaction_messages(
     """Apply compaction output to session conversation with one shared write path."""
 
     applied_messages = list(messages)
-    state_manager.session.conversation.messages = applied_messages
+    conversation = state_manager.session.conversation
+    conversation.messages = applied_messages
+    conversation.total_tokens = estimate_messages_tokens(applied_messages)
     return applied_messages
 
 

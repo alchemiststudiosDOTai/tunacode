@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
 from tunacode.types.canonical import UsageMetrics
+from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
 
@@ -398,6 +399,7 @@ class StateManager:
 
             self._session.conversation.thoughts = [*stored_thoughts, *extracted_thoughts]
             self._session.conversation.messages = loaded_messages
+            self._session.conversation.total_tokens = estimate_messages_tokens(loaded_messages)
             self._session.compaction = self._deserialize_compaction(data.get("compaction"))
 
             return True

@@ -357,7 +357,14 @@ class TextualReplApp(App[None]):
                 thread=True,
             )
             self._current_request_task = worker
-            await worker.wait()
+            worker_started_at = time.monotonic()
+            try:
+                await worker.wait()
+            finally:
+                worker_duration_ms = (
+                    time.monotonic() - worker_started_at
+                ) * self.MILLISECONDS_PER_SECOND
+                self._request_debug.note_request_worker_completed(duration_ms=worker_duration_ms)
         except WorkerCancelled:
             self.notify("Cancelled")
         except WorkerFailed as e:
@@ -374,7 +381,13 @@ class TextualReplApp(App[None]):
             content, meta = render_exception(e)
             self.chat_container.write(content, panel_meta=meta)
         finally:
+            post_stream_started_at = time.monotonic()
+
+            final_flush_started_at = time.monotonic()
             await self._flush_request_deltas()
+            final_flush_ms = (
+                time.monotonic() - final_flush_started_at
+            ) * self.MILLISECONDS_PER_SECOND
             self._stop_delta_flush_timer()
             self._request_bridge = None
             self._current_request_task = None
@@ -385,6 +398,9 @@ class TextualReplApp(App[None]):
             self.streaming.reset()
             self._finalize_thinking_state_after_request()
             self._update_compaction_status(False)
+            response_panel_ms = 0.0
+            response_char_count = 0
+            response_panel_started_at = time.monotonic()
             output_text = self._get_latest_response_text()
             if output_text is not None:
                 from tunacode.ui.renderers.agent_response import render_agent_response
@@ -402,9 +418,33 @@ class TextualReplApp(App[None]):
                 self.chat_container.write("")
                 response_widget = self.chat_container.write(content, expand=True, panel_meta=meta)
                 self.chat_container.set_insertion_anchor(response_widget)
+                response_char_count = len(output_text)
+            response_panel_ms = (
+                time.monotonic() - response_panel_started_at
+            ) * self.MILLISECONDS_PER_SECOND
+            resource_bar_started_at = time.monotonic()
             self._update_resource_bar()
+            resource_bar_update_ms = (
+                time.monotonic() - resource_bar_started_at
+            ) * self.MILLISECONDS_PER_SECOND
             # Auto-save session after processing
+            save_session_started_at = time.monotonic()
             await self.state_manager.save_session()
+            save_session_ms = (
+                time.monotonic() - save_session_started_at
+            ) * self.MILLISECONDS_PER_SECOND
+            post_stream_cleanup_ms = (
+                time.monotonic() - post_stream_started_at
+            ) * self.MILLISECONDS_PER_SECOND
+            self._request_debug.note_post_stream_cleanup(
+                final_flush_ms=final_flush_ms,
+                response_panel_ms=response_panel_ms,
+                response_chars=response_char_count,
+                resource_bar_update_ms=resource_bar_update_ms,
+                save_session_ms=save_session_ms,
+                message_count=len(session.conversation.messages),
+                total_cleanup_ms=post_stream_cleanup_ms,
+            )
             total_request_ms = (
                 time.monotonic() - self._request_start_time
             ) * self.MILLISECONDS_PER_SECOND
@@ -654,6 +694,13 @@ class TextualReplApp(App[None]):
             return 0
 
         from tunacode.core.ui_api.messaging import estimate_messages_tokens
+
+        conversation = self.state_manager.session.conversation
+        if messages is conversation.messages:
+            if conversation.total_tokens > 0:
+                return conversation.total_tokens
+            conversation.total_tokens = estimate_messages_tokens(messages)
+            return conversation.total_tokens
 
         return estimate_messages_tokens(messages)
 

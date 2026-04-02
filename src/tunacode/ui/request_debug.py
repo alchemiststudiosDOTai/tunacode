@@ -18,6 +18,10 @@ DELTA_TIMER_DRIFT_WARN_MS = 125.0
 BRIDGE_BACKLOG_WARN_MS = 200.0
 BRIDGE_FLUSH_WARN_MS = 25.0
 CALLBACK_WARN_MS = 20.0
+POST_STREAM_CLEANUP_WARN_MS = 75.0
+RESPONSE_PANEL_WARN_MS = 40.0
+RESOURCE_BAR_UPDATE_WARN_MS = 25.0
+SAVE_SESSION_WARN_MS = 50.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +82,32 @@ class _RequestMetrics:
     thinking_batches: int = 0
     thinking_chunks: int = 0
     thinking_chars: int = 0
+    worker_ms: float = 0.0
+    final_flush_ms: float = 0.0
+    response_panel_ms: float = 0.0
+    response_chars: int = 0
+    resource_bar_update_ms: float = 0.0
+    save_session_ms: float = 0.0
+    message_count: int = 0
+    post_stream_cleanup_ms: float = 0.0
+
+
+def build_request_debug_thresholds_message() -> str:
+    """Describe the /debug warning thresholds shown to operators."""
+
+    return (
+        "UI: "
+        "thresholds "
+        f"keypress={KEYPRESS_RENDER_WARN_MS:.0f}ms "
+        f"timer_drift={DELTA_TIMER_DRIFT_WARN_MS:.0f}ms "
+        f"bridge_backlog={BRIDGE_BACKLOG_WARN_MS:.0f}ms "
+        f"bridge_flush={BRIDGE_FLUSH_WARN_MS:.0f}ms "
+        f"callbacks={CALLBACK_WARN_MS:.0f}ms "
+        f"response_panel={RESPONSE_PANEL_WARN_MS:.0f}ms "
+        f"resource_bar={RESOURCE_BAR_UPDATE_WARN_MS:.0f}ms "
+        f"save_session={SAVE_SESSION_WARN_MS:.0f}ms "
+        f"post_stream={POST_STREAM_CLEANUP_WARN_MS:.0f}ms"
+    )
 
 
 class RequestDebugTracer:
@@ -170,9 +200,15 @@ class RequestDebugTracer:
             "UI: "
             f"request_trace seq={metrics.sequence_id} "
             f"request={total_request_ms:.1f}ms "
+            f"worker={metrics.worker_ms:.1f}ms "
+            f"post_stream={metrics.post_stream_cleanup_ms:.1f}ms "
             f"loading={self._last_loading_visible_ms:.1f}ms "
             f"submit_to_queue={self._format_ms(metrics.submit_to_queue_ms)} "
             f"queue_to_start={self._format_ms(metrics.queue_to_start_ms)} "
+            f"final_flush={metrics.final_flush_ms:.1f}ms "
+            f"response_panel={metrics.response_panel_ms:.1f}ms "
+            f"resource_bar={metrics.resource_bar_update_ms:.1f}ms "
+            f"save_session={metrics.save_session_ms:.1f}ms "
             f"keypress_max={metrics.max_keypress_to_refresh_ms:.1f}ms "
             f"keypress_slow={metrics.keypress_slow_count}/{metrics.keypress_sample_count} "
             f"timer_drift_max={metrics.max_delta_timer_drift_ms:.1f}ms "
@@ -182,6 +218,55 @@ class RequestDebugTracer:
             f"thinking_cb_max={metrics.max_thinking_callback_ms:.1f}ms"
         )
         self._active_request_metrics = None
+
+    def note_request_worker_completed(self, *, duration_ms: float) -> None:
+        metrics = self._active_request_metrics
+        if metrics is None or not self._enabled:
+            return
+        metrics.worker_ms = duration_ms
+
+    def note_post_stream_cleanup(
+        self,
+        *,
+        final_flush_ms: float,
+        response_panel_ms: float,
+        response_chars: int,
+        resource_bar_update_ms: float,
+        save_session_ms: float,
+        message_count: int,
+        total_cleanup_ms: float,
+    ) -> None:
+        metrics = self._active_request_metrics
+        if metrics is None or not self._enabled:
+            return
+
+        metrics.final_flush_ms = final_flush_ms
+        metrics.response_panel_ms = response_panel_ms
+        metrics.response_chars = response_chars
+        metrics.resource_bar_update_ms = resource_bar_update_ms
+        metrics.save_session_ms = save_session_ms
+        metrics.message_count = message_count
+        metrics.post_stream_cleanup_ms = total_cleanup_ms
+
+        if not self._should_log_post_stream_cleanup(
+            response_panel_ms=response_panel_ms,
+            resource_bar_update_ms=resource_bar_update_ms,
+            save_session_ms=save_session_ms,
+            total_cleanup_ms=total_cleanup_ms,
+        ):
+            return
+
+        self._emit(
+            "UI: "
+            f"post_stream seq={metrics.sequence_id} "
+            f"total={total_cleanup_ms:.1f}ms "
+            f"final_flush={final_flush_ms:.1f}ms "
+            f"response_panel={response_panel_ms:.1f}ms "
+            f"response_chars={response_chars} "
+            f"resource_bar={resource_bar_update_ms:.1f}ms "
+            f"save_session={save_session_ms:.1f}ms "
+            f"messages={message_count}"
+        )
 
     def loading_shown(self, *, reason: str) -> None:
         if not self._enabled:
@@ -359,6 +444,21 @@ class RequestDebugTracer:
             or flush_duration_ms >= BRIDGE_FLUSH_WARN_MS
             or stream_callback_ms >= CALLBACK_WARN_MS
             or thinking_callback_ms >= CALLBACK_WARN_MS
+        )
+
+    def _should_log_post_stream_cleanup(
+        self,
+        *,
+        response_panel_ms: float,
+        resource_bar_update_ms: float,
+        save_session_ms: float,
+        total_cleanup_ms: float,
+    ) -> bool:
+        return (
+            response_panel_ms >= RESPONSE_PANEL_WARN_MS
+            or resource_bar_update_ms >= RESOURCE_BAR_UPDATE_WARN_MS
+            or save_session_ms >= SAVE_SESSION_WARN_MS
+            or total_cleanup_ms >= POST_STREAM_CLEANUP_WARN_MS
         )
 
     def _queue_size(self) -> int:

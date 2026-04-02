@@ -20,6 +20,7 @@ from tunacode.core.agents import main as agent_main
 from tunacode.core.agents.main import RequestOrchestrator, _TinyAgentStreamState
 from tunacode.core.logging.manager import get_logger
 from tunacode.core.session import StateManager
+from tunacode.utils.messaging import estimate_messages_tokens
 
 
 def _build_orchestrator_harness(
@@ -232,3 +233,29 @@ def test_abort_cleanup_reconciles_in_flight_tool_state_and_dangling_messages() -
     content_item = message.content[0]
     assert isinstance(content_item, TextContent)
     assert content_item.text == "[INTERRUPTED]\n\npartial output"
+    assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(
+        state_manager.session.conversation.messages
+    )
+
+
+def test_persist_agent_messages_refreshes_total_tokens() -> None:
+    orchestrator, _state, state_manager = _build_orchestrator_harness(
+        start_events=[],
+        result_events=[],
+    )
+    state_manager.session.conversation.messages = [
+        AssistantMessage(content=[TextContent(text="external")], timestamp=None)
+    ]
+    state_manager.session.conversation.total_tokens = 0
+
+    fake_agent = SimpleNamespace(
+        state=SimpleNamespace(
+            messages=[AssistantMessage(content=[TextContent(text="agent")], timestamp=None)]
+        )
+    )
+
+    orchestrator._persist_agent_messages(fake_agent, baseline_message_count=0)
+
+    assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(
+        state_manager.session.conversation.messages
+    )

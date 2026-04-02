@@ -28,6 +28,7 @@ from tunacode.core.compaction.types import (
     CompactionRecord,
 )
 from tunacode.core.session import StateManager
+from tunacode.utils.messaging import estimate_messages_tokens
 
 KEEP_RECENT_TOKENS = 80
 RESERVE_TOKENS = 40
@@ -168,6 +169,7 @@ async def test_compaction_flow_end_to_end(tmp_path: Path, monkeypatch: pytest.Mo
     # Controller compaction is side-effect free for conversation history mutation.
     assert conversation.messages == history
     apply_compaction_messages(state_manager, compacted)
+    assert session.conversation.total_tokens == estimate_messages_tokens(compacted)
 
     record = session.compaction
     assert record is not None
@@ -204,6 +206,9 @@ async def test_compaction_flow_end_to_end(tmp_path: Path, monkeypatch: pytest.Mo
     restored = StateManager()
     restored_loaded = await restored.load_session(session.session_id)
     assert restored_loaded
+    assert restored.session.conversation.total_tokens == estimate_messages_tokens(
+        restored.session.conversation.messages
+    )
     assert restored.session.compaction is not None
     assert restored.session.compaction.summary == record.summary
     assert restored.session.compaction.compaction_count == record.compaction_count

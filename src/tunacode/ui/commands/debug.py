@@ -20,6 +20,8 @@ class DebugCommand(Command):
         from tunacode.core.debug import log_usage_update
         from tunacode.core.logging import get_logger
 
+        from tunacode.ui.request_debug import build_request_debug_thresholds_message
+
         session = app.state_manager.session
         session.debug_mode = not session.debug_mode
 
@@ -44,8 +46,13 @@ class DebugCommand(Command):
                 "[dim]Input/request latency traces use lifecycle prefixes "
                 "'Input:', 'Queue:', 'Bridge:', 'UI:', and 'Init:'.[/dim]"
             )
+            app.chat_container.write(
+                "[dim]Tail latency now breaks out final_flush, response_panel, "
+                "resource_bar, and save_session timings.[/dim]"
+            )
             logger.info(debug_message)
             logger.info("Lifecycle logging enabled")
+            logger.lifecycle(build_request_debug_thresholds_message())
             log_usage_update(
                 logger=logger,
                 request_id=session.runtime.request_id,

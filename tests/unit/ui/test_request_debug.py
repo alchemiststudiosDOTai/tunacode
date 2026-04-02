@@ -6,7 +6,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tunacode.ui.request_bridge import RequestUiBridge
-from tunacode.ui.request_debug import RequestDebugTracer
+from tunacode.ui.request_debug import (
+    RequestDebugTracer,
+    build_request_debug_thresholds_message,
+)
 
 
 class _FakeQueue:
@@ -80,6 +83,62 @@ def test_request_debug_logs_slow_keypress_after_refresh() -> None:
     messages = [call.args[0] for call in logger.lifecycle.call_args_list]
     assert any("Input: keypress_to_refresh seq=1" in message for message in messages)
     assert any("elapsed=250.0ms" in message for message in messages)
+
+
+def test_request_debug_logs_slow_post_stream_cleanup_and_summary() -> None:
+    app = _FakeApp()
+    tracer = RequestDebugTracer(app)
+    logger = MagicMock()
+
+    with (
+        patch("tunacode.ui.request_debug.get_logger", return_value=logger),
+        patch(
+            "tunacode.ui.request_debug.time.monotonic",
+            side_effect=[1.0, 1.010, 1.020],
+        ),
+    ):
+        trace = tracer.submit_received(raw_text="prompt", normalized_text="prompt")
+        tracer.request_enqueued_after_refresh(trace)
+        tracer.request_started(tracer.pop_next_submission_trace())
+        tracer.note_request_worker_completed(duration_ms=410.0)
+        tracer.note_post_stream_cleanup(
+            final_flush_ms=12.0,
+            response_panel_ms=48.0,
+            response_chars=320,
+            resource_bar_update_ms=26.0,
+            save_session_ms=80.0,
+            message_count=42,
+            total_cleanup_ms=130.0,
+        )
+        tracer.request_finished(total_request_ms=560.0)
+
+    messages = [call.args[0] for call in logger.lifecycle.call_args_list]
+    assert any(
+        "UI: post_stream seq=1" in message
+        and "response_panel=48.0ms" in message
+        and "save_session=80.0ms" in message
+        and "messages=42" in message
+        for message in messages
+    )
+    assert any(
+        "UI: request_trace seq=1" in message
+        and "worker=410.0ms" in message
+        and "post_stream=130.0ms" in message
+        and "response_panel=48.0ms" in message
+        and "resource_bar=26.0ms" in message
+        and "save_session=80.0ms" in message
+        for message in messages
+    )
+
+
+def test_build_request_debug_thresholds_message_lists_new_tail_latency_fields() -> None:
+    message = build_request_debug_thresholds_message()
+
+    assert message.startswith("UI: thresholds")
+    assert "response_panel=40ms" in message
+    assert "resource_bar=25ms" in message
+    assert "save_session=50ms" in message
+    assert "post_stream=75ms" in message
 
 
 @pytest.mark.asyncio
