@@ -384,13 +384,15 @@ class TextualReplApp(App[None]):
             post_stream_started_at = time.monotonic()
 
             final_flush_started_at = time.monotonic()
-            await self._flush_request_deltas()
-            final_flush_ms = (
-                time.monotonic() - final_flush_started_at
-            ) * self.MILLISECONDS_PER_SECOND
-            self._stop_delta_flush_timer()
-            self._request_bridge = None
-            self._current_request_task = None
+            try:
+                await self._flush_request_deltas()
+            finally:
+                final_flush_ms = (
+                    time.monotonic() - final_flush_started_at
+                ) * self.MILLISECONDS_PER_SECOND
+                self._stop_delta_flush_timer()
+                self._request_bridge = None
+                self._current_request_task = None
             if self._loading_indicator_shown:
                 self._request_debug.loading_hidden(reason="request_complete")
             self._hide_loading_indicator()

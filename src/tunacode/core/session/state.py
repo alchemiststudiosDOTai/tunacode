@@ -364,28 +364,18 @@ class StateManager:
             data = await asyncio.to_thread(self._read_session_data, session_file)
 
             session_id_value = self._coerce_str_value(data.get("session_id"), session_id)
-            self._session.session_id = session_id_value
             project_id_value = self._coerce_str_value(data.get("project_id"), "")
-            self._session.project_id = project_id_value
             created_at_value = self._coerce_str_value(data.get("created_at"), "")
-            self._session.created_at = created_at_value
             last_modified_value = self._coerce_str_value(data.get("last_modified"), "")
-            self._session.last_modified = last_modified_value
             working_directory_value = self._coerce_str_value(data.get("working_directory"), "")
-            self._session.working_directory = working_directory_value
-            self._session.selected_skill_names = self._deserialize_selected_skill_names(
+            selected_skill_names = self._deserialize_selected_skill_names(
                 data.get("selected_skill_names")
             )
             default_model = DEFAULT_USER_CONFIG["default_model"]
             current_model_value = self._coerce_str_value(data.get("current_model"), default_model)
-            self._session.current_model = current_model_value
             # Update max_tokens based on loaded model's context window
-            self._session.conversation.max_tokens = get_model_context_window(
-                self._session.current_model
-            )
-            self._session.usage.session_total_usage = UsageMetrics.from_dict(
-                data.get("session_total_usage", {})
-            )
+            max_tokens_value = get_model_context_window(current_model_value)
+            session_total_usage = UsageMetrics.from_dict(data.get("session_total_usage", {}))
 
             raw_messages = data.get("messages", [])
             if not isinstance(raw_messages, list):
@@ -397,10 +387,24 @@ class StateManager:
             loaded_messages = self._deserialize_messages(cleaned_messages)
             stored_thoughts = self._deserialize_thoughts(data.get("thoughts"))
 
-            self._session.conversation.thoughts = [*stored_thoughts, *extracted_thoughts]
-            self._session.conversation.messages = loaded_messages
-            self._session.conversation.total_tokens = estimate_messages_tokens(loaded_messages)
-            self._session.compaction = self._deserialize_compaction(data.get("compaction"))
+            conversation_thoughts = [*stored_thoughts, *extracted_thoughts]
+            conversation_total_tokens = estimate_messages_tokens(loaded_messages)
+            session_compaction = self._deserialize_compaction(data.get("compaction"))
+
+            session = self._session
+            session.session_id = session_id_value
+            session.project_id = project_id_value
+            session.created_at = created_at_value
+            session.last_modified = last_modified_value
+            session.working_directory = working_directory_value
+            session.selected_skill_names = selected_skill_names
+            session.current_model = current_model_value
+            session.conversation.max_tokens = max_tokens_value
+            session.usage.session_total_usage = session_total_usage
+            session.conversation.thoughts = conversation_thoughts
+            session.conversation.messages = loaded_messages
+            session.conversation.total_tokens = conversation_total_tokens
+            session.compaction = session_compaction
 
             return True
         except json.JSONDecodeError:
