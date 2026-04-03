@@ -1,7 +1,7 @@
-"""LSP status query for UI layer.
+"""UI adapter for querying LSP server status.
 
-This module provides a core-layer interface for querying LSP server status.
-UI components can import from here without violating dependency direction.
+This module adds a small UI-facing translation layer over `tools.lsp` so UI
+components can request server availability without owning the tool details.
 
 Dependency flow: ui -> core/ui_api/lsp_status -> tools/lsp (valid)
 """

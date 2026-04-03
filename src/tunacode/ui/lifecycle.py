@@ -44,7 +44,7 @@ class AppLifecycle:
 
     def _init_theme(self) -> None:
         """Load and apply a supported theme from user settings."""
-        from tunacode.core.ui_api.constants import SUPPORTED_THEME_NAMES, THEME_NAME
+        from tunacode.constants import SUPPORTED_THEME_NAMES, THEME_NAME
 
         user_config = self._state_manager.session.user_config
         saved_theme = user_config["settings"]["theme"]
@@ -55,7 +55,7 @@ class AppLifecycle:
 
     def _init_session_metadata(self) -> None:
         """Initialize persisted session metadata for this app launch."""
-        from tunacode.core.ui_api.system_paths import get_project_id
+        from tunacode.configuration.paths import get_project_id
 
         session = self._state_manager.session
         session.project_id = get_project_id()

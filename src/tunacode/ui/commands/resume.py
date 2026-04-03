@@ -94,7 +94,7 @@ class ResumeCommand(Command):
 
     async def _handle_delete(self, app: TextualReplApp, parts: list[str]) -> None:
         """Delete a session by prefix."""
-        from tunacode.core.ui_api.system_paths import delete_session_file
+        from tunacode.configuration.paths import delete_session_file
 
         resolved = self._resolve_unique_session(app, parts, "delete <session-id>")
         if resolved is None:

@@ -3,7 +3,7 @@
 Centralizes color references to UI_COLORS for consistent theming.
 """
 
-from tunacode.core.ui_api.constants import UI_COLORS
+from tunacode.constants import UI_COLORS
 
 # Rich Text style strings (single colors)
 STYLE_PRIMARY = UI_COLORS["primary"]

@@ -9,14 +9,13 @@ from textual.screen import Screen
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from tunacode.core.ui_api.configuration import (
+from tunacode.configuration.models import (
     ModelPickerEntry,
-    format_pricing_display,
     get_model_picker_entries,
-    get_model_pricing,
     rank_model_picker_entries,
 )
-from tunacode.core.ui_api.constants import MODEL_PICKER_UNFILTERED_LIMIT
+from tunacode.configuration.pricing import format_pricing_display, get_model_pricing
+from tunacode.constants import MODEL_PICKER_UNFILTERED_LIMIT
 
 
 def _choose_highlight_index(

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Protocol
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.core.ui_api.constants import APP_NAME, APP_VERSION
+from tunacode.constants import APP_NAME, APP_VERSION
 
 from tunacode.ui.logo_assets import LOGO_WELCOME_FILENAME, read_logo_ansi
 from tunacode.ui.styles import (

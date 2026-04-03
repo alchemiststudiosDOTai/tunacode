@@ -18,7 +18,7 @@ class ThemeCommand(Command):
     usage = "/theme [name]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        from tunacode.core.ui_api.user_configuration import save_config
+        from tunacode.configuration.user_config import save_config
 
         supported_themes = app.supported_themes
 

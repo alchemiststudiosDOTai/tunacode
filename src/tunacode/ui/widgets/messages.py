@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from rich.console import RenderableType
 from textual.message import Message
 
-from tunacode.core.ui_api.shared_types import ToolArgs, ToolName, ToolResult
+from tunacode.types import ToolArgs, ToolName, ToolResult
 
 
 class EditorCompletionsAvailable(Message):

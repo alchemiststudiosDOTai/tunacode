@@ -10,13 +10,13 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, Select, Static
 
-from tunacode.core.ui_api.configuration import (
-    DEFAULT_USER_CONFIG,
+from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
+from tunacode.configuration.models import (
     get_models_for_provider,
     get_provider_env_var,
     get_providers,
 )
-from tunacode.core.ui_api.user_configuration import record_recent_model, save_config
+from tunacode.configuration.user_config import record_recent_model, save_config
 
 if TYPE_CHECKING:
     from tunacode.core.session import StateManager

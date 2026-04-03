@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tunacode.core.ui_api.constants import TOOL_PANEL_HORIZONTAL_INSET
+from tunacode.constants import TOOL_PANEL_HORIZONTAL_INSET
 
 
 def tool_panel_frame_width(max_line_width: int) -> int:

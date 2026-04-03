@@ -1,8 +1,8 @@
-"""UI-facing API surface for the TunaCode core layer.
+"""UI-specific adapters that add behavior or translation for the UI layer.
 
-This package contains thin facades that the UI layer imports to access
-configuration, constants, and other services without depending directly on
-lower-level implementation modules.
+`tunacode.ui` should import canonical shared modules such as `configuration`,
+`constants`, `types`, and `utils` directly. This package exists only for the
+small set of UI-facing adapters that still add behavior on top of lower layers.
 
 Dependency direction: ui -> core.ui_api -> (configuration/tools/infrastructure)
 """

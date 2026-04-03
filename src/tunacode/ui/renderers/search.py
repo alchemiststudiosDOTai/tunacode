@@ -8,7 +8,7 @@ from typing import Any, TypeVar
 from rich.console import RenderableType
 from rich.text import Text
 
-from tunacode.core.ui_api.constants import UI_COLORS
+from tunacode.constants import UI_COLORS
 
 from tunacode.ui.renderers.panels import RichPanelRenderer, SearchResultData
 from tunacode.ui.widgets.chat import PanelMeta

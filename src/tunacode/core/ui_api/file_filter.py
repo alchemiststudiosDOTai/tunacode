@@ -1,4 +1,4 @@
-"""Core facade for file autocomplete filtering."""
+"""UI adapter for file autocomplete filtering."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from tunacode.infrastructure.file_filter import FileFilter as InfrastructureFile
 
 
 class FileFilter(InfrastructureFileFilter):
-    """Core wrapper that supplies default ignore patterns and limits."""
+    """UI-facing adapter that supplies default ignore patterns and limits."""
 
     def __init__(self, root: Path | None = None) -> None:
         super().__init__(

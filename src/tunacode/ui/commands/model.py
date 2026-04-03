@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from tunacode.core.ui_api.configuration import ApplicationSettings
+from tunacode.configuration.settings import ApplicationSettings
 
 from tunacode.ui.commands.base import Command
 
@@ -28,7 +28,7 @@ def _validate_provider_api_key_with_notification(
     Returns True when valid or when no provider prefix exists.
     """
 
-    from tunacode.core.ui_api.configuration import validate_provider_api_key
+    from tunacode.configuration.models import validate_provider_api_key
 
     if PROVIDER_MODEL_DELIMITER not in model_string:
         return True
@@ -55,11 +55,8 @@ class ModelCommand(Command):
     usage = "/model [provider:model-name]"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
-        from tunacode.core.ui_api.configuration import DEFAULT_USER_CONFIG
-        from tunacode.core.ui_api.user_configuration import (
-            get_recent_models,
-            load_config_with_defaults,
-        )
+        from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
+        from tunacode.configuration.user_config import get_recent_models, load_config_with_defaults
 
         session = app.state_manager.session
         session.user_config = load_config_with_defaults(DEFAULT_USER_CONFIG)
@@ -103,9 +100,10 @@ class ModelCommand(Command):
     def _apply_model_selection(self, app: TextualReplApp, full_model: str) -> None:
         import copy
 
+        from tunacode.configuration.models import get_model_context_window
+        from tunacode.configuration.user_config import record_recent_model, save_config
+
         from tunacode.core.agents.agent_components.agent_config import invalidate_agent_cache
-        from tunacode.core.ui_api.configuration import get_model_context_window
-        from tunacode.core.ui_api.user_configuration import record_recent_model, save_config
 
         state_manager = app.state_manager
         session = state_manager.session
@@ -132,7 +130,7 @@ class ModelCommand(Command):
             raise
 
     def _open_model_picker(self, app: TextualReplApp) -> None:
-        from tunacode.core.ui_api.user_configuration import get_recent_models
+        from tunacode.configuration.user_config import get_recent_models
 
         from tunacode.ui.screens.api_key_entry import ApiKeyEntryScreen
         from tunacode.ui.screens.model_picker import ModelPickerScreen

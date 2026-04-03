@@ -135,10 +135,8 @@ class UpdateCommand(Command):
     async def execute(self, app: TextualReplApp, _args: str) -> None:
         import asyncio
 
-        from tunacode.core.ui_api.system_paths import (
-            check_for_updates,
-            get_installed_version,
-        )
+        from tunacode.configuration.paths import _get_installed_version as get_installed_version
+        from tunacode.configuration.paths import check_for_updates
 
         from tunacode.ui.screens.update_confirm import UpdateConfirmScreen
 

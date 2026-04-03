@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from tunacode.core.ui_api.shared_types import UsageMetrics
+from tunacode.types import UsageMetrics
 
 from tunacode.ui.commands.base import Command
 
@@ -18,7 +18,7 @@ class ClearCommand(Command):
     name = "clear"
     description = "Clear agent working state (UI, thoughts)"
 
-    async def execute(self, app: TextualReplApp, args: str) -> None:
+    async def execute(self, app: TextualReplApp, _args: str) -> None:
         session = app.state_manager.session
 
         app.chat_container.clear()

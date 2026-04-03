@@ -12,6 +12,8 @@ from tinyagent.agent_types import (
     UserMessage,
 )
 
+from tunacode.utils.messaging import estimate_messages_tokens
+
 from tunacode.core.compaction.controller import (
     apply_compaction_messages,
     get_or_create_compaction_controller,
@@ -20,7 +22,6 @@ from tunacode.core.compaction.types import (
     COMPACTION_STATUS_COMPACTED,
     COMPACTION_STATUS_FAILED,
 )
-from tunacode.core.ui_api.messaging import estimate_messages_tokens
 
 from tunacode.ui.commands.base import Command
 

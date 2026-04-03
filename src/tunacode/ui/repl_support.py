@@ -15,8 +15,8 @@ from rich.console import Console
 from rich.text import Text
 from tinyagent.agent_types import TextContent
 
-from tunacode.core.ui_api.constants import MAX_CALLBACK_CONTENT
-from tunacode.core.ui_api.shared_types import (
+from tunacode.constants import MAX_CALLBACK_CONTENT
+from tunacode.types import (
     StreamResultProtocol,
     ToolArgs,
     ToolCallback,

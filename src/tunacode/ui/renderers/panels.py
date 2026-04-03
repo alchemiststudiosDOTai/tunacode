@@ -11,14 +11,13 @@ from rich.console import Group, RenderableType
 from rich.table import Table
 from rich.text import Text
 
-from tunacode.types import ToolResult
-
-from tunacode.core.ui_api.constants import (
+from tunacode.constants import (
     MAX_PANEL_LINES,
     MAX_SEARCH_RESULTS_DISPLAY,
     TOOL_PANEL_WIDTH_DEBUG,
     UI_COLORS,
 )
+from tunacode.types import ToolResult
 
 from tunacode.ui.widgets.chat import PanelMeta
 

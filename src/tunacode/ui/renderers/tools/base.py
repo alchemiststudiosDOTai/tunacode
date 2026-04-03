@@ -19,7 +19,7 @@ from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 from rich.console import Group, RenderableType
 from rich.text import Text
 
-from tunacode.core.ui_api.constants import (
+from tunacode.constants import (
     BOX_HORIZONTAL,
     HOOK_ARROW_PREFIX,
     MIN_TOOL_PANEL_LINE_WIDTH,

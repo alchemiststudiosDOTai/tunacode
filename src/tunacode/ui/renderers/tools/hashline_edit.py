@@ -13,7 +13,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from tunacode.core.ui_api.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,

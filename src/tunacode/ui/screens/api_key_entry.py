@@ -9,8 +9,8 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Input, Static
 
-from tunacode.core.ui_api.configuration import get_provider_env_var
-from tunacode.core.ui_api.user_configuration import save_config
+from tunacode.configuration.models import get_provider_env_var
+from tunacode.configuration.user_config import save_config
 
 if TYPE_CHECKING:
     from tunacode.core.session import StateManager

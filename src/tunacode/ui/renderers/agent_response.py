@@ -17,11 +17,7 @@ from rich.console import Group, RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
 
-from tunacode.core.ui_api.constants import (
-    BOX_HORIZONTAL,
-    SEPARATOR_WIDTH,
-    UI_COLORS,
-)
+from tunacode.constants import BOX_HORIZONTAL, SEPARATOR_WIDTH, UI_COLORS
 
 from tunacode.ui.widgets.chat import PanelMeta
 

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from tunacode.ui.lifecycle import AppLifecycle
     from tunacode.ui.shell_runner import ShellRunner
 
-from tunacode.core.ui_api.constants import (
+from tunacode.constants import (
     MIN_TOOL_PANEL_LINE_WIDTH,
     RESOURCE_BAR_COST_FORMAT,
     RICHLOG_CLASS_STREAMING,
@@ -336,7 +336,7 @@ class TextualReplApp(App[None]):
             from textual.worker import Worker, WorkerCancelled, WorkerFailed
 
             from tunacode.core.agents.main import process_request
-            from tunacode.core.ui_api.shared_types import ModelName
+            from tunacode.types import ModelName
 
             worker: Worker[object] = self.run_worker(
                 process_request(
@@ -561,7 +561,7 @@ class TextualReplApp(App[None]):
         from rich.markdown import Markdown
         from tinyagent.agent_types import AssistantMessage, UserMessage
 
-        from tunacode.core.ui_api.messaging import get_content
+        from tunacode.utils.messaging import get_content
 
         conversation = self.state_manager.session.conversation
         for message in conversation.messages:
@@ -695,7 +695,7 @@ class TextualReplApp(App[None]):
         if not messages:
             return 0
 
-        from tunacode.core.ui_api.messaging import estimate_messages_tokens
+        from tunacode.utils.messaging import estimate_messages_tokens
 
         conversation = self.state_manager.session.conversation
         if messages is conversation.messages:

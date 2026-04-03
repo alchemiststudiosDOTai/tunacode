@@ -161,7 +161,7 @@ class SessionPickerScreen(Screen[str | None]):
         if msg.get("role") != "user":
             return ""
 
-        from tunacode.core.ui_api.messaging import get_content
+        from tunacode.utils.messaging import get_content
 
         return get_content(msg)
 
