@@ -12,6 +12,7 @@ from tinyagent.agent_types import (
     ToolCallContent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
+    UserMessage,
 )
 
 from tunacode.types.canonical import ToolCallStatus
@@ -191,6 +192,7 @@ def test_abort_cleanup_reconciles_in_flight_tool_state_and_dangling_messages() -
         result_events=[],
     )
     state.active_tool_call_ids.add("tool-a")
+    state.last_stable_agent_message_count = 0
     orchestrator._active_stream_state = state
 
     registry = state_manager.session.runtime.tool_registry
@@ -224,6 +226,7 @@ def test_abort_cleanup_reconciles_in_flight_tool_state_and_dangling_messages() -
     )
 
     assert registry.get("tool-a") is None
+    assert orchestrator._active_stream_state is None
     assert len(state_manager.session.conversation.messages) == 1
 
     message = state_manager.session.conversation.messages[0]
@@ -236,6 +239,68 @@ def test_abort_cleanup_reconciles_in_flight_tool_state_and_dangling_messages() -
     assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(
         state_manager.session.conversation.messages
     )
+
+
+def test_abort_rollback_preserves_completed_turns_and_drops_in_flight() -> None:
+    orchestrator, state, state_manager = _build_orchestrator_harness(
+        start_events=[],
+        result_events=[],
+    )
+
+    completed_assistant = AssistantMessage(
+        content=[TextContent(text="completed response")],
+        stop_reason="complete",
+        timestamp=None,
+    )
+    completed_user = UserMessage(
+        content=[TextContent(text="follow-up")],
+    )
+    in_flight_assistant = AssistantMessage(
+        content=[
+            ToolCallContent(
+                id="tool-b",
+                name="write_file",
+                arguments={"path": "x.py"},
+            )
+        ],
+        stop_reason="tool_calls",
+        timestamp=None,
+    )
+
+    fake_agent = SimpleNamespace(
+        state=SimpleNamespace(messages=[completed_assistant, completed_user, in_flight_assistant])
+    )
+
+    state.active_tool_call_ids.add("tool-b")
+    state.last_stable_agent_message_count = 2
+    orchestrator._active_stream_state = state
+
+    registry = state_manager.session.runtime.tool_registry
+    registry.register("tool-b", "write_file", {"path": "x.py"})
+    registry.start("tool-b")
+    state_manager.session._debug_raw_stream_accum = "partial write"
+
+    orchestrator._handle_abort_cleanup(
+        get_logger(),
+        agent=fake_agent,
+        baseline_message_count=0,
+        invalidate_cache=False,
+    )
+
+    assert registry.get("tool-b") is None
+    assert orchestrator._active_stream_state is None
+
+    messages = state_manager.session.conversation.messages
+    assert len(messages) == 3
+
+    assert isinstance(messages[0], AssistantMessage)
+    assert messages[0].content[0].text == "completed response"
+    assert isinstance(messages[1], UserMessage)
+
+    assert isinstance(messages[2], AssistantMessage)
+    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial write"
+
+    assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(messages)
 
 
 def test_persist_agent_messages_refreshes_total_tokens() -> None:

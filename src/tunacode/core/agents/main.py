@@ -15,17 +15,13 @@ from tinyagent.agent_types import (
     AgentMessage,
     AgentTool,
     AssistantMessage,
-    CustomAgentMessage,
-    JsonObject,
     MessageEndEvent,
     MessageUpdateEvent,
     TextContent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
     ToolExecutionUpdateEvent,
-    ToolResultMessage,
     TurnEndEvent,
-    UserMessage,
     is_agent_end_event,
     is_message_end_event,
     is_tool_execution_end_event,
@@ -73,7 +69,6 @@ from .helpers import (
     is_context_overflow_error,
     parse_canonical_usage,
 )
-from .resume import sanitize
 
 REQUEST_ID_LENGTH = 8
 MILLISECONDS_PER_SECOND = 1000
@@ -99,36 +94,6 @@ def _describe_stream_event(event: AgentEvent) -> str:
     if is_agent_end_event(event):
         return "agent_end"
     return type(event).__name__
-
-
-def _serialize_agent_messages(messages: list[AgentMessage]) -> list[object]:
-    serialized_messages: list[object] = []
-    for message in messages:
-        serialized_messages.append(cast(JsonObject, message.model_dump(exclude_none=True)))
-    return serialized_messages
-
-
-def _deserialize_agent_messages(raw_messages: list[object]) -> list[AgentMessage]:
-    deserialized_messages: list[AgentMessage] = []
-    for index, raw_message in enumerate(raw_messages):
-        if not isinstance(raw_message, dict):
-            raise TypeError(
-                "sanitized message must be a dict, "
-                f"got {type(raw_message).__name__} at index {index}"
-            )
-        typed_raw_message = cast(JsonObject, raw_message)
-        role = typed_raw_message.get("role")
-        if role == "user":
-            deserialized_messages.append(UserMessage.model_validate(typed_raw_message))
-            continue
-        if role == "assistant":
-            deserialized_messages.append(AssistantMessage.model_validate(typed_raw_message))
-            continue
-        if role == "tool_result":
-            deserialized_messages.append(ToolResultMessage.model_validate(typed_raw_message))
-            continue
-        deserialized_messages.append(CustomAgentMessage.model_validate(typed_raw_message))
-    return deserialized_messages
 
 
 class RequestOrchestrator:
@@ -374,21 +339,31 @@ class RequestOrchestrator:
         if removed_count > 0:
             logger.lifecycle(f"Removed {removed_count} in-flight tool call(s) after abort")
 
-    def _sanitize_conversation_after_abort(self, logger: LogManager) -> None:
-        session = self.state_manager.session
-        serialized_messages = _serialize_agent_messages(session.conversation.messages)
-        cleanup_applied, dangling_tool_call_ids = sanitize.run_cleanup_loop(
-            serialized_messages,
-            session.runtime.tool_registry,
-        )
-        if cleanup_applied:
-            session.conversation.messages = _deserialize_agent_messages(serialized_messages)
-            session.conversation.total_tokens = estimate_messages_tokens(
-                session.conversation.messages
-            )
-        if cleanup_applied and dangling_tool_call_ids:
+    def _rollback_to_last_stable_turn(
+        self,
+        logger: LogManager,
+        *,
+        agent: Agent,
+        baseline_message_count: int,
+    ) -> None:
+        active_state = self._active_stream_state
+        if active_state is None:
+            self._persist_agent_messages(agent, baseline_message_count)
+            return
+
+        stable_count = active_state.last_stable_agent_message_count
+        all_agent_messages = list(agent.state.messages)
+        rolled_back_messages = all_agent_messages[:stable_count]
+        dropped_count = len(all_agent_messages) - stable_count
+
+        conversation = self.state_manager.session.conversation
+        external_messages = list(conversation.messages[baseline_message_count:])
+        conversation.messages = [*rolled_back_messages, *external_messages]
+        conversation.total_tokens = estimate_messages_tokens(conversation.messages)
+
+        if dropped_count > 0:
             logger.lifecycle(
-                f"Cleaned up {len(dangling_tool_call_ids)} dangling tool call(s) after abort"
+                f"Rolled back {dropped_count} in-flight message(s) to last stable turn"
             )
 
     def _append_interrupted_partial_message(self) -> None:
@@ -423,6 +398,7 @@ class RequestOrchestrator:
         baseline_message_count: int,
     ) -> bool:
         _ = (event_obj, baseline_message_count)
+        state.last_stable_agent_message_count = len(agent.state.messages)
         state.runtime.iteration_count += 1
         state.runtime.current_iteration = state.runtime.iteration_count
         if state.runtime.iteration_count <= max_iterations:
@@ -652,6 +628,7 @@ class RequestOrchestrator:
             tool_start_times={},
             active_tool_call_ids=set(),
             batch_tool_call_ids=set(),
+            last_stable_agent_message_count=len(agent.state.messages),
         )
         self._active_stream_state = state
         started_at = time.perf_counter()
@@ -660,6 +637,7 @@ class RequestOrchestrator:
         first_event_ms: float | None = None
         last_event_at = started_at
         logger.lifecycle(f"Stream: start thread={stream_thread_id}")
+        stream_completed = False
         try:
             async for event in agent.stream(self.message):
                 now = time.perf_counter()
@@ -692,8 +670,10 @@ class RequestOrchestrator:
                 )
                 if should_stop:
                     break
+            stream_completed = True
         finally:
-            self._active_stream_state = None
+            if stream_completed:
+                self._active_stream_state = None
 
         elapsed_ms = (time.perf_counter() - started_at) * MILLISECONDS_PER_SECOND
         if first_event_ms is None:
@@ -736,11 +716,15 @@ class RequestOrchestrator:
         invalidate_cache: bool = False,
     ) -> None:
         if agent is not None and baseline_message_count is not None:
-            self._persist_agent_messages(agent, baseline_message_count)
+            self._rollback_to_last_stable_turn(
+                logger,
+                agent=agent,
+                baseline_message_count=baseline_message_count,
+            )
 
         self._remove_in_flight_tool_registry_entries(logger)
-        self._sanitize_conversation_after_abort(logger)
         self._append_interrupted_partial_message()
+        self._active_stream_state = None
         if invalidate_cache and ac.invalidate_agent_cache(self.model, self.state_manager):
             logger.lifecycle("Agent cache invalidated after abort")
 
