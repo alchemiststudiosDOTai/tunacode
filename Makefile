@@ -7,8 +7,8 @@
 help:
 	@echo "Tunacode Development Commands:"
 	@echo ""
-	@echo "  make dev-setup  - Full setup for fresh clone (installs deps, hooks)"
-	@echo "  make install    - Install/update dependencies"
+	@echo "  make install    - Cleanly bootstrap the verified dev environment"
+	@echo "  make dev-setup  - Alias for make install"
 	@echo "  make run        - Run the development server"
 	@echo "  make test       - Run test suite"
 	@echo "  make test-tmux  - Run the tmux system test suite"
@@ -17,13 +17,12 @@ help:
 	@echo "  make clean      - Clean build artifacts"
 	@echo ""
 
-# Full setup for fresh clone
-dev-setup:
+# Cleanly bootstrap the full development environment
+install:
 	@bash scripts/dev-setup.sh
 
-# Install/update dependencies
-install:
-	uv sync --extra dev
+# Backwards-compatible alias for the canonical install target
+dev-setup: install
 
 # Run the development server
 run:

@@ -52,7 +52,7 @@ pip install tunacode-cli
 ```bash
 git clone https://github.com/alchemiststudiosDOTai/tunacode.git
 cd tunacode
-make dev-setup
+make install
 ```
 
 Or without make:
@@ -67,8 +67,8 @@ cd tunacode
 Common development tasks:
 
 ```bash
-make dev-setup  # Full setup for fresh clone
-make install    # Install/update dependencies
+make install    # Cleanly bootstrap the verified dev environment
+make dev-setup  # Alias for make install
 make run        # Run the development server
 make test       # Run test suite
 make lint       # Run linters

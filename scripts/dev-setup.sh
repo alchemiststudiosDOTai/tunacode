@@ -10,9 +10,9 @@ if ! command -v uv &> /dev/null; then
     exit 1
 fi
 
-# Create venv and install deps
-echo "Installing dependencies..."
-uv sync --extra dev
+# Create or refresh the project venv with a full dev install
+echo "Reinstalling project dependencies into .venv..."
+uv sync --extra dev --reinstall --frozen
 
 # Set up pre-commit hooks
 echo "Installing pre-commit hooks..."
@@ -20,8 +20,8 @@ uv run pre-commit install
 
 # Validate environment
 echo "Validating environment..."
-if uv run python -c "import tunacode; print(f'tunacode {tunacode.__version__ if hasattr(tunacode, \"__version__\") else \"installed\"}')" 2>&1; then
-    echo "✓ Package validation successful"
+if uv run python -c "import pre_commit, pytest, tunacode; print(f'tunacode {tunacode.__version__ if hasattr(tunacode, \"__version__\") else \"installed\"}')" 2>&1; then
+    echo "✓ Package and dev tool validation successful"
 else
     echo "✗ Package validation failed"
     exit 1
