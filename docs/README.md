@@ -21,6 +21,11 @@ This directory contains project documentation, architecture artifacts, and refer
 | `ui/css-architecture.md` | CSS theming and NeXTSTEP-inspired design system |
 | `codebase-map/structure/tree-structure.txt` | Auto-generated source tree structure |
 
+## Markdown Metadata Note
+
+- `README.md` is exempt from any Markdown frontmatter requirement.
+- If a frontmatter rule is applied to docs pages in the future, do not require YAML frontmatter in the repository root `README.md`.
+
 ## Generated Artifacts
 
 - `docs_audit.html` — documentation consistency audit report (review before cleanup)
