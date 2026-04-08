@@ -15,17 +15,15 @@ from tinyagent.agent_types import (
     AgentMessage,
     AgentTool,
     AssistantMessage,
-    CustomAgentMessage,
-    JsonObject,
     MessageEndEvent,
     MessageUpdateEvent,
     TextContent,
+    ToolCallContent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
     ToolExecutionUpdateEvent,
     ToolResultMessage,
     TurnEndEvent,
-    UserMessage,
     is_agent_end_event,
     is_message_end_event,
     is_tool_execution_end_event,
@@ -73,7 +71,6 @@ from .helpers import (
     is_context_overflow_error,
     parse_canonical_usage,
 )
-from .resume import sanitize
 
 REQUEST_ID_LENGTH = 8
 MILLISECONDS_PER_SECOND = 1000
@@ -101,34 +98,48 @@ def _describe_stream_event(event: AgentEvent) -> str:
     return type(event).__name__
 
 
-def _serialize_agent_messages(messages: list[AgentMessage]) -> list[object]:
-    serialized_messages: list[object] = []
-    for message in messages:
-        serialized_messages.append(cast(JsonObject, message.model_dump(exclude_none=True)))
-    return serialized_messages
+def _patch_dangling_tool_calls(messages: list[AgentMessage]) -> int:
+    """Append aborted ToolResultMessages for tool calls left without a result."""
+    last_assistant_idx: int | None = None
+    pending_tool_call_ids: dict[str, str] = {}
 
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        if not isinstance(message, AssistantMessage):
+            continue
+        tool_calls = [
+            content
+            for content in message.content
+            if isinstance(content, ToolCallContent) and content.id
+        ]
+        if tool_calls:
+            last_assistant_idx = index
+            pending_tool_call_ids = {
+                cast(str, tool_call.id): tool_call.name or "unknown" for tool_call in tool_calls
+            }
+            break
 
-def _deserialize_agent_messages(raw_messages: list[object]) -> list[AgentMessage]:
-    deserialized_messages: list[AgentMessage] = []
-    for index, raw_message in enumerate(raw_messages):
-        if not isinstance(raw_message, dict):
-            raise TypeError(
-                "sanitized message must be a dict, "
-                f"got {type(raw_message).__name__} at index {index}"
+    if last_assistant_idx is None:
+        return 0
+
+    for message in messages[last_assistant_idx + 1 :]:
+        if isinstance(message, ToolResultMessage) and message.tool_call_id:
+            pending_tool_call_ids.pop(message.tool_call_id, None)
+
+    if not pending_tool_call_ids:
+        return 0
+
+    for tool_call_id, tool_name in pending_tool_call_ids.items():
+        messages.append(
+            ToolResultMessage(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                content=[TextContent(text="Tool execution aborted")],
+                is_error=True,
             )
-        typed_raw_message = cast(JsonObject, raw_message)
-        role = typed_raw_message.get("role")
-        if role == "user":
-            deserialized_messages.append(UserMessage.model_validate(typed_raw_message))
-            continue
-        if role == "assistant":
-            deserialized_messages.append(AssistantMessage.model_validate(typed_raw_message))
-            continue
-        if role == "tool_result":
-            deserialized_messages.append(ToolResultMessage.model_validate(typed_raw_message))
-            continue
-        deserialized_messages.append(CustomAgentMessage.model_validate(typed_raw_message))
-    return deserialized_messages
+        )
+
+    return len(pending_tool_call_ids)
 
 
 class RequestOrchestrator:
@@ -374,22 +385,22 @@ class RequestOrchestrator:
         if removed_count > 0:
             logger.lifecycle(f"Removed {removed_count} in-flight tool call(s) after abort")
 
-    def _sanitize_conversation_after_abort(self, logger: LogManager) -> None:
-        session = self.state_manager.session
-        serialized_messages = _serialize_agent_messages(session.conversation.messages)
-        cleanup_applied, dangling_tool_call_ids = sanitize.run_cleanup_loop(
-            serialized_messages,
-            session.runtime.tool_registry,
-        )
-        if cleanup_applied:
-            session.conversation.messages = _deserialize_agent_messages(serialized_messages)
-            session.conversation.total_tokens = estimate_messages_tokens(
-                session.conversation.messages
-            )
-        if cleanup_applied and dangling_tool_call_ids:
-            logger.lifecycle(
-                f"Cleaned up {len(dangling_tool_call_ids)} dangling tool call(s) after abort"
-            )
+    def _forward_patch_dangling_tool_calls(
+        self,
+        logger: LogManager,
+        *,
+        agent: Agent,
+        baseline_message_count: int,
+    ) -> None:
+        agent_messages = list(agent.state.messages)
+        patched = _patch_dangling_tool_calls(agent_messages)
+        if patched > 0:
+            logger.lifecycle(f"Injected {patched} aborted tool result(s) for dangling calls")
+
+        conversation = self.state_manager.session.conversation
+        external_messages = list(conversation.messages[baseline_message_count:])
+        conversation.messages = [*agent_messages, *external_messages]
+        conversation.total_tokens = estimate_messages_tokens(conversation.messages)
 
     def _append_interrupted_partial_message(self) -> None:
         session = self.state_manager.session
@@ -660,6 +671,7 @@ class RequestOrchestrator:
         first_event_ms: float | None = None
         last_event_at = started_at
         logger.lifecycle(f"Stream: start thread={stream_thread_id}")
+        stream_completed = False
         try:
             async for event in agent.stream(self.message):
                 now = time.perf_counter()
@@ -692,8 +704,10 @@ class RequestOrchestrator:
                 )
                 if should_stop:
                     break
+            stream_completed = True
         finally:
-            self._active_stream_state = None
+            if stream_completed:
+                self._active_stream_state = None
 
         elapsed_ms = (time.perf_counter() - started_at) * MILLISECONDS_PER_SECOND
         if first_event_ms is None:
@@ -736,11 +750,15 @@ class RequestOrchestrator:
         invalidate_cache: bool = False,
     ) -> None:
         if agent is not None and baseline_message_count is not None:
-            self._persist_agent_messages(agent, baseline_message_count)
+            self._forward_patch_dangling_tool_calls(
+                logger,
+                agent=agent,
+                baseline_message_count=baseline_message_count,
+            )
 
         self._remove_in_flight_tool_registry_entries(logger)
-        self._sanitize_conversation_after_abort(logger)
         self._append_interrupted_partial_message()
+        self._active_stream_state = None
         if invalidate_cache and ac.invalidate_agent_cache(self.model, self.state_manager):
             logger.lifecycle("Agent cache invalidated after abort")
 
