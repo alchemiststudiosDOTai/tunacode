@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import os
 import time
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Protocol
 
 ENV_TUNACODE_AGENT_DEBUG_LOG = "TUNACODE_AGENT_DEBUG_LOG"
 _DEFAULT_RELATIVE = Path("logs") / "agent-timing.ndjson"
@@ -37,7 +38,9 @@ def resolve_agent_debug_log_path(*, working_directory: str) -> Path:
     return resolved / _DEFAULT_RELATIVE
 
 
-def write_agent_debug(state_manager: _StateManagerForAgentDebug, payload: dict[str, Any]) -> None:
+def write_agent_debug(
+    state_manager: _StateManagerForAgentDebug, payload: Mapping[str, object]
+) -> None:
     """Write one NDJSON line when debug_mode is True. No message bodies or secrets."""
 
     session = state_manager.session
@@ -46,7 +49,7 @@ def write_agent_debug(state_manager: _StateManagerForAgentDebug, payload: dict[s
     log_path = resolve_agent_debug_log_path(working_directory=session.working_directory)
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        envelope = {
+        envelope: dict[str, object] = {
             **payload,
             "sessionId": str(session.session_id),
             "timestamp": int(time.time() * 1000),
