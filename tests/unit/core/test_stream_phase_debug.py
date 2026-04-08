@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from tinyagent.agent_types import AssistantMessageEvent, MessageUpdateEvent
 
-from tunacode.core.agents import main as agent_main
+from tunacode.core.agents.agent_components import stream_events
 from tunacode.core.agents.main import RequestOrchestrator
 from tunacode.core.session import StateManager
 
@@ -67,9 +67,9 @@ async def test_run_stream_logs_first_event_and_large_event_gap(
     )
 
     perf_counter_values = iter([100.0, 100.350, 100.900, 101.000])
-    monkeypatch.setattr(agent_main, "get_logger", lambda: logger)
-    monkeypatch.setattr(agent_main.time, "perf_counter", lambda: next(perf_counter_values))
-    monkeypatch.setattr(agent_main.threading, "get_ident", lambda: 777)
+    monkeypatch.setattr(stream_events, "get_logger", lambda: logger)
+    monkeypatch.setattr(stream_events.time, "perf_counter", lambda: next(perf_counter_values))
+    monkeypatch.setattr(stream_events.threading, "get_ident", lambda: 777)
 
     await orchestrator._run_stream(
         agent=fake_agent,

@@ -17,8 +17,9 @@ from tinyagent.agent_types import (
 from tunacode.types.canonical import ToolCallStatus
 from tunacode.utils.messaging import estimate_messages_tokens
 
-from tunacode.core.agents import main as agent_main
-from tunacode.core.agents.main import RequestOrchestrator, _TinyAgentStreamState
+from tunacode.core.agents.agent_components import stream_events
+from tunacode.core.agents.helpers import _TinyAgentStreamState
+from tunacode.core.agents.main import RequestOrchestrator
 from tunacode.core.logging.manager import get_logger
 from tunacode.core.session import StateManager
 
@@ -155,7 +156,7 @@ async def test_single_tool_duration_is_reported_when_not_in_parallel_batch(
     )
 
     perf_counter_values = iter([100.0, 100.5])
-    monkeypatch.setattr(agent_main.time, "perf_counter", lambda: next(perf_counter_values))
+    monkeypatch.setattr(stream_events.time, "perf_counter", lambda: next(perf_counter_values))
 
     await orchestrator._handle_stream_tool_execution_start(
         ToolExecutionStartEvent(
