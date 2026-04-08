@@ -80,7 +80,7 @@ All slash commands are implemented as `Command` subclasses and registered in `CO
 | `commands/cancel.py` | `/cancel` command for canceling the current request, shell command, or modal action. |
 | `commands/clear.py` | `/clear` command for clearing transient agent state while preserving message history for `/resume`. |
 | `commands/compact.py` | `/compact` command for manual context compaction and token reclamation. |
-| `commands/debug.py` | `/debug` command toggling debug log output. |
+| `commands/debug.py` | `/debug` toggles session debug mode, lifecycle/TUI logging, and project-local agent-timing NDJSON when ON. |
 | `commands/model.py` | `/model` command for picker-based and direct model selection. |
 | `commands/update.py` | `/update` command for checking and installing TunaCode updates. |
 | `commands/resume.py` | `/resume` command for listing, loading, and deleting sessions. |

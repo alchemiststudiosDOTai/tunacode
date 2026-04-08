@@ -56,8 +56,6 @@ ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
 OPENAI_CHAT_COMPLETIONS_PATH = "/chat/completions"
 OPENROUTER_PROVIDER_ID = "openrouter"
 
-DEFAULT_MISSING_API_KEY_ENV_VAR = ENV_OPENAI_API_KEY
-
 
 class _CompactionCapabilityError(RuntimeError):
     """Base class for expected non-fatal compaction capability skips."""
@@ -484,25 +482,6 @@ def apply_compaction_messages(
     conversation.messages = applied_messages
     conversation.total_tokens = estimate_messages_tokens(applied_messages)
     return applied_messages
-
-
-def build_compaction_notice(outcome: CompactionOutcome) -> str | None:
-    """Return a user-facing notice for explicit compaction skip/failure outcomes."""
-
-    reason = outcome.reason
-
-    if reason == COMPACTION_REASON_UNSUPPORTED_PROVIDER:
-        current_model = outcome.detail or "<unknown-model>"
-        return f"Compaction skipped: unsupported summarization provider ({current_model})."
-
-    if reason == COMPACTION_REASON_MISSING_API_KEY:
-        missing_env_var = outcome.detail or DEFAULT_MISSING_API_KEY_ENV_VAR
-        return f"Compaction skipped: missing API key ({missing_env_var})."
-
-    if reason == COMPACTION_REASON_SUMMARIZATION_FAILED:
-        return "Compaction failed during summarization; keeping existing history."
-
-    return None
 
 
 def _is_compaction_summary_message(message: AgentMessage) -> bool:

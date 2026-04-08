@@ -8,7 +8,7 @@ when_to_read:
   - Debugging agent behavior
   - Modifying the request lifecycle
   - Changing how session state is persisted
-last_updated: "2026-04-04"
+last_updated: "2026-04-07"
 ---
 
 # Core Layer
@@ -26,7 +26,8 @@ The engine. Takes a user message, routes it through a tinyagent `Agent`, handles
 | File | Purpose |
 |------|---------|
 | `main.py` | `RequestOrchestrator` -- the main request lifecycle. `process_request()` is the public entry point. Handles: history coercion, pre-request compaction, streaming event dispatch, abort cleanup, empty-response intervention, context-overflow retry. |
-| `helpers.py` | Pure helpers for `main.py`: history coercion/validation, usage parsing, context-overflow detection, tool-result display helpers, and `_TinyAgentStreamState` (per-stream mutable orchestration state). |
+| `helpers.py` | Pure helpers for `main.py`: history coercion/validation, usage parsing, context-overflow detection, tool-result display helpers. |
+| `agent_components/stream_events.py` | `RequestStreamMixin` and `_TinyAgentStreamState`: tinyagent stream loop, per-event handlers, and per-stream mutable orchestration state. |
 | `agent_components/__init__.py` | Re-exports from sub-modules. |
 | `agent_components/agent_config.py` | `get_or_create_agent()` -- builds or retrieves a cached tinyagent `Agent`. Configures: system prompt, native tool definitions, model, stream function, API key resolver, compaction transform, and skill prompt injection. `invalidate_agent_cache()` clears both module and session caches after abort/timeout. `_build_tools()` constructs the tool list (bash, discover, read_file, hashline_edit, web_fetch, write_file). `_build_skills_prompt_state()` renders active and available skill blocks, and validation helpers include `_coerce_request_delay()`, `_coerce_global_request_timeout()`, `_compute_agent_version()`. |
 | `agent_components/agent_helpers.py` | Human-readable tool descriptions for UI panels. `create_empty_response_message()` builds the intervention prompt when the model returns nothing. |

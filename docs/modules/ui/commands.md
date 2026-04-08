@@ -8,7 +8,7 @@ when_to_read:
   - Adding a new command
   - Changing command parsing
   - Updating REPL routing behavior
-last_updated: "2026-04-04"
+last_updated: "2026-04-07"
 ---
 
 # UI Command System
@@ -80,7 +80,7 @@ Routing rules:
 | `cancel.py` | `/cancel` | Cancels the current request, shell command, or modal workflow. Requires no args. |
 | `clear.py` | `/clear` | Clears transient runtime artifacts (`thoughts`, `tool_registry`, context state, counters, etc.) and updates UI; conversation history and saved session are preserved for `/resume`. |
 | `compact.py` | `/compact` | Compacts history via compaction controller, emits reclamation notice, skips if no old messages. Requires no args. |
-| `debug.py` | `/debug` | Toggles `session.debug_mode`; updates logger mode; emits on-screen status. |
+| `debug.py` | `/debug` | Toggles `session.debug_mode`; updates logger mode; when ON, also appends agent-timing NDJSON (pre-stream, stream gaps, tools; no message bodies) under `{working_directory}/logs/agent-timing.ndjson`, or `TUNACODE_AGENT_DEBUG_LOG` if set. |
 | `model.py` | `/model [provider:model-name]` | With arg: validates API key requirements and switches model + persists config. Without arg: opens provider/model picker screens. |
 | `resume.py` | `/resume [list|load <id>|delete <id>]` | `list` opens selector, `load` swaps session and replays messages, `delete` removes persisted session file. |
 | `skills.py` | `/skills [loaded|clear|search <query>|<exact-name>]` | Lists the skill catalog, searches by ranked name/description match, attaches one skill to the session, shows loaded skills, or clears them. Falls back to showing matches when no exact skill name exists. |

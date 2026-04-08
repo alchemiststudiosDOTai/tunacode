@@ -27,7 +27,7 @@ _COMMAND_SPECS: dict[str, CommandSpec] = {
         "CompactCommand",
         "Summarize old context and keep recent messages",
     ),
-    "debug": CommandSpec("debug", "DebugCommand", "Toggle debug mode"),
+    "debug": CommandSpec("debug", "DebugCommand", "Toggle debug mode and agent-timing NDJSON"),
     "exit": CommandSpec("exit", "ExitCommand", "Exit TunaCode"),
     "model": CommandSpec("model", "ModelCommand", "Change or show current model"),
     "resume": CommandSpec("resume", "ResumeCommand", "Resume a previous session"),

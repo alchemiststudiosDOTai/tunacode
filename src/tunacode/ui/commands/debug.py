@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+from tunacode.utils.agent_debug_log import (
+    ENV_TUNACODE_AGENT_DEBUG_LOG,
+    resolve_agent_debug_log_path,
+)
 
 from tunacode.ui.commands.base import Command
 
@@ -11,10 +17,10 @@ if TYPE_CHECKING:
 
 
 class DebugCommand(Command):
-    """Toggle debug logging to the screen and configured file logger."""
+    """Toggle debug logging to the screen, file logger, and agent-timing NDJSON."""
 
     name = "debug"
-    description = "Toggle debug logging to screen"
+    description = "Toggle debug logging and agent-timing NDJSON"
 
     async def execute(self, app: TextualReplApp, args: str) -> None:
         from tunacode.core.debug import log_usage_update
@@ -50,6 +56,15 @@ class DebugCommand(Command):
                 "[dim]Tail latency now breaks out final_flush, response_panel, "
                 "resource_bar, and save_session timings.[/dim]"
             )
+            _wd = session.working_directory.strip() or str(Path.cwd())
+            agent_timing_path = resolve_agent_debug_log_path(working_directory=_wd)
+            app.chat_container.write(
+                f"[dim]Agent timing NDJSON (pre-stream, stream gaps, tools; "
+                f"no message bodies): {agent_timing_path}[/dim]"
+            )
+            app.chat_container.write(
+                f"[dim]Override: set {ENV_TUNACODE_AGENT_DEBUG_LOG} to an absolute path.[/dim]"
+            )
             logger.info(debug_message)
             logger.info("Lifecycle logging enabled")
             logger.lifecycle(build_request_debug_thresholds_message())
@@ -59,4 +74,8 @@ class DebugCommand(Command):
                 event_name="debug_toggle",
                 last_call_usage=session.usage.last_call_usage,
                 session_total_usage=session.usage.session_total_usage,
+            )
+        else:
+            app.chat_container.write(
+                "[dim]Agent timing NDJSON writes stopped (enable again with /debug).[/dim]"
             )

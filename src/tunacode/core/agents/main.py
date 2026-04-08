@@ -38,20 +38,21 @@ from tunacode.utils.messaging import estimate_message_tokens, estimate_messages_
 from tunacode.core.compaction.controller import (
     CompactionStatusCallback,
     apply_compaction_messages,
-    build_compaction_notice,
     get_or_create_compaction_controller,
 )
-from tunacode.core.compaction.types import CompactionOutcome
 from tunacode.core.logging.manager import LogManager, get_logger
 from tunacode.core.types.state import StateManagerProtocol
 
 from . import agent_components as ac
 from .agent_components.agent_config import _coerce_global_request_timeout, _coerce_max_iterations
-from .agent_components.stream_events import RequestStreamMixin
+from .agent_components.agent_debug_events import (
+    log_compaction_outcome,
+    log_pre_stream_phases,
+)
+from .agent_components.stream_events import RequestStreamMixin, _TinyAgentStreamState
 from .helpers import (
     CONTEXT_OVERFLOW_FAILURE_NOTICE,
     CONTEXT_OVERFLOW_RETRY_NOTICE,
-    _TinyAgentStreamState,
     coerce_error_text,
     is_context_overflow_error,
 )
@@ -151,6 +152,7 @@ class RequestOrchestrator(RequestStreamMixin):
         self.compaction_controller.set_status_callback(self.compaction_status_callback)
 
         compaction_started_at = time.perf_counter()
+        hist_len_before_compact = len(conversation.messages)
         compacted_history = await self._compact_history_for_request(conversation.messages)
         compaction_duration_ms = (
             time.perf_counter() - compaction_started_at
@@ -179,6 +181,18 @@ class RequestOrchestrator(RequestStreamMixin):
             time.perf_counter() - pre_stream_started_at
         ) * MILLISECONDS_PER_SECOND
         logger.lifecycle(f"Init: pre_stream total={pre_stream_duration_ms:.1f}ms")
+        log_pre_stream_phases(
+            self.state_manager,
+            request_id=session.runtime.request_id,
+            model=str(self.model),
+            get_or_create_agent_ms=agent_duration_ms,
+            compaction_ms=compaction_duration_ms,
+            replace_messages_ms=replace_messages_duration_ms,
+            pre_stream_total_ms=pre_stream_duration_ms,
+            hist_len_before_compact=hist_len_before_compact,
+            compacted_history_len=len(compacted_history),
+            user_message_chars=len(self.message),
+        )
         session._debug_raw_stream_accum = ""
 
         try:
@@ -216,13 +230,6 @@ class RequestOrchestrator(RequestStreamMixin):
             session.task.original_query = self.message
         return _coerce_max_iterations(session)
 
-    def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
-        if self.notice_callback is None:
-            return
-        notice = build_compaction_notice(outcome)
-        if notice is not None:
-            self.notice_callback(notice)
-
     async def _compact_history_for_request(self, history: list[AgentMessage]) -> list[AgentMessage]:
         self.compaction_controller.reset_request_state()
         outcome = await self.compaction_controller.check_and_compact(
@@ -231,7 +238,14 @@ class RequestOrchestrator(RequestStreamMixin):
             signal=None,
             allow_threshold=True,
         )
-        self._maybe_emit_compaction_notice(outcome)
+        log_compaction_outcome(
+            self.state_manager,
+            request_id=self.state_manager.session.runtime.request_id,
+            status=outcome.status,
+            reason=outcome.reason,
+            msg_in=len(history),
+            msg_out=len(outcome.messages),
+        )
         return apply_compaction_messages(self.state_manager, outcome.messages)
 
     async def _force_compact_history(self, history: list[AgentMessage]) -> list[AgentMessage]:
@@ -240,7 +254,6 @@ class RequestOrchestrator(RequestStreamMixin):
             max_tokens=self.state_manager.session.conversation.max_tokens,
             signal=None,
         )
-        self._maybe_emit_compaction_notice(outcome)
         return apply_compaction_messages(self.state_manager, outcome.messages)
 
     async def _retry_after_context_overflow_if_needed(

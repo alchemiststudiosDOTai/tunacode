@@ -36,7 +36,7 @@ from tunacode.configuration.models import (
     load_models_registry,
     parse_model_string,
 )
-from tunacode.constants import AGENTS_MD, ENV_OPENAI_BASE_URL
+from tunacode.constants import ENV_OPENAI_BASE_URL
 from tunacode.skills.prompting import (
     compute_skills_prompt_fingerprint,
     render_available_skills_block,
@@ -54,12 +54,13 @@ from tunacode.tools.web_fetch import web_fetch
 from tunacode.tools.write_file import write_file
 
 from tunacode.infrastructure.cache.caches import agents as agents_cache
-from tunacode.infrastructure.cache.caches import tunacode_context as context_cache
 
 from tunacode.core.compaction.controller import get_or_create_compaction_controller
 from tunacode.core.logging.manager import get_logger
 from tunacode.core.types.state import SessionStateProtocol, StateManagerProtocol
 
+from .agent_debug_events import log_agent_init_cache_event
+from .agent_prompt_context import load_system_prompt, load_tunacode_context
 from .agent_session_config import (
     SessionConfig,
     SkillsPromptState,
@@ -182,27 +183,6 @@ def invalidate_agent_cache(model: str, state_manager: StateManagerProtocol) -> b
             f"module={cleared_module}, session={cleared_session}"
         )
     return invalidated
-
-
-def load_system_prompt(
-    base_path: Path,
-    model: str | None = None,
-) -> str:
-    _ = model
-    prompt_file = base_path / "prompts" / "system_prompt.md"
-    if not prompt_file.exists():
-        raise FileNotFoundError(f"Required prompt file not found: {prompt_file}")
-    return prompt_file.read_text(encoding="utf-8")
-
-
-def load_tunacode_context() -> str:
-    logger = get_logger()
-    try:
-        tunacode_path = Path.cwd() / AGENTS_MD
-        return context_cache.get_context(tunacode_path)
-    except Exception as exc:  # noqa: BLE001
-        logger.error(f"Unexpected error loading guide file: {exc}")
-        raise
 
 
 def _wrap_tool_with_concurrency_limit(tool: AgentTool, *, limiter: asyncio.Semaphore) -> AgentTool:
@@ -548,6 +528,15 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
     session_version = session.agent_versions.get(model)
     if session_agent is not None and session_version == agent_version:
         logger.debug(f"Agent cache hit (session): {model}")
+        log_agent_init_cache_event(
+            state_manager,
+            request_id=session.runtime.request_id,
+            model=str(model),
+            cache_hit=True,
+            registry_ms=registry_duration_ms,
+            skills_ms=skills_duration_ms,
+            full_build_ms=0.0,
+        )
         return session_agent
     if session_agent is not None and session_version != agent_version:
         logger.debug(f"Agent cache invalidated (session version mismatch): {model}")
@@ -591,4 +580,13 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         f"total={total_init_duration_ms:.1f}ms"
     )
     logger.info(f"Agent created: {model}")
+    log_agent_init_cache_event(
+        state_manager,
+        request_id=session.runtime.request_id,
+        model=str(model),
+        cache_hit=False,
+        registry_ms=registry_duration_ms,
+        skills_ms=skills_duration_ms,
+        full_build_ms=agent_build_duration_ms,
+    )
     return agent

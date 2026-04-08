@@ -18,7 +18,7 @@ from tunacode.types.canonical import ToolCallStatus
 from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.agents.agent_components import stream_events
-from tunacode.core.agents.helpers import _TinyAgentStreamState
+from tunacode.core.agents.agent_components.stream_events import _TinyAgentStreamState
 from tunacode.core.agents.main import RequestOrchestrator
 from tunacode.core.logging.manager import get_logger
 from tunacode.core.session import StateManager

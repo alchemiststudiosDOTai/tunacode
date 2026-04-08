@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from tinyagent.agent_types import AgentMessage, AssistantMessage, TextContent, UserMessage
 
-from tunacode.core.compaction.controller import CompactionController, build_compaction_notice
+from tunacode.core.compaction.controller import CompactionController
 from tunacode.core.compaction.summarizer import ContextSummarizer
 from tunacode.core.compaction.types import (
     COMPACTION_REASON_COMPACTED,
@@ -120,10 +120,6 @@ async def test_force_compact_non_openrouter_provider_without_api_endpoint_return
     assert outcome.messages == history
     assert state_manager.session.compaction is None
 
-    user_notice = build_compaction_notice(outcome)
-    assert user_notice is not None
-    assert "unsupported summarization provider" in user_notice
-
 
 @pytest.mark.asyncio
 async def test_force_compact_missing_api_key_returns_capability_skip(
@@ -153,10 +149,6 @@ async def test_force_compact_missing_api_key_returns_capability_skip(
     assert outcome.detail is not None
     assert outcome.messages == history
     assert state_manager.session.compaction is None
-
-    user_notice = build_compaction_notice(outcome)
-    assert user_notice is not None
-    assert outcome.detail in user_notice
 
 
 @pytest.mark.asyncio
@@ -191,9 +183,6 @@ async def test_force_compact_summary_failure_returns_failed_outcome(
     assert "summary backend unavailable" in outcome.detail
     assert outcome.messages == history
     assert state_manager.session.compaction is None
-
-    user_notice = build_compaction_notice(outcome)
-    assert user_notice is not None
 
 
 @pytest.mark.asyncio

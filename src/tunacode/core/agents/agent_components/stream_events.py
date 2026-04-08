@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import threading
 import time
+from dataclasses import dataclass
+from typing import cast
 
 from tinyagent.agent import Agent
 from tinyagent.agent_types import (
@@ -24,20 +26,51 @@ from tinyagent.agent_types import (
 )
 
 from tunacode.exceptions import AgentError
+from tunacode.types import ModelName
+from tunacode.types.callbacks import (
+    StreamingCallback,
+    ToolResultCallback,
+    ToolStartCallback,
+)
 
 from tunacode.core.debug.usage_trace import log_usage_update
 from tunacode.core.logging.manager import get_logger
+from tunacode.core.types.state import StateManagerProtocol
+from tunacode.core.types.state_structures import RuntimeState
 
 from ..helpers import (
-    _TinyAgentStreamState,
     canonicalize_tool_result,
     extract_tool_result_text,
     is_context_overflow_error,
     parse_canonical_usage,
 )
+from .agent_debug_events import (
+    log_assistant_message_end,
+    log_stream_begin,
+    log_stream_dispatch_slow,
+    log_stream_end,
+    log_stream_first_event,
+    log_stream_gap,
+    log_tool_end,
+    log_tool_start,
+    log_turn_end,
+)
 
 MILLISECONDS_PER_SECOND = 1000
 STREAM_EVENT_GAP_WARN_MS = 250.0
+STREAM_NDJSON_GAP_MS = 100.0
+DISPATCH_SLOW_MS = 25.0
+
+
+@dataclass(slots=True)
+class _TinyAgentStreamState:
+    runtime: RuntimeState
+    tool_start_times: dict[str, float]
+    active_tool_call_ids: set[str]
+    batch_tool_call_ids: set[str]
+    last_assistant_message: AssistantMessage | None = None
+    text_delta_count: int = 0
+    thinking_delta_count: int = 0
 
 
 def describe_stream_event(event: AgentEvent) -> str:
@@ -65,6 +98,18 @@ class RequestStreamMixin:
     """Stream loop and event dispatch mixed into RequestOrchestrator."""
 
     _active_stream_state: _TinyAgentStreamState | None
+    state_manager: StateManagerProtocol
+    model: ModelName
+    message: str
+    streaming_callback: StreamingCallback | None
+    thinking_callback: StreamingCallback | None
+    tool_result_callback: ToolResultCallback | None
+    tool_start_callback: ToolStartCallback | None
+
+    def _agent_error_text(self, agent: Agent) -> str: ...  # defined in main.py
+    def _persist_agent_messages(
+        self, agent: Agent, baseline_message_count: int
+    ) -> None: ...  # defined in main.py
 
     def _mark_tool_start_batch_state(
         self, state: _TinyAgentStreamState, *, tool_call_id: str
@@ -101,6 +146,13 @@ class RequestStreamMixin:
         _ = (event_obj, baseline_message_count)
         state.runtime.iteration_count += 1
         state.runtime.current_iteration = state.runtime.iteration_count
+        log_turn_end(
+            self.state_manager,
+            request_id=state.runtime.request_id,
+            iteration=state.runtime.iteration_count,
+            max_iterations=max_iterations,
+            will_abort_max_iter=state.runtime.iteration_count > max_iterations,
+        )
         if state.runtime.iteration_count <= max_iterations:
             return False
         agent.abort()
@@ -114,8 +166,8 @@ class RequestStreamMixin:
         state: _TinyAgentStreamState,
         baseline_message_count: int,
     ) -> bool:
-        _ = (agent, state, baseline_message_count)
-        await self._handle_message_update(event_obj)
+        _ = (agent, baseline_message_count)
+        await self._handle_message_update(event_obj, state=state)
         return False
 
     async def _handle_stream_message_end(
@@ -141,6 +193,13 @@ class RequestStreamMixin:
             last_call_usage=session.usage.last_call_usage,
             session_total_usage=session.usage.session_total_usage,
         )
+        log_assistant_message_end(
+            self.state_manager,
+            request_id=session.runtime.request_id,
+            usage_input=usage.input,
+            usage_output=usage.output,
+            usage_total_tokens=usage.total_tokens,
+        )
         return False
 
     async def _handle_stream_tool_execution_start(
@@ -165,6 +224,13 @@ class RequestStreamMixin:
         state.runtime.tool_registry.start(tool_call_id)
         if self.tool_start_callback is not None:
             self.tool_start_callback(tool_name)
+        log_tool_start(
+            self.state_manager,
+            request_id=state.runtime.request_id,
+            tool_name=tool_name,
+            tool_call_id=tool_call_id,
+            arg_keys=sorted(args.keys()),
+        )
         return False
 
     async def _handle_stream_tool_execution_end(
@@ -198,6 +264,16 @@ class RequestStreamMixin:
 
         state.active_tool_call_ids.discard(tool_call_id)
         self._clear_tool_batch_state_if_idle(state)
+
+        log_tool_end(
+            self.state_manager,
+            request_id=state.runtime.request_id,
+            tool_name=tool_name,
+            tool_call_id=tool_call_id,
+            status=status,
+            duration_ms=duration_ms,
+            result_text_len=len(result_text) if result_text else 0,
+        )
 
         if self.tool_result_callback is None:
             return False
@@ -336,6 +412,15 @@ class RequestStreamMixin:
         first_event_ms: float | None = None
         last_event_at = started_at
         logger.lifecycle(f"Stream: start thread={stream_thread_id}")
+        log_stream_begin(
+            self.state_manager,
+            request_id=runtime.request_id,
+            model=str(self.model),
+            max_iterations=max_iterations,
+            baseline_message_count=baseline_message_count,
+            user_message_chars=len(self.message),
+            thread_id=stream_thread_id,
+        )
         try:
             async for event in agent.stream(self.message):
                 now = time.perf_counter()
@@ -349,6 +434,13 @@ class RequestStreamMixin:
                         f"since_start={first_event_ms:.1f}ms "
                         f"thread={stream_thread_id}"
                     )
+                    log_stream_first_event(
+                        self.state_manager,
+                        request_id=runtime.request_id,
+                        first_event_ms=first_event_ms,
+                        first_event_name=event_name,
+                        model=str(self.model),
+                    )
                 else:
                     gap_ms = (now - last_event_at) * MILLISECONDS_PER_SECOND
                     if gap_ms >= STREAM_EVENT_GAP_WARN_MS:
@@ -358,7 +450,16 @@ class RequestStreamMixin:
                             f"gap={gap_ms:.1f}ms "
                             f"count={event_count}"
                         )
+                    if gap_ms >= STREAM_NDJSON_GAP_MS:
+                        log_stream_gap(
+                            self.state_manager,
+                            request_id=runtime.request_id,
+                            gap_ms=gap_ms,
+                            after_event_name=event_name,
+                            event_index=event_count,
+                        )
                 last_event_at = now
+                dispatch_started = time.perf_counter()
                 should_stop = await self._dispatch_stream_event(
                     event=event,
                     agent=agent,
@@ -366,6 +467,15 @@ class RequestStreamMixin:
                     max_iterations=max_iterations,
                     baseline_message_count=baseline_message_count,
                 )
+                dispatch_ms = (time.perf_counter() - dispatch_started) * MILLISECONDS_PER_SECOND
+                if dispatch_ms >= DISPATCH_SLOW_MS:
+                    log_stream_dispatch_slow(
+                        self.state_manager,
+                        request_id=runtime.request_id,
+                        dispatch_ms=dispatch_ms,
+                        event_name=event_name,
+                        event_index=event_count,
+                    )
                 if should_stop:
                     break
         finally:
@@ -379,13 +489,30 @@ class RequestStreamMixin:
         logger.lifecycle(end_message)
         logger.lifecycle(f"Request complete ({elapsed_ms:.0f}ms)")
 
+        log_stream_end(
+            self.state_manager,
+            request_id=runtime.request_id,
+            model=str(self.model),
+            stream_total_ms=elapsed_ms,
+            first_event_ms=first_event_ms,
+            event_count=event_count,
+            text_delta_count=state.text_delta_count,
+            thinking_delta_count=state.thinking_delta_count,
+            agent_error=bool(self._agent_error_text(agent)),
+        )
+
         error_text = self._agent_error_text(agent)
         if error_text and not is_context_overflow_error(error_text):
             raise AgentError(error_text)
 
         return agent
 
-    async def _handle_message_update(self, event: MessageUpdateEvent) -> None:
+    async def _handle_message_update(
+        self,
+        event: MessageUpdateEvent,
+        *,
+        state: _TinyAgentStreamState | None = None,
+    ) -> None:
         assistant_event = event.assistant_message_event
         if (
             assistant_event is None
@@ -395,10 +522,15 @@ class RequestStreamMixin:
             return
 
         if assistant_event.type == "text_delta":
+            if state is not None:
+                state.text_delta_count += 1
             self.state_manager.session._debug_raw_stream_accum += assistant_event.delta
             if self.streaming_callback is not None:
                 await self.streaming_callback(assistant_event.delta)
             return
 
-        if assistant_event.type == "thinking_delta" and self.thinking_callback is not None:
-            await self.thinking_callback(assistant_event.delta)
+        if assistant_event.type == "thinking_delta":
+            if state is not None:
+                state.thinking_delta_count += 1
+            if self.thinking_callback is not None:
+                await self.thinking_callback(cast(str, assistant_event.delta))

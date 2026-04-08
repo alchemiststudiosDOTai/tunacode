@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from tinyagent.agent_types import (
     AgentToolResult,
-    AssistantMessage,
     ImageContent,
     JsonObject,
     JsonValue,
@@ -20,8 +17,6 @@ from tunacode.types.canonical import (
     ToolResultTextPart,
 )
 
-from tunacode.core.types.state_structures import RuntimeState
-
 CONTEXT_OVERFLOW_PATTERNS: tuple[str, ...] = (
     "context_length_exceeded",
     "maximum context length",
@@ -30,15 +25,6 @@ CONTEXT_OVERFLOW_RETRY_NOTICE = "Context overflow detected. Compacting and retry
 CONTEXT_OVERFLOW_FAILURE_NOTICE = (
     "Context is still too large after compaction. Use /compact or /clear and retry."
 )
-
-
-@dataclass(slots=True)
-class _TinyAgentStreamState:
-    runtime: RuntimeState
-    tool_start_times: dict[str, float]
-    active_tool_call_ids: set[str]
-    batch_tool_call_ids: set[str]
-    last_assistant_message: AssistantMessage | None = None
 
 
 def coerce_error_text(value: object) -> str:

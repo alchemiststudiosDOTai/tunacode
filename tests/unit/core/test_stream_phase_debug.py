@@ -66,7 +66,18 @@ async def test_run_stream_logs_first_event_and_large_event_gap(
         ]
     )
 
-    perf_counter_values = iter([100.0, 100.350, 100.900, 101.000])
+    perf_counter_values = iter(
+        [
+            100.0,
+            100.350,
+            100.351,
+            100.352,
+            100.900,
+            100.901,
+            100.902,
+            101.000,
+        ]
+    )
     monkeypatch.setattr(stream_events, "get_logger", lambda: logger)
     monkeypatch.setattr(stream_events.time, "perf_counter", lambda: next(perf_counter_values))
     monkeypatch.setattr(stream_events.threading, "get_ident", lambda: 777)
