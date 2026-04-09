@@ -4,7 +4,7 @@ summary: Repository code-quality harness for hooks, CI checks, and local enforce
 when_to_read:
   - When auditing pre-commit or pre-push hooks
   - When checking local and CI enforcement behavior
-last_updated: "2026-04-04"
+last_updated: "2026-04-08"
 ---
 
 # HARNESS.md
@@ -49,7 +49,8 @@ Git hook entrypoints are repo-managed wrappers in `.githooks/`, installed into `
 - `vulture-changed` (repo: `local`, entry: `uv run vulture --min-confidence 80 scripts/utils/vulture_whitelist.py`, files: `^src/.*\.py$`, exclude: `tests/|test_`)
 - `naming-conventions` (repo: `local`, entry: `uv run python scripts/check-naming-conventions.py`, files: `^src/.*\.py$`, exclude: `tests/|scripts/`)
 - `defensive-slop` (repo: `local`, entry: `uv run python scripts/check-defensive-slop.py`, files: `^src/.*\.py$`, stages: `pre-commit`, `pre-push`)
-- `check-file-length` (repo: `local`, entry: `scripts/check-file-length.sh`, files: `\.py$`, exclude: `tests/benchmarks/bench_discover.py`)
+- `check-file-length` (repo: `local`, entry: `scripts/check-file-length.sh`, files: `\.py$`, exclude: `tests/`)
+  - Current behavior: enforces the `>600` line rule for non-test Python files only. All files under `tests/` are intentionally excluded from this gate.
 
 #### Security and safeguards
 - `bandit` (repo: `PyCQA/bandit`, args: `-c pyproject.toml`, dep: `bandit[toml]`)

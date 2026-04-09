@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from types import SimpleNamespace
 
 import pytest
 from tinyagent.agent_types import (
     AgentToolResult,
     AssistantMessage,
+    AssistantMessageEvent,
+    MessageUpdateEvent,
     TextContent,
     ToolCallContent,
     ToolExecutionEndEvent,
@@ -20,13 +23,37 @@ from tunacode.types.canonical import ToolCallStatus
 from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.agents import main as agent_main
-from tunacode.core.agents.main import (
-    RequestOrchestrator,
-    _patch_dangling_tool_calls,
-    _TinyAgentStreamState,
-)
+from tunacode.core.agents.agent_components.agent_streaming import _patch_dangling_tool_calls
+from tunacode.core.agents.helpers import _TinyAgentStreamState
+from tunacode.core.agents.main import RequestOrchestrator
 from tunacode.core.logging.manager import get_logger
 from tunacode.core.session import StateManager
+
+
+class _FakeStreamAgent:
+    def __init__(
+        self,
+        events: list[object],
+        *,
+        messages: list[object] | None = None,
+        stream_error: Exception | None = None,
+        on_stream_start: Callable[[_FakeStreamAgent], None] | None = None,
+    ) -> None:
+        self._events = events
+        self._stream_error = stream_error
+        self._on_stream_start = on_stream_start
+        self.state = SimpleNamespace(error=None, messages=list(messages or []))
+
+    def replace_messages(self, messages: list[object]) -> None:
+        self.state.messages = list(messages)
+
+    async def stream(self, _message: str):
+        if self._on_stream_start is not None:
+            self._on_stream_start(self)
+        for event in self._events:
+            yield event
+        if self._stream_error is not None:
+            raise self._stream_error
 
 
 def _build_orchestrator_harness(
@@ -61,6 +88,7 @@ def _build_orchestrator_harness(
     )
     state = _TinyAgentStreamState(
         runtime=state_manager.session.runtime,
+        baseline_message_count=0,
         tool_start_times={},
         active_tool_call_ids=set(),
         batch_tool_call_ids=set(),
@@ -222,10 +250,9 @@ def test_abort_cleanup_patches_dangling_tool_calls_and_appends_interrupted() -> 
         )
     )
 
-    orchestrator._handle_abort_cleanup(
+    orchestrator._handle_interrupted_stream_cleanup(
         get_logger(),
         agent=fake_agent,
-        baseline_message_count=0,
         invalidate_cache=False,
     )
 
@@ -248,6 +275,57 @@ def test_abort_cleanup_patches_dangling_tool_calls_and_appends_interrupted() -> 
     assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
 
     assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(messages)
+
+
+def test_uses_active_stream_baseline_for_cleanup() -> None:
+    orchestrator, state, state_manager = _build_orchestrator_harness(
+        start_events=[],
+        result_events=[],
+    )
+
+    history_message = AssistantMessage(
+        content=[TextContent(text="history")],
+        stop_reason="complete",
+        timestamp=None,
+    )
+    retry_assistant = AssistantMessage(
+        content=[
+            ToolCallContent(
+                id="tool-a",
+                name="read_file",
+                arguments={"filepath": "a.py"},
+            )
+        ],
+        stop_reason="tool_calls",
+        timestamp=None,
+    )
+    state.baseline_message_count = 1
+    state.active_tool_call_ids.add("tool-a")
+    orchestrator._active_stream_state = state
+    state_manager.session.conversation.messages = [history_message]
+
+    registry = state_manager.session.runtime.tool_registry
+    registry.register("tool-a", "read_file", {"filepath": "a.py"})
+    registry.start("tool-a")
+
+    fake_agent = SimpleNamespace(state=SimpleNamespace(messages=[history_message, retry_assistant]))
+
+    orchestrator._handle_interrupted_stream_cleanup(
+        get_logger(),
+        agent=fake_agent,
+        invalidate_cache=False,
+    )
+
+    messages = state_manager.session.conversation.messages
+    assert len(messages) == 3
+    assert isinstance(messages[0], AssistantMessage)
+    assert messages[0].content[0].text == "history"
+    assert isinstance(messages[1], AssistantMessage)
+    assert isinstance(messages[1].content[0], ToolCallContent)
+    assert messages[1].content[0].id == "tool-a"
+    assert isinstance(messages[2], ToolResultMessage)
+    assert messages[2].tool_call_id == "tool-a"
+    assert registry.get("tool-a") is None
 
 
 def test_abort_forward_patches_in_flight_turn_and_preserves_completed() -> None:
@@ -288,10 +366,9 @@ def test_abort_forward_patches_in_flight_turn_and_preserves_completed() -> None:
     registry.start("tool-b")
     state_manager.session._debug_raw_stream_accum = "partial write"
 
-    orchestrator._handle_abort_cleanup(
+    orchestrator._handle_interrupted_stream_cleanup(
         get_logger(),
         agent=fake_agent,
-        baseline_message_count=0,
         invalidate_cache=False,
     )
 
@@ -351,10 +428,9 @@ def test_abort_preserves_completed_tool_results_and_patches_remaining() -> None:
     registry.start("tool-b")
     state_manager.session._debug_raw_stream_accum = ""
 
-    orchestrator._handle_abort_cleanup(
+    orchestrator._handle_interrupted_stream_cleanup(
         get_logger(),
         agent=fake_agent,
-        baseline_message_count=0,
         invalidate_cache=False,
     )
 
@@ -450,3 +526,281 @@ def test_patch_dangling_tool_calls_injects_for_multiple_missing() -> None:
         assert isinstance(msg, ToolResultMessage)
         assert msg.is_error is True
         assert msg.content[0].text == "Tool execution aborted"
+
+
+@pytest.mark.asyncio
+async def test_reraises_non_abort_exception_after_stream_cleanup() -> None:
+    orchestrator, _state, state_manager = _build_orchestrator_harness(
+        start_events=[],
+        result_events=[],
+    )
+    state_manager.session._debug_raw_stream_accum = ""
+    fake_agent = _FakeStreamAgent(
+        [
+            MessageUpdateEvent(
+                assistant_message_event=AssistantMessageEvent(
+                    type="text_delta",
+                    delta="partial output",
+                )
+            ),
+            ToolExecutionStartEvent(
+                tool_call_id="tool-a",
+                tool_name="read_file",
+                args={"filepath": "a.py"},
+            ),
+        ],
+        messages=[
+            AssistantMessage(
+                content=[
+                    ToolCallContent(
+                        id="tool-a",
+                        name="read_file",
+                        arguments={"filepath": "a.py"},
+                    )
+                ],
+                stop_reason="tool_calls",
+                timestamp=None,
+            )
+        ],
+        stream_error=RuntimeError("stream blew up"),
+    )
+
+    with pytest.raises(RuntimeError, match="stream blew up"):
+        await orchestrator._run_stream(
+            agent=fake_agent,
+            max_iterations=4,
+            baseline_message_count=0,
+        )
+
+    registry = state_manager.session.runtime.tool_registry
+    assert registry.get("tool-a") is None
+    assert orchestrator._active_stream_state is None
+
+    messages = state_manager.session.conversation.messages
+    assert len(messages) == 3
+    assert isinstance(messages[0], AssistantMessage)
+    assert isinstance(messages[0].content[0], ToolCallContent)
+    assert isinstance(messages[1], ToolResultMessage)
+    assert messages[1].is_error is True
+    assert isinstance(messages[2], AssistantMessage)
+    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
+
+
+@pytest.mark.asyncio
+async def test_tool_start_callback_failure_cleanup() -> None:
+    state_manager = StateManager()
+
+    def _boom(_tool_name: str) -> None:
+        raise RuntimeError("callback blew up")
+
+    orchestrator = RequestOrchestrator(
+        message="test",
+        model="openai/gpt-4o",
+        state_manager=state_manager,
+        streaming_callback=None,
+        tool_start_callback=_boom,
+    )
+    fake_agent = _FakeStreamAgent(
+        [
+            MessageUpdateEvent(
+                assistant_message_event=AssistantMessageEvent(
+                    type="text_delta",
+                    delta="partial output",
+                )
+            ),
+            ToolExecutionStartEvent(
+                tool_call_id="tool-a",
+                tool_name="read_file",
+                args={"filepath": "a.py"},
+            ),
+        ],
+        messages=[
+            AssistantMessage(
+                content=[
+                    ToolCallContent(
+                        id="tool-a",
+                        name="read_file",
+                        arguments={"filepath": "a.py"},
+                    )
+                ],
+                stop_reason="tool_calls",
+                timestamp=None,
+            )
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="callback blew up"):
+        await orchestrator._run_stream(
+            agent=fake_agent,
+            max_iterations=4,
+            baseline_message_count=0,
+        )
+
+    registry = state_manager.session.runtime.tool_registry
+    assert registry.get("tool-a") is None
+    assert orchestrator._active_stream_state is None
+
+    messages = state_manager.session.conversation.messages
+    assert len(messages) == 3
+    assert isinstance(messages[1], ToolResultMessage)
+    assert messages[1].is_error is True
+    assert isinstance(messages[2], AssistantMessage)
+    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
+
+
+@pytest.mark.asyncio
+async def test_tool_result_callback_failure_cleanup_preserves_completed_result() -> None:
+    state_manager = StateManager()
+
+    def _boom(
+        _tool_name: str,
+        _status: str,
+        _args: dict[str, object],
+        _result: AgentToolResult | None,
+        _duration_ms: float | None,
+    ) -> None:
+        raise RuntimeError("callback blew up")
+
+    completed_result = ToolResultMessage(
+        tool_call_id="tool-a",
+        tool_name="read_file",
+        content=[TextContent(text="done")],
+        is_error=False,
+    )
+    orchestrator = RequestOrchestrator(
+        message="test",
+        model="openai/gpt-4o",
+        state_manager=state_manager,
+        streaming_callback=None,
+        tool_result_callback=_boom,
+    )
+    fake_agent = _FakeStreamAgent(
+        [
+            MessageUpdateEvent(
+                assistant_message_event=AssistantMessageEvent(
+                    type="text_delta",
+                    delta="partial output",
+                )
+            ),
+            ToolExecutionStartEvent(
+                tool_call_id="tool-a",
+                tool_name="read_file",
+                args={"filepath": "a.py"},
+            ),
+            ToolExecutionEndEvent(
+                tool_call_id="tool-a",
+                tool_name="read_file",
+                is_error=False,
+                result=AgentToolResult(content=[TextContent(text="done")], details={}),
+            ),
+        ],
+        messages=[
+            AssistantMessage(
+                content=[
+                    ToolCallContent(
+                        id="tool-a",
+                        name="read_file",
+                        arguments={"filepath": "a.py"},
+                    )
+                ],
+                stop_reason="tool_calls",
+                timestamp=None,
+            ),
+            completed_result,
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="callback blew up"):
+        await orchestrator._run_stream(
+            agent=fake_agent,
+            max_iterations=4,
+            baseline_message_count=0,
+        )
+
+    registry = state_manager.session.runtime.tool_registry
+    call = registry.get("tool-a")
+    assert call is not None
+    assert call.status is ToolCallStatus.COMPLETED
+    assert orchestrator._active_stream_state is None
+
+    messages = state_manager.session.conversation.messages
+    assert len(messages) == 3
+    assert isinstance(messages[1], ToolResultMessage)
+    assert messages[1].tool_call_id == "tool-a"
+    assert messages[1].is_error is False
+    assert messages[1].content[0].text == "done"
+    assert isinstance(messages[2], AssistantMessage)
+    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
+
+
+@pytest.mark.asyncio
+async def test_retry_stream_cleanup_baseline() -> None:
+    orchestrator, _state, state_manager = _build_orchestrator_harness(
+        start_events=[],
+        result_events=[],
+    )
+    pre_request_history = [
+        AssistantMessage(
+            content=[TextContent(text="history")],
+            stop_reason="complete",
+            timestamp=None,
+        )
+    ]
+    state_manager.session.conversation.messages = list(pre_request_history)
+    state_manager.session.conversation.max_tokens = 128
+    state_manager.session._debug_raw_stream_accum = ""
+
+    async def _force_compact(history: list[object]) -> list[object]:
+        return list(history)
+
+    orchestrator._force_compact_history = _force_compact  # type: ignore[method-assign]
+
+    retry_assistant = AssistantMessage(
+        content=[
+            ToolCallContent(
+                id="tool-a",
+                name="read_file",
+                arguments={"filepath": "a.py"},
+            )
+        ],
+        stop_reason="tool_calls",
+        timestamp=None,
+    )
+
+    def _prepare_retry(agent: _FakeStreamAgent) -> None:
+        agent.state.messages = [*agent.state.messages, retry_assistant]
+
+    fake_agent = _FakeStreamAgent(
+        [
+            ToolExecutionStartEvent(
+                tool_call_id="tool-a",
+                tool_name="read_file",
+                args={"filepath": "a.py"},
+            )
+        ],
+        messages=list(pre_request_history),
+        stream_error=RuntimeError("retry blew up"),
+        on_stream_start=_prepare_retry,
+    )
+    fake_agent.state.error = "maximum context length"
+
+    with pytest.raises(RuntimeError, match="retry blew up"):
+        await orchestrator._retry_after_context_overflow_if_needed(
+            agent=fake_agent,
+            max_iterations=4,
+            pre_request_history=pre_request_history,
+        )
+
+    registry = state_manager.session.runtime.tool_registry
+    assert registry.get("tool-a") is None
+    assert orchestrator._active_stream_state is None
+
+    messages = state_manager.session.conversation.messages
+    assert len(messages) == 3
+    assert isinstance(messages[0], AssistantMessage)
+    assert messages[0].content[0].text == "history"
+    assert isinstance(messages[1], AssistantMessage)
+    assert isinstance(messages[1].content[0], ToolCallContent)
+    assert messages[1].content[0].id == "tool-a"
+    assert isinstance(messages[2], ToolResultMessage)
+    assert messages[2].tool_call_id == "tool-a"

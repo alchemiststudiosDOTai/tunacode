@@ -17,6 +17,8 @@ is_binary_file() {
 }
 should_skip_file() {
     local file="$1"
+    # Test files are intentionally exempt from the production-file length gate.
+    [[ "$file" == tests/* ]] || [[ "$file" == ./tests/* ]] || \
     # Skip main.py in agents dir as it was recently refactored
     # Skip prompt files as they can be lengthy for comprehensive system instructions
     # Skip sanitize.py as it contains complex session resume sanitization logic

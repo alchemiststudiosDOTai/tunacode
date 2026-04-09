@@ -33,7 +33,7 @@
 - [ ] All pre-commit hooks pass
 - [ ] Code formatted with `ruff format`
 - [ ] Code passes `ruff check` without warnings
-- [ ] No Python file exceeds **600 lines**
+- [ ] No non-test Python file exceeds **600 lines**
 
 ## Checklist
 - [ ] My code follows the Python coding standards (type hints, f-strings, pathlib, etc.)

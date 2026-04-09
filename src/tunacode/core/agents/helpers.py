@@ -35,6 +35,7 @@ CONTEXT_OVERFLOW_FAILURE_NOTICE = (
 @dataclass(slots=True)
 class _TinyAgentStreamState:
     runtime: RuntimeState
+    baseline_message_count: int
     tool_start_times: dict[str, float]
     active_tool_call_ids: set[str]
     batch_tool_call_ids: set[str]
