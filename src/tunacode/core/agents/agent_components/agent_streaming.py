@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from tinyagent.agent import Agent, extract_text
 from tinyagent.agent_types import (
@@ -45,7 +45,12 @@ from ..helpers import (
 )
 
 if TYPE_CHECKING:
-    from tunacode.types import ModelName
+    from tunacode.types import (
+        ModelName,
+        StreamingCallback,
+        ToolResultCallback,
+        ToolStartCallback,
+    )
 
     from tunacode.core.types.state import StateManagerProtocol
 
@@ -125,10 +130,10 @@ class AgentStreamMixin:
         message: str
         model: ModelName
         state_manager: StateManagerProtocol
-        streaming_callback: Any
-        thinking_callback: Any
-        tool_result_callback: Any
-        tool_start_callback: Any
+        streaming_callback: StreamingCallback | None
+        thinking_callback: StreamingCallback | None
+        tool_result_callback: ToolResultCallback | None
+        tool_start_callback: ToolStartCallback | None
         _active_stream_state: _TinyAgentStreamState | None
 
         def _agent_error_text(self, agent: Agent) -> str: ...
