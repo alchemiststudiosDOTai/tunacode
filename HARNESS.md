@@ -4,7 +4,7 @@ summary: Repository code-quality harness for hooks, CI checks, and local enforce
 when_to_read:
   - When auditing pre-commit or pre-push hooks
   - When checking local and CI enforcement behavior
-last_updated: "2026-04-08"
+last_updated: "2026-04-09"
 ---
 
 # HARNESS.md
@@ -46,6 +46,8 @@ Git hook entrypoints are repo-managed wrappers in `.githooks/`, installed into `
 - `ruff` (repo: `astral-sh/ruff-pre-commit`, args: `--fix --show-fixes`)
 - `ruff-format` (repo: `astral-sh/ruff-pre-commit`, excludes `models_registry.json`)
 - `dead-imports` (repo: `local`, entry: `scripts/run-dead-imports.sh`, files: `\.py$`)
+- `stale-symbol-surfaces` (repo: `local`, entry: `uv run python scripts/check_stale_symbol_surfaces.py`, stage: `pre-push`)
+  - Detects public symbols that survive only via package `__init__` re-exports or same-module annotation scaffolding.
 - `vulture-changed` (repo: `local`, entry: `uv run vulture --min-confidence 80 scripts/utils/vulture_whitelist.py`, files: `^src/.*\.py$`, exclude: `tests/|test_`)
 - `naming-conventions` (repo: `local`, entry: `uv run python scripts/check-naming-conventions.py`, files: `^src/.*\.py$`, exclude: `tests/|scripts/`)
 - `defensive-slop` (repo: `local`, entry: `uv run python scripts/check-defensive-slop.py`, files: `^src/.*\.py$`, stages: `pre-commit`, `pre-push`)
@@ -79,6 +81,7 @@ Pre-push hooks run from `.pre-commit-config.yaml` with stage `pre-push`.
 
 ### Active pre-push hooks
 - `mypy` (local, `uv run mypy --ignore-missing-imports --no-strict-optional`, scoped to `src/**/*.py`)
+- `stale-symbol-surfaces` (local, `uv run python scripts/check_stale_symbol_surfaces.py`)
 - `defensive-slop` (local, `uv run python scripts/check-defensive-slop.py`, scoped to `src/**/*.py`)
 - `pylint-duplicates` (local, duplicate-code check)
 - `pytest` (local, `uv run pytest -x -q`)
@@ -103,7 +106,7 @@ Pre-push hooks run from `.pre-commit-config.yaml` with stage `pre-push`.
 - Local source of truth: `make check` runs the full pre-commit and pre-push hook stages across all files, plus the CI enforcement checks for full dead-code scan, orphan-module detection, and `deptry`.
 - Local supplemental check: `uv run python scripts/run_gates.py` is a subset spot-check and does not mirror the full local or CI harness.
 - CI enforcement: pre-commit and pre-push remain the first enforcement line before CI.
-- CI enforcement: `.github/workflows/lint.yml` runs `pre-commit`, full dead-code checks, orphan-module detection, and a separate `deptry` job.
+- CI enforcement: `.github/workflows/lint.yml` runs `pre-commit`, full dead-code checks, stale symbol surface detection, orphan-module detection, and a separate `deptry` job.
 - CI enforcement: `.github/workflows/empty-dir-check.yml` enforces the empty-directory / `__init__.py`-only directory rule in CI.
 - CI artifact generation: `.github/workflows/dependency-map.yml` runs on pushes to `main`/`master`, regenerates `docs/architecture/dependencies/DEPENDENCY_LAYERS.*`, and pushes changes to `automation/dependency-map` for PR review.
 - CI report / issue automation: `.github/workflows/tech-debt.yml` scans TODO/FIXME-style debt and the scheduled report job can open or update a GitHub issue.
