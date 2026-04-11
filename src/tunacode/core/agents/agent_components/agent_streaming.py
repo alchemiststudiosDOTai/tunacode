@@ -5,22 +5,19 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from tinyagent.agent import Agent, extract_text
 from tinyagent.agent_types import (
     AgentEndEvent,
     AgentEvent,
-    AgentMessage,
     AssistantMessage,
     MessageEndEvent,
     MessageUpdateEvent,
     TextContent,
-    ToolCallContent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
     ToolExecutionUpdateEvent,
-    ToolResultMessage,
     TurnEndEvent,
     is_agent_end_event,
     is_message_end_event,
@@ -29,7 +26,7 @@ from tinyagent.agent_types import (
     is_turn_end_event,
 )
 
-from tunacode.exceptions import AgentError, UserAbortError
+from tunacode.exceptions import AgentError
 from tunacode.utils.messaging import estimate_message_tokens, estimate_messages_tokens
 
 from tunacode.core.debug.usage_trace import log_usage_update
@@ -54,73 +51,7 @@ if TYPE_CHECKING:
 
     from tunacode.core.types.state import StateManagerProtocol
 
-STREAM_EVENT_GAP_WARN_MS = 250.0
 _MS_PER_S = 1000
-
-
-def _describe_stream_event(event: AgentEvent) -> str:
-    if isinstance(event, MessageUpdateEvent):
-        assistant_event = event.assistant_message_event
-        if assistant_event is None:
-            return "message_update/none"
-        return f"message_update/{assistant_event.type}"
-    if is_message_end_event(event):
-        return "message_end"
-    if is_tool_execution_start_event(event):
-        return f"tool_start/{event.tool_name}"
-    if isinstance(event, ToolExecutionUpdateEvent):
-        return f"tool_update/{event.tool_name}"
-    if is_tool_execution_end_event(event):
-        return f"tool_end/{event.tool_name}"
-    if is_turn_end_event(event):
-        return "turn_end"
-    if is_agent_end_event(event):
-        return "agent_end"
-    return type(event).__name__
-
-
-def _patch_dangling_tool_calls(messages: list[AgentMessage]) -> int:
-    """Append aborted ToolResultMessages for tool calls left without a result."""
-    last_assistant_idx: int | None = None
-    pending_tool_call_ids: dict[str, str] = {}
-
-    for index in range(len(messages) - 1, -1, -1):
-        message = messages[index]
-        if not isinstance(message, AssistantMessage):
-            continue
-        tool_calls = [
-            content
-            for content in message.content
-            if isinstance(content, ToolCallContent) and content.id
-        ]
-        if tool_calls:
-            last_assistant_idx = index
-            pending_tool_call_ids = {
-                cast(str, tool_call.id): tool_call.name or "unknown" for tool_call in tool_calls
-            }
-            break
-
-    if last_assistant_idx is None:
-        return 0
-
-    for message in messages[last_assistant_idx + 1 :]:
-        if isinstance(message, ToolResultMessage) and message.tool_call_id:
-            pending_tool_call_ids.pop(message.tool_call_id, None)
-
-    if not pending_tool_call_ids:
-        return 0
-
-    for tool_call_id, tool_name in pending_tool_call_ids.items():
-        messages.append(
-            ToolResultMessage(
-                tool_call_id=tool_call_id,
-                tool_name=tool_name,
-                content=[TextContent(text="Tool execution aborted")],
-                is_error=True,
-            )
-        )
-
-    return len(pending_tool_call_ids)
 
 
 class AgentStreamMixin:
@@ -182,23 +113,6 @@ class AgentStreamMixin:
         if removed_count > 0:
             logger.lifecycle(f"Removed {removed_count} in-flight tool call(s) after abort")
 
-    def _forward_patch_dangling_tool_calls(
-        self,
-        logger: LogManager,
-        *,
-        agent: Agent,
-        baseline_message_count: int,
-    ) -> None:
-        agent_messages = list(agent.state.messages)
-        patched = _patch_dangling_tool_calls(agent_messages)
-        if patched > 0:
-            logger.lifecycle(f"Injected {patched} aborted tool result(s) for dangling calls")
-
-        conversation = self.state_manager.session.conversation
-        external_messages = list(conversation.messages[baseline_message_count:])
-        conversation.messages = [*agent_messages, *external_messages]
-        conversation.total_tokens = estimate_messages_tokens(conversation.messages)
-
     def _append_interrupted_partial_message(self) -> None:
         from tinyagent.agent_types import AssistantMessage
 
@@ -230,13 +144,16 @@ class AgentStreamMixin:
         agent: Agent | None = None,
         invalidate_cache: bool = False,
     ) -> None:
+        """Sync conversation + UI state when the stream dies before AgentEnd.
+
+        Persists agent messages from the pre-stream baseline, drops in-flight tool
+        registry rows, appends a partial [INTERRUPTED] assistant line when needed,
+        and clears ``_active_stream_state``. Success-path code after the stream
+        loop (end logs, ``AgentError`` check) must not run after this.
+        """
         active_stream_state = self._active_stream_state
         if agent is not None and active_stream_state is not None:
-            self._forward_patch_dangling_tool_calls(
-                logger,
-                agent=agent,
-                baseline_message_count=active_stream_state.baseline_message_count,
-            )
+            self._persist_agent_messages(agent, active_stream_state.baseline_message_count)
 
         self._remove_in_flight_tool_registry_entries(logger)
         self._append_interrupted_partial_message()
@@ -476,6 +393,14 @@ class AgentStreamMixin:
         max_iterations: int,
         baseline_message_count: int,
     ) -> Agent:
+        """Run ``agent.stream``; on success, persistence is via AgentEnd; on failure, via cleanup.
+
+        Normal completion: ``_persist_agent_messages`` runs in ``_handle_stream_agent_end``;
+        ``finally`` clears ``_active_stream_state`` when ``stream_completed`` is true.
+        Interrupt (``CancelledError``, ``Exception``, including user abort):
+        ``_handle_interrupted_stream_cleanup`` runs first and clears ``_active_stream_state``;
+        the ``finally`` block here does not clear again.
+        """
         logger = get_logger()
         runtime = self.state_manager.session.runtime
         state = _TinyAgentStreamState(
@@ -490,32 +415,13 @@ class AgentStreamMixin:
         stream_thread_id = threading.get_ident()
         event_count = 0
         first_event_ms: float | None = None
-        last_event_at = started_at
         logger.lifecycle(f"Stream: start thread={stream_thread_id}")
         stream_completed = False
         try:
             async for event in agent.stream(self.message):
-                now = time.perf_counter()
                 event_count += 1
-                event_name = _describe_stream_event(event)
                 if first_event_ms is None:
-                    first_event_ms = (now - started_at) * _MS_PER_S
-                    logger.lifecycle(
-                        "Stream: "
-                        f"first_event type={event_name} "
-                        f"since_start={first_event_ms:.1f}ms "
-                        f"thread={stream_thread_id}"
-                    )
-                else:
-                    gap_ms = (now - last_event_at) * _MS_PER_S
-                    if gap_ms >= STREAM_EVENT_GAP_WARN_MS:
-                        logger.lifecycle(
-                            "Stream: "
-                            f"event_gap type={event_name} "
-                            f"gap={gap_ms:.1f}ms "
-                            f"count={event_count}"
-                        )
-                last_event_at = now
+                    first_event_ms = (time.perf_counter() - started_at) * _MS_PER_S
                 should_stop = await self._dispatch_stream_event(
                     event=event,
                     agent=agent,
@@ -526,14 +432,7 @@ class AgentStreamMixin:
                 if should_stop:
                     break
             stream_completed = True
-        except (UserAbortError, asyncio.CancelledError):
-            self._handle_interrupted_stream_cleanup(
-                logger,
-                agent=agent,
-                invalidate_cache=False,
-            )
-            raise
-        except Exception:
+        except (asyncio.CancelledError, Exception):
             self._handle_interrupted_stream_cleanup(
                 logger,
                 agent=agent,

@@ -68,6 +68,13 @@ repos:
         files: \.py$
         stages: [pre-commit]
 
+      - id: stale-symbol-surfaces
+        name: Check for stale symbol surfaces
+        entry: uv run python scripts/check_stale_symbol_surfaces.py
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
       - id: vulture-changed
         name: Check for dead code in changed files
         entry: uv run vulture --min-confidence 80 scripts/utils/vulture_whitelist.py
