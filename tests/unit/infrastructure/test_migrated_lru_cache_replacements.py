@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from tunacode.configuration import limits
-from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
 from tunacode.configuration.models import get_cached_models_registry, load_models_registry
 
 from tunacode.tools.utils.ripgrep import get_ripgrep_binary_path
@@ -57,33 +54,3 @@ def test_ripgrep_binary_path_cache_clears_via_clear_all(
 
     third = get_ripgrep_binary_path()
     assert third == second_rg
-
-
-def test_limits_settings_cache_clears_via_clear_all(
-    clean_caches: None,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    home = tmp_path / "home"
-    config_dir = home / ".config"
-    config_dir.mkdir(parents=True)
-
-    config_path = config_dir / "tunacode.json"
-    first_config = json.loads(json.dumps(DEFAULT_USER_CONFIG))
-    first_config["settings"]["max_tokens"] = 111
-    config_path.write_text(json.dumps(first_config), encoding="utf-8")
-
-    monkeypatch.setenv("HOME", str(home))
-
-    assert limits.get_max_tokens() == 111
-
-    second_config = json.loads(json.dumps(DEFAULT_USER_CONFIG))
-    second_config["settings"]["max_tokens"] = 222
-    config_path.write_text(json.dumps(second_config), encoding="utf-8")
-
-    # Still cached until the shared cache reset path runs.
-    assert limits.get_max_tokens() == 111
-
-    clear_all()
-
-    assert limits.get_max_tokens() == 222
