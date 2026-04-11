@@ -23,7 +23,6 @@ from tunacode.types.canonical import ToolCallStatus
 from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.agents import main as agent_main
-from tunacode.core.agents.agent_components.agent_streaming import _patch_dangling_tool_calls
 from tunacode.core.agents.helpers import _TinyAgentStreamState
 from tunacode.core.agents.main import RequestOrchestrator
 from tunacode.core.logging.manager import get_logger
@@ -219,7 +218,7 @@ async def test_single_tool_duration_is_reported_when_not_in_parallel_batch(
     assert result_events[0][4] == pytest.approx(500.0)
 
 
-def test_abort_cleanup_patches_dangling_tool_calls_and_appends_interrupted() -> None:
+def test_abort_cleanup_syncs_agent_messages_and_appends_interrupted() -> None:
     orchestrator, state, state_manager = _build_orchestrator_harness(
         start_events=[],
         result_events=[],
@@ -260,19 +259,14 @@ def test_abort_cleanup_patches_dangling_tool_calls_and_appends_interrupted() -> 
     assert orchestrator._active_stream_state is None
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 3
+    assert len(messages) == 2
 
     assert isinstance(messages[0], AssistantMessage)
     assert isinstance(messages[0].content[0], ToolCallContent)
     assert messages[0].content[0].id == "tool-a"
 
-    assert isinstance(messages[1], ToolResultMessage)
-    assert messages[1].tool_call_id == "tool-a"
-    assert messages[1].is_error is True
-    assert messages[1].content[0].text == "Tool execution aborted"
-
-    assert isinstance(messages[2], AssistantMessage)
-    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
+    assert isinstance(messages[1], AssistantMessage)
+    assert messages[1].content[0].text == "[INTERRUPTED]\n\npartial output"
 
     assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(messages)
 
@@ -317,18 +311,16 @@ def test_uses_active_stream_baseline_for_cleanup() -> None:
     )
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 3
+    assert len(messages) == 2
     assert isinstance(messages[0], AssistantMessage)
     assert messages[0].content[0].text == "history"
     assert isinstance(messages[1], AssistantMessage)
     assert isinstance(messages[1].content[0], ToolCallContent)
     assert messages[1].content[0].id == "tool-a"
-    assert isinstance(messages[2], ToolResultMessage)
-    assert messages[2].tool_call_id == "tool-a"
     assert registry.get("tool-a") is None
 
 
-def test_abort_forward_patches_in_flight_turn_and_preserves_completed() -> None:
+def test_abort_cleanup_preserves_completed_turn_and_syncs_in_flight_assistant() -> None:
     orchestrator, state, state_manager = _build_orchestrator_harness(
         start_events=[],
         result_events=[],
@@ -376,7 +368,7 @@ def test_abort_forward_patches_in_flight_turn_and_preserves_completed() -> None:
     assert orchestrator._active_stream_state is None
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 5
+    assert len(messages) == 4
 
     assert isinstance(messages[0], AssistantMessage)
     assert messages[0].content[0].text == "completed response"
@@ -386,18 +378,13 @@ def test_abort_forward_patches_in_flight_turn_and_preserves_completed() -> None:
     assert isinstance(messages[2].content[0], ToolCallContent)
     assert messages[2].content[0].id == "tool-b"
 
-    assert isinstance(messages[3], ToolResultMessage)
-    assert messages[3].tool_call_id == "tool-b"
-    assert messages[3].is_error is True
-    assert messages[3].content[0].text == "Tool execution aborted"
-
-    assert isinstance(messages[4], AssistantMessage)
-    assert messages[4].content[0].text == "[INTERRUPTED]\n\npartial write"
+    assert isinstance(messages[3], AssistantMessage)
+    assert messages[3].content[0].text == "[INTERRUPTED]\n\npartial write"
 
     assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(messages)
 
 
-def test_abort_preserves_completed_tool_results_and_patches_remaining() -> None:
+def test_abort_preserves_completed_tool_results_leaves_remaining_unpatched() -> None:
     orchestrator, state, state_manager = _build_orchestrator_harness(
         start_events=[],
         result_events=[],
@@ -437,7 +424,7 @@ def test_abort_preserves_completed_tool_results_and_patches_remaining() -> None:
     assert registry.get("tool-b") is None
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 3
+    assert len(messages) == 2
 
     assert isinstance(messages[0], AssistantMessage)
     assert len(messages[0].content) == 2
@@ -446,11 +433,6 @@ def test_abort_preserves_completed_tool_results_and_patches_remaining() -> None:
     assert messages[1].tool_call_id == "tool-a"
     assert messages[1].is_error is False
     assert messages[1].content[0].text == "file contents here"
-
-    assert isinstance(messages[2], ToolResultMessage)
-    assert messages[2].tool_call_id == "tool-b"
-    assert messages[2].is_error is True
-    assert messages[2].content[0].text == "Tool execution aborted"
 
     assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(messages)
 
@@ -476,56 +458,6 @@ def test_persist_agent_messages_refreshes_total_tokens() -> None:
     assert state_manager.session.conversation.total_tokens == estimate_messages_tokens(
         state_manager.session.conversation.messages
     )
-
-
-def test_patch_dangling_tool_calls_noop_when_all_matched() -> None:
-    messages: list = [
-        AssistantMessage(
-            content=[ToolCallContent(id="t1", name="read_file", arguments={})],
-            stop_reason="tool_calls",
-            timestamp=None,
-        ),
-        ToolResultMessage(
-            tool_call_id="t1", tool_name="read_file", content=[TextContent(text="ok")]
-        ),
-    ]
-    assert _patch_dangling_tool_calls(messages) == 0
-    assert len(messages) == 2
-
-
-def test_patch_dangling_tool_calls_noop_when_no_tool_calls() -> None:
-    messages: list = [
-        AssistantMessage(content=[TextContent(text="hello")], timestamp=None),
-    ]
-    assert _patch_dangling_tool_calls(messages) == 0
-    assert len(messages) == 1
-
-
-def test_patch_dangling_tool_calls_injects_for_multiple_missing() -> None:
-    messages: list = [
-        AssistantMessage(
-            content=[
-                ToolCallContent(id="t1", name="read_file", arguments={}),
-                ToolCallContent(id="t2", name="write_file", arguments={}),
-                ToolCallContent(id="t3", name="bash", arguments={}),
-            ],
-            stop_reason="tool_calls",
-            timestamp=None,
-        ),
-        ToolResultMessage(
-            tool_call_id="t1", tool_name="read_file", content=[TextContent(text="done")]
-        ),
-    ]
-    patched = _patch_dangling_tool_calls(messages)
-    assert patched == 2
-    assert len(messages) == 4
-
-    injected_ids = {m.tool_call_id for m in messages[2:]}
-    assert injected_ids == {"t2", "t3"}
-    for msg in messages[2:]:
-        assert isinstance(msg, ToolResultMessage)
-        assert msg.is_error is True
-        assert msg.content[0].text == "Tool execution aborted"
 
 
 @pytest.mark.asyncio
@@ -577,13 +509,11 @@ async def test_reraises_non_abort_exception_after_stream_cleanup() -> None:
     assert orchestrator._active_stream_state is None
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 3
+    assert len(messages) == 2
     assert isinstance(messages[0], AssistantMessage)
     assert isinstance(messages[0].content[0], ToolCallContent)
-    assert isinstance(messages[1], ToolResultMessage)
-    assert messages[1].is_error is True
-    assert isinstance(messages[2], AssistantMessage)
-    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
+    assert isinstance(messages[1], AssistantMessage)
+    assert messages[1].content[0].text == "[INTERRUPTED]\n\npartial output"
 
 
 @pytest.mark.asyncio
@@ -641,11 +571,11 @@ async def test_tool_start_callback_failure_cleanup() -> None:
     assert orchestrator._active_stream_state is None
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 3
-    assert isinstance(messages[1], ToolResultMessage)
-    assert messages[1].is_error is True
-    assert isinstance(messages[2], AssistantMessage)
-    assert messages[2].content[0].text == "[INTERRUPTED]\n\npartial output"
+    assert len(messages) == 2
+    assert isinstance(messages[0], AssistantMessage)
+    assert isinstance(messages[0].content[0], ToolCallContent)
+    assert isinstance(messages[1], AssistantMessage)
+    assert messages[1].content[0].text == "[INTERRUPTED]\n\npartial output"
 
 
 @pytest.mark.asyncio
@@ -796,11 +726,9 @@ async def test_retry_stream_cleanup_baseline() -> None:
     assert orchestrator._active_stream_state is None
 
     messages = state_manager.session.conversation.messages
-    assert len(messages) == 3
+    assert len(messages) == 2
     assert isinstance(messages[0], AssistantMessage)
     assert messages[0].content[0].text == "history"
     assert isinstance(messages[1], AssistantMessage)
     assert isinstance(messages[1].content[0], ToolCallContent)
     assert messages[1].content[0].id == "tool-a"
-    assert isinstance(messages[2], ToolResultMessage)
-    assert messages[2].tool_call_id == "tool-a"
