@@ -24,6 +24,7 @@ Last Updated: 2026-04-12
 
 ## Git Safety and Non-Destructive Defaults
 - Follow `docs/git/practices.md` for local Git workflow and safety rules.
+- Use `docs/git/changelog-update.md` when the task is to refresh `CHANGELOG.md` from recently merged PRs.
 - Before performing any Git operation (`git status`, `git add`, `git commit`, etc.), read `docs/git/practices.md` in that session.
 - Default behavior is non-destructive: never delete or clean untracked files/directories unless explicitly requested by the user.
 - If unknown files appear during checks, pause and ask before cleanup.
@@ -69,6 +70,7 @@ Last Updated: 2026-04-12
 - Review notes for active PR triage: `docs/reviews/`.
 - Debugging and investigation artifacts: `docs/reviews/*-artifact.md`.
 - Git workflow and safety practices: `docs/git/practices.md`.
+- Changelog refresh procedure for merged PR summaries: `docs/git/changelog-update.md`.
 - Workflow guidance: `docs/workflows/README.md` and workflow-specific files such
   as `docs/workflows/REFACTOR.md`.
 - Module-specific docs:

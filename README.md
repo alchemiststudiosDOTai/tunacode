@@ -1,13 +1,3 @@
----
-title: tunacode-cli
-summary: Project overview, setup instructions, and development entry points for TunaCode.
-when_to_read:
-  - When cloning the repository
-  - When setting up development locally
-  - When looking for the main project entry points
-last_updated: "2026-04-04"
----
-
 # tunacode-cli
 
 <img src="assets/home.png" alt="tunacode" width="600"/>
