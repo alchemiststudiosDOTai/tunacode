@@ -32,12 +32,6 @@ def _load_settings() -> UserSettings:
     return settings
 
 
-def clear_cache() -> None:
-    """Clear the settings cache. Call when config changes."""
-
-    limits_settings_cache.clear_settings_cache()
-
-
 def get_command_limit() -> int:
     """Get max command output length for bash tool."""
     return _load_settings()["max_command_output"]

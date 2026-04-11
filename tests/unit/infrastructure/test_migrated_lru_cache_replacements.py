@@ -59,7 +59,7 @@ def test_ripgrep_binary_path_cache_clears_via_clear_all(
     assert third == second_rg
 
 
-def test_limits_settings_cache_requires_explicit_clear(
+def test_limits_settings_cache_clears_via_clear_all(
     clean_caches: None,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -81,9 +81,9 @@ def test_limits_settings_cache_requires_explicit_clear(
     second_config["settings"]["max_tokens"] = 222
     config_path.write_text(json.dumps(second_config), encoding="utf-8")
 
-    # Still cached (matches historical lru_cache behavior).
+    # Still cached until the shared cache reset path runs.
     assert limits.get_max_tokens() == 111
 
-    limits.clear_cache()
+    clear_all()
 
     assert limits.get_max_tokens() == 222
