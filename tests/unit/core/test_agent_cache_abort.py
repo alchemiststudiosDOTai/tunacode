@@ -109,12 +109,12 @@ def test_get_or_create_agent_does_not_reuse_module_cached_agent_across_sessions(
     )
     monkeypatch.setattr(agent_config, "load_tunacode_context", lambda: "CONTEXT")
     monkeypatch.setattr(agent_config, "load_models_registry", lambda: None)
-    monkeypatch.setattr(agent_config, "get_max_tokens", lambda: 4096)
     monkeypatch.setattr(agent_config, "_build_tools", lambda **kwargs: [])
     monkeypatch.setattr(agent_config, "_build_tinyagent_model", lambda model, config: object())
 
     first_state_manager = StateManager()
     first_state_manager.session.session_id = "session-1"
+    first_state_manager.session.user_config["settings"]["max_tokens"] = 4096
     first_agent = agent_config.get_or_create_agent(
         first_state_manager.session.current_model,
         first_state_manager,
@@ -128,6 +128,7 @@ def test_get_or_create_agent_does_not_reuse_module_cached_agent_across_sessions(
 
     second_state_manager = StateManager()
     second_state_manager.session.session_id = "session-2"
+    second_state_manager.session.user_config["settings"]["max_tokens"] = 4096
     second_agent = agent_config.get_or_create_agent(
         second_state_manager.session.current_model,
         second_state_manager,

@@ -27,7 +27,6 @@ from tinyagent.agent_types import (
 )
 from tinyagent.alchemy_provider import OpenAICompatModel, stream_alchemy_openai_completions
 
-from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
     get_cached_models_registry,
     get_provider_alchemy_api,
@@ -537,7 +536,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         f"selected={len(skills_state.selected_skills)}"
     )
 
-    max_tokens = get_max_tokens()
+    max_tokens = config.settings.max_tokens
     agent_version = _compute_agent_version(
         config.settings,
         max_tokens=max_tokens,

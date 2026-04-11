@@ -36,12 +36,12 @@ def test_get_or_create_agent_emits_init_phase_lifecycle_logs(
     monkeypatch.setattr(agent_config, "resolve_selected_skills", lambda _names: [])
     monkeypatch.setattr(agent_config, "load_system_prompt", lambda _base_path, model=None: "SYS")
     monkeypatch.setattr(agent_config, "load_tunacode_context", lambda: "CTX")
-    monkeypatch.setattr(agent_config, "get_max_tokens", lambda: 4096)
     monkeypatch.setattr(agent_config, "_build_tools", lambda **kwargs: [])
     monkeypatch.setattr(agent_config, "_build_tinyagent_model", lambda model, config: object())
 
     state_manager = StateManager()
     state_manager.session.selected_skill_names = []
+    state_manager.session.user_config["settings"]["max_tokens"] = 4096
 
     agent = agent_config.get_or_create_agent(state_manager.session.current_model, state_manager)
 
