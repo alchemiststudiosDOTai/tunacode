@@ -15,7 +15,7 @@ DOCS_DIR = ROOT / "docs"
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 FRONTMATTER_DELIMITER = "---"
 REQUIRED_KEYS = ("when_to_read", "summary", "last_updated")
-SKIP_FILENAMES = {"AGENTS.md"}
+SKIP_FILENAMES = {"AGENTS.md", "README.md"}
 
 
 @dataclass(frozen=True)

@@ -162,7 +162,7 @@ repos:
         entry: uv run python scripts/check_markdown_frontmatter.py
         language: system
         files: ^docs/.*\.md$|^[^/]+\.md$
-        exclude: ^AGENTS\.md$
+        exclude: ^(AGENTS|README)\.md$
         pass_filenames: false
         stages: [pre-push]
 

@@ -86,7 +86,7 @@ Pre-push hooks run from `.pre-commit-config.yaml` with stage `pre-push`.
 - `pylint-duplicates` (local, duplicate-code check)
 - `pytest` (local, `uv run pytest -x -q`)
 - `empty-dir-check` (local, `uv run python scripts/utils/check_empty_dirs.py`)
-- `markdown-frontmatter` (local, `uv run python scripts/check_markdown_frontmatter.py`, scoped to repo-root/docs markdown except `AGENTS.md`)
+- `markdown-frontmatter` (local, `uv run python scripts/check_markdown_frontmatter.py`, scoped to repo-root/docs markdown except `AGENTS.md` and root `README.md`)
 
 ### Run hooks manually
 - Canonical local harness entrypoint: `make check`
