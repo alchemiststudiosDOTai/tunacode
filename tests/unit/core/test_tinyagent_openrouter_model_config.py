@@ -307,6 +307,7 @@ async def test_compaction_generate_summary_uses_alchemy_stream(
     state_manager = _build_state_manager(tmp_path, monkeypatch)
     state_manager.session.current_model = "openrouter:openai/gpt-4.1"
     state_manager.session.user_config["env"][ENV_OPENAI_API_KEY] = "sk-openai"
+    state_manager.session.user_config["settings"]["max_tokens"] = 321
 
     controller = CompactionController(state_manager=state_manager)
     captured: dict[str, Any] = {}
@@ -343,7 +344,6 @@ async def test_compaction_generate_summary_uses_alchemy_stream(
         return _FakeResponse()
 
     monkeypatch.setattr(compaction_controller, "stream_alchemy_openai_completions", _fake_stream)
-    monkeypatch.setattr(compaction_controller, "get_max_tokens", lambda: 321)
 
     summary = await controller._generate_summary("Summarize this", None)
 

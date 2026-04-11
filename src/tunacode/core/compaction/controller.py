@@ -15,7 +15,6 @@ from tinyagent.agent_types import (
 )
 from tinyagent.alchemy_provider import OpenAICompatModel, stream_alchemy_openai_completions
 
-from tunacode.configuration.limits import get_max_tokens
 from tunacode.configuration.models import (
     get_provider_alchemy_api,
     get_provider_base_url,
@@ -359,7 +358,7 @@ class CompactionController:
             api_key=api_key,
             signal=signal,
             temperature=None,
-            max_tokens=get_max_tokens(),
+            max_tokens=self._state_manager.session.user_config["settings"]["max_tokens"],
         )
 
         response = await stream_alchemy_openai_completions(model, context, options)
