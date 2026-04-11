@@ -14,13 +14,12 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 
 ## Features
 
-- **Any model** - Works with any OpenAI-compatible API (Anthropic, OpenAI, Google, Ollama, vLLM, etc.)
-- **Native tinyagent tools** - Direct tinyagent tool contracts with no legacy wrapper compatibility layer
+- **Any model** - Works with any OpenAI-compatible API
 - **File operations** - Read files with hash-tagged lines, create files, and edit existing files with hash-validated references
 - **Shell access** - Run bash commands with output capture
 - **Repository discovery** - Use `discover` for natural-language code search and repository exploration
 - **Session persistence** - Resume previous conversations with `/resume`
-- **LSP diagnostics** - Real-time code errors after file writes (Python, TypeScript, Go, Rust)
+- **LSP diagnostics** - Real-time code errors after file writes
 - **Themeable UI** - CSS-based theming with NeXTSTEP-inspired design
 - **Text selection + clipboard copy** - Mouse selection works across Rich-rendered chat content; copy with `ctrl+y` or `ctrl+shift+c`
 - **Agent loop** - Powered by [tinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent)
@@ -130,16 +129,6 @@ Slash commands are command objects in `tunacode.ui.commands`; each one is a `Com
 | `/exit` | Exit TunaCode |
 | `exit` | Legacy alias for exit |
 
-### Confirm Parallel Tool Calls
-
-Run `/debug` to enable lifecycle logs. During agent execution, parallel batches are reported with lines prefixed by:
-
-- `[LIFECYCLE] Parallel tool calls active: ...`
-- `[LIFECYCLE] Parallel tool calls update: ...`
-- `[LIFECYCLE] Parallel tool calls complete`
-
-If no `Parallel tool calls` lifecycle lines appear, that request did not execute a parallel tool batch.
-## Tools
 
 The agent has access to:
 
@@ -152,7 +141,6 @@ The agent has access to:
 | `web_fetch` | Fetch web page content |
 | `write_file` | Create new files |
 
-TunaCode now uses the native tinyagent tool surface directly. Legacy wrapper-based tools such as `update_file`, `glob`, `grep`, and `list_dir` are removed rather than translated through a compatibility layer.
 
 Important tool rules:
 
