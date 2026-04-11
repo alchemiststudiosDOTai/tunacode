@@ -26,7 +26,7 @@ from tinyagent.agent_types import (
     is_turn_end_event,
 )
 
-from tunacode.exceptions import AgentError, UserAbortError
+from tunacode.exceptions import AgentError
 from tunacode.utils.messaging import estimate_message_tokens, estimate_messages_tokens
 
 from tunacode.core.debug.usage_trace import log_usage_update
@@ -144,6 +144,13 @@ class AgentStreamMixin:
         agent: Agent | None = None,
         invalidate_cache: bool = False,
     ) -> None:
+        """Sync conversation + UI state when the stream dies before AgentEnd.
+
+        Persists agent messages from the pre-stream baseline, drops in-flight tool
+        registry rows, appends a partial [INTERRUPTED] assistant line when needed,
+        and clears ``_active_stream_state``. Success-path code after the stream
+        loop (end logs, ``AgentError`` check) must not run after this.
+        """
         active_stream_state = self._active_stream_state
         if agent is not None and active_stream_state is not None:
             self._persist_agent_messages(agent, active_stream_state.baseline_message_count)
@@ -386,6 +393,14 @@ class AgentStreamMixin:
         max_iterations: int,
         baseline_message_count: int,
     ) -> Agent:
+        """Run ``agent.stream``; on success, persistence is via AgentEnd; on failure, via cleanup.
+
+        Normal completion: ``_persist_agent_messages`` runs in ``_handle_stream_agent_end``;
+        ``finally`` clears ``_active_stream_state`` when ``stream_completed`` is true.
+        Interrupt (``CancelledError``, ``Exception``, including user abort):
+        ``_handle_interrupted_stream_cleanup`` runs first and clears ``_active_stream_state``;
+        the ``finally`` block here does not clear again.
+        """
         logger = get_logger()
         runtime = self.state_manager.session.runtime
         state = _TinyAgentStreamState(
@@ -417,14 +432,7 @@ class AgentStreamMixin:
                 if should_stop:
                     break
             stream_completed = True
-        except (UserAbortError, asyncio.CancelledError):
-            self._handle_interrupted_stream_cleanup(
-                logger,
-                agent=agent,
-                invalidate_cache=False,
-            )
-            raise
-        except Exception:
+        except (asyncio.CancelledError, Exception):
             self._handle_interrupted_stream_cleanup(
                 logger,
                 agent=agent,
