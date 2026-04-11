@@ -51,29 +51,7 @@ if TYPE_CHECKING:
 
     from tunacode.core.types.state import StateManagerProtocol
 
-STREAM_EVENT_GAP_WARN_MS = 250.0
 _MS_PER_S = 1000
-
-
-def _describe_stream_event(event: AgentEvent) -> str:
-    if isinstance(event, MessageUpdateEvent):
-        assistant_event = event.assistant_message_event
-        if assistant_event is None:
-            return "message_update/none"
-        return f"message_update/{assistant_event.type}"
-    if is_message_end_event(event):
-        return "message_end"
-    if is_tool_execution_start_event(event):
-        return f"tool_start/{event.tool_name}"
-    if isinstance(event, ToolExecutionUpdateEvent):
-        return f"tool_update/{event.tool_name}"
-    if is_tool_execution_end_event(event):
-        return f"tool_end/{event.tool_name}"
-    if is_turn_end_event(event):
-        return "turn_end"
-    if is_agent_end_event(event):
-        return "agent_end"
-    return type(event).__name__
 
 
 class AgentStreamMixin:
@@ -422,32 +400,13 @@ class AgentStreamMixin:
         stream_thread_id = threading.get_ident()
         event_count = 0
         first_event_ms: float | None = None
-        last_event_at = started_at
         logger.lifecycle(f"Stream: start thread={stream_thread_id}")
         stream_completed = False
         try:
             async for event in agent.stream(self.message):
-                now = time.perf_counter()
                 event_count += 1
-                event_name = _describe_stream_event(event)
                 if first_event_ms is None:
-                    first_event_ms = (now - started_at) * _MS_PER_S
-                    logger.lifecycle(
-                        "Stream: "
-                        f"first_event type={event_name} "
-                        f"since_start={first_event_ms:.1f}ms "
-                        f"thread={stream_thread_id}"
-                    )
-                else:
-                    gap_ms = (now - last_event_at) * _MS_PER_S
-                    if gap_ms >= STREAM_EVENT_GAP_WARN_MS:
-                        logger.lifecycle(
-                            "Stream: "
-                            f"event_gap type={event_name} "
-                            f"gap={gap_ms:.1f}ms "
-                            f"count={event_count}"
-                        )
-                last_event_at = now
+                    first_event_ms = (time.perf_counter() - started_at) * _MS_PER_S
                 should_stop = await self._dispatch_stream_event(
                     event=event,
                     agent=agent,
