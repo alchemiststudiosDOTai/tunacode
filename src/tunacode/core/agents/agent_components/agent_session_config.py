@@ -17,6 +17,8 @@ class AgentSettings:
     max_retries: int
     tool_strict_validation: bool
     max_iterations: int
+    max_command_output: int
+    max_tokens: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +54,8 @@ def _normalize_session_config(session: SessionStateProtocol) -> SessionConfig:
         max_retries=raw_settings["max_retries"],
         tool_strict_validation=raw_settings["tool_strict_validation"],
         max_iterations=raw_settings["max_iterations"],
+        max_command_output=raw_settings["max_command_output"],
+        max_tokens=raw_settings["max_tokens"],
     )
     if settings.max_retries < 1:
         raise ValueError(f"max_retries must be >= 1, got {settings.max_retries}")
