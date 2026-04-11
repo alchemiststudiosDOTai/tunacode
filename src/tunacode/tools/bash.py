@@ -15,7 +15,6 @@ from tinyagent.agent_types import (
     TextContent,
 )
 
-from tunacode.configuration.limits import get_command_limit
 from tunacode.exceptions import ToolExecutionError, ToolRetryError, UserAbortError
 
 COMMAND_OUTPUT_THRESHOLD = 3500
@@ -127,6 +126,8 @@ async def _run_bash(
     env: dict[str, str] | None = None,
     timeout: int | None = DEFAULT_TIMEOUT_SECONDS,
     capture_output: bool = True,
+    *,
+    max_command_output: int,
 ) -> str:
     _validate_inputs(command, cwd, timeout)
 
@@ -161,7 +162,14 @@ async def _run_bash(
         return_code = process.returncode
         assert return_code is not None
         _check_common_errors(command, return_code, stderr_text)
-        return _format_output(command, return_code, stdout_text, stderr_text, exec_cwd)
+        return _format_output(
+            command,
+            return_code,
+            stdout_text,
+            stderr_text,
+            exec_cwd,
+            max_command_output=max_command_output,
+        )
     except FileNotFoundError as err:
         raise ToolRetryError(
             f"Shell not found. Cannot execute command: {command}\n"
@@ -171,39 +179,42 @@ async def _run_bash(
         await _cleanup_process(process)
 
 
-async def _execute_bash(
-    tool_call_id: str,
-    args: JsonObject,
-    signal: asyncio.Event | None,
-    on_update: AgentToolUpdateCallback,
-) -> AgentToolResult:
-    _ = (tool_call_id, on_update)
-    if signal is not None and signal.is_set():
-        raise UserAbortError("Tool execution aborted: bash")
+def build_bash_tool(*, max_command_output: int) -> AgentTool:
+    async def _execute_bash(
+        tool_call_id: str,
+        args: JsonObject,
+        signal: asyncio.Event | None,
+        on_update: AgentToolUpdateCallback,
+    ) -> AgentToolResult:
+        _ = (tool_call_id, on_update)
+        if signal is not None and signal.is_set():
+            raise UserAbortError("Tool execution aborted: bash")
 
-    try:
-        result = await _run_bash(
-            command=_require_string_arg(args, "command"),
-            cwd=_optional_string_arg(args, "cwd"),
-            env=_optional_env_arg(args),
-            timeout=_optional_int_arg(args, "timeout", DEFAULT_TIMEOUT_SECONDS),
-            capture_output=_optional_bool_arg(args, "capture_output", True),
-        )
-    except (ToolRetryError, ToolExecutionError):
-        raise
-    except Exception as exc:  # noqa: BLE001
-        raise ToolExecutionError(tool_name="bash", message=str(exc), original_error=exc) from exc
+        try:
+            result = await _run_bash(
+                command=_require_string_arg(args, "command"),
+                cwd=_optional_string_arg(args, "cwd"),
+                env=_optional_env_arg(args),
+                timeout=_optional_int_arg(args, "timeout", DEFAULT_TIMEOUT_SECONDS),
+                capture_output=_optional_bool_arg(args, "capture_output", True),
+                max_command_output=max_command_output,
+            )
+        except (ToolRetryError, ToolExecutionError):
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise ToolExecutionError(
+                tool_name="bash", message=str(exc), original_error=exc
+            ) from exc
 
-    return _text_result(result)
+        return _text_result(result)
 
-
-bash = AgentTool(
-    name="bash",
-    label="bash",
-    description=_BASH_DESCRIPTION,
-    parameters=_BASH_PARAMETERS,
-    execute=_execute_bash,
-)
+    return AgentTool(
+        name="bash",
+        label="bash",
+        description=_BASH_DESCRIPTION,
+        parameters=_BASH_PARAMETERS,
+        execute=_execute_bash,
+    )
 
 
 def _validate_inputs(command: str, cwd: str | None, timeout: int | None) -> None:
@@ -244,7 +255,15 @@ async def _cleanup_process(process: Process | None) -> None:
         pass
 
 
-def _format_output(command: str, exit_code: int, stdout: str, stderr: str, cwd: str) -> str:
+def _format_output(
+    command: str,
+    exit_code: int,
+    stdout: str,
+    stderr: str,
+    cwd: str,
+    *,
+    max_command_output: int,
+) -> str:
     lines = [
         f"Command: {command}",
         f"Exit Code: {exit_code}",
@@ -258,8 +277,7 @@ def _format_output(command: str, exit_code: int, stdout: str, stderr: str, cwd: 
     ]
 
     result = "\n".join(lines)
-    max_output = get_command_limit()
-    if len(result) > max_output:
+    if len(result) > max_command_output:
         start_part = result[:COMMAND_OUTPUT_START_INDEX]
         end_part = (
             result[-COMMAND_OUTPUT_END_SIZE:]

@@ -45,7 +45,7 @@ from tunacode.skills.registry import list_skill_summaries
 from tunacode.skills.selection import resolve_selected_skills
 from tunacode.types import ModelName
 
-from tunacode.tools.bash import bash
+from tunacode.tools.bash import build_bash_tool
 from tunacode.tools.discover import discover
 from tunacode.tools.hashline_edit import hashline_edit
 from tunacode.tools.read_file import read_file
@@ -60,6 +60,7 @@ from tunacode.core.logging.manager import get_logger
 from tunacode.core.types.state import SessionStateProtocol, StateManagerProtocol
 
 from .agent_session_config import (
+    AgentSettings,
     SessionConfig,
     SkillsPromptState,
     _coerce_global_request_timeout,
@@ -240,10 +241,14 @@ def _apply_tool_concurrency_limit(
     return [_wrap_tool_with_concurrency_limit(tool, limiter=limiter) for tool in tools]
 
 
-def _build_tools(*, strict_validation: bool = False) -> list[AgentTool]:
+def _build_tools(
+    *,
+    settings: AgentSettings,
+    strict_validation: bool = False,
+) -> list[AgentTool]:
     _ = strict_validation
     tools: list[AgentTool] = [
-        bash,
+        build_bash_tool(max_command_output=settings.max_command_output),
         discover,
         read_file,
         hashline_edit,
@@ -563,7 +568,7 @@ def get_or_create_agent(model: ModelName, state_manager: StateManagerProtocol) -
         + skills_state.available_block
     )
 
-    tools = _build_tools(strict_validation=config.settings.tool_strict_validation)
+    tools = _build_tools(settings=config.settings)
 
     agent_build_started_at = time.perf_counter()
     agent = Agent(
