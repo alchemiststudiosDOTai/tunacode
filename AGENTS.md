@@ -48,7 +48,7 @@ Last Updated: 2026-04-11
 - `src/tunacode/ui/` — terminal UI, widgets, screens, CSS, command shell, and render-safety helpers for Rich/Textual theme stability.
 - `src/tunacode/core/` — agents, compaction, session, prompting, logging.
 - `src/tunacode/tools/` — native tinyagent tool implementations (`bash`, `discover`, `read_file`, `hashline_edit`, `web_fetch`, `write_file`) plus supporting helpers.
-- `src/tunacode/configuration/` — settings, model registry, API paths, limits, pricing, and ignore patterns.
+- `src/tunacode/configuration/` — validated user settings, model registry, API paths, pricing, and ignore patterns.
 - `src/tunacode/infrastructure/` — caches and managers.
 - `src/tunacode/utils/` — adapters, messaging helpers, token counting, gitignore, system utilities.
 - `src/tunacode/types/` — canonical data models, callbacks, protocol types.

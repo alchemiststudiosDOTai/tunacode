@@ -147,7 +147,7 @@ LSP client integration for diagnostics and post-edit refresh.
 
 Tool behavior is influenced by configuration:
 
-- **Command limits** -- `src/tunacode/configuration/limits.py` controls bash output truncation
+- **Command limits** -- agent construction passes `settings.max_command_output` from session-backed config into the bash tool factory
 - **Timeout ranges** -- bash enforces 1-600 second timeout range
 - **File size limits** -- read_file rejects files over 100KB
 - **Concurrency limits** -- shared semaphore limits parallel tool executions
