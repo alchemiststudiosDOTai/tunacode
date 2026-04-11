@@ -11,14 +11,9 @@ import pathspec
 from tunacode.constants import ENV_FILE
 
 GITIGNORE_FILE_NAME: Final[str] = ".gitignore"
-GITIGNORE_STYLE: Final[str] = "gitwildmatch"
-TEXT_ENCODING: Final[str] = "utf-8"
-GIT_DIR_PATTERN: Final[str] = ".git/"
-WILDCARD_CHARS = ("*", "?", "[")
-EMPTY_IGNORE_PATTERNS: Final[tuple[str, ...]] = ()
 
 DEFAULT_IGNORE_PATTERNS: Final[tuple[str, ...]] = (
-    GIT_DIR_PATTERN,
+    ".git/",
     ".hg/",
     ".svn/",
     ".bzr/",
@@ -72,42 +67,31 @@ DEFAULT_IGNORE_PATTERNS: Final[tuple[str, ...]] = (
     ENV_FILE,
 )
 
+_WILDCARD_CHARS = ("*", "?", "[")
 
-def _is_literal_dir_pattern(pattern: str) -> bool:
-    return pattern.endswith("/") and not any(char in pattern for char in WILDCARD_CHARS)
-
-
-def _extract_exclude_dirs(patterns: Iterable[str]) -> frozenset[str]:
-    return frozenset(
-        pattern.rstrip("/") for pattern in patterns if _is_literal_dir_pattern(pattern)
-    )
+DEFAULT_EXCLUDE_DIRS: Final[frozenset[str]] = frozenset(
+    p.rstrip("/")
+    for p in DEFAULT_IGNORE_PATTERNS
+    if p.endswith("/") and not any(c in p for c in _WILDCARD_CHARS)
+)
 
 
-DEFAULT_EXCLUDE_DIRS: Final[frozenset[str]] = _extract_exclude_dirs(DEFAULT_IGNORE_PATTERNS)
+def read_ignore_file_lines(filepath: Path) -> tuple[str, ...]:
+    """Read raw ignore-file lines, returning an empty tuple when unreadable."""
+    try:
+        return tuple(filepath.read_text(encoding="utf-8").splitlines())
+    except (OSError, UnicodeDecodeError):
+        return ()
 
 
-def normalize_ignore_patterns(patterns: Iterable[str]) -> tuple[str, ...]:
-    """Drop empty patterns while preserving order."""
-    return tuple(pattern for pattern in patterns if pattern)
+def compile_ignore_spec(patterns: Iterable[str]) -> pathspec.PathSpec:
+    """Compile gitignore-style patterns into a reusable matcher."""
+    return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
 
 
 def merge_ignore_patterns(
     base_patterns: Iterable[str],
     extra_patterns: Iterable[str],
 ) -> tuple[str, ...]:
-    """Append extra patterns onto a base pattern set."""
-    return tuple(base_patterns) + normalize_ignore_patterns(extra_patterns)
-
-
-def read_ignore_file_lines(filepath: Path) -> tuple[str, ...]:
-    """Read raw ignore-file lines, returning an empty tuple when unreadable."""
-    try:
-        ignore_text = filepath.read_text(encoding=TEXT_ENCODING)
-    except (OSError, UnicodeDecodeError):
-        return EMPTY_IGNORE_PATTERNS
-    return tuple(ignore_text.splitlines())
-
-
-def compile_ignore_spec(patterns: Iterable[str]) -> pathspec.PathSpec:
-    """Compile gitignore-style patterns into a reusable matcher."""
-    return pathspec.PathSpec.from_lines(GITIGNORE_STYLE, patterns)
+    """Append extra patterns onto a base pattern set, dropping blanks."""
+    return tuple(base_patterns) + tuple(p for p in extra_patterns if p)
