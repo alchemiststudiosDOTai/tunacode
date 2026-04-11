@@ -4,7 +4,7 @@ summary: Release history for TunaCode versions and notable changes.
 when_to_read:
   - When preparing a release note
   - When reviewing past changes or version history
-last_updated: "2026-04-04"
+last_updated: "2026-04-11"
 ---
 
 # Changelog
@@ -15,6 +15,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Added a stale-symbol surface checker, related unit coverage, and lint/pre-push enforcement to catch dead re-export and annotation-only APIs.
+
+### Changed
+- Simplified stream orchestration and interrupted-stream cleanup by moving the stream loop into a dedicated module, tracking per-stream baselines, and tightening callback typing.
+- Removed dead agent component helpers and legacy dangling-tool-call patching paths from the runtime cleanup flow.
+- Documented explicit `bug:`/`refactor:` style labels for issues and PRs and clarified that the repository root `README.md` is exempt from markdown frontmatter requirements.
+
+### Fixed
+- Fixed abort-time tool reconciliation so completed tool results are preserved and interrupted tool calls are patched with explicit error results instead of rolling history back.
+- Fixed Textual startup and theme-switch rendering crashes by hardening built-in theme colors and normalizing Rich dim/default styles before Textual filtering.
 
 ## [0.2.0] - 2026-04-02
 
