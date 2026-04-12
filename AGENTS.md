@@ -34,6 +34,7 @@ Last Updated: 2026-04-12
 - `src/tunacode/` — application code.
 - `tests/` — unit and architecture tests.
 - `docs/` — module documentation and architecture artifacts.
+- `rules/ast-grep/` — ast-grep configuration, structural rules, and rule tests.
 - `scripts/` — local tooling and validation scripts.
 - `.github/workflows/` — CI gates and release workflows.
 - `Makefile` — developer-facing command shortcuts.
@@ -95,6 +96,8 @@ Last Updated: 2026-04-12
 - Linters + hooks: `make lint`.
 - Focused checks:
   - `uv run pre-commit run --all-files`
+  - `uv run python scripts/validate_ast_grep_rules.py`
+  - `scripts/run_ast_grep_checks.sh`
   - `uv run pytest`
   - `uv run pytest tests/test_dependency_layers.py -v`
   - `uv run pytest tests/architecture/test_import_order.py`

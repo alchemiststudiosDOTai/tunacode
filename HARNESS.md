@@ -41,6 +41,8 @@ Git hook entrypoints are repo-managed wrappers in `.githooks/`, installed into `
 - `check-ast` (repo: `pre-commit/pre-commit-hooks`)
 - `check-docstring-first` (repo: `pre-commit/pre-commit-hooks`)
 - `debug-statements` (repo: `pre-commit/pre-commit-hooks`)
+- `validate-ast-grep-rules` (repo: `local`, entry: `uv run python scripts/validate_ast_grep_rules.py`, files: `^rules/ast-grep/rules/.*\.yml$`)
+  - Guards ast-grep rule YAML structure beyond generic `check-yaml`, especially misplaced top-level keys such as `constraints`.
 
 #### Python linting, typing, and formatting
 - `ruff` (repo: `astral-sh/ruff-pre-commit`, args: `--fix --show-fixes`)
@@ -65,6 +67,8 @@ Git hook entrypoints are repo-managed wrappers in `.githooks/`, installed into `
   - Source of truth for import-layer enforcement: `tests/test_dependency_layers.py` uses `grimp.build_graph("tunacode")` to detect illegal cross-layer imports.
   - Dependency report generation: `scripts/grimp_layers_report.py` uses `grimp` to generate `docs/architecture/dependencies/DEPENDENCY_LAYERS.*`.
   - Supplemental only: `scripts/run_gates.py` also uses `grimp`, but it is not the canonical architecture check.
+- `ast-grep-rules` (repo: `local`, entry: `scripts/run_ast_grep_checks.sh`, files: `src/tunacode/constants.py|rules/ast-grep/.*`)
+  - Runs `ast-grep test` plus `ast-grep scan` from `rules/ast-grep/` to keep targeted structural ratchets enforced in local hooks and CI.
 - `tests/architecture/test_import_order.py` enforces first-party import layer ordering.
 - `tests/architecture/test_init_bloat.py` enforces thin `__init__.py` modules.
 - `scripts/check_agents_freshness.py` validates `AGENTS.md` freshness against recent `src/` and `docs/` changes.

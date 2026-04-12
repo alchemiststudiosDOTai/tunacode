@@ -91,6 +91,22 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: validate-ast-grep-rules
+        name: Validate ast-grep rules
+        entry: uv run python scripts/validate_ast_grep_rules.py
+        language: system
+        files: ^rules/ast-grep/rules/.*\.yml$
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: ast-grep-rules
+        name: Run ast-grep rules
+        entry: scripts/run_ast_grep_checks.sh
+        language: script
+        files: ^(src/tunacode/constants\.py|rules/ast-grep/.*)$
+        pass_filenames: false
+        stages: [pre-commit]
+
       # Check for common security issues
       - id: security-check
         name: Security audit

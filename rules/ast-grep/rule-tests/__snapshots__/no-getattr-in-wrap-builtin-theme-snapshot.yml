@@ -1,0 +1,16 @@
+id: no-getattr-in-wrap-builtin-theme
+snapshots:
+  ? |
+    def _wrap_builtin_theme(theme, palette):
+        return getattr(theme, "foreground", None)
+  : labels:
+    - source: getattr(theme, "foreground", None)
+      style: primary
+      start: 52
+      end: 86
+    - source: |-
+        def _wrap_builtin_theme(theme, palette):
+            return getattr(theme, "foreground", None)
+      style: secondary
+      start: 0
+      end: 86

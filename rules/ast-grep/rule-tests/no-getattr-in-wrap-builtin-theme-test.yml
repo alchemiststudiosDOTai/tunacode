@@ -1,0 +1,15 @@
+id: no-getattr-in-wrap-builtin-theme
+valid:
+  - |
+    def _wrap_builtin_theme(theme, palette):
+        return ThemeCls(
+            name=theme.name,
+            foreground=theme.foreground,
+        )
+  - |
+    def _other_helper(theme):
+        return getattr(theme, "foreground", None)
+invalid:
+  - |
+    def _wrap_builtin_theme(theme, palette):
+        return getattr(theme, "foreground", None)
