@@ -37,7 +37,6 @@ execution path, and a clear reason for existing.
 Harness work includes:
 
 - lint and formatting enforcement
-- structural lint rules such as ast-grep ratchets
 - type checking and structural tests
 - `pre-commit` and `pre-push` hooks
 - validation scripts under `scripts/`
