@@ -214,8 +214,8 @@ BUILTIN_THEME_PALETTES: dict[str, dict[str, str]] = {
     },
 }
 
-# Textual 4.0.0 leaves some built-ins with unresolved theme object fields even
-# though its ColorSystem later computes concrete defaults for rendering. Freeze
+# Textual 4.0.0 leaves some built-ins with None or "ansi_default" on color fields
+# even though the ColorSystem later resolves concrete values for rendering. Freeze
 # those concrete values here so TunaCode can safely re-register the built-ins.
 BUILTIN_THEME_COLOR_FALLBACKS: dict[str, dict[str, str]] = {
     "textual-dark": {
@@ -324,8 +324,7 @@ def _wrap_builtin_theme(theme: Theme, palette: Mapping[str, str]) -> Theme:
     merged_vars = {**theme.variables, **_build_theme_variables(palette)}
     fallback_colors = BUILTIN_THEME_COLOR_FALLBACKS.get(theme.name, {})
 
-    def resolve_color_field(field: str) -> str | None:
-        value = getattr(theme, field, None)
+    def resolve_color(field: str, value: str | None) -> str | None:
         if value not in (None, "ansi_default"):
             return value
         return fallback_colors.get(field, value)
@@ -333,19 +332,19 @@ def _wrap_builtin_theme(theme: Theme, palette: Mapping[str, str]) -> Theme:
     return ThemeCls(
         name=theme.name,
         primary=theme.primary,
-        secondary=getattr(theme, "secondary", None),
-        warning=getattr(theme, "warning", None),
-        error=getattr(theme, "error", None),
-        success=getattr(theme, "success", None),
-        accent=getattr(theme, "accent", None),
-        foreground=resolve_color_field("foreground"),
-        background=resolve_color_field("background"),
-        surface=resolve_color_field("surface"),
-        panel=resolve_color_field("panel"),
-        boost=getattr(theme, "boost", None),
+        secondary=theme.secondary,
+        warning=theme.warning,
+        error=theme.error,
+        success=theme.success,
+        accent=theme.accent,
+        foreground=resolve_color("foreground", theme.foreground),
+        background=resolve_color("background", theme.background),
+        surface=resolve_color("surface", theme.surface),
+        panel=resolve_color("panel", theme.panel),
+        boost=theme.boost,
         dark=theme.dark,
-        luminosity_spread=getattr(theme, "luminosity_spread", 0.15),
-        text_alpha=getattr(theme, "text_alpha", 0.95),
+        luminosity_spread=theme.luminosity_spread,
+        text_alpha=theme.text_alpha,
         variables=merged_vars,
     )
 
