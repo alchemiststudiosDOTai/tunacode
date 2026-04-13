@@ -42,16 +42,16 @@ env: {target: "local", notes: ""}
 - Notes: Simplified tracer enablement and queue sizing to the typed app/session and public queue contract without restoring reflective fallbacks.
 
 ### T003 - bug: remove editor and thinking-state getattr fallbacks
-- Status: in_progress
+- Status: completed
 - Commit:
-- Files:
-- Commands:
-- Tests:
+- Files: src/tunacode/ui/thinking_state.py; src/tunacode/ui/widgets/editor.py; tests/unit/utils/test_shell_command_escape.py
+- Commands: `uv run pytest tests/unit/ui/test_thinking_state.py tests/unit/utils/test_shell_command_escape.py -k "thinking or bang"` -> pass
+- Tests: pass
 - Coverage delta:
-- Notes:
+- Notes: Switched thinking-state reads to the concrete app/editor fields and replaced editor app probing with a local `NoActiveAppError` lifecycle guard.
 
 ### T004 - bug: simplify remaining direct-UI contract helpers
-- Status: pending
+- Status: in_progress
 - Commit:
 - Files:
 - Commands:
