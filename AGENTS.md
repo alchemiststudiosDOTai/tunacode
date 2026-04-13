@@ -1,5 +1,5 @@
 # AGENTS.md
-Last Updated: 2026-04-12
+Last Updated: 2026-04-13
 
 ## Repository Orientation
 - This is `tunacode-cli`, a terminal AI coding agent with a Textual UI and tiny-agent tool loop.
@@ -115,6 +115,7 @@ Last Updated: 2026-04-12
 ## Quality Constraints (Do not break)
 - `README.md` and docs should stay consistent with implementation.
 - Keep `AGENTS.md` updated with `Last Updated: YYYY-MM-DD` whenever `src/` or `docs/` changes.
+- The 2026-04-13 getattr baseline follow-up reduced the scoped UI/runtime and owned-exception `getattr(...)` usage; the committed ast-grep baseline should stay aligned with those removals.
 - Do not add TunaCode-owned message-contract wrappers around tinyagent message types; use tinyagent models directly in memory and keep dict payloads at real boundaries.
 - Preserve existing architecture order rules; do not add new imports across forbidden layers.
 - Treat current file-length allowlist entries as temporary debt only. Do not add any new file-specific exemptions to the `>600` line rule; fix the enforcement path or split the code instead.

@@ -69,13 +69,13 @@ env: {target: "local", notes: ""}
 - Notes: Replaced reflective metadata probes with explicit handling for TunaCode-owned exception classes and added render-level regressions for owned metadata and model context.
 
 ### T006 - chore: refresh getattr baseline and AGENTS metadata
-- Status: in_progress
+- Status: completed
 - Commit:
-- Files:
-- Commands:
-- Tests:
+- Files: AGENTS.md; rules/ast-grep/baseline/no-getattr-in-src.json
+- Commands: `uv run python scripts/check_ast_grep_baseline.py --write-baseline` -> wrote 9 entries; `uv run python scripts/check_agents_freshness.py && uv run python scripts/check_ast_grep_baseline.py` -> pass
+- Tests: pass
 - Coverage delta:
-- Notes:
+- Notes: Rewrote the committed baseline from 26 entries down to 9 and updated AGENTS metadata to record the scoped getattr reduction.
 
 ## Gate Results
 - Tests:
@@ -92,5 +92,5 @@ env: {target: "local", notes: ""}
 
 ## Success Criteria
 - [ ] All planned gates passed
-- [ ] Rollout completed or rolled back
+- [x] Rollout completed or rolled back
 - [x] Execution log saved
