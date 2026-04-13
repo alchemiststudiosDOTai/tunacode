@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tunacode.exceptions import AgentError
+from tunacode.exceptions import AgentError, ContextOverflowError, ToolExecutionError
 
 from tunacode.core.agents.helpers import coerce_error_text, is_context_overflow_error
 
@@ -48,3 +48,45 @@ def test_agent_error_renders_via_render_exception() -> None:
     console.print(content)
     rendered = console.export_text()
     assert "unauthorized" in rendered
+
+
+def test_render_exception_surfaces_tool_execution_metadata() -> None:
+    from rich.console import Console
+
+    from tunacode.ui.renderers.errors import render_exception
+
+    exc = ToolExecutionError(
+        tool_name="formatter",
+        message="tool failed",
+        suggested_fix="Use valid arguments",
+        recovery_commands=["tunacode --retry"],
+    )
+
+    content, _meta = render_exception(exc)
+
+    console = Console(record=True, width=120)
+    console.print(content)
+    rendered = console.export_text()
+    assert "formatter" in rendered
+    assert "Use valid arguments" in rendered
+    assert "tunacode --retry" in rendered
+
+
+def test_render_exception_context_overflow_includes_model_context() -> None:
+    from rich.console import Console
+
+    from tunacode.ui.renderers.errors import render_exception
+
+    exc = ContextOverflowError(
+        estimated_tokens=250_000,
+        max_tokens=200_000,
+        model="openrouter:openai/gpt-4.1",
+    )
+
+    content, _meta = render_exception(exc)
+
+    console = Console(record=True, width=120)
+    console.print(content)
+    rendered = console.export_text()
+    assert "openrouter:openai/gpt-4.1" in rendered
+    assert "Compact the session or reduce context size before retrying." in rendered

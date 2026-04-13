@@ -60,16 +60,16 @@ env: {target: "local", notes: ""}
 - Notes: Replaced the remaining low-risk UI probes with direct field/property access and added narrow regressions for context ancestry and escape-handler shell-runner forwarding.
 
 ### T005 - bug: render TunaCode-owned exceptions through explicit attributes
-- Status: in_progress
+- Status: completed
 - Commit:
-- Files:
-- Commands:
-- Tests:
+- Files: src/tunacode/ui/renderers/errors.py; tests/unit/core/test_provider_error_surfacing.py
+- Commands: `uv run pytest tests/unit/core/test_exceptions.py tests/unit/core/test_provider_error_surfacing.py -k "render_exception or context_overflow"` -> pass
+- Tests: pass
 - Coverage delta:
-- Notes:
+- Notes: Replaced reflective metadata probes with explicit handling for TunaCode-owned exception classes and added render-level regressions for owned metadata and model context.
 
 ### T006 - chore: refresh getattr baseline and AGENTS metadata
-- Status: pending
+- Status: in_progress
 - Commit:
 - Files:
 - Commands:

@@ -4,6 +4,18 @@ from __future__ import annotations
 
 from rich.console import RenderableType
 
+from tunacode.exceptions import (
+    AgentError,
+    ConfigurationError,
+    ContextOverflowError,
+    FileOperationError,
+    GitOperationError,
+    ModelConfigurationError,
+    SetupValidationError,
+    ToolExecutionError,
+    TunaCodeError,
+    ValidationError,
+)
 from tunacode.ui.renderers.panels import ErrorDisplayData, RichPanelRenderer
 from tunacode.ui.widgets.chat import PanelMeta
 
@@ -24,25 +36,35 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
     "StateError": "info",
 }
 
-EXCEPTION_CONTEXT_ATTRS: dict[str, str] = {
-    "tool_name": "Tool",
-    "path": "Path",
-    "operation": "Operation",
-    "server_name": "Server",
-    "model": "Model",
-    "step": "Step",
-    "validation_type": "Validation",
-}
-
-
-def _extract_exception_context(exc: Exception) -> dict[str, str]:
+def _extract_tunacode_exception_context(exc: TunaCodeError) -> dict[str, str]:
     context: dict[str, str] = {}
-    for attr, label in EXCEPTION_CONTEXT_ATTRS.items():
-        if hasattr(exc, attr):
-            value = getattr(exc, attr)
-            if value is not None:
-                context[label] = str(value)
+    if isinstance(exc, ToolExecutionError):
+        context["Tool"] = str(exc.tool_name)
+    if isinstance(exc, FileOperationError):
+        context["Path"] = str(exc.path)
+        context["Operation"] = str(exc.operation)
+    elif isinstance(exc, GitOperationError):
+        context["Operation"] = str(exc.operation)
+    if isinstance(exc, ModelConfigurationError | ContextOverflowError):
+        context["Model"] = str(exc.model)
+    if isinstance(exc, SetupValidationError):
+        context["Validation"] = str(exc.validation_type)
     return context
+
+
+def _extract_tunacode_exception_metadata(
+    exc: TunaCodeError,
+) -> tuple[str | None, list[str] | None]:
+    suggested_fix = None
+    recovery_commands = None
+
+    if isinstance(exc, ConfigurationError | ValidationError | ToolExecutionError | AgentError):
+        suggested_fix = exc.suggested_fix
+
+    if isinstance(exc, ToolExecutionError):
+        recovery_commands = exc.recovery_commands
+
+    return suggested_fix, recovery_commands
 
 
 DEFAULT_RECOVERY_COMMANDS: dict[str, list[str]] = {
@@ -78,10 +100,12 @@ def render_exception(exc: Exception) -> tuple[RenderableType, PanelMeta]:
     error_type = type(exc).__name__
     severity = ERROR_SEVERITY_MAP.get(error_type, "error")
 
-    suggested_fix = getattr(exc, "suggested_fix", None)
-    recovery_commands = getattr(exc, "recovery_commands", None)
-
-    context = _extract_exception_context(exc)
+    suggested_fix = None
+    recovery_commands = None
+    context: dict[str, str] = {}
+    if isinstance(exc, TunaCodeError):
+        suggested_fix, recovery_commands = _extract_tunacode_exception_metadata(exc)
+        context = _extract_tunacode_exception_context(exc)
 
     if not recovery_commands:
         recovery_commands = DEFAULT_RECOVERY_COMMANDS.get(error_type)
