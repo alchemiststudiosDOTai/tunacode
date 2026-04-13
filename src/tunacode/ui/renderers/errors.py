@@ -37,34 +37,35 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
 }
 
 def _extract_tunacode_exception_context(exc: TunaCodeError) -> dict[str, str]:
-    context: dict[str, str] = {}
-    if isinstance(exc, ToolExecutionError):
-        context["Tool"] = str(exc.tool_name)
-    if isinstance(exc, FileOperationError):
-        context["Path"] = str(exc.path)
-        context["Operation"] = str(exc.operation)
-    elif isinstance(exc, GitOperationError):
-        context["Operation"] = str(exc.operation)
-    if isinstance(exc, ModelConfigurationError | ContextOverflowError):
-        context["Model"] = str(exc.model)
-    if isinstance(exc, SetupValidationError):
-        context["Validation"] = str(exc.validation_type)
-    return context
+    match exc:
+        case ToolExecutionError(tool_name=tool_name):
+            return {"Tool": str(tool_name)}
+        case FileOperationError(path=path, operation=operation):
+            return {"Path": str(path), "Operation": str(operation)}
+        case GitOperationError(operation=operation):
+            return {"Operation": str(operation)}
+        case ModelConfigurationError(model=model) | ContextOverflowError(model=model):
+            return {"Model": str(model)}
+        case SetupValidationError(validation_type=validation_type):
+            return {"Validation": str(validation_type)}
+        case _:
+            return {}
 
 
 def _extract_tunacode_exception_metadata(
     exc: TunaCodeError,
 ) -> tuple[str | None, list[str] | None]:
-    suggested_fix = None
-    recovery_commands = None
-
-    if isinstance(exc, ConfigurationError | ValidationError | ToolExecutionError | AgentError):
-        suggested_fix = exc.suggested_fix
-
-    if isinstance(exc, ToolExecutionError):
-        recovery_commands = exc.recovery_commands
-
-    return suggested_fix, recovery_commands
+    match exc:
+        case ToolExecutionError(suggested_fix=suggested_fix, recovery_commands=recovery_commands):
+            return suggested_fix, recovery_commands
+        case (
+            ConfigurationError(suggested_fix=suggested_fix)
+            | ValidationError(suggested_fix=suggested_fix)
+            | AgentError(suggested_fix=suggested_fix)
+        ):
+            return suggested_fix, None
+        case _:
+            return None, None
 
 
 DEFAULT_RECOVERY_COMMANDS: dict[str, list[str]] = {
