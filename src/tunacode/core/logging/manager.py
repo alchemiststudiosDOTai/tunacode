@@ -83,7 +83,7 @@ class LogManager:
         """Check current debug mode state."""
         if self._state_manager is None:
             return False
-        return getattr(self._state_manager.session, "debug_mode", False)
+        return self._state_manager.session.debug_mode
 
     def log(self, record: LogRecord) -> None:
         """Route a log record to all handlers."""
