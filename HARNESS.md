@@ -4,7 +4,7 @@ summary: Repository code-quality harness for hooks, CI checks, and local enforce
 when_to_read:
   - When auditing pre-commit or pre-push hooks
   - When checking local and CI enforcement behavior
-last_updated: "2026-04-09"
+last_updated: "2026-04-13"
 ---
 
 # HARNESS.md
@@ -85,6 +85,8 @@ Pre-push hooks run from `.pre-commit-config.yaml` with stage `pre-push`.
 - `defensive-slop` (local, `uv run python scripts/check-defensive-slop.py`, scoped to `src/**/*.py`)
 - `pylint-duplicates` (local, duplicate-code check)
 - `pytest` (local, `uv run pytest -x -q`)
+- `ast-grep-getattr-ratchet` (local, `scripts/run_ast_grep_checks.sh`, scoped to `src/**/*.py`, `rules/ast-grep/**`, and ast-grep helper scripts)
+  - Validates the ast-grep rule file, runs the rule test, then scans all of `src/` for `getattr(...)` and fails only on findings not present in the committed baseline.
 - `empty-dir-check` (local, `uv run python scripts/utils/check_empty_dirs.py`)
 - `markdown-frontmatter` (local, `uv run python scripts/check_markdown_frontmatter.py`, scoped to repo-root/docs markdown except `AGENTS.md` and root `README.md`)
 

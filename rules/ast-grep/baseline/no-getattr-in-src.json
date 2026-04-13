@@ -1,0 +1,132 @@
+[
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/core/compaction/controller.py",
+    "text": "getattr(message, COMPACTION_SUMMARY_KEY, None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/core/logging/manager.py",
+    "text": "getattr(self._state_manager.session, \"debug_mode\", False)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/core/types/__init__.py",
+    "text": "getattr(importlib.import_module(module_name, __name__), name)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/app.py",
+    "text": "getattr(self, \"_shell_runner\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/clipboard.py",
+    "text": "getattr(callback, \"__name__\", repr(callback))"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/command_registry.py",
+    "text": "getattr(module, spec.class_name)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/context_panel.py",
+    "text": "getattr(current, \"id\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/renderers/__init__.py",
+    "text": "getattr(importlib.import_module(module_name, __name__), name)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/renderers/errors.py",
+    "text": "getattr(exc, \"recovery_commands\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/renderers/errors.py",
+    "text": "getattr(exc, \"suggested_fix\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/renderers/errors.py",
+    "text": "getattr(exc, attr)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/renderers/panels.py",
+    "text": "getattr(item, \"text\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/renderers/panels.py",
+    "text": "getattr(item, \"type\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/request_debug.py",
+    "text": "getattr(queue, \"items\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/request_debug.py",
+    "text": "getattr(queue, \"qsize\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/request_debug.py",
+    "text": "getattr(self._app, \"request_queue\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/request_debug.py",
+    "text": "getattr(self._app.state_manager, \"session\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/request_debug.py",
+    "text": "getattr(session, \"debug_mode\", False)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/thinking_state.py",
+    "text": "getattr(app, \"_last_editor_keypress_at\", 0.0)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/thinking_state.py",
+    "text": "getattr(app, \"editor\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/thinking_state.py",
+    "text": "getattr(editor, \"value\", \"\")"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/widgets/__init__.py",
+    "text": "getattr(importlib.import_module(module_name, __name__), name)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/widgets/editor.py",
+    "text": "getattr(app, \"_request_debug\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/widgets/editor.py",
+    "text": "getattr(self, \"app\", None)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/ui/widgets/editor.py",
+    "text": "getattr(self, \"has_paste_buffer\", False)"
+  },
+  {
+    "rule_id": "no-getattr-in-src",
+    "file": "src/tunacode/utils/messaging/token_counter.py",
+    "text": "getattr(part, \"content\", None)"
+  }
+]

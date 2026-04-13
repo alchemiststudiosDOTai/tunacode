@@ -1,0 +1,12 @@
+id: no-getattr-in-src
+valid:
+  - |
+    def read_name(user):
+        return user.name
+  - |
+    def use_dict(payload):
+        return payload.get("name")
+invalid:
+  - |
+    def read_name(user):
+        return getattr(user, "name", None)
