@@ -629,7 +629,7 @@ class TextualReplApp(App[None]):
         current_request_task = self._current_request_task
         esc_handler.handle_escape(
             current_request_task=current_request_task,
-            shell_runner=getattr(self, "_shell_runner", None),
+            shell_runner=self._shell_runner,
         )
 
     def start_shell_command(self, raw_cmd: str) -> None:

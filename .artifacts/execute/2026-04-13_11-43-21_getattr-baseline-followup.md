@@ -51,16 +51,16 @@ env: {target: "local", notes: ""}
 - Notes: Switched thinking-state reads to the concrete app/editor fields and replaced editor app probing with a local `NoActiveAppError` lifecycle guard.
 
 ### T004 - bug: simplify remaining direct-UI contract helpers
-- Status: in_progress
+- Status: completed
 - Commit:
-- Files:
-- Commands:
-- Tests:
+- Files: src/tunacode/ui/app.py; src/tunacode/ui/context_panel.py; tests/unit/utils/test_shell_command_escape.py; tests/unit/ui/test_context_panel.py
+- Commands: `uv run pytest tests/unit/utils/test_shell_command_escape.py tests/unit/ui/test_context_panel.py -k "cancel or within_field"` -> pass; `uv run pytest tests/unit/utils/test_shell_command_escape.py -k "escape_passes_shell_runner_to_handler or escape_does_not_clear_editor_when_no_request_or_shell_running"` -> pass
+- Tests: pass
 - Coverage delta:
-- Notes:
+- Notes: Replaced the remaining low-risk UI probes with direct field/property access and added narrow regressions for context ancestry and escape-handler shell-runner forwarding.
 
 ### T005 - bug: render TunaCode-owned exceptions through explicit attributes
-- Status: pending
+- Status: in_progress
 - Commit:
 - Files:
 - Commands:
