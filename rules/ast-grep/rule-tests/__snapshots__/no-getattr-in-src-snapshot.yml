@@ -1,0 +1,10 @@
+id: no-getattr-in-src
+snapshots:
+  ? |
+    def read_name(user):
+        return getattr(user, "name", None)
+  : labels:
+    - source: getattr(user, "name", None)
+      style: primary
+      start: 32
+      end: 59

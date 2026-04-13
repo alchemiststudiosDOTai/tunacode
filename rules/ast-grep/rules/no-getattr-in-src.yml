@@ -1,0 +1,8 @@
+id: no-getattr-in-src
+language: Python
+severity: error
+message: "Prefer explicit attribute access or a typed alternative instead of getattr()."
+files:
+  - src/**/*.py
+rule:
+  pattern: getattr($$$ARGS)

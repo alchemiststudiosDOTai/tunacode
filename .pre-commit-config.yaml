@@ -149,6 +149,15 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
+      - id: ast-grep-getattr-ratchet
+        name: Run ast-grep getattr ratchet
+        entry: scripts/run_ast_grep_checks.sh
+        language: script
+        files: ^(src/.*\.py|rules/ast-grep/.*|scripts/run_ast_grep_checks\.sh|scripts/validate_ast_grep_rules\.py|scripts/check_ast_grep_baseline\.py)$
+        always_run: true
+        pass_filenames: false
+        stages: [pre-push]
+
       # Check for empty directories or __init__.py-only directories (runs on push)
       - id: empty-dir-check
         name: Check for Empty Directories
