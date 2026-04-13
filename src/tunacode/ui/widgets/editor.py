@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from rich.cells import cell_len
 from rich.style import Style, StyleType
@@ -21,6 +21,8 @@ from .messages import EditorSubmitRequested
 
 if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
+else:
+    TextualReplApp = Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,7 +88,7 @@ class Editor(Input):
         """Handle key events for bash-mode auto-spacing."""
         if event.character or event.key in {"backspace", "delete"}:
             try:
-                app = cast("TextualReplApp", self.app)
+                app = cast(TextualReplApp, self.app)
             except NoActiveAppError:
                 app = None
 

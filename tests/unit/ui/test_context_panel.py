@@ -11,7 +11,7 @@ from tunacode.ui.context_panel import is_widget_within_field
 @dataclass
 class _NodeStub:
     id: str | None
-    parent: "_NodeStub | None" = None
+    parent: _NodeStub | None = None
 
 
 def test_is_widget_within_field_matches_ancestor_id() -> None:

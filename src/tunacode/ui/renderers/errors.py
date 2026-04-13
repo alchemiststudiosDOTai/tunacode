@@ -16,6 +16,7 @@ from tunacode.exceptions import (
     TunaCodeError,
     ValidationError,
 )
+
 from tunacode.ui.renderers.panels import ErrorDisplayData, RichPanelRenderer
 from tunacode.ui.widgets.chat import PanelMeta
 
@@ -35,6 +36,7 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
     "UserAbortError": "info",
     "StateError": "info",
 }
+
 
 def _extract_tunacode_exception_context(exc: TunaCodeError) -> dict[str, str]:
     match exc:
