@@ -33,16 +33,16 @@ env: {target: "local", notes: ""}
 - Notes: Replaced the logger's reflective session debug-mode probe with direct protocol access and added a narrow property regression.
 
 ### T002 - bug: remove RequestDebugTracer session and queue probing
-- Status: in_progress
+- Status: completed
 - Commit:
-- Files:
-- Commands:
-- Tests:
+- Files: src/tunacode/ui/request_debug.py
+- Commands: `uv run pytest tests/unit/ui/test_request_debug.py -k request_debug` -> pass
+- Tests: pass
 - Coverage delta:
-- Notes:
+- Notes: Simplified tracer enablement and queue sizing to the typed app/session and public queue contract without restoring reflective fallbacks.
 
 ### T003 - bug: remove editor and thinking-state getattr fallbacks
-- Status: pending
+- Status: in_progress
 - Commit:
 - Files:
 - Commands:
