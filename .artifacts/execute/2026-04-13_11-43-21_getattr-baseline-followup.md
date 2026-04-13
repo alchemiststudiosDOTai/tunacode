@@ -48,7 +48,7 @@ env: {target: "local", notes: ""}
 - Commands: `uv run pytest tests/unit/ui/test_thinking_state.py tests/unit/utils/test_shell_command_escape.py -k "thinking or bang"` -> pass
 - Tests: pass
 - Coverage delta:
-- Notes: Switched thinking-state reads to the concrete app/editor fields and replaced editor app probing with a local `NoActiveAppError` lifecycle guard.
+- Notes: Switched thinking-state reads to the concrete app/editor fields and replaced editor app probing with a local `NoActiveAppError` lifecycle guard; later added a narrow `TextualReplApp` cast so `mypy` accepts the direct app fields.
 
 ### T004 - bug: simplify remaining direct-UI contract helpers
 - Status: completed
@@ -78,10 +78,10 @@ env: {target: "local", notes: ""}
 - Notes: Rewrote the committed baseline from 26 entries down to 9 and updated AGENTS metadata to record the scoped getattr reduction.
 
 ## Gate Results
-- Tests:
-- Coverage:
-- Type checks:
-- Linters:
+- Tests: `uv run pytest` -> pass (328 passed, 2 skipped)
+- Coverage: `uv run coverage report` -> fail (`No source for code: '/home/fabian/tunacode/src/tunacode/core/ui_api/configuration.py'`)
+- Type checks: `uv run mypy src/` -> fail once on `Editor.app` field narrowing, then pass after local cast remediation
+- Linters: `uv run black --check src/` -> fail (`black` not installed in the uv environment)
 
 ## Deployment
 - Staging: not applicable
@@ -89,6 +89,9 @@ env: {target: "local", notes: ""}
 - Timestamps: not applicable
 
 ## Issues & Resolutions
+- Gate C - `mypy` failed on direct editor app access -> resolved by narrowing `self.app` to `TextualReplApp` inside the existing unattached-widget guard.
+- Gate C - `black --check src/` could not run -> environment missing `black`; no repo-local formatter alternative is documented in the checked sources.
+- Gate C - `coverage report` failed -> existing coverage data references a missing source path under `src/tunacode/core/ui_api/configuration.py`.
 
 ## Success Criteria
 - [ ] All planned gates passed
