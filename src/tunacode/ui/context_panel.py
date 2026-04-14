@@ -176,7 +176,7 @@ def build_skills_field(skill_entries: list[tuple[str, str]]) -> tuple[str, Text]
 def is_widget_within_field(widget: DOMNode | None, root: DOMNode, *, field_id: str) -> bool:
     current = widget
     while current is not None and current is not root:
-        if getattr(current, "id", None) == field_id:
+        if current.id == field_id:
             return True
         current = current.parent
 

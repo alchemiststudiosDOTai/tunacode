@@ -95,6 +95,18 @@ class TestLogManagerProperties:
         file_handlers = [h for h in logger._handlers if isinstance(h, FileHandler)]
         assert logger.log_path == file_handlers[0].log_path
 
+    def test_debug_mode_reads_attached_session_flag(self):
+        """debug_mode reflects the attached session state."""
+        logger = get_logger()
+        state_manager = StateManager()
+        logger.set_state_manager(state_manager)
+
+        assert logger.debug_mode is False
+
+        state_manager.session.debug_mode = True
+
+        assert logger.debug_mode is True
+
 
 class TestLogRecord:
     """Tests for LogRecord dataclass."""

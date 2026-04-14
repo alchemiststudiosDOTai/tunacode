@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, cast
 
 from rich.cells import cell_len
 from rich.style import Style, StyleType
@@ -16,6 +17,11 @@ from textual.strip import Strip
 from textual.widgets import Input
 
 from .messages import EditorSubmitRequested
+
+if TYPE_CHECKING:
+    from tunacode.ui.app import TextualReplApp
+else:
+    TextualReplApp = Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,16 +85,12 @@ class Editor(Input):
 
     def on_key(self, event: events.Key) -> None:
         """Handle key events for bash-mode auto-spacing."""
-        if event.character or event.key in {"backspace", "delete"}:
-            app = getattr(self, "app", None)
-            if app is not None:
-                app._last_editor_keypress_at = time.monotonic()
-                tracer = getattr(app, "_request_debug", None)
-                if tracer is not None:
-                    tracer.note_editor_keypress(key_label=event.character or event.key)
+        if (event.character or event.key in {"backspace", "delete"}) and self.is_mounted:
+            app = cast(TextualReplApp, self.app)
+            app._last_editor_keypress_at = time.monotonic()
+            app._request_debug.note_editor_keypress(key_label=event.character or event.key)
 
-        has_paste_buffer = bool(getattr(self, "has_paste_buffer", False))
-        if has_paste_buffer and not self.value and event.key == "backspace":
+        if self.has_paste_buffer and not self.value and event.key == "backspace":
             event.prevent_default()
             self._clear_paste_buffer()
             return

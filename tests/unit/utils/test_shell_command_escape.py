@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import cast
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -27,9 +28,15 @@ class _FakeKeyEvent:
 class _EditorKeyHandlingStub:
     value: str
     cursor_position: int = 0
+    is_mounted: bool = False
+    _has_paste_buffer: bool = False
 
     BASH_MODE_PREFIX = Editor.BASH_MODE_PREFIX
     BASH_MODE_PREFIX_WITH_SPACE = Editor.BASH_MODE_PREFIX_WITH_SPACE
+
+    @property
+    def has_paste_buffer(self) -> bool:
+        return self._has_paste_buffer
 
 
 @pytest.mark.asyncio
@@ -100,11 +107,32 @@ def test_escape_does_not_clear_editor_when_no_request_or_shell_running() -> None
         {
             "_current_request_task": None,
             "_esc_handler": EscHandler(),
-            "_shell_command_task": None,
+            "_shell_runner": None,
         },
     )()
     TextualReplApp.action_cancel_request(fake_app)
     assert fake_app._current_request_task is None
+
+
+def test_escape_passes_shell_runner_to_handler() -> None:
+    shell_runner = object()
+    esc_handler = MagicMock()
+    fake_app = type(
+        "FakeApp",
+        (),
+        {
+            "_current_request_task": "worker",
+            "_esc_handler": esc_handler,
+            "_shell_runner": shell_runner,
+        },
+    )()
+
+    TextualReplApp.action_cancel_request(fake_app)
+
+    esc_handler.handle_escape.assert_called_once_with(
+        current_request_task="worker",
+        shell_runner=shell_runner,
+    )
 
 
 def test_bang_toggles_on_when_empty() -> None:

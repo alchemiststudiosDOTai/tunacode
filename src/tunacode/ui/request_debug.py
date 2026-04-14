@@ -394,8 +394,7 @@ class RequestDebugTracer:
 
     @property
     def _enabled(self) -> bool:
-        session = getattr(self._app.state_manager, "session", None)
-        return bool(getattr(session, "debug_mode", False))
+        return self._app.state_manager.session.debug_mode
 
     def _complete_input_probe(self, probe: _PendingInputProbe) -> None:
         if self._pending_input_probe is not probe:
@@ -462,24 +461,8 @@ class RequestDebugTracer:
         )
 
     def _queue_size(self) -> int:
-        queue = getattr(self._app, "request_queue", None)
-        if queue is None:
-            return 0
-
-        qsize = getattr(queue, "qsize", None)
-        if callable(qsize):
-            try:
-                size = qsize()
-            except TypeError:
-                size = 0
-            if isinstance(size, int):
-                return max(0, size)
-
-        items = getattr(queue, "items", None)
-        if isinstance(items, list):
-            return len(items)
-
-        return 0
+        size = self._app.request_queue.qsize()
+        return max(0, size) if isinstance(size, int) else 0
 
     def _emit(self, message: str) -> None:
         get_logger().lifecycle(message)

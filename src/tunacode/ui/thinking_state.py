@@ -12,15 +12,13 @@ if TYPE_CHECKING:
 
 
 def _editor_has_draft(app: TextualReplApp) -> bool:
-    editor = getattr(app, "editor", None)
-    editor_value = getattr(editor, "value", "")
-    return bool(editor_value.strip())
+    return bool(app.editor.value.strip())
 
 
 def _has_recent_editor_keypress(app: TextualReplApp) -> bool:
     if not _editor_has_draft(app):
         return False
-    last_keypress_at = getattr(app, "_last_editor_keypress_at", 0.0)
+    last_keypress_at = app._last_editor_keypress_at
     if last_keypress_at <= 0.0:
         return False
     elapsed_ms = (time.monotonic() - last_keypress_at) * app.MILLISECONDS_PER_SECOND
