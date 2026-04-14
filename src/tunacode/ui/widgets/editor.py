@@ -10,7 +10,6 @@ from rich.cells import cell_len
 from rich.style import Style, StyleType
 from rich.text import Text
 from textual import events
-from textual._context import NoActiveAppError
 from textual.binding import Binding
 from textual.expand_tabs import expand_tabs_inline
 from textual.geometry import Offset, Region, Size
@@ -86,15 +85,10 @@ class Editor(Input):
 
     def on_key(self, event: events.Key) -> None:
         """Handle key events for bash-mode auto-spacing."""
-        if event.character or event.key in {"backspace", "delete"}:
-            try:
-                app = cast(TextualReplApp, self.app)
-            except NoActiveAppError:
-                app = None
-
-            if app is not None:
-                app._last_editor_keypress_at = time.monotonic()
-                app._request_debug.note_editor_keypress(key_label=event.character or event.key)
+        if (event.character or event.key in {"backspace", "delete"}) and self.is_mounted:
+            app = cast(TextualReplApp, self.app)
+            app._last_editor_keypress_at = time.monotonic()
+            app._request_debug.note_editor_keypress(key_label=event.character or event.key)
 
         if self.has_paste_buffer and not self.value and event.key == "backspace":
             event.prevent_default()

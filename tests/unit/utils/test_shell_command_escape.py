@@ -7,7 +7,6 @@ from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
-from textual._context import NoActiveAppError
 
 from tunacode.ui.app import TextualReplApp
 from tunacode.ui.commands import handle_command
@@ -29,17 +28,11 @@ class _FakeKeyEvent:
 class _EditorKeyHandlingStub:
     value: str
     cursor_position: int = 0
-    _app: object | None = None
+    is_mounted: bool = False
     _has_paste_buffer: bool = False
 
     BASH_MODE_PREFIX = Editor.BASH_MODE_PREFIX
     BASH_MODE_PREFIX_WITH_SPACE = Editor.BASH_MODE_PREFIX_WITH_SPACE
-
-    @property
-    def app(self) -> object:
-        if self._app is None:
-            raise NoActiveAppError()
-        return self._app
 
     @property
     def has_paste_buffer(self) -> bool:
