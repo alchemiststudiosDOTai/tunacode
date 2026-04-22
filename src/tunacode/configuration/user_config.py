@@ -14,7 +14,6 @@ from tunacode.constants import MODEL_PICKER_RECENT_LIMIT
 from tunacode.exceptions import ConfigurationError
 from tunacode.types import (
     EnvConfig,
-    LspSettings,
     ModelName,
     RipgrepSettings,
     UserConfig,
@@ -150,15 +149,6 @@ def _validate_ripgrep_settings(value: object) -> RipgrepSettings:
         ),
     )
 
-
-def _validate_lsp_settings(value: object) -> LspSettings:
-    raw_lsp = _require_mapping(value, path="settings.lsp")
-    return LspSettings(
-        enabled=_require_bool(raw_lsp["enabled"], path="settings.lsp.enabled"),
-        timeout=_require_float(raw_lsp["timeout"], path="settings.lsp.timeout"),
-    )
-
-
 def _validate_settings(value: object) -> UserSettings:
     raw_settings = _require_mapping(value, path="settings")
     return UserSettings(
@@ -193,7 +183,6 @@ def _validate_settings(value: object) -> UserSettings:
             path="settings.max_tokens",
         ),
         ripgrep=_validate_ripgrep_settings(raw_settings["ripgrep"]),
-        lsp=_validate_lsp_settings(raw_settings["lsp"]),
     )
 
 
