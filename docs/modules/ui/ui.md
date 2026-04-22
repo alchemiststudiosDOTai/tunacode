@@ -55,7 +55,7 @@ The Textual-based terminal user interface for TunaCode. Handles all user interac
 | `widgets/chat.py` | `ChatContainer` — scrollable chat history with insertion point tracking. `CopyOnSelectStatic` preserves mouse selection for Rich renderables. `SelectableRichVisual` injects offset metadata for selection. |
 | `render_safety.py` | Resolves ANSI/default Rich colors to concrete theme-aware colors and precomputes `dim` styling before Textual 4.0.0 filter handling. Shared by chat rendering and welcome-screen startup output. |
 | `widgets/editor.py` | `Editor` — enhanced single-line input with Enter-submit, bash-mode (`!` prefix), paste buffer for multiline input, and custom rendering. |
-| `widgets/resource_bar.py` | Top status bar displaying token usage percentage, model name, session cost, LSP server status, and compaction activity. |
+| `widgets/resource_bar.py` | Top status bar displaying token usage percentage, model name, session cost, and compaction activity. |
 | `widgets/status_bar.py` | Bottom status bar with 3 zones: git branch/location (left), edited files (mid), last action (right). |
 | `widgets/command_autocomplete.py` | Slash-command auto-completion for the editor. |
 | `widgets/file_autocomplete.py` | File path auto-completion for the editor. |
@@ -311,7 +311,6 @@ The UI layer follows **NeXTSTEP User Interface Guidelines** (see `.claude/skills
 - Generic panels are functional but lack tool-specific formatting.
 - `render_bash` shows exit code and working directory context.
 - `render_read_file` applies syntax highlighting.
-- `render_diagnostics` formats LSP errors with file positions.
 
 **Why slash command system?**
 - Extensible command registration via `COMMANDS` dict.
