@@ -24,7 +24,6 @@ from tunacode.tools.hashline import parse_line_ref
 from tunacode.tools.line_cache import get as _cache_get
 from tunacode.tools.line_cache import replace_range as _cache_replace_range
 from tunacode.tools.line_cache import update_lines as _cache_update_lines
-from tunacode.tools.lsp.diagnostics import maybe_prepend_lsp_diagnostics
 from tunacode.tools.utils.file_errors import translate_file_tool_errors
 
 STALE_REF_MESSAGE = (
@@ -260,7 +259,7 @@ async def _run_hashline_edit(
     cache_mutation()
     diff_text = _make_diff(filepath, original_lines, new_lines)
     output = f"{description}\n\n{diff_text}"
-    return await maybe_prepend_lsp_diagnostics(output, Path(filepath))
+    return output
 
 
 async def _execute_hashline_edit(  # noqa: C901
