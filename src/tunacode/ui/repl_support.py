@@ -41,6 +41,7 @@ CALLBACK_TRUNCATION_NOTICE_LEN: int = len(CALLBACK_TRUNCATION_NOTICE)
 AT_MENTION_PATTERN: re.Pattern[str] = re.compile(r"(?<!\S)@(?P<path>\S+)")
 AT_MENTION_TRAILING_PUNCTUATION: str = ".,:;!?)]}"
 
+
 def _format_prefixed_wrapped_lines(
     lines: list[tuple[str, str]],
     *,

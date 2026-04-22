@@ -57,8 +57,8 @@ from tunacode.ui.repl_support import (
     format_user_message,
     normalize_agent_message_text,
 )
-from tunacode.ui.request_debug import RequestDebugTracer, SubmissionTrace
 from tunacode.ui.request_bridge import RequestUiBridge
+from tunacode.ui.request_debug import RequestDebugTracer, SubmissionTrace
 from tunacode.ui.slopgotchi import (
     SlopgotchiHandler,
     SlopgotchiPanelState,
@@ -790,4 +790,3 @@ class TextualReplApp(App[None]):
         from tunacode.ui.thinking_state import thinking_callback
 
         await thinking_callback(self, delta)
-

@@ -387,7 +387,6 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
             ]
         )
 
-
         content = Group(*content_parts)
 
         timestamp = datetime.now().strftime("%H:%M:%S")

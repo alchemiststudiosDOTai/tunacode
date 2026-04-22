@@ -149,6 +149,7 @@ def _validate_ripgrep_settings(value: object) -> RipgrepSettings:
         ),
     )
 
+
 def _validate_settings(value: object) -> UserSettings:
     raw_settings = _require_mapping(value, path="settings")
     return UserSettings(
