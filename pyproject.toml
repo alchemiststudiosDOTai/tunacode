@@ -160,7 +160,6 @@ section-order = [
     "tunacode.constants*",
     "tunacode.exceptions*",
     "tunacode.indexing*",
-    "tunacode.lsp*",
     "tunacode.prompts*",
     "tunacode.skills*",
     "tunacode.templates*",
