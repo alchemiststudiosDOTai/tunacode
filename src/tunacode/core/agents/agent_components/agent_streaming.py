@@ -35,7 +35,6 @@ from tunacode.core.logging.manager import LogManager, get_logger
 from .. import agent_components as ac
 from ..helpers import (
     _TinyAgentStreamState,
-    extract_tool_result_text,
     is_context_overflow_error,
     parse_canonical_usage,
 )
@@ -97,21 +96,6 @@ class AgentStreamMixin:
         conversation.messages = [*list(agent.state.messages), *external_messages]
         conversation.total_tokens = estimate_messages_tokens(conversation.messages)
 
-    def _remove_in_flight_tool_registry_entries(self, logger: LogManager) -> None:
-        active_stream_state = self._active_stream_state
-        if active_stream_state is None:
-            return
-
-        unresolved_tool_call_ids = set(active_stream_state.active_tool_call_ids)
-        if not unresolved_tool_call_ids:
-            return
-
-        removed_count = self.state_manager.session.runtime.tool_registry.remove_many(
-            unresolved_tool_call_ids
-        )
-        if removed_count > 0:
-            logger.lifecycle(f"Removed {removed_count} in-flight tool call(s) after abort")
-
     def _append_interrupted_partial_message(self) -> None:
         from tinyagent.agent_types import AssistantMessage
 
@@ -145,16 +129,14 @@ class AgentStreamMixin:
     ) -> None:
         """Sync conversation + UI state when the stream dies before AgentEnd.
 
-        Persists agent messages from the pre-stream baseline, drops in-flight tool
-        registry rows, appends a partial [INTERRUPTED] assistant line when needed,
-        and clears ``_active_stream_state``. Success-path code after the stream
-        loop (end logs, ``AgentError`` check) must not run after this.
+        Persists agent messages from the pre-stream baseline, appends a partial
+        [INTERRUPTED] assistant line when needed, and clears ``_active_stream_state``.
+        Success-path code after the stream loop must not run after this.
         """
         active_stream_state = self._active_stream_state
         if agent is not None and active_stream_state is not None:
             self._persist_agent_messages(agent, active_stream_state.baseline_message_count)
 
-        self._remove_in_flight_tool_registry_entries(logger)
         self._append_interrupted_partial_message()
         self._active_stream_state = None
         if invalidate_cache and ac.invalidate_agent_cache(self.model, self.state_manager):
@@ -225,15 +207,8 @@ class AgentStreamMixin:
         _ = (agent, baseline_message_count)
         tool_call_id = event_obj.tool_call_id
         tool_name = event_obj.tool_name
-        args = event_obj.args or {}
         state.tool_start_times[tool_call_id] = time.perf_counter()
         self._mark_tool_start_batch_state(state, tool_call_id=tool_call_id)
-        state.runtime.tool_registry.register(
-            tool_call_id,
-            tool_name,
-            args,
-        )
-        state.runtime.tool_registry.start(tool_call_id)
         if self.tool_start_callback is not None:
             self.tool_start_callback(tool_name)
         return False
@@ -250,17 +225,7 @@ class AgentStreamMixin:
         tool_call_id = event_obj.tool_call_id
         tool_name = event_obj.tool_name
         duration_ms = self._resolve_tool_duration_ms(state, tool_call_id=tool_call_id)
-        result_text = extract_tool_result_text(event_obj.result)
         status = "failed" if event_obj.is_error else "completed"
-
-        if event_obj.is_error:
-            state.runtime.tool_registry.fail(
-                tool_call_id,
-                error=result_text,
-                result=event_obj.result,
-            )
-        else:
-            state.runtime.tool_registry.complete(tool_call_id, result=event_obj.result)
 
         state.active_tool_call_ids.discard(tool_call_id)
         self._clear_tool_batch_state_if_idle(state)
@@ -268,11 +233,10 @@ class AgentStreamMixin:
         if self.tool_result_callback is None:
             return False
 
-        callback_args = state.runtime.tool_registry.get_args(tool_call_id)
         self.tool_result_callback(
             tool_name,
             status,
-            callback_args,
+            {},
             event_obj.result,
             duration_ms,
         )
@@ -290,18 +254,10 @@ class AgentStreamMixin:
         if self.tool_result_callback is None:
             return False
 
-        tool_call_id = event_obj.tool_call_id
-        if event_obj.args is not None:
-            callback_args = event_obj.args
-        else:
-            try:
-                callback_args = state.runtime.tool_registry.get_args(tool_call_id)
-            except ValueError:
-                callback_args = {}
         self.tool_result_callback(
             event_obj.tool_name,
             "running",
-            callback_args,
+            event_obj.args or {},
             event_obj.partial_result,
             None,
         )

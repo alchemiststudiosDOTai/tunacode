@@ -26,7 +26,6 @@ class ClearCommand(Command):
         # PRESERVE messages - needed for /resume
         # PRESERVE total_tokens - represents conversation size
         session.conversation.thoughts = []
-        session.runtime.tool_registry.clear()
         session.conversation.files_in_context = set()
 
         session.runtime.iteration_count = 0

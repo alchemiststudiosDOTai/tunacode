@@ -78,7 +78,7 @@ Routing rules:
 | `help.py` | `/help` | Renders a command table and writes it to chat (`/help`, `/exit`, `!<cmd>`, `exit`). |
 | `exit.py` | `/exit` | Exits the TUI immediately. `exit` is preserved as legacy bare command. |
 | `cancel.py` | `/cancel` | Cancels the current request, shell command, or modal workflow. Requires no args. |
-| `clear.py` | `/clear` | Clears transient runtime artifacts (`thoughts`, `tool_registry`, context state, counters, etc.) and updates UI; conversation history and saved session are preserved for `/resume`. |
+| `clear.py` | `/clear` | Clears transient runtime artifacts (`thoughts`, context state, counters, etc.) and updates UI; conversation history and saved session are preserved for `/resume`. |
 | `compact.py` | `/compact` | Compacts history via compaction controller, emits reclamation notice, skips if no old messages. Requires no args. |
 | `debug.py` | `/debug` | Toggles `session.debug_mode`; updates logger mode; emits on-screen status. |
 | `model.py` | `/model [provider:model-name]` | With arg: validates API key requirements and switches model + persists config. Without arg: opens provider/model picker screens. |

@@ -156,7 +156,6 @@ class RequestOrchestrator(AgentStreamMixin):
         runtime.request_id = request_id
         runtime.current_iteration = 0
         runtime.iteration_count = 0
-        runtime.tool_registry.clear()
         runtime.batch_counter = 0
         session.usage.last_call_usage = UsageMetrics()
         if not session.task.original_query:

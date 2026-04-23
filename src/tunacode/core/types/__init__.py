@@ -14,7 +14,6 @@ _TYPE_EXPORTS = {
     "RuntimeState": ".state_structures",
     "TaskState": ".state_structures",
     "UsageState": ".state_structures",
-    "ToolCallRegistry": ".tool_registry",
 }
 
 
