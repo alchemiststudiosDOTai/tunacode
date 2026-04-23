@@ -39,7 +39,7 @@ class SkillsAutoComplete(AutoComplete):
         # Position above the cursor and keep the dropdown constrained to screen bounds.
         x, y, _width, _height = Region(x - 1, y - height - 1, width, height).constrain(
             "inside",
-            "none",
+            "inside",
             Spacing.all(0),
             self.screen.scrollable_content_region,
         )

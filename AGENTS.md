@@ -1,5 +1,5 @@
 # AGENTS.md
-Last Updated: 2026-04-14
+Last Updated: 2026-04-23
 
 ## Repository Orientation
 - This is `tunacode-cli`, a terminal AI coding agent with a Textual UI and tiny-agent tool loop.
