@@ -35,7 +35,6 @@ from tunacode.core.logging.manager import LogManager, get_logger
 from .. import agent_components as ac
 from ..helpers import (
     _TinyAgentStreamState,
-    canonicalize_tool_result,
     extract_tool_result_text,
     is_context_overflow_error,
     parse_canonical_usage,
@@ -251,11 +250,6 @@ class AgentStreamMixin:
         tool_call_id = event_obj.tool_call_id
         tool_name = event_obj.tool_name
         duration_ms = self._resolve_tool_duration_ms(state, tool_call_id=tool_call_id)
-        canonical_result = canonicalize_tool_result(
-            event_obj.result,
-            tool_name=tool_name,
-            is_error=event_obj.is_error,
-        )
         result_text = extract_tool_result_text(event_obj.result)
         status = "failed" if event_obj.is_error else "completed"
 
@@ -263,10 +257,10 @@ class AgentStreamMixin:
             state.runtime.tool_registry.fail(
                 tool_call_id,
                 error=result_text,
-                result=canonical_result,
+                result=event_obj.result,
             )
         else:
-            state.runtime.tool_registry.complete(tool_call_id, result=canonical_result)
+            state.runtime.tool_registry.complete(tool_call_id, result=event_obj.result)
 
         state.active_tool_call_ids.discard(tool_call_id)
         self._clear_tool_batch_state_if_idle(state)

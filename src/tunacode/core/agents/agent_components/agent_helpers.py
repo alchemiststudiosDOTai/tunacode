@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import cast
 
-from tunacode.types.canonical import CanonicalToolCall
+from tunacode.core.types.tool_registry import ToolCallRecord
 
 RECENT_TOOL_LIMIT = 3
 
@@ -47,7 +47,7 @@ def get_readable_tool_description(tool_name: str, tool_args: ToolArgsView) -> st
 
 
 def get_recent_tools_context(
-    tool_calls: list[CanonicalToolCall], limit: int = RECENT_TOOL_LIMIT
+    tool_calls: list[ToolCallRecord], limit: int = RECENT_TOOL_LIMIT
 ) -> str:
     """Get a context string describing recent tool usage."""
     if not tool_calls:

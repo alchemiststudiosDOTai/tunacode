@@ -7,18 +7,10 @@ from dataclasses import dataclass
 from tinyagent.agent_types import (
     AgentToolResult,
     AssistantMessage,
-    ImageContent,
-    JsonObject,
-    JsonValue,
     TextContent,
 )
 
 from tunacode.types import UsageMetrics
-from tunacode.types.canonical import (
-    CanonicalToolResult,
-    ToolResultImagePart,
-    ToolResultTextPart,
-)
 
 from tunacode.core.types.state_structures import RuntimeState
 
@@ -78,68 +70,3 @@ def extract_tool_result_text(result: AgentToolResult | None) -> str | None:
 
     return "".join(parts) if parts else None
 
-
-def _coerce_json_value(value: object) -> JsonValue:
-    if value is None or isinstance(value, str | int | float | bool):
-        return value
-    if isinstance(value, list):
-        return [_coerce_json_value(item) for item in value]
-    if isinstance(value, dict):
-        coerced: JsonObject = {}
-        for key, item in value.items():
-            if not isinstance(key, str):
-                raise RuntimeError("Tool result details contract violation: non-string detail key")
-            coerced[key] = _coerce_json_value(item)
-        return coerced
-    raise RuntimeError(
-        "Tool result details contract violation: details must contain JSON-serializable values"
-    )
-
-
-def _coerce_tool_result_details(raw_details: object) -> JsonObject:
-    if not isinstance(raw_details, dict):
-        raise RuntimeError("Tool result details contract violation: details must be an object")
-
-    details: JsonObject = {}
-    for key, value in raw_details.items():
-        if not isinstance(key, str):
-            raise RuntimeError("Tool result details contract violation: non-string detail key")
-        details[key] = _coerce_json_value(value)
-    return details
-
-
-def canonicalize_tool_result(
-    result: AgentToolResult | None,
-    *,
-    tool_name: str | None,
-    is_error: bool,
-) -> CanonicalToolResult | None:
-    """Convert a native tinyagent tool result into TunaCode's canonical shape."""
-    if result is None:
-        return None
-
-    content_parts: list[ToolResultTextPart | ToolResultImagePart] = []
-    for item in result.content:
-        if isinstance(item, TextContent):
-            content_parts.append(
-                ToolResultTextPart(
-                    text=item.text,
-                    text_signature=item.text_signature,
-                )
-            )
-            continue
-
-        if isinstance(item, ImageContent):
-            content_parts.append(
-                ToolResultImagePart(
-                    url=item.url,
-                    mime_type=item.mime_type,
-                )
-            )
-
-    return CanonicalToolResult(
-        tool_name=tool_name,
-        content=tuple(content_parts),
-        details=_coerce_tool_result_details(result.details),
-        is_error=is_error,
-    )

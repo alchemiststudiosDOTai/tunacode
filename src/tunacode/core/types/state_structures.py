@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from tinyagent.agent_types import AgentMessage
 
-    from tunacode.types.canonical import UsageMetrics
+    from tunacode.types import UsageMetrics
 
     from tunacode.core.types.tool_registry import ToolCallRegistry
 
@@ -20,7 +20,7 @@ def _build_tool_call_registry() -> ToolCallRegistry:
 
 
 def _build_usage_metrics() -> UsageMetrics:
-    from tunacode.types.canonical import UsageMetrics
+    from tunacode.types import UsageMetrics
 
     return UsageMetrics()
 

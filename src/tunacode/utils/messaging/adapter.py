@@ -1,14 +1,7 @@
-"""Message adapter for converting tinyagent messages and canonical types.
+"""Message helpers for tinyagent message models and JSON payloads.
 
-TunaCode's in-memory runtime uses typed tinyagent message models. Persisted
-session JSON stores the same messages as dictionaries at the explicit
-serialization boundary.
-
-This adapter accepts both representations and converts to TunaCode's canonical
-message dataclasses (``CanonicalMessage`` / ``CanonicalPart``) for
-normalization and tool-history utilities.
-
-Legacy pydantic-ai message formats are intentionally **not** supported.
+TunaCode stores history as typed tinyagent messages in memory and as tinyagent
+JSON dictionaries at persistence boundaries.
 """
 
 from __future__ import annotations
@@ -16,25 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any, TypeAlias, cast
 
-from tinyagent.agent_types import (
-    AgentMessage,
-    JsonObject,
-)
-
-from tunacode.types.canonical import (
-    CanonicalMessage,
-    CanonicalPart,
-    CanonicalToolResult,
-    MessageRole,
-    RetryPromptPart,
-    SystemPromptPart,
-    TextPart,
-    ThoughtPart,
-    ToolCallPart,
-    ToolResultImagePart,
-    ToolResultTextPart,
-    ToolReturnPart,
-)
+from tinyagent.agent_types import AgentMessage, JsonObject
 
 # -----------------------------------------------------------------------------
 # tinyagent message constants
@@ -59,46 +34,21 @@ CONTENT_TYPE_TOOL_CALL: str = "tool_call"
 
 KEY_TEXT: str = "text"
 KEY_THINKING: str = "thinking"
-KEY_ID: str = "id"
-KEY_NAME: str = "name"
-KEY_TOOL_NAME: str = "tool_name"
-KEY_ARGUMENTS: str = "arguments"
 KEY_URL: str = "url"
-KEY_MIME_TYPE: str = "mime_type"
-
 KEY_TOOL_CALL_ID: str = "tool_call_id"
-KEY_DETAILS: str = "details"
-KEY_IS_ERROR: str = "is_error"
+KEY_ID: str = "id"
 
-TEXT_SIGNATURE_KEY: str = "text_signature"
-THINKING_SIGNATURE_KEY: str = "thinking_signature"
-PARTIAL_JSON_KEY: str = "partial_json"
-
-DEFAULT_PARTIAL_JSON: str = ""
 DEFAULT_IMAGE_PLACEHOLDER: str = "[image]"
 
-ROLE_TO_CANONICAL: dict[str, MessageRole] = {
-    ROLE_USER: MessageRole.USER,
-    ROLE_ASSISTANT: MessageRole.ASSISTANT,
-    ROLE_SYSTEM: MessageRole.SYSTEM,
-    ROLE_TOOL_RESULT: MessageRole.TOOL,
-    ROLE_TOOL: MessageRole.TOOL,
-}
-
-CANONICAL_TO_ROLE: dict[MessageRole, str] = {
-    MessageRole.USER: ROLE_USER,
-    MessageRole.ASSISTANT: ROLE_ASSISTANT,
-    MessageRole.SYSTEM: ROLE_SYSTEM,
-    MessageRole.TOOL: ROLE_TOOL_RESULT,
-}
-
 MESSAGE_PAYLOAD: TypeAlias = JsonObject
-MESSAGE_INPUT: TypeAlias = CanonicalMessage | AgentMessage | MESSAGE_PAYLOAD
+MESSAGE_INPUT: TypeAlias = AgentMessage | MESSAGE_PAYLOAD
 
 
-# -----------------------------------------------------------------------------
-# low-level helpers
-# -----------------------------------------------------------------------------
+def _coerce_agent_message_dict(message: MESSAGE_INPUT) -> dict[str, Any]:
+    if isinstance(message, dict):
+        return cast(dict[str, Any], message)
+
+    return message.model_dump(exclude_none=True)
 
 
 def _coerce_role(message: dict[str, Any]) -> str:
@@ -140,24 +90,6 @@ def _coerce_image_item(item: dict[str, Any]) -> str:
     return DEFAULT_IMAGE_PLACEHOLDER
 
 
-def _coerce_tool_call_item(item: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
-    tool_call_id = item.get(KEY_ID)
-    if not isinstance(tool_call_id, str) or not tool_call_id:
-        raise TypeError("tool_call content item is missing non-empty 'id'")
-
-    tool_name = item.get(KEY_NAME)
-    if not isinstance(tool_name, str) or not tool_name:
-        raise TypeError("tool_call content item is missing non-empty 'name'")
-
-    arguments = item.get(KEY_ARGUMENTS, {})
-    if not isinstance(arguments, dict):
-        raise TypeError(
-            f"tool_call '{KEY_ARGUMENTS}' must be a dict, got {type(arguments).__name__}"
-        )
-
-    return tool_call_id, tool_name, cast(dict[str, Any], arguments)
-
-
 def _content_items_to_text(content_items: list[Any]) -> str:
     segments: list[str] = []
 
@@ -181,7 +113,6 @@ def _content_items_to_text(content_items: list[Any]) -> str:
             continue
 
         if item_type == CONTENT_TYPE_TOOL_CALL:
-            # Tool calls are not text content.
             continue
 
         raise ValueError(f"Unsupported content item type: {item_type!r}")
@@ -189,307 +120,79 @@ def _content_items_to_text(content_items: list[Any]) -> str:
     return " ".join(segments)
 
 
-# -----------------------------------------------------------------------------
-# Canonical conversion
-# -----------------------------------------------------------------------------
+def _validate_role(role: str) -> None:
+    if role not in {ROLE_USER, ROLE_ASSISTANT, ROLE_SYSTEM, ROLE_TOOL_RESULT, ROLE_TOOL}:
+        raise ValueError(f"Unsupported agent message role: {role!r}")
 
 
-def _to_canonical_tool_message(message: dict[str, Any]) -> CanonicalMessage:
-    tool_call_id = message.get(KEY_TOOL_CALL_ID)
-    if not isinstance(tool_call_id, str) or not tool_call_id:
-        raise TypeError("tool_result message is missing non-empty 'tool_call_id'")
-
-    tool_name = message.get(KEY_TOOL_NAME)
-    if not isinstance(tool_name, str):
-        tool_name = None
-
-    details = message.get(KEY_DETAILS, {})
-    if not isinstance(details, dict):
-        raise TypeError("tool_result message 'details' must be a dict")
-
-    is_error = message.get(KEY_IS_ERROR, False)
-    if not isinstance(is_error, bool):
-        raise TypeError("tool_result message 'is_error' must be a bool")
-
-    content_parts: list[ToolResultTextPart | ToolResultImagePart] = []
-    for raw_item in _coerce_content_items(message):
-        item = _coerce_content_item(raw_item)
-        item_type = item.get(KEY_TYPE)
-        if item_type == CONTENT_TYPE_TEXT:
-            content_parts.append(
-                ToolResultTextPart(
-                    text=item.get(KEY_TEXT) if isinstance(item.get(KEY_TEXT), str) else None,
-                    text_signature=(
-                        item.get(TEXT_SIGNATURE_KEY)
-                        if isinstance(item.get(TEXT_SIGNATURE_KEY), str)
-                        else None
-                    ),
-                )
-            )
-            continue
-        if item_type == CONTENT_TYPE_IMAGE:
-            content_parts.append(
-                ToolResultImagePart(
-                    url=item.get(KEY_URL) if isinstance(item.get(KEY_URL), str) else None,
-                    mime_type=(
-                        item.get(KEY_MIME_TYPE)
-                        if isinstance(item.get(KEY_MIME_TYPE), str)
-                        else None
-                    ),
-                )
-            )
-            continue
-        raise ValueError(f"Unsupported tool_result content item type: {item_type!r}")
-
-    parts: tuple[CanonicalPart, ...] = (
-        ToolReturnPart(
-            tool_call_id=tool_call_id,
-            result=CanonicalToolResult(
-                tool_name=tool_name,
-                content=tuple(content_parts),
-                details=cast(dict[str, Any], details),
-                is_error=is_error,
-            ),
-        ),
-    )
-    return CanonicalMessage(role=MessageRole.TOOL, parts=parts, timestamp=None)
-
-
-def _system_content_item_to_part(item_type: object, item: dict[str, Any]) -> CanonicalPart:
-    if item_type == CONTENT_TYPE_TEXT:
-        return SystemPromptPart(content=_coerce_text_item(item))
-
-    if item_type == CONTENT_TYPE_IMAGE:
-        return SystemPromptPart(content=_coerce_image_item(item))
-
-    raise ValueError(f"System message content must be text/image, got: {item_type!r}")
-
-
-def _non_system_content_item_to_part(item_type: object, item: dict[str, Any]) -> CanonicalPart:
-    if item_type == CONTENT_TYPE_TEXT:
-        return TextPart(content=_coerce_text_item(item))
-
-    if item_type == CONTENT_TYPE_THINKING:
-        return ThoughtPart(content=_coerce_thinking_item(item))
-
-    if item_type == CONTENT_TYPE_IMAGE:
-        return TextPart(content=_coerce_image_item(item))
-
-    if item_type == CONTENT_TYPE_TOOL_CALL:
-        tool_call_id, tool_name, args = _coerce_tool_call_item(item)
-        return ToolCallPart(tool_call_id=tool_call_id, tool_name=tool_name, args=args)
-
-    raise ValueError(f"Unsupported content item type: {item_type!r}")
-
-
-def _content_items_to_parts(
-    *,
-    canonical_role: MessageRole,
-    content_items: list[Any],
-) -> tuple[CanonicalPart, ...]:
-    parts: list[CanonicalPart] = []
-
-    for raw_item in content_items:
-        if raw_item is None:
-            continue
-
-        item = _coerce_content_item(raw_item)
-        item_type = item.get(KEY_TYPE)
-
-        if canonical_role == MessageRole.SYSTEM:
-            parts.append(_system_content_item_to_part(item_type, item))
-            continue
-
-        parts.append(_non_system_content_item_to_part(item_type, item))
-
-    return tuple(parts)
-
-
-def _coerce_agent_message_dict(message: AgentMessage | MESSAGE_PAYLOAD) -> dict[str, Any]:
-    if isinstance(message, dict):
-        return cast(dict[str, Any], message)
-
-    return message.model_dump(exclude_none=True)
-
-
-def to_canonical(message: MESSAGE_INPUT) -> CanonicalMessage:
-    """Convert a tinyagent message payload to canonical format."""
-
-    if isinstance(message, CanonicalMessage):
-        return message
+def to_canonical(message: MESSAGE_INPUT) -> dict[str, Any]:
+    """Return a normalized tinyagent JSON payload for compatibility callers."""
 
     msg = _coerce_agent_message_dict(message)
-    role_raw = _coerce_role(msg)
-
-    canonical_role = ROLE_TO_CANONICAL.get(role_raw)
-    if canonical_role is None:
-        raise ValueError(f"Unsupported agent message role: {role_raw!r}")
-
-    if role_raw in TOOL_ROLES:
-        return _to_canonical_tool_message(msg)
-
-    content_items = _coerce_content_items(msg)
-    parts = _content_items_to_parts(
-        canonical_role=canonical_role,
-        content_items=content_items,
-    )
-
-    return CanonicalMessage(role=canonical_role, parts=parts, timestamp=None)
+    _validate_role(_coerce_role(msg))
+    return msg
 
 
-def to_canonical_list(messages: Sequence[MESSAGE_INPUT]) -> list[CanonicalMessage]:
-    """Convert a list of messages to canonical format."""
+def to_canonical_list(messages: Sequence[MESSAGE_INPUT]) -> list[dict[str, Any]]:
+    """Return normalized tinyagent JSON payloads for compatibility callers."""
 
     return [to_canonical(msg) for msg in messages]
 
 
-def _tool_message_from_canonical(message: CanonicalMessage) -> dict[str, Any]:
-    tool_return_parts = [p for p in message.parts if isinstance(p, ToolReturnPart)]
-    if len(tool_return_parts) != 1:
-        raise ValueError(
-            "Canonical TOOL messages must contain exactly one ToolReturnPart "
-            f"(got {len(tool_return_parts)})"
-        )
+def from_canonical(message: MESSAGE_PAYLOAD) -> dict[str, Any]:
+    """Return a tinyagent-style dict from a compatibility payload."""
 
-    part = tool_return_parts[0]
-    content_items: list[dict[str, Any]] = []
-    for content_part in part.result.content:
-        if isinstance(content_part, ToolResultTextPart):
-            content_items.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_TEXT,
-                    KEY_TEXT: content_part.text,
-                    TEXT_SIGNATURE_KEY: content_part.text_signature,
-                }
-            )
-            continue
-        if isinstance(content_part, ToolResultImagePart):
-            content_items.append(
-                {
-                    KEY_TYPE: CONTENT_TYPE_IMAGE,
-                    KEY_URL: content_part.url,
-                    KEY_MIME_TYPE: content_part.mime_type,
-                }
-            )
-            continue
-        raise TypeError(f"Unsupported tool result content part: {type(content_part).__name__}")
-
-    return {
-        KEY_ROLE: ROLE_TOOL_RESULT,
-        KEY_TOOL_CALL_ID: part.tool_call_id,
-        KEY_TOOL_NAME: part.result.tool_name,
-        KEY_CONTENT: content_items,
-        KEY_DETAILS: part.result.details,
-        KEY_IS_ERROR: part.result.is_error,
-    }
+    msg = _coerce_agent_message_dict(message)
+    _validate_role(_coerce_role(msg))
+    return msg
 
 
-def _canonical_part_to_content_item(
-    *,
-    message_role: MessageRole,
-    part: CanonicalPart,
-) -> dict[str, Any]:
-    if isinstance(part, TextPart):
-        return {
-            KEY_TYPE: CONTENT_TYPE_TEXT,
-            KEY_TEXT: part.content,
-            TEXT_SIGNATURE_KEY: None,
-        }
-
-    if isinstance(part, ThoughtPart):
-        return {
-            KEY_TYPE: CONTENT_TYPE_THINKING,
-            KEY_THINKING: part.content,
-            THINKING_SIGNATURE_KEY: None,
-        }
-
-    if isinstance(part, SystemPromptPart):
-        if message_role != MessageRole.SYSTEM:
-            raise ValueError("SystemPromptPart is only valid for SYSTEM messages")
-
-        return {
-            KEY_TYPE: CONTENT_TYPE_TEXT,
-            KEY_TEXT: part.content,
-            TEXT_SIGNATURE_KEY: None,
-        }
-
-    if isinstance(part, ToolCallPart):
-        if message_role != MessageRole.ASSISTANT:
-            raise ValueError("ToolCallPart is only valid for ASSISTANT messages")
-
-        return {
-            KEY_TYPE: CONTENT_TYPE_TOOL_CALL,
-            KEY_ID: part.tool_call_id,
-            KEY_NAME: part.tool_name,
-            KEY_ARGUMENTS: part.args,
-            PARTIAL_JSON_KEY: DEFAULT_PARTIAL_JSON,
-        }
-
-    if isinstance(part, RetryPromptPart):
-        # Retry prompts are a legacy abstraction; represent them as text.
-        return {
-            KEY_TYPE: CONTENT_TYPE_TEXT,
-            KEY_TEXT: part.content,
-            TEXT_SIGNATURE_KEY: None,
-        }
-
-    if isinstance(part, ToolReturnPart):
-        raise ValueError("ToolReturnPart must be wrapped in a TOOL message")
-
-    raise TypeError(f"Unsupported canonical part type: {type(part).__name__}")
-
-
-def from_canonical(message: CanonicalMessage) -> dict[str, Any]:
-    """Convert a canonical message back into a tinyagent-style dict."""
-
-    role = CANONICAL_TO_ROLE.get(message.role)
-    if role is None:
-        raise ValueError(f"Unsupported canonical role: {message.role!r}")
-
-    if message.role == MessageRole.TOOL:
-        return _tool_message_from_canonical(message)
-
-    content = [
-        _canonical_part_to_content_item(message_role=message.role, part=part)
-        for part in message.parts
-    ]
-
-    return {KEY_ROLE: role, KEY_CONTENT: content}
-
-
-def from_canonical_list(messages: list[CanonicalMessage]) -> list[dict[str, Any]]:
-    """Convert a list of canonical messages back to tinyagent dict messages."""
+def from_canonical_list(messages: list[MESSAGE_PAYLOAD]) -> list[dict[str, Any]]:
+    """Return tinyagent-style dict messages from compatibility payloads."""
 
     return [from_canonical(msg) for msg in messages]
-
-
-# -----------------------------------------------------------------------------
-# Extraction helpers
-# -----------------------------------------------------------------------------
 
 
 def get_content(message: MESSAGE_INPUT) -> str:
     """Extract normalized text content from any supported message representation."""
 
-    if isinstance(message, CanonicalMessage):
-        return message.get_text_content()
-
-    canonical = to_canonical(message)
-    return canonical.get_text_content()
+    msg = _coerce_agent_message_dict(message)
+    role = _coerce_role(msg)
+    _validate_role(role)
+    return _content_items_to_text(_coerce_content_items(msg))
 
 
 def get_tool_call_ids(message: MESSAGE_INPUT) -> set[str]:
-    """Return tool call IDs present in a message."""
+    """Return tool call IDs present in an assistant message."""
 
-    canonical = to_canonical(message)
-    return canonical.get_tool_call_ids()
+    msg = _coerce_agent_message_dict(message)
+    if _coerce_role(msg) != ROLE_ASSISTANT:
+        return set()
+
+    call_ids: set[str] = set()
+    for raw_item in _coerce_content_items(msg):
+        item = _coerce_content_item(raw_item)
+        if item.get(KEY_TYPE) != CONTENT_TYPE_TOOL_CALL:
+            continue
+        tool_call_id = item.get(KEY_ID)
+        if isinstance(tool_call_id, str) and tool_call_id:
+            call_ids.add(tool_call_id)
+
+    return call_ids
 
 
 def get_tool_return_ids(message: MESSAGE_INPUT) -> set[str]:
-    """Return tool return IDs present in a message."""
+    """Return tool result IDs present in a tool result message."""
 
-    canonical = to_canonical(message)
-    return canonical.get_tool_return_ids()
+    msg = _coerce_agent_message_dict(message)
+    if _coerce_role(msg) not in TOOL_ROLES:
+        return set()
+
+    tool_call_id = msg.get(KEY_TOOL_CALL_ID)
+    if isinstance(tool_call_id, str) and tool_call_id:
+        return {tool_call_id}
+
+    return set()
 
 
 def find_dangling_tool_calls(messages: Sequence[MESSAGE_INPUT]) -> set[str]:
@@ -499,8 +202,7 @@ def find_dangling_tool_calls(messages: Sequence[MESSAGE_INPUT]) -> set[str]:
     return_ids: set[str] = set()
 
     for msg in messages:
-        canonical = to_canonical(msg)
-        call_ids.update(canonical.get_tool_call_ids())
-        return_ids.update(canonical.get_tool_return_ids())
+        call_ids.update(get_tool_call_ids(msg))
+        return_ids.update(get_tool_return_ids(msg))
 
     return call_ids - return_ids
