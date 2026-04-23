@@ -32,11 +32,6 @@ class RipgrepSettings(TypedDict):
     enable_metrics: bool
 
 
-class LspSettings(TypedDict):
-    enabled: bool
-    timeout: float
-
-
 class UserSettings(TypedDict):
     max_retries: int
     max_iterations: int
@@ -48,7 +43,6 @@ class UserSettings(TypedDict):
     max_command_output: int
     max_tokens: int | None
     ripgrep: RipgrepSettings
-    lsp: LspSettings
 
 
 EnvConfig = dict[str, str]

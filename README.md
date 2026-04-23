@@ -19,7 +19,6 @@ A terminal-based AI coding agent with a NeXTSTEP-inspired interface.
 - **Shell access** - Run bash commands with output capture
 - **Repository discovery** - Use `discover` for natural-language code search and repository exploration
 - **Session persistence** - Resume previous conversations with `/resume`
-- **LSP diagnostics** - Real-time code errors after file writes
 - **Themeable UI** - CSS-based theming with NeXTSTEP-inspired design
 - **Text selection + clipboard copy** - Mouse selection works across Rich-rendered chat content; copy with `ctrl+y` or `ctrl+shift+c`
 - **Agent loop** - Powered by [tinyAgent](https://github.com/alchemiststudiosDOTai/tinyAgent)
@@ -152,17 +151,6 @@ Important tool rules:
 - `web_fetch` only fetches public `http` or `https` URLs and blocks localhost, private, and reserved addresses.
 
 <img src="assets/hashline-edit.png" alt="hashline-edit tool in tunacode" width="600"/>
-
-## LSP Integration
-
-Automatic code diagnostics when LSP servers are in PATH:
-
-| Language | Server |
-|----------|--------|
-| Python | `ruff server` |
-| TypeScript/JS | `typescript-language-server` |
-| Go | `gopls` |
-| Rust | `rust-analyzer` |
 
 ## Security
 

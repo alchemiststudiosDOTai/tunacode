@@ -6,7 +6,6 @@ while hosting small, testable helpers and callback builders.
 
 from __future__ import annotations
 
-import logging
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
@@ -37,16 +36,10 @@ FILE_EDIT_TOOLS: frozenset[str] = frozenset({"write_file", "hashline_edit"})
 
 USER_MESSAGE_PREFIX: str = "│ "
 DEFAULT_USER_MESSAGE_WIDTH: int = 80
-DIAGNOSTICS_BLOCK_START: str = "<file_diagnostics>"
-DIAGNOSTICS_BLOCK_END: str = "</file_diagnostics>"
-DIAGNOSTICS_BLOCK_PATTERN: str = f"{DIAGNOSTICS_BLOCK_START}.*?{DIAGNOSTICS_BLOCK_END}"
-DIAGNOSTICS_BLOCK_RE = re.compile(DIAGNOSTICS_BLOCK_PATTERN, re.DOTALL)
 CALLBACK_TRUNCATION_NOTICE: str = "\n... [truncated for safety]"
 CALLBACK_TRUNCATION_NOTICE_LEN: int = len(CALLBACK_TRUNCATION_NOTICE)
 AT_MENTION_PATTERN: re.Pattern[str] = re.compile(r"(?<!\S)@(?P<path>\S+)")
 AT_MENTION_TRAILING_PUNCTUATION: str = ".,:;!?)]}"
-
-logger = logging.getLogger(__name__)
 
 
 def _format_prefixed_wrapped_lines(
@@ -156,25 +149,8 @@ def _truncate_for_safety(content: str | None) -> str | None:
     if len(content) <= MAX_CALLBACK_CONTENT:
         return content
 
-    diagnostics_match = DIAGNOSTICS_BLOCK_RE.match(content)
-    if diagnostics_match is None:
-        if content.startswith(DIAGNOSTICS_BLOCK_START):
-            logger.warning("Diagnostics block missing closing tag; truncating content.")
-        truncation_limit = MAX_CALLBACK_CONTENT - CALLBACK_TRUNCATION_NOTICE_LEN
-        return content[:truncation_limit] + CALLBACK_TRUNCATION_NOTICE
-
-    diagnostics_block = diagnostics_match.group(0)
-    remaining_content = content[len(diagnostics_block) :]
-    diagnostics_len = len(diagnostics_block)
-    remaining_budget = MAX_CALLBACK_CONTENT - diagnostics_len - CALLBACK_TRUNCATION_NOTICE_LEN
-
-    if remaining_budget <= 0:
-        logger.warning("Diagnostics block exceeds safety limit; truncating remainder.")
-        return diagnostics_block + CALLBACK_TRUNCATION_NOTICE
-
-    truncated_remainder = remaining_content[:remaining_budget]
-    truncated_result = f"{diagnostics_block}{truncated_remainder}{CALLBACK_TRUNCATION_NOTICE}"
-    return truncated_result
+    truncation_limit = MAX_CALLBACK_CONTENT - CALLBACK_TRUNCATION_NOTICE_LEN
+    return content[:truncation_limit] + CALLBACK_TRUNCATION_NOTICE
 
 
 def _extract_tool_result_text(result: ToolResult | None) -> str | None:

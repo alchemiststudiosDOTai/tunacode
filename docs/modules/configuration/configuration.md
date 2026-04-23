@@ -27,7 +27,7 @@ User config is now a validated typed schema rather than an ad hoc nested dict. P
 
 | File | Purpose |
 |------|---------|
-| `defaults.py` | `DEFAULT_USER_CONFIG: UserConfig` -- the full typed fallback for every persisted setting, including nested `ripgrep` and `lsp` settings. |
+| `defaults.py` | `DEFAULT_USER_CONFIG: UserConfig` -- the full typed fallback for every persisted setting, including nested `ripgrep` settings. |
 | `user_config.py` | `load_config()` reads `tunacode.json`, deep-merges overrides onto defaults, validates the merged result, and raises `ConfigurationError` for malformed JSON, invalid schema values, or write/read failures. `load_config_with_defaults()` returns a validated full config even when no file exists. |
 | `settings.py` | `ApplicationSettings` dataclass -- app name, version, paths, internal tool list. `PathConfig` resolves `~/.config/tunacode.json`. |
 | `models.py` | `load_models_registry()` parses `models_registry.json` (bundled) and populates the manual models-registry cache. `parse_model_string()` splits `"provider:model_id"`. Read helpers back lazy accessors such as `get_provider_env_var()`, `get_provider_base_url()`, `get_provider_alchemy_api()`, and `get_model_context_window()`. |

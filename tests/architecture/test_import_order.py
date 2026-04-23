@@ -7,6 +7,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT_PARENT_INDEX = 2
 SOURCE_DIR_NAME = "src"
 PACKAGE_NAME = "tunacode"
@@ -32,7 +34,6 @@ SHARED_LAYER_MODULES: tuple[str, ...] = (
     "configuration",
     "constants",
     "exceptions",
-    "lsp",
     "prompts",
     "skills",
     "types",
@@ -210,3 +211,27 @@ def _sorted_imports(
     """Return imports sorted by layer rank and module name."""
 
     return sorted(imports, key=lambda entry: _import_key(entry, config))
+
+
+@pytest.mark.parametrize(
+    "module_info",
+    _discover_modules(SOURCE_CONFIG, REPO_ROOT),
+    ids=_module_id,
+)
+def test_first_party_imports_follow_layer_order(module_info: ModuleInfo) -> None:
+    """First-party imports should follow the repository layer order."""
+
+    imports = _first_party_imports(
+        module_info.path,
+        IMPORT_ORDER_CONFIG,
+        SOURCE_CONFIG.source_encoding,
+    )
+    if len(imports) < MIN_IMPORT_COUNT:
+        return
+
+    expected = _sorted_imports(imports, IMPORT_ORDER_CONFIG)
+    assert imports == expected, (
+        f"{IMPORT_ORDER_ERROR_HEADER}\n"
+        f"{SECTION_ACTUAL}\n{_format_imports(imports)}\n"
+        f"{SECTION_EXPECTED}\n{_format_imports(expected)}"
+    )

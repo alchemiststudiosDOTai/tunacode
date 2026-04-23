@@ -27,7 +27,6 @@ from tunacode.types.base import (  # noqa: F401
     FileSize,
     InputSessions,
     LineNumber,
-    LspSettings,
     ModelName,
     OriginalError,
     RipgrepSettings,

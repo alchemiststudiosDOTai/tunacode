@@ -36,7 +36,6 @@ Each line read by the agent is tagged with a short MD5 content hash (2 hex chara
 - **Automatic cache updates**: Cache stays synchronized after every edit
 - **Trailing newline preservation**: File newline state is retained after writes
 - **Unified diff output**: Standard diff format for review and verification
-- **Optional LSP diagnostics**: Edit results can prepend diagnostics after a write
 
 ### Workflow Flow Diagram
 
@@ -195,7 +194,6 @@ Three edit operations validate against the current cache window before applying 
 - Uses `new.splitlines()` for multi-line replacements and insertions
 - Updates the in-memory cache immediately after writing
 - Returns a unified diff string for the renderer and review flow
-- Prepends LSP diagnostics when any are available for the edited file
 
 **Error Messages:**
 

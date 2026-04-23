@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-from pathlib import Path
 
 from tinyagent.agent_types import (
     AgentTool,
@@ -19,7 +18,6 @@ from tunacode.exceptions import (
     UserAbortError,
 )
 
-from tunacode.tools.lsp.diagnostics import maybe_prepend_lsp_diagnostics
 from tunacode.tools.utils.file_errors import translate_file_tool_errors
 
 _WRITE_FILE_DESCRIPTION = """Write content to a new file. Fails if the file already exists."""
@@ -54,7 +52,7 @@ async def _run_write_file(filepath: str, content: str) -> str:
         file_obj.write(content)
 
     result = f"Successfully wrote to new file: {filepath}"
-    return await maybe_prepend_lsp_diagnostics(result, Path(filepath))
+    return result
 
 
 async def _execute_write_file(

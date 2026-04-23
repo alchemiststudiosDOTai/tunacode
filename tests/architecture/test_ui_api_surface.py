@@ -7,7 +7,6 @@ EXPECTED_FILES = {
     "__init__.py",
     "file_filter.py",
     "formatting.py",
-    "lsp_status.py",
 }
 
 
