@@ -55,14 +55,10 @@ class _FakeBridgeApp:
 class _FakeToolCallbackApp:
     def __init__(self) -> None:
         self.messages: list[object] = []
-        self.lsp_updates: list[str] = []
 
     def post_message(self, message: object) -> bool:
         self.messages.append(message)
         return True
-
-    def update_lsp_for_file(self, filepath: str) -> None:
-        self.lsp_updates.append(filepath)
 
 
 class _FakeStreamingHandler:
@@ -263,7 +259,7 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
     assert notifications == []
 
 
-def test_tool_result_callback_never_calls_update_lsp_for_file_from_request_thread() -> None:
+def test_tool_result_callback_posts_tool_result_display_from_request_thread() -> None:
     app = _FakeToolCallbackApp()
 
     callback = build_tool_result_callback(app)
@@ -275,7 +271,6 @@ def test_tool_result_callback_never_calls_update_lsp_for_file_from_request_threa
         duration_ms=12.0,
     )
 
-    assert app.lsp_updates == []
     assert len(app.messages) == 1
     message = app.messages[0]
     assert isinstance(message, ToolResultDisplay)
@@ -284,12 +279,10 @@ def test_tool_result_callback_never_calls_update_lsp_for_file_from_request_threa
     assert message.args == {"filepath": "src/example.py"}
 
 
-def test_on_tool_result_display_updates_lsp_on_ui_thread_for_file_edits() -> None:
+def test_on_tool_result_display_tracks_edited_files_on_ui_thread() -> None:
     app = TextualReplApp(state_manager=StateManager())
     app.chat_container = _FakeChatContainer()  # type: ignore[assignment]
-    lsp_updates: list[str] = []
     refresh_calls: list[bool] = []
-    app.update_lsp_for_file = lsp_updates.append  # type: ignore[method-assign]
     app._refresh_context_panel = lambda: refresh_calls.append(True)  # type: ignore[method-assign]
     app.tool_panel_max_width = lambda: 80  # type: ignore[method-assign]
 
@@ -309,6 +302,5 @@ def test_on_tool_result_display_updates_lsp_on_ui_thread_for_file_edits() -> Non
         )
 
     assert app.chat_container.calls == ["rendered"]
-    assert lsp_updates == ["src/example.py"]
     assert "src/example.py" in app._edited_files
     assert refresh_calls == [True]

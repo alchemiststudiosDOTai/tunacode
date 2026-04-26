@@ -35,9 +35,5 @@ DEFAULT_USER_CONFIG: UserConfig = {
             "max_results": 100,
             "enable_metrics": False,
         },
-        "lsp": {
-            "enabled": True,
-            "timeout": 5.0,
-        },
     },
 }

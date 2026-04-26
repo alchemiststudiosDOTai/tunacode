@@ -148,7 +148,7 @@ def build_read_file_result(has_more: bool) -> str:
     return f"<file>\n{body}\n</file>"
 
 
-def build_update_file_result(with_diagnostics: bool) -> str:
+def build_update_file_result() -> str:
     message = "File 'src/tunacode/ui/renderers/tools/base.py' updated successfully."
     diff = _dedent(
         """
@@ -162,17 +162,7 @@ def build_update_file_result(with_diagnostics: bool) -> str:
         +        content_parts: list[RenderableType] = [header]
         """
     )
-    diagnostics = ""
-    if with_diagnostics:
-        diagnostics = _dedent(
-            """
-            <file_diagnostics>
-            Warning (line 401): unused import
-            </file_diagnostics>
-            """
-        )
-
-    return "\n\n".join(part for part in [message, diff, diagnostics] if part)
+    return "\n\n".join(part for part in [message, diff] if part)
 
 
 def build_bash_result(exit_code: int) -> str:
@@ -338,16 +328,7 @@ def build_scenarios() -> list[Scenario]:
             tool_name="update_file",
             status="completed",
             args=update_file_args,
-            result=build_update_file_result(with_diagnostics=False),
-            duration_ms=DEFAULT_DURATION_MS,
-        ),
-        Scenario(
-            name="update_file-diagnostics",
-            description="Update file with diagnostics",
-            tool_name="update_file",
-            status="completed",
-            args=update_file_args,
-            result=build_update_file_result(with_diagnostics=True),
+            result=build_update_file_result(),
             duration_ms=DEFAULT_DURATION_MS,
         ),
         Scenario(

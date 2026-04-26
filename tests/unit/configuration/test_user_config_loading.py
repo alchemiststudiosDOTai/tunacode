@@ -20,9 +20,6 @@ def test_load_config_merges_missing_keys_from_defaults(
                 },
                 "settings": {
                     "theme": "tokyo-night",
-                    "lsp": {
-                        "enabled": False,
-                    },
                 },
             }
         )
@@ -49,5 +46,3 @@ def test_load_config_merges_missing_keys_from_defaults(
     assert loaded_config["env"]["ANTHROPIC_API_KEY"] == ""
     assert loaded_config["settings"]["theme"] == "tokyo-night"
     assert loaded_config["settings"]["stream_agent_text"] is False
-    assert loaded_config["settings"]["lsp"]["enabled"] is False
-    assert loaded_config["settings"]["lsp"]["timeout"] == 5.0

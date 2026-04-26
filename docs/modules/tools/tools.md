@@ -37,7 +37,6 @@ Each tool module exports a native `AgentTool` with inline JSON-schema parameters
 | `ignore_manager.py` | Ignore stack implementation. |
 | `utils/` | Shared discover, ripgrep, formatting, and file-error helpers used by active tools. |
 | `cache_accessors/` | Typed cache accessors still used by active tool helpers. |
-| `lsp/` | LSP integration used for diagnostics and post-edit refresh behavior. |
 
 ## Tool Contract Highlights
 
@@ -46,9 +45,9 @@ Each tool module exports a native `AgentTool` with inline JSON-schema parameters
 | `bash` | Required: `command`. Optional: `cwd`, `env`, `timeout`, `capture_output`. | Runs a shell command, validates `timeout` in the `1-600` second range, merges string-only env overrides, and returns formatted command/exit-code/stdout/stderr output with truncation when output exceeds the configured command limit. |
 | `discover` | Required: `query`. Optional: `directory`. | Runs the semantic discovery pipeline and returns structured repository context from `DiscoveryReport.to_context()` instead of raw grep-style matches. |
 | `read_file` | Required: `filepath`. Optional: `offset`, `limit`. | Reads up to `2000` lines by default, rejects files over `100KB`, truncates displayed lines at `2000` characters, wraps output in `<file>...</file>`, replaces the per-file hashline cache with only the returned window, and normalizes filesystem failures through `tools/utils/file_errors.py`. |
-| `hashline_edit` | Required: `filepath`, `operation`. Operation-specific refs: `line`, `start` and `end`, or `after`. Optional: `new`. | Only edits lines present in the current `read_file` cache window, validates `<line>:<hash>` refs, preserves trailing newline state, updates the cache after writes, returns a unified diff, prepends LSP diagnostics when available, and uses the shared file-error translator for filesystem exceptions. |
+| `hashline_edit` | Required: `filepath`, `operation`. Operation-specific refs: `line`, `start` and `end`, or `after`. Optional: `new`. | Only edits lines present in the current `read_file` cache window, validates `<line>:<hash>` refs, preserves trailing newline state, updates the cache after writes, returns a unified diff, and uses the shared file-error translator for filesystem exceptions. |
 | `web_fetch` | Required: `url`. Optional: `timeout`. | Fetches public `http` or `https` content only, blocks localhost/private/reserved targets, re-validates redirect destinations, converts HTML to readable text, caps fetched content at `5MB`, truncates returned text near `100KB`, and returns retryable messages for common HTTP failures. |
-| `write_file` | Required: `filepath`, `content`. | Creates a new file only, auto-creates missing parent directories, refuses to overwrite existing files, prepends LSP diagnostics when available, and uses the shared file-error translator for filesystem exceptions. |
+| `write_file` | Required: `filepath`, `content`. | Creates a new file only, auto-creates missing parent directories, refuses to overwrite existing files, and uses the shared file-error translator for filesystem exceptions. |
 
 Deep dive: [`hashline-subsystem.md`](hashline-subsystem.md) covers the `read_file` to `hashline_edit` cache contract in detail.
 

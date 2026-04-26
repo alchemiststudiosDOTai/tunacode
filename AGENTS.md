@@ -53,7 +53,7 @@ Last Updated: 2026-04-23
 - `src/tunacode/utils/` — adapters, messaging helpers, token counting, gitignore, system utilities.
 - `src/tunacode/types/` — canonical data models, callbacks, protocol types.
 - Shared packages: `src/tunacode/constants.py`, `src/tunacode/exceptions.py`, `src/tunacode/skills/`, `src/tunacode/prompts/`.
-- Notable sub-packages: `src/tunacode/core/ui_api/` (core→UI bridge), `src/tunacode/tools/lsp/` (LSP client integration).
+- Notable sub-packages: `src/tunacode/core/ui_api/` (core→UI bridge).
 
 ## Architecture Boundaries
 - Documented conceptual stack (bottom-up): `types -> utils -> infrastructure -> configuration -> tools -> core -> ui`.

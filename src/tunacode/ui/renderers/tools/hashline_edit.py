@@ -46,7 +46,6 @@ class EditDiffData:
     additions: int
     deletions: int
     hunks: int
-    diagnostics_block: str | None = None
 
 
 DiffLineKind = Literal["context", "insert", "delete", "meta", "pad"]
@@ -64,7 +63,7 @@ class DiffSideBySideLine:
 
 
 class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
-    """Renderer for hashline_edit output with optional diagnostics zone."""
+    """Renderer for hashline_edit output."""
 
     _hunk_header = re.compile(
         r"^@@ -(?P<old_start>\d+)(?:,(?P<old_count>\d+))? "
@@ -76,16 +75,11 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
         if not result:
             return None
 
-        # Extract diagnostics block before parsing diff
-        from tunacode.ui.renderers.tools.diagnostics import extract_diagnostics_from_result
-
-        result_clean, diagnostics_block = extract_diagnostics_from_result(result)
-
         # Split message from diff
-        if "\n--- a/" not in result_clean:
+        if "\n--- a/" not in result:
             return None
 
-        parts = result_clean.split("\n--- a/", 1)
+        parts = result.split("\n--- a/", 1)
         message = parts[0].strip()
         diff_content = "--- a/" + parts[1]
 
@@ -119,7 +113,6 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
             additions=additions,
             deletions=deletions,
             hunks=hunks,
-            diagnostics_block=diagnostics_block,
         )
 
     def build_header(
@@ -363,7 +356,7 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
         duration_ms: float | None,
         max_line_width: int,
     ) -> ToolRenderResult:
-        """Render hashline_edit with NeXTSTEP zoned layout plus optional diagnostics."""
+        """Render hashline_edit with NeXTSTEP zoned layout."""
         data = self.parse_result(args, result)
         if data is None:
             return None
@@ -393,24 +386,6 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
                 status,
             ]
         )
-
-        # Add diagnostics zone if present
-        if data.diagnostics_block:
-            from tunacode.ui.renderers.tools.diagnostics import (
-                parse_diagnostics_block,
-                render_diagnostics_inline,
-            )
-
-            diag_data = parse_diagnostics_block(data.diagnostics_block)
-            if diag_data and diag_data.items:
-                content_parts.extend(
-                    [
-                        Text("\n"),
-                        separator,
-                        Text("\n"),
-                        render_diagnostics_inline(diag_data),
-                    ]
-                )
 
         content = Group(*content_parts)
 

@@ -37,7 +37,7 @@ The system provides 6 core tools: `bash`, `discover`, `read_file`, `hashline_edi
 ├─────────────┴─────────────┴─────────────┴──────────┴────────────┤
 │                      Supporting Modules                          │
 ├─────────────┬─────────────┬─────────────┬──────────┬────────────┤
-│ line_cache  │   ignore    │  utils/     │cache_    │    lsp/    │
+│ line_cache  │   ignore    │  utils/     │cache_    │            │
 │             │             │  ripgrep    │accessors │            │
 └─────────────┴─────────────┴─────────────┴──────────┴────────────┘
 ```
@@ -100,7 +100,7 @@ The `read_file` to `hashline_edit` flow enforces edit safety:
 - Validates `<line>:<hash>` references against cached window
 - Rejects edits to lines not in the current cache
 - Rejects edits if the hash no longer matches (file changed)
-- Returns unified diff and updates LSP diagnostics
+- Returns unified diff
 
 This prevents the model from:
 - Editing lines it hasn't read
@@ -125,9 +125,6 @@ Semantic search pipeline that extracts terms, builds glob patterns, and evaluate
 
 ### cache_accessors/
 Typed caches for ripgrep results, XML prompts, and gitignore state.
-
-### lsp/
-LSP client integration for diagnostics and post-edit refresh.
 
 ## Execution Flow
 

@@ -57,8 +57,8 @@ from tunacode.ui.repl_support import (
     format_user_message,
     normalize_agent_message_text,
 )
-from tunacode.ui.request_debug import RequestDebugTracer, SubmissionTrace
 from tunacode.ui.request_bridge import RequestUiBridge
+from tunacode.ui.request_debug import RequestDebugTracer, SubmissionTrace
 from tunacode.ui.slopgotchi import (
     SlopgotchiHandler,
     SlopgotchiPanelState,
@@ -533,7 +533,6 @@ class TextualReplApp(App[None]):
         filepath = filepath_value.strip()
         if not filepath:
             return
-        self.update_lsp_for_file(filepath)
         self._edited_files.add(filepath)
         self._refresh_context_panel()
 
@@ -791,10 +790,3 @@ class TextualReplApp(App[None]):
         from tunacode.ui.thinking_state import thinking_callback
 
         await thinking_callback(self, delta)
-
-    def update_lsp_for_file(self, filepath: str) -> None:
-        """Update ResourceBar LSP status based on file type."""
-        from tunacode.core.ui_api.lsp_status import get_lsp_server_info
-
-        info = get_lsp_server_info(filepath)
-        self.resource_bar.update_lsp_status(info.server_name, info.available)

@@ -11,7 +11,6 @@ SRC_ROOT = Path(__file__).resolve().parents[2] / "src" / "tunacode"
 
 MAX_INIT_LINES = 80
 INIT_LINE_LIMIT_OVERRIDES = {
-    Path("tools/lsp/__init__.py"): 109,
     Path("types/__init__.py"): 158,
 }
 
