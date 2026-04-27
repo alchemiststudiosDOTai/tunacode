@@ -26,7 +26,7 @@ env: {target: "local", notes: "uv-managed repository environment"}
 
 ### T001 - Remove undefined and string-only renderer taxonomy entries
 - Status: completed
-- Commit: pending
+- Commit: 5ed2e81d
 - Files: src/tunacode/ui/renderers/errors.py
 - Commands: `rg -n "\b(AuthenticationError|StateError|ToolBatchingJSONError)\b" src/tunacode/ui/renderers/errors.py` -> pass, no matches
 - Tests: focused acceptance passed
@@ -34,13 +34,13 @@ env: {target: "local", notes: "uv-managed repository environment"}
 - Notes: Removed `AuthenticationError`, `StateError`, and `ToolBatchingJSONError` from renderer taxonomy data.
 
 ### T002 - Remove unraised imported renderer special cases
-- Status: pending
+- Status: completed
 - Commit: pending
-- Files: pending
-- Commands: pending
-- Tests: pending
+- Files: src/tunacode/ui/renderers/errors.py
+- Commands: `uv run ruff check src/tunacode/ui/renderers/errors.py` -> pass, all checks passed
+- Tests: lint acceptance passed
 - Coverage delta: not measured
-- Notes: pending
+- Notes: Removed unraised imported renderer special cases and kept `ContextOverflowError` model context as a standalone branch.
 
 ### T003 - Add a focused renderer taxonomy regression test
 - Status: pending

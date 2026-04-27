@@ -9,9 +9,6 @@ from tunacode.exceptions import (
     ConfigurationError,
     ContextOverflowError,
     FileOperationError,
-    GitOperationError,
-    ModelConfigurationError,
-    SetupValidationError,
     ToolExecutionError,
     TunaCodeError,
     ValidationError,
@@ -24,13 +21,10 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
     "ToolExecutionError": "error",
     "FileOperationError": "error",
     "AgentError": "error",
-    "GitOperationError": "error",
     "GlobalRequestTimeoutError": "error",
     "ContextOverflowError": "error",
     "ConfigurationError": "warning",
-    "ModelConfigurationError": "warning",
     "ValidationError": "warning",
-    "SetupValidationError": "warning",
     "UserAbortError": "info",
 }
 
@@ -41,12 +35,8 @@ def _extract_tunacode_exception_context(exc: TunaCodeError) -> dict[str, str]:
             return {"Tool": str(tool_name)}
         case FileOperationError(path=path, operation=operation):
             return {"Path": str(path), "Operation": str(operation)}
-        case GitOperationError(operation=operation):
-            return {"Operation": str(operation)}
-        case ModelConfigurationError(model=model) | ContextOverflowError(model=model):
+        case ContextOverflowError(model=model):
             return {"Model": str(model)}
-        case SetupValidationError(validation_type=validation_type):
-            return {"Validation": str(validation_type)}
         case _:
             return {}
 
@@ -72,17 +62,9 @@ DEFAULT_RECOVERY_COMMANDS: dict[str, list[str]] = {
         "tunacode --setup  # Run setup wizard",
         "cat ~/.config/tunacode.json  # Check config",
     ],
-    "ModelConfigurationError": [
-        "/model  # List available models",
-        "tunacode --setup  # Reconfigure",
-    ],
     "FileOperationError": [
         "ls -la <path>  # Check permissions",
         "pwd  # Verify current directory",
-    ],
-    "GitOperationError": [
-        "git status  # Check repository state",
-        "git stash  # Stash uncommitted changes",
     ],
     "GlobalRequestTimeoutError": [
         "Check network connectivity",
