@@ -259,19 +259,6 @@ class SetupValidationError(ValidationError):
         )
 
 
-class TooBroadPatternError(ToolExecutionError):
-    """Raised when a search pattern is too broad and times out."""
-
-    def __init__(self, pattern: str, timeout_seconds: float):
-        self.pattern = pattern
-        self.timeout_seconds = timeout_seconds
-        super().__init__(
-            "grep",
-            f"Pattern '{pattern}' is too broad - no matches found within {timeout_seconds}s. "
-            "Please use a more specific pattern.",
-        )
-
-
 class GlobalRequestTimeoutError(TunaCodeError):
     """Raised when a request exceeds the global timeout limit."""
 
@@ -345,11 +332,3 @@ class ToolRetryError(TunaCodeError):
         super().__init__(message)
         self.original_error = original_error
 
-
-class AggregateToolError(TunaCodeError):
-    """Raised when multiple tools fail in parallel execution after retries exhausted."""
-
-    def __init__(self, failures: list[tuple[str, Exception]]):
-        self.failures = failures
-        tool_names = [name for name, _ in failures]
-        super().__init__(f"Multiple tools failed: {', '.join(tool_names)}")
