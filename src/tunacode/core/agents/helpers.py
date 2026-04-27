@@ -69,4 +69,3 @@ def extract_tool_result_text(result: AgentToolResult | None) -> str | None:
             parts.append(item.text)
 
     return "".join(parts) if parts else None
-
