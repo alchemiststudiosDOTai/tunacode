@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from textual.widgets import Input
 from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
+from tunacode.ui.widgets.autocomplete_positioning import align_autocomplete_above_target
+
 if TYPE_CHECKING:
     from tunacode.core.ui_api.file_filter import FileFilter
 
@@ -20,20 +22,7 @@ class FileAutoComplete(AutoComplete):
 
     def _align_to_target(self) -> None:
         """Align dropdown above the input bar instead of below."""
-        from textual.geometry import Offset, Region, Spacing
-
-        x, y = self.target.cursor_screen_offset
-        dropdown = self.option_list
-        width, height = dropdown.outer_size
-
-        # Position above the cursor and keep the dropdown constrained to screen bounds.
-        x, y, _width, _height = Region(x - 1, y - height - 1, width, height).constrain(
-            "inside",
-            "inside",
-            Spacing.all(0),
-            self.screen.scrollable_content_region,
-        )
-        self.absolute_offset = Offset(x, y)
+        align_autocomplete_above_target(self)
 
     def _get_filter(self) -> FileFilter:
         file_filter = self._filter

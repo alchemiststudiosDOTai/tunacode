@@ -60,6 +60,7 @@ REFACTOR*
 todo.md
 
 # Agent workflow temporary files
+.artifacts/
 .current_scratchpad_file
 .current_qa_log_path
 .qa_temp/

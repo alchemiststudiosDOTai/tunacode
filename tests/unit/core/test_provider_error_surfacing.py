@@ -34,6 +34,23 @@ def test_agent_error_is_in_error_severity_map() -> None:
     assert ERROR_SEVERITY_MAP["AgentError"] == "error"
 
 
+def test_error_severity_map_contains_only_active_taxonomy() -> None:
+    from tunacode.ui.renderers.errors import ERROR_SEVERITY_MAP
+
+    expected_error_types: set[str] = {
+        "ToolExecutionError",
+        "FileOperationError",
+        "AgentError",
+        "GlobalRequestTimeoutError",
+        "ContextOverflowError",
+        "ConfigurationError",
+        "ValidationError",
+        "UserAbortError",
+    }
+
+    assert set(ERROR_SEVERITY_MAP) == expected_error_types
+
+
 def test_agent_error_renders_via_render_exception() -> None:
     from rich.console import Console
 
