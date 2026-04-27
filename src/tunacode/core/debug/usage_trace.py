@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from tunacode.types.canonical import UsageMetrics
+from tunacode.types import UsageMetrics
 
 PERCENT_MULTIPLIER = 100.0
 COST_PRECISION = 6

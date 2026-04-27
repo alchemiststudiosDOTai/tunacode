@@ -12,7 +12,6 @@ from tunacode.types import ToolCallId
 from tunacode.utils.messaging import adapter
 
 from tunacode.core.logging import get_logger
-from tunacode.core.types.tool_registry import ToolCallRegistry
 
 ROLE_USER = "user"
 ROLE_SYSTEM = "system"
@@ -395,10 +394,9 @@ def find_dangling_tool_call_ids(messages: list[object]) -> set[ToolCallId]:
 
 def remove_dangling_tool_calls(
     messages: list[object],
-    tool_registry: ToolCallRegistry,
     dangling_tool_call_ids: set[ToolCallId] | None = None,
 ) -> bool:
-    """Remove dangling tool calls from assistant content, and prune the registry."""
+    """Remove dangling tool calls from assistant content."""
     typed_messages = _parse_messages(messages)
     resolved_dangling_ids = dangling_tool_call_ids or _find_dangling_ids(typed_messages)
     if not resolved_dangling_ids:
@@ -409,7 +407,6 @@ def remove_dangling_tool_calls(
         return False
 
     messages[:] = _serialize_messages(kept_messages)
-    tool_registry.remove_many(resolved_dangling_ids)
     return True
 
 
@@ -443,7 +440,6 @@ def sanitize_history_for_resume(messages: list[object]) -> list[dict[str, object
 
 def run_cleanup_loop(
     messages: list[object],
-    tool_registry: ToolCallRegistry,
 ) -> tuple[bool, set[ToolCallId]]:
     """Run iterative cleanup until message history stabilizes."""
     logger = get_logger()
@@ -462,7 +458,6 @@ def run_cleanup_loop(
         if removed_dangling:
             any_cleanup = True
             total_cleanup_applied = True
-            tool_registry.remove_many(dangling_tool_call_ids)
             logger.lifecycle("Cleaned up dangling tool calls")
 
         if _remove_empty_responses(typed_messages):

@@ -6,7 +6,6 @@ JSON dicts at persistence boundaries.
 This module intentionally supports:
 - tinyagent message models
 - tinyagent dict messages (serialization boundary)
-- :class:`~tunacode.types.canonical.CanonicalMessage`
 
 Legacy pydantic-ai message objects are not supported.
 """
@@ -18,11 +17,10 @@ from typing import TypeAlias
 
 from tinyagent.agent_types import AgentMessage, JsonObject
 
-from tunacode.types.canonical import CanonicalMessage, ToolCallPart
-from tunacode.utils.messaging.adapter import to_canonical
+from tunacode.utils.messaging.adapter import get_content
 
 CHARS_PER_TOKEN: int = 4
-MessageInput: TypeAlias = CanonicalMessage | AgentMessage | JsonObject
+MessageInput: TypeAlias = AgentMessage | JsonObject
 
 
 def estimate_tokens(text: str) -> int:
@@ -39,22 +37,7 @@ def estimate_message_tokens(message: MessageInput) -> int:
     budgeting and compaction heuristics, not billing-accurate accounting.
     """
 
-    canonical = message if isinstance(message, CanonicalMessage) else to_canonical(message)
-
-    total_chars = 0
-    for part in canonical.parts:
-        if isinstance(part, ToolCallPart):
-            total_chars += len(part.tool_call_id) + len(part.tool_name) + len(str(part.args))
-            continue
-
-        content_value = getattr(part, "content", None)
-        if content_value is None:
-            continue
-
-        content_text = content_value if isinstance(content_value, str) else str(content_value)
-        total_chars += len(content_text)
-
-    return total_chars // CHARS_PER_TOKEN
+    return estimate_tokens(get_content(message))
 
 
 def estimate_messages_tokens(messages: Sequence[MessageInput]) -> int:

@@ -4,7 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypeAlias, TypedDict
 
-from tinyagent.agent_types import AgentToolResult
+from tinyagent.agent_types import AgentToolResult, JsonObject
 
 # Identity types - string wrappers for semantic clarity
 ModelName = str
@@ -59,7 +59,7 @@ InputSessions = dict[str, Any]
 AgentConfig = dict[str, Any]
 
 # Tool types
-ToolArgs = dict[str, Any]
+ToolArgs: TypeAlias = JsonObject
 ToolResult: TypeAlias = AgentToolResult
 
 # Error handling types

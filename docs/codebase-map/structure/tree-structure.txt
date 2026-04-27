@@ -53,8 +53,7 @@ src/tunacode/
 │   │   ├── __init__.py
 │   │   ├── agent_state.py
 │   │   ├── state.py
-│   │   ├── state_structures.py
-│   │   └── tool_registry.py
+│   │   └── state_structures.py
 │   ├── ui_api/
 │   │   ├── __init__.py
 │   │   ├── configuration.py

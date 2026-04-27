@@ -65,7 +65,6 @@ The engine. Takes a user message, routes it through a tinyagent `Agent`, handles
 | `state.py` | `SessionStateProtocol` and `StateManagerProtocol` -- structural typing contracts that break circular imports between session and agents. |
 | `state_structures.py` | `ConversationState`, `TaskState`, `RuntimeState`, `UsageState` -- decomposed sub-states slotted into `SessionState`. |
 | `agent_state.py` | `AgentState` enum (`USER_INPUT`, `ASSISTANT`, `TOOL_EXECUTION`, `RESPONSE`). `ResponseState` dataclass for completion tracking. |
-| `tool_registry.py` | `ToolCallRegistry` -- ordered registry tracking each tool call through `PENDING -> RUNNING -> COMPLETED/FAILED/CANCELLED`. |
 
 ### Other
 

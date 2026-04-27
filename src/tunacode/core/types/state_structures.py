@@ -8,19 +8,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from tinyagent.agent_types import AgentMessage
 
-    from tunacode.types.canonical import UsageMetrics
-
-    from tunacode.core.types.tool_registry import ToolCallRegistry
-
-
-def _build_tool_call_registry() -> ToolCallRegistry:
-    from tunacode.core.types.tool_registry import ToolCallRegistry
-
-    return ToolCallRegistry()
+    from tunacode.types import UsageMetrics
 
 
 def _build_usage_metrics() -> UsageMetrics:
-    from tunacode.types.canonical import UsageMetrics
+    from tunacode.types import UsageMetrics
 
     return UsageMetrics()
 
@@ -62,7 +54,6 @@ class RuntimeState:
     request_id: str = DEFAULT_REQUEST_ID
     consecutive_empty_responses: int = DEFAULT_CONSECUTIVE_EMPTY_RESPONSES
     batch_counter: int = DEFAULT_BATCH_COUNTER
-    tool_registry: ToolCallRegistry = field(default_factory=_build_tool_call_registry)
     operation_cancelled: bool = False
     is_streaming_active: bool = False
     streaming_panel: Any | None = None

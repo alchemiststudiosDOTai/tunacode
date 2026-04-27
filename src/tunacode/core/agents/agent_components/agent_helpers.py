@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import cast
-
-from tunacode.types.canonical import CanonicalToolCall
 
 RECENT_TOOL_LIMIT = 3
 
 ToolArgsView = Mapping[str, object]
+ToolCallView = Mapping[str, object]
 
 
 def _describe_read_file(tool_args: ToolArgsView) -> str:
@@ -46,15 +44,16 @@ def get_readable_tool_description(tool_name: str, tool_args: ToolArgsView) -> st
     return f"Executing `{tool_name}`"
 
 
-def get_recent_tools_context(
-    tool_calls: list[CanonicalToolCall], limit: int = RECENT_TOOL_LIMIT
-) -> str:
+def get_recent_tools_context(tool_calls: list[ToolCallView], limit: int = RECENT_TOOL_LIMIT) -> str:
     """Get a context string describing recent tool usage."""
     if not tool_calls:
         return "No tools used yet"
 
     recent_descriptions = [
-        get_tool_description(tool_call.tool_name, _coerce_tool_args(cast(object, tool_call.args)))
+        get_tool_description(
+            str(tool_call.get("tool", "")),
+            _coerce_tool_args(tool_call.get("args", {})),
+        )
         for tool_call in tool_calls[-limit:]
     ]
     return f"Recent tools: {', '.join(recent_descriptions)}"

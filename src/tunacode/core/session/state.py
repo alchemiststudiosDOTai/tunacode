@@ -20,8 +20,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import ValidationError
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
-from tunacode.types import InputSessions, ModelName, SessionId, UserConfig
-from tunacode.types.canonical import UsageMetrics
+from tunacode.types import InputSessions, ModelName, SessionId, UsageMetrics, UserConfig
 from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
