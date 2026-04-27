@@ -7,8 +7,6 @@ from typing import Any
 
 _RENDERER_EXPORTS = {
     "render_exception": ".errors",
-    "render_tool_error": ".errors",
-    "render_user_abort": ".errors",
     "ErrorDisplayData": ".panels",
     "RichPanelRenderer": ".panels",
     "SearchResultData": ".panels",
