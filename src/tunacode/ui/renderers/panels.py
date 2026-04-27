@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from rich.console import Group, RenderableType
@@ -22,7 +22,7 @@ from tunacode.types import ToolResult
 from tunacode.ui.widgets.chat import PanelMeta
 
 
-class PanelType(str, Enum):
+class PanelType(StrEnum):
     TOOL = "tool"
     ERROR = "error"
     SEARCH = "search"

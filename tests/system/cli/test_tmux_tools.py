@@ -80,6 +80,7 @@ def _write_test_config(config_path: Path, api_key: str) -> None:
 
 
 @pytest.mark.integration
+@pytest.mark.tmux
 @pytest.mark.skipif(shutil.which("tmux") is None, reason="Requires tmux")
 @pytest.mark.skipif(
     not _tmux_tests_explicitly_enabled(),

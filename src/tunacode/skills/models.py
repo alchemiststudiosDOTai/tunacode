@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 
-class SkillSource(str, Enum):
+class SkillSource(StrEnum):
     """Filesystem origin for a discovered skill."""
 
     LOCAL = "local"

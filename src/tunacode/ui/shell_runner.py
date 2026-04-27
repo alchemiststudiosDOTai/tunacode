@@ -8,7 +8,7 @@ import signal
 import subprocess
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Protocol
 
 from rich.console import RenderableType
@@ -38,7 +38,7 @@ EXIT_CODE_TIMEOUT = 124
 EXIT_CODE_SPAWN_FAILED = 126
 
 
-class ShellErrorType(str, Enum):
+class ShellErrorType(StrEnum):
     """Classification of shell execution errors."""
 
     TIMEOUT = "timeout"

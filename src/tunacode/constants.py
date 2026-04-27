@@ -8,7 +8,7 @@ Centralizes all magic strings, UI text, error messages, and application constant
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ AUTOCOMPLETE_MAX_DEPTH = 3
 AUTOCOMPLETE_RESULT_LIMIT = 50
 
 
-class ToolName(str, Enum):
+class ToolName(StrEnum):
     """Enumeration of tool names."""
 
     DISCOVER = "discover"
