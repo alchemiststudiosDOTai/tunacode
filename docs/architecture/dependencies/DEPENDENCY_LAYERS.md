@@ -1,28 +1,20 @@
----
-title: Dependency Layers
-summary: Generated layer dependency summary for the current TunaCode codebase.
-when_to_read:
-  - When auditing layer imports or dependency direction.
-  - When regenerating the dependency map artifact.
-last_updated: "2026-04-04"
----
-
 # Dependency Layers
 
-Generated: 2026-02-15
+Generated: 2026-04-27
 
 ## Layer Order (topological)
 
 ```
-ui
-core
-tools
-utils
 configuration
 constants
+core
 exceptions
 infrastructure
+skills
+tools
 types
+ui
+utils
 ```
 
 ## Layer-to-Layer Imports
@@ -32,19 +24,29 @@ types
 | configuration | constants | 6 |
 | configuration | exceptions | 1 |
 | configuration | infrastructure | 2 |
-| configuration | types | 4 |
-| core | configuration | 16 |
-| core | constants | 5 |
+| configuration | types | 6 |
+| core | configuration | 9 |
+| core | constants | 4 |
 | core | exceptions | 3 |
 | core | infrastructure | 3 |
-| core | tools | 10 |
-| core | types | 15 |
+| core | skills | 4 |
+| core | tools | 6 |
+| core | types | 10 |
 | core | utils | 6 |
 | exceptions | types | 1 |
-| infrastructure | types | 1 |
-| tools | configuration | 5 |
-| tools | exceptions | 10 |
-| tools | infrastructure | 3 |
-| ui | core | 58 |
+| infrastructure | configuration | 1 |
+| infrastructure | skills | 1 |
+| infrastructure | types | 3 |
+| skills | core | 1 |
+| skills | infrastructure | 1 |
+| tools | configuration | 2 |
+| tools | exceptions | 7 |
+| tools | infrastructure | 2 |
+| ui | configuration | 17 |
+| ui | constants | 19 |
+| ui | core | 18 |
+| ui | exceptions | 1 |
+| ui | skills | 9 |
+| ui | types | 6 |
+| ui | utils | 3 |
 | utils | configuration | 2 |
-| utils | types | 2 |
