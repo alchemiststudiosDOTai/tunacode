@@ -7,8 +7,6 @@ from rich.console import RenderableType
 from tunacode.exceptions import (
     AgentError,
     ConfigurationError,
-    ContextOverflowError,
-    FileOperationError,
     ToolExecutionError,
     TunaCodeError,
     ValidationError,
@@ -27,18 +25,6 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
     "ValidationError": "warning",
     "UserAbortError": "info",
 }
-
-
-def _extract_tunacode_exception_context(exc: TunaCodeError) -> dict[str, str]:
-    match exc:
-        case ToolExecutionError(tool_name=tool_name):
-            return {"Tool": str(tool_name)}
-        case FileOperationError(path=path, operation=operation):
-            return {"Path": str(path), "Operation": str(operation)}
-        case ContextOverflowError(model=model):
-            return {"Model": str(model)}
-        case _:
-            return {}
 
 
 def _extract_tunacode_exception_metadata(
@@ -79,10 +65,8 @@ def render_exception(exc: Exception) -> tuple[RenderableType, PanelMeta]:
 
     suggested_fix = None
     recovery_commands = None
-    context: dict[str, str] = {}
     if isinstance(exc, TunaCodeError):
         suggested_fix, recovery_commands = _extract_tunacode_exception_metadata(exc)
-        context = _extract_tunacode_exception_context(exc)
 
     if not recovery_commands:
         recovery_commands = DEFAULT_RECOVERY_COMMANDS.get(error_type)
@@ -97,7 +81,6 @@ def render_exception(exc: Exception) -> tuple[RenderableType, PanelMeta]:
         message=message,
         suggested_fix=suggested_fix,
         recovery_commands=recovery_commands,
-        context=context if context else None,
         severity=severity,
     )
 
