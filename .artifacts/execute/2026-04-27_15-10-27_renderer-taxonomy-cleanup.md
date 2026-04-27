@@ -35,7 +35,7 @@ env: {target: "local", notes: "uv-managed repository environment"}
 
 ### T002 - Remove unraised imported renderer special cases
 - Status: completed
-- Commit: pending
+- Commit: 4a454cca
 - Files: src/tunacode/ui/renderers/errors.py
 - Commands: `uv run ruff check src/tunacode/ui/renderers/errors.py` -> pass, all checks passed
 - Tests: lint acceptance passed
@@ -43,13 +43,13 @@ env: {target: "local", notes: "uv-managed repository environment"}
 - Notes: Removed unraised imported renderer special cases and kept `ContextOverflowError` model context as a standalone branch.
 
 ### T003 - Add a focused renderer taxonomy regression test
-- Status: pending
+- Status: completed
 - Commit: pending
-- Files: pending
-- Commands: pending
-- Tests: pending
+- Files: tests/unit/core/test_provider_error_surfacing.py
+- Commands: `uv run pytest tests/unit/core/test_provider_error_surfacing.py -k taxonomy` -> pass, 1 passed, 8 deselected
+- Tests: focused taxonomy regression passed
 - Coverage delta: not measured
-- Notes: pending
+- Notes: Added `test_error_severity_map_contains_only_active_taxonomy` to lock the active taxonomy key set.
 
 ### T004 - Run focused exception renderer validation
 - Status: pending
