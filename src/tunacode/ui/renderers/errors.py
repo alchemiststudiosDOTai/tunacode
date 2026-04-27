@@ -27,14 +27,11 @@ ERROR_SEVERITY_MAP: dict[str, str] = {
     "GitOperationError": "error",
     "GlobalRequestTimeoutError": "error",
     "ContextOverflowError": "error",
-    "ToolBatchingJSONError": "error",
-    "AuthenticationError": "error",
     "ConfigurationError": "warning",
     "ModelConfigurationError": "warning",
     "ValidationError": "warning",
     "SetupValidationError": "warning",
     "UserAbortError": "info",
-    "StateError": "info",
 }
 
 
@@ -78,11 +75,6 @@ DEFAULT_RECOVERY_COMMANDS: dict[str, list[str]] = {
     "ModelConfigurationError": [
         "/model  # List available models",
         "tunacode --setup  # Reconfigure",
-    ],
-    "AuthenticationError": [
-        "/model  # Pick model and enter API key",
-        "tunacode --setup  # Re-run guided setup",
-        "cat ~/.config/tunacode.json  # Verify env key is present",
     ],
     "FileOperationError": [
         "ls -la <path>  # Check permissions",
