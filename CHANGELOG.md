@@ -4,7 +4,7 @@ summary: Release history for TunaCode versions and notable changes.
 when_to_read:
   - When preparing a release note
   - When reviewing past changes or version history
-last_updated: "2026-04-11"
+last_updated: "2026-04-27"
 ---
 
 # Changelog
@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-27
+
 ### Added
 - Added a stale-symbol surface checker, related unit coverage, and lint/pre-push enforcement to catch dead re-export and annotation-only APIs.
 
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified stream orchestration and interrupted-stream cleanup by moving the stream loop into a dedicated module, tracking per-stream baselines, and tightening callback typing.
 - Removed dead agent component helpers and legacy dangling-tool-call patching paths from the runtime cleanup flow.
 - Documented explicit `bug:`/`refactor:` style labels for issues and PRs and clarified that the repository root `README.md` is exempt from markdown frontmatter requirements.
+- Updated release-gate enums to `StrEnum` and restored tmux marker selection for the release E2E test.
 
 ### Fixed
 - Fixed abort-time tool reconciliation so completed tool results are preserved and interrupted tool calls are patched with explicit error results instead of rolling history back.
