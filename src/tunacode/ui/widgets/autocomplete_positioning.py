@@ -14,7 +14,7 @@ def align_autocomplete_above_target(autocomplete: AutoComplete) -> None:
 
     x, y, _width, _height = Region(x - 1, y - height - 1, width, height).constrain(
         "inside",
-        "none",
+        "inside",
         Spacing.all(0),
         autocomplete.screen.scrollable_content_region,
     )
