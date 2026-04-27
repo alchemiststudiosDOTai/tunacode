@@ -10,7 +10,7 @@ created_at: "2026-04-27T15:10:27-05:00"
 owner: "fabian"
 plan_path: ".artifacts/plan/2026-04-27_14-34-08_renderer-taxonomy-cleanup/PLAN.md"
 start_commit: "de44031a"
-end_commit: ""
+end_commit: "final T004 validation commit"
 env: {target: "local", notes: "uv-managed repository environment"}
 ---
 
@@ -44,7 +44,7 @@ env: {target: "local", notes: "uv-managed repository environment"}
 
 ### T003 - Add a focused renderer taxonomy regression test
 - Status: completed
-- Commit: pending
+- Commit: cd6d37f2
 - Files: tests/unit/core/test_provider_error_surfacing.py
 - Commands: `uv run pytest tests/unit/core/test_provider_error_surfacing.py -k taxonomy` -> pass, 1 passed, 8 deselected
 - Tests: focused taxonomy regression passed
@@ -52,20 +52,20 @@ env: {target: "local", notes: "uv-managed repository environment"}
 - Notes: Added `test_error_severity_map_contains_only_active_taxonomy` to lock the active taxonomy key set.
 
 ### T004 - Run focused exception renderer validation
-- Status: pending
-- Commit: pending
-- Files: pending
-- Commands: pending
-- Tests: pending
+- Status: completed
+- Commit: final T004 validation commit
+- Files: src/tunacode/ui/renderers/errors.py; tests/unit/core/test_provider_error_surfacing.py; tests/unit/core/test_exceptions.py
+- Commands: `uv run pytest tests/unit/core/test_exceptions.py tests/unit/core/test_provider_error_surfacing.py` -> pass, 14 passed; `uv run ruff check src/tunacode/exceptions.py src/tunacode/ui/renderers/errors.py tests/unit/core/test_provider_error_surfacing.py` -> pass, all checks passed; `uv run python scripts/check_agents_freshness.py` -> pass
+- Tests: focused validation passed
 - Coverage delta: not measured
-- Notes: pending
+- Notes: Validation-only task; no source edits required.
 
 ## Gate Results
-- Tests: pending
+- Tests: pass, 14 passed
 - Coverage: not measured
 - Type checks: not required by plan
-- Linters: pending
-- Agents freshness: pending
+- Linters: pass
+- Agents freshness: pass
 
 ## Deployment
 - Not applicable.
@@ -74,8 +74,8 @@ env: {target: "local", notes: "uv-managed repository environment"}
 - None.
 
 ## Success Criteria
-- [ ] All planned focused gates passed
-- [ ] Execution log saved
+- [x] All planned focused gates passed
+- [x] Execution log saved
 
 ## Next Steps
 - QA from execute using this execution log path.
