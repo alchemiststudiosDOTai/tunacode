@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from textual.widgets import Input
 from textual_autocomplete import AutoComplete, DropdownItem, DropdownItemHit, TargetState
 
+from tunacode.ui.widgets.autocomplete_positioning import align_autocomplete_above_target
+
 if TYPE_CHECKING:
     from tunacode.skills.models import SkillSummary
 
@@ -27,6 +29,10 @@ class SkillsAutoComplete(AutoComplete):
 
     def __init__(self, target: Input) -> None:
         super().__init__(target)
+
+    def _align_to_target(self) -> None:
+        """Align dropdown above the input bar instead of below."""
+        align_autocomplete_above_target(self)
 
     def _list_skill_summaries(self) -> list[SkillSummary]:
         from tunacode.skills.registry import list_skill_summaries

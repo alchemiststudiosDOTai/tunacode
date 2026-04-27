@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from textual.widgets import Input
 from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
+from tunacode.ui.widgets.autocomplete_positioning import align_autocomplete_above_target
+
 if TYPE_CHECKING:
     from tunacode.core.ui_api.file_filter import FileFilter
 
@@ -17,6 +19,10 @@ class FileAutoComplete(AutoComplete):
     def __init__(self, target: Input) -> None:
         self._filter: FileFilter | None = None
         super().__init__(target)
+
+    def _align_to_target(self) -> None:
+        """Align dropdown above the input bar instead of below."""
+        align_autocomplete_above_target(self)
 
     def _get_filter(self) -> FileFilter:
         file_filter = self._filter
