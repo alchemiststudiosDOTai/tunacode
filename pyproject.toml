@@ -268,6 +268,7 @@ DEP002 = [
     "pytest-randomly",
     "pytest-timeout",
     "pytest-json-report",
+    "pytest-rerunfailures",
     "hypothesis",
     "mypy",
     "bandit",

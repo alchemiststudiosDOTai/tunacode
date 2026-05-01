@@ -331,4 +331,3 @@ class ToolRetryError(TunaCodeError):
     def __init__(self, message: str, original_error: OriginalError = None):
         super().__init__(message)
         self.original_error = original_error
-
