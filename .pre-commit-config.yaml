@@ -149,6 +149,14 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
+      # Detect flaky tests from historical JSON reports
+      - id: flaky-tests
+        name: Check for flaky tests
+        entry: uv run python scripts/check-flaky-tests.py
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
       - id: ast-grep-getattr-ratchet
         name: Run ast-grep getattr ratchet
         entry: scripts/run_ast_grep_checks.sh
