@@ -18,6 +18,11 @@ from statistics import mean, stdev
 REPORTS_DIR = Path(".test_reports")
 MIN_RUNS = 3  # require at least this many runs to detect flakiness
 
+# Markers that indicate tests with inherent external-dependency variance.
+# These tests are excluded from duration-variance checks because their
+# timing depends on network, API keys, or tmux sessions rather than code stability.
+EXTERNAL_DEPENDENCY_MARKERS = {"integration", "tmux", "flaky"}
+
 
 def load_reports() -> list[dict]:
     """Load all archived JSON test reports sorted by timestamp."""
@@ -49,10 +54,17 @@ def detect_outcome_flaky(reports: list[dict]) -> list[str]:
 
 
 def detect_duration_flaky(reports: list[dict], coefficient_threshold: float = 0.5) -> list[str]:
-    """Find tests with high duration variance across runs (CV > threshold)."""
+    """Find tests with high duration variance across runs (CV > threshold).
+
+    Excludes tests marked integration, tmux, or flaky since their timing
+    inherently depends on external resources (API keys, tmux sessions).
+    """
     test_durations: dict[str, list[float]] = defaultdict(list)
     for report in reports:
         for test in report.get("tests", []):
+            keywords = set(test.get("keywords", []))
+            if keywords & EXTERNAL_DEPENDENCY_MARKERS:
+                continue
             duration = test.get("call", {}).get("duration", 0)
             if duration > 0:
                 test_durations[test["nodeid"]].append(duration)
