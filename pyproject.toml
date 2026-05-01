@@ -55,6 +55,7 @@ dev = [
     "pytest-randomly>=3.15.0",  # Test isolation - randomize test order
     "pytest-timeout>=2.3.1",    # Test isolation - prevent hanging tests
     "pytest-json-report>=1.5.0",  # JSON test reports for historical tracking
+    "pytest-rerunfailures>=14",  # Flaky test detection - retry failed tests
     "hypothesis>=6.150.0",
 
     # Code quality and linting
@@ -267,6 +268,7 @@ DEP002 = [
     "pytest-randomly",
     "pytest-timeout",
     "pytest-json-report",
+    "pytest-rerunfailures",
     "hypothesis",
     "mypy",
     "bandit",
@@ -347,6 +349,7 @@ dev = [
     "pytest-randomly>=3.15.0", # Test isolation - randomize test order
     "pytest-timeout>=2.3.1", # Test isolation - prevent hanging tests
     "pytest-json-report>=1.5.0", # JSON test reports for historical tracking
+    "pytest-rerunfailures>=14", # Flaky test detection - retry failed tests
     "hypothesis>=6.150.0",
 
     # Code quality and linting
