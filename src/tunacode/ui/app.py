@@ -65,6 +65,8 @@ from tunacode.ui.slopgotchi import (
 )
 from tunacode.ui.streaming import StreamingHandler
 from tunacode.ui.styles import STYLE_PRIMARY, STYLE_SUCCESS, STYLE_WARNING
+from tunacode.ui.thinking_state import ThinkingState
+
 from tunacode.ui.widgets import (
     ChatContainer,
     CommandAutoComplete,
@@ -149,10 +151,9 @@ class TextualReplApp(App[None]):
         self._slopgotchi_timer: Timer | None = None
         self._request_bridge: RequestUiBridge | None = None
         self._delta_flush_timer: Timer | None = None
-
-        self._current_thinking_text: str = ""
-        self._last_thinking_update: float = 0.0
         self._last_editor_keypress_at: float = 0.0
+
+        self._thinking_state = ThinkingState(self)
         self._request_debug = RequestDebugTracer(self)
 
     def compose(self) -> ComposeResult:
@@ -298,7 +299,7 @@ class TextualReplApp(App[None]):
         thinking_callback_ms = 0.0
         if thinking_batch.has_data:
             thinking_started_at = time.monotonic()
-            await self._thinking_callback(thinking_batch.text)
+            await self._thinking_state.callback(thinking_batch.text)
             thinking_callback_ms = (
                 time.monotonic() - thinking_started_at
             ) * self.MILLISECONDS_PER_SECOND
@@ -326,7 +327,7 @@ class TextualReplApp(App[None]):
         if not self._loading_indicator_shown:
             self._request_debug.loading_shown(reason="request_start")
         self._show_loading_indicator()
-        self._clear_thinking_state()
+        self._thinking_state.clear()
         bridge = RequestUiBridge(self)
         self._request_bridge = bridge
         self._start_delta_flush_timer()
@@ -398,7 +399,7 @@ class TextualReplApp(App[None]):
             self._hide_loading_indicator()
             self.query_one("#viewport").remove_class(RICHLOG_CLASS_STREAMING)
             self.streaming.reset()
-            self._finalize_thinking_state_after_request()
+            self._thinking_state.finalize()
             self._update_compaction_status(False)
             response_panel_ms = 0.0
             response_char_count = 0
@@ -765,28 +766,3 @@ class TextualReplApp(App[None]):
         )
         if self._context_panel_visible:
             self._refresh_context_panel()
-
-    def _hide_thinking_output(self) -> None:
-        from tunacode.ui.thinking_state import hide_thinking_output
-
-        hide_thinking_output(self)
-
-    def _clear_thinking_state(self) -> None:
-        from tunacode.ui.thinking_state import clear_thinking_state
-
-        clear_thinking_state(self)
-
-    def _finalize_thinking_state_after_request(self) -> None:
-        from tunacode.ui.thinking_state import finalize_thinking_state_after_request
-
-        finalize_thinking_state_after_request(self)
-
-    def _refresh_thinking_output(self, force: bool = False) -> None:
-        from tunacode.ui.thinking_state import refresh_thinking_output
-
-        refresh_thinking_output(self, force)
-
-    async def _thinking_callback(self, delta: str) -> None:
-        from tunacode.ui.thinking_state import thinking_callback
-
-        await thinking_callback(self, delta)

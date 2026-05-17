@@ -1,5 +1,5 @@
 # AGENTS.md
-Last Updated: 2026-04-27
+Last Updated: 2026-05-17
 
 ## Repository Orientation
 - This is `tunacode-cli`, a terminal AI coding agent with a Textual UI and tiny-agent tool loop.
@@ -61,7 +61,7 @@ Last Updated: 2026-04-27
   - Allowed import direction: `ui -> core -> tools`, with shared-layer imports from `utils`, `types`, `configuration`, `constants`, `exceptions`.
 - Import ordering test: `tests/architecture/test_import_order.py`.
   - Layer order constant includes shared modules (`configuration, constants, exceptions, prompts, skills, types, utils`) then layered modules (`tools, infrastructure, core, ui`).
-- Public-init constraint: `tests/architecture/test_init_bloat.py`.
+- Public-init constraint: `tests/architecture/test_imports_in_init.py`.
 - Dependency map regeneration pipeline: `scripts/grimp_layers_report.py`, committed to `docs/architecture/dependencies/` by workflow.
 
 ## Documentation Sources to Trust
@@ -98,7 +98,7 @@ Last Updated: 2026-04-27
   - `uv run pytest`
   - `uv run pytest tests/test_dependency_layers.py -v`
   - `uv run pytest tests/architecture/test_import_order.py`
-  - `uv run pytest tests/architecture/test_init_bloat.py`
+  - `uv run pytest tests/architecture/test_imports_in_init.py`
   - `uv run python scripts/run_gates.py`
   - `uv run python scripts/check_agents_freshness.py`
   - `uv run python scripts/generate_structure_tree.py`
