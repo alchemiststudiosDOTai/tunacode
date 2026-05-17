@@ -22,9 +22,9 @@ class ThoughtsCommand(Command):
         session.show_thoughts = not session.show_thoughts
 
         if session.show_thoughts:
-            app._refresh_thinking_output(force=True)
+            app._thinking_state.refresh(force=True)
             app.notify("Thought panel: ON")
             return
 
-        app._hide_thinking_output()
+        app._thinking_state.hide()
         app.notify("Thought panel: OFF")

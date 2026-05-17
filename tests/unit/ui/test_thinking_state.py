@@ -3,10 +3,7 @@ from __future__ import annotations
 import time
 from types import SimpleNamespace
 
-from tunacode.ui.thinking_state import (
-    finalize_thinking_state_after_request,
-    refresh_thinking_output,
-)
+from tunacode.ui.thinking_state import ThinkingState
 
 
 class _FakeThinkingWidget:
@@ -46,41 +43,41 @@ class _FakeApp:
     def __init__(self) -> None:
         self.state_manager = SimpleNamespace(session=SimpleNamespace(show_thoughts=True))
         self.editor = SimpleNamespace(value="draft")
-        self._current_thinking_text = "live thought"
-        self._last_thinking_update = 0.0
         self._last_editor_keypress_at = 0.0
         self._thinking_panel_widget = _FakeThinkingWidget()
         self.chat_container = _FakeChatContainer()
+        self._thinking_state = ThinkingState(self)
+        self._thinking_state._text = "live thought"
 
 
-def test_refresh_thinking_output_defers_incremental_update_while_user_is_actively_typing() -> None:
+def test_refresh_defers_incremental_update_while_user_is_actively_typing() -> None:
     app = _FakeApp()
-    app._last_thinking_update = time.monotonic() - 1.0
+    app._thinking_state._last_update = time.monotonic() - 1.0
     app._last_editor_keypress_at = time.monotonic()
 
-    refresh_thinking_output(app)
+    app._thinking_state.refresh()
 
     assert app._thinking_panel_widget.updates == []
 
 
-def test_refresh_thinking_output_force_bypasses_recent_keypress_deferral() -> None:
+def test_refresh_force_bypasses_recent_keypress_deferral() -> None:
     app = _FakeApp()
-    app._last_thinking_update = time.monotonic() - 1.0
+    app._thinking_state._last_update = time.monotonic() - 1.0
     app._last_editor_keypress_at = time.monotonic()
 
-    refresh_thinking_output(app, force=True)
+    app._thinking_state.refresh(force=True)
 
     assert len(app._thinking_panel_widget.updates) == 1
     assert "active" in app._thinking_panel_widget.classes
 
 
-def test_finalize_thinking_state_moves_final_thoughts_into_chat_history() -> None:
+def test_finalize_moves_final_thoughts_into_chat_history() -> None:
     app = _FakeApp()
 
-    finalize_thinking_state_after_request(app)
+    app._thinking_state.finalize()
 
     assert len(app.chat_container.calls) == 1
     _content, kwargs = app.chat_container.calls[0]
     assert kwargs["expand"] is True
-    assert app._current_thinking_text == ""
+    assert app._thinking_state._text == ""
     assert "active" not in app._thinking_panel_widget.classes

@@ -52,6 +52,22 @@ class _FakeBridgeApp:
         return True
 
 
+class _FakeThinkingState:
+    def __init__(self) -> None:
+        self.chunks: list[str] = []
+        self.cleared = False
+        self.finalized = False
+
+    async def callback(self, chunk: str) -> None:
+        self.chunks.append(chunk)
+
+    def clear(self) -> None:
+        self.cleared = True
+
+    def finalize(self) -> None:
+        self.finalized = True
+
+
 class _FakeToolCallbackApp:
     def __init__(self) -> None:
         self.messages: list[object] = []
@@ -177,12 +193,8 @@ async def test_flush_timer_applies_queued_deltas_to_streaming_handler() -> None:
     app = TextualReplApp(state_manager=StateManager())
     app._request_bridge = RequestUiBridge(_FakeBridgeApp())
     app.streaming = _FakeStreamingHandler()  # type: ignore[assignment]
-    thinking_chunks: list[str] = []
-
-    async def _fake_thinking_callback(chunk: str) -> None:
-        thinking_chunks.append(chunk)
-
-    app._thinking_callback = _fake_thinking_callback  # type: ignore[method-assign]
+    thinking_state = _FakeThinkingState()
+    app._thinking_state = thinking_state  # type: ignore[assignment]
 
     await app._request_bridge.streaming_callback("hello")
     await app._request_bridge.streaming_callback(" world")
@@ -191,7 +203,7 @@ async def test_flush_timer_applies_queued_deltas_to_streaming_handler() -> None:
     await app._flush_request_deltas()
 
     assert app.streaming.chunks == ["hello world"]
-    assert thinking_chunks == ["trace data"]
+    assert thinking_state.chunks == ["trace data"]
 
 
 def test_escape_handler_cancels_worker_handle() -> None:
@@ -226,8 +238,7 @@ async def test_process_request_runs_in_worker_and_sets_current_request_handle() 
     app.set_interval = lambda *_args, **_kwargs: timer  # type: ignore[method-assign]
     app._show_loading_indicator = lambda: None  # type: ignore[method-assign]
     app._hide_loading_indicator = lambda: None  # type: ignore[method-assign]
-    app._clear_thinking_state = lambda: None  # type: ignore[method-assign]
-    app._finalize_thinking_state_after_request = lambda: None  # type: ignore[method-assign]
+    app._thinking_state = _FakeThinkingState()  # type: ignore[assignment]
     app._update_resource_bar = lambda: None  # type: ignore[method-assign]
     app._get_latest_response_text = lambda: None  # type: ignore[method-assign]
     app._update_compaction_status = compaction_updates.append  # type: ignore[method-assign]
