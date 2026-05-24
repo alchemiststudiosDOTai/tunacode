@@ -26,6 +26,8 @@ class _FakeThinkingWidget:
 class _FakeChatContainer:
     def __init__(self) -> None:
         self.calls: list[tuple[object, dict[str, object]]] = []
+        self.content_region = SimpleNamespace(width=88)
+        self.size = SimpleNamespace(width=90)
 
     def write(self, content: object, **kwargs: object) -> None:
         self.calls.append((content, dict(kwargs)))
@@ -46,6 +48,7 @@ class _FakeApp:
         self._last_editor_keypress_at = 0.0
         self._thinking_panel_widget = _FakeThinkingWidget()
         self.chat_container = _FakeChatContainer()
+        self.size = SimpleNamespace(width=100)
         self._thinking_state = ThinkingState(self)
         self._thinking_state._text = "live thought"
 
@@ -78,6 +81,7 @@ def test_finalize_moves_final_thoughts_into_chat_history() -> None:
 
     assert len(app.chat_container.calls) == 1
     _content, kwargs = app.chat_container.calls[0]
-    assert kwargs["expand"] is True
+    assert kwargs["width"] == 86
+    assert "expand" not in kwargs
     assert app._thinking_state._text == ""
     assert "active" not in app._thinking_panel_widget.classes

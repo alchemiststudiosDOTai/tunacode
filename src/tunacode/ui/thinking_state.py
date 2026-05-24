@@ -11,6 +11,9 @@ if TYPE_CHECKING:
     from tunacode.ui.app import TextualReplApp
 
 
+THINKING_PANEL_HORIZONTAL_MARGIN = 2
+
+
 class ThinkingState:
     """Encapsulates live thinking-panel state and rendering logic."""
 
@@ -57,7 +60,7 @@ class ThinkingState:
         self._last_update = 0.0
         self.hide()
 
-    def refresh(self, force: bool = False) -> None:
+    def refresh(self, *, force: bool = False) -> None:
         """Throttled render of the live thinking panel."""
         if not self._app.state_manager.session.show_thoughts:
             return
@@ -90,6 +93,15 @@ class ThinkingState:
         widget.update(content)
         widget.add_class("active")
 
+    def _final_panel_width(self) -> int:
+        width_candidates = [
+            self._app.chat_container.content_region.width,
+            self._app.chat_container.size.width,
+            self._app.size.width,
+        ]
+        content_width = next((width for width in width_candidates if width > 0), 1)
+        return max(1, content_width - THINKING_PANEL_HORIZONTAL_MARGIN)
+
     def finalize(self) -> None:
         """After a request completes, persist a final thinking panel into chat history."""
         if not self._app.state_manager.session.show_thoughts:
@@ -106,7 +118,11 @@ class ThinkingState:
             max_lines=self._app.THINKING_MAX_RENDER_LINES,
             max_chars=self._app.THINKING_MAX_RENDER_CHARS,
         )
-        self._app.chat_container.write(content, expand=True, panel_meta=meta)
+        self._app.chat_container.write(
+            content,
+            width=self._final_panel_width(),
+            panel_meta=meta,
+        )
         self.clear()
 
     async def callback(self, delta: str) -> None:
