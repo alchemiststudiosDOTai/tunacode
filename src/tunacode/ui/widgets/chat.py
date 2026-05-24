@@ -276,6 +276,7 @@ class ChatContainer(VerticalScroll):
         renderable: RenderableType | tuple[RenderableType, PanelMeta],
         *,
         expand: bool = False,
+        width: int | None = None,
         panel_meta: PanelMeta | None = None,
     ) -> CopyOnSelectStatic:
         """Append a renderable to the chat container.
@@ -285,6 +286,7 @@ class ChatContainer(VerticalScroll):
         Args:
             renderable: Rich renderable or ``(RenderableType, PanelMeta)`` tuple.
             expand: If True, widget expands to fill available width.
+            width: Optional explicit widget width in cells.
             panel_meta: Optional panel metadata for CSS-styled borders.
 
         Returns:
@@ -294,7 +296,9 @@ class ChatContainer(VerticalScroll):
 
         widget = CopyOnSelectStatic(panel_content)
         widget.add_class("chat-message")
-        if expand:
+        if width is not None:
+            widget.styles.width = max(1, width)
+        elif expand:
             widget.add_class("expand")
 
         if panel_meta is not None:
