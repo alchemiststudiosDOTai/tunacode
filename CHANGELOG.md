@@ -4,7 +4,7 @@ summary: Release history for TunaCode versions and notable changes.
 when_to_read:
   - When preparing a release note
   - When reviewing past changes or version history
-last_updated: "2026-04-27"
+last_updated: "2026-06-22"
 ---
 
 # Changelog
@@ -15,6 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.2] - 2026-06-22
+
+### Changed
+- Moved thinking panel state management out of the app layer and addressed follow-up review feedback.
+- Bumped `tiny-agent-os` to `1.2.28` and moved max-iteration enforcement to tinyagent's `should_stop_after_turn` hook so capped tool loops end through the normal turn-completion path.
+- Updated the system prompt to tell the agent how to report progress when configured turn limits stop further tool calls.
 
 ## [0.2.1] - 2026-04-27
 
