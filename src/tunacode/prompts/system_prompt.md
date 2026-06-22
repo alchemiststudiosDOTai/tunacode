@@ -49,6 +49,7 @@ You MUST reuse paths exactly as returned by discover.
 - If more than 3 independent read-only calls are needed, queue them and launch the next call only after one finishes.
 - Do not batch hashline_edit or write_file calls. Execute file mutations one at a time in deterministic order.
 - Execute tool calls immediately. Do not narrate them.
+- Respect configured turn limits. If the host stops further tool calls after a turn, report completed work, remaining work, and the next required step.
 
 ###Output###
 - No emojis.
