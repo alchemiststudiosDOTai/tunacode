@@ -33,7 +33,7 @@ from tunacode.core.logging.manager import get_logger
 from tunacode.core.types.state import StateManagerProtocol
 
 from . import agent_components as ac
-from .agent_components.agent_config import _coerce_global_request_timeout, _coerce_max_iterations
+from .agent_components.agent_config import _coerce_global_request_timeout
 from .agent_components.agent_streaming import AgentStreamMixin
 from .helpers import (
     CONTEXT_OVERFLOW_FAILURE_NOTICE,
@@ -91,7 +91,7 @@ class RequestOrchestrator(AgentStreamMixin):
             logger.lifecycle("Agent cache invalidated after timeout")
 
     async def _run_impl(self) -> Agent:
-        max_iterations = self._initialize_request()
+        self._initialize_request()
         logger = get_logger()
         logger.info("Request started", request_id=self.state_manager.session.runtime.request_id)
 
@@ -139,17 +139,15 @@ class RequestOrchestrator(AgentStreamMixin):
 
         await self._run_stream(
             agent=agent,
-            max_iterations=max_iterations,
             baseline_message_count=baseline_message_count,
         )
         await self._retry_after_context_overflow_if_needed(
             agent=agent,
-            max_iterations=max_iterations,
             pre_request_history=pre_request_history,
         )
         return agent
 
-    def _initialize_request(self) -> int:
+    def _initialize_request(self) -> None:
         request_id = str(uuid.uuid4())[:REQUEST_ID_LENGTH]
         session = self.state_manager.session
         runtime = session.runtime
@@ -160,7 +158,6 @@ class RequestOrchestrator(AgentStreamMixin):
         session.usage.last_call_usage = UsageMetrics()
         if not session.task.original_query:
             session.task.original_query = self.message
-        return _coerce_max_iterations(session)
 
     def _maybe_emit_compaction_notice(self, outcome: CompactionOutcome) -> None:
         if self.notice_callback is None:
@@ -193,7 +190,6 @@ class RequestOrchestrator(AgentStreamMixin):
         self,
         *,
         agent: Agent,
-        max_iterations: int,
         pre_request_history: list[AgentMessage],
     ) -> None:
         error_text = self._agent_error_text(agent)
@@ -212,7 +208,6 @@ class RequestOrchestrator(AgentStreamMixin):
         self.state_manager.session._debug_raw_stream_accum = ""
         await self._run_stream(
             agent=agent,
-            max_iterations=max_iterations,
             baseline_message_count=len(conversation.messages),
         )
 

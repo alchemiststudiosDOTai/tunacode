@@ -4,14 +4,17 @@ import asyncio
 
 import pytest
 from tinyagent.agent_types import (
+    AgentContext,
     AgentTool,
     AgentToolResult,
     AgentToolUpdateCallback,
+    AssistantMessage,
     JsonObject,
     TextContent,
 )
 
 from tunacode.core.agents.agent_components import agent_config
+from tunacode.core.session import StateManager
 
 
 async def _wait_for_entered_count(entered_order: list[str], expected: int) -> None:
@@ -70,3 +73,18 @@ async def test_apply_tool_concurrency_limit_caps_in_flight_and_preserves_queue_o
 def test_apply_tool_concurrency_limit_rejects_non_positive_max_parallel() -> None:
     with pytest.raises(ValueError, match="max_parallel_tool_calls must be >= 1"):
         agent_config._apply_tool_concurrency_limit([], max_parallel_tool_calls=0)
+
+
+def test_should_stop_after_turn_updates_runtime_and_stops_after_limit() -> None:
+    state_manager = StateManager()
+    state_manager.session.user_config["settings"]["max_iterations"] = 1
+    should_stop = agent_config._build_should_stop_after_turn(state_manager.session)
+    message = AssistantMessage(content=[TextContent(text="done")])
+
+    assert should_stop(message, [], AgentContext(), []) is False
+    assert state_manager.session.runtime.iteration_count == 1
+    assert state_manager.session.runtime.current_iteration == 1
+
+    assert should_stop(message, [], AgentContext(), []) is True
+    assert state_manager.session.runtime.iteration_count == 2
+    assert state_manager.session.runtime.current_iteration == 2

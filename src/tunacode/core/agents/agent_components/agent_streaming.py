@@ -148,16 +148,10 @@ class AgentStreamMixin:
         *,
         agent: Agent,
         state: _TinyAgentStreamState,
-        max_iterations: int,
         baseline_message_count: int,
     ) -> bool:
-        _ = (event_obj, baseline_message_count)
-        state.runtime.iteration_count += 1
-        state.runtime.current_iteration = state.runtime.iteration_count
-        if state.runtime.iteration_count <= max_iterations:
-            return False
-        agent.abort()
-        raise RuntimeError(f"Max iterations exceeded ({max_iterations}); aborted")
+        _ = (event_obj, agent, state, baseline_message_count)
+        return False
 
     async def _handle_stream_message_update(
         self,
@@ -281,7 +275,6 @@ class AgentStreamMixin:
         event: AgentEvent,
         agent: Agent,
         state: _TinyAgentStreamState,
-        max_iterations: int,
         baseline_message_count: int,
     ) -> bool:
         if is_turn_end_event(event):
@@ -289,7 +282,6 @@ class AgentStreamMixin:
                 event,
                 agent=agent,
                 state=state,
-                max_iterations=max_iterations,
                 baseline_message_count=baseline_message_count,
             )
         if isinstance(event, MessageUpdateEvent):
@@ -340,7 +332,6 @@ class AgentStreamMixin:
         self,
         *,
         agent: Agent,
-        max_iterations: int,
         baseline_message_count: int,
     ) -> Agent:
         """Run ``agent.stream``; on success, persistence is via AgentEnd; on failure, via cleanup.
@@ -376,7 +367,6 @@ class AgentStreamMixin:
                     event=event,
                     agent=agent,
                     state=state,
-                    max_iterations=max_iterations,
                     baseline_message_count=baseline_message_count,
                 )
                 if should_stop:

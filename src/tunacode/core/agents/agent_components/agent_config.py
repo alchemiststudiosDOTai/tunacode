@@ -69,6 +69,7 @@ from .agent_session_config import (
     _compute_agent_version,
     _normalize_session_config,
 )
+from .agent_turn_control import build_should_stop_after_turn as _build_should_stop_after_turn
 
 __all__ = [
     "get_or_create_agent",
@@ -507,6 +508,7 @@ def _build_agent_options(
         session_id=session.session_id,
         get_api_key=_build_api_key_resolver(config.env),
         transform_context=_build_transform_context(state_manager),
+        should_stop_after_turn=_build_should_stop_after_turn(session),
     )
 
 

@@ -1985,16 +1985,16 @@ wheels = [
 
 [[package]]
 name = "tiny-agent-os"
-version = "1.2.27"
+version = "1.2.28"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/73/085acf00e48fe49120fb2112d8d520b7497587952baf82c52a6909220e1e/tiny_agent_os-1.2.27-cp310-abi3-macosx_11_0_universal2.whl", hash = "sha256:d40640dd1c30dc01848519a5f46c215ab745fe00297770a205f0af5cf827ffde", size = 2144324, upload-time = "2026-03-25T17:23:19.85Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/ae/68c939264246ead98e41a66cc40979ffdd515ba8211f0230f9a433237189/tiny_agent_os-1.2.27-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:1bfde63c0ff6e5218121ae2061a0ac7450c77a8e7ef518f15d1bbd1285fd5b1f", size = 2465672, upload-time = "2026-03-25T17:23:21.31Z" },
-    { url = "https://files.pythonhosted.org/packages/f2/23/ff54a96614a7b86a423453800c1af3addf1f1a925e777498eadbc2b0ee12/tiny_agent_os-1.2.27-cp310-abi3-win_amd64.whl", hash = "sha256:462208433158f109edbc458e536fe7b7b1a08282686372717f85246a68674e05", size = 1965910, upload-time = "2026-03-25T17:23:22.515Z" },
+    { url = "https://files.pythonhosted.org/packages/75/0c/98426d211c64e8de1ad2dcdd84b27cc351ff44596f3836c82f25652bb0fb/tiny_agent_os-1.2.28-cp310-abi3-macosx_11_0_universal2.whl", hash = "sha256:a07dede5d0b8f61ab439c3d1a9f236937621fadbe44989e232f96ea78558bcc2", size = 2114505, upload-time = "2026-06-22T00:04:15.555Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/20/b98e818f381dd70d3e6822f2c297c998228ba21ab2a030cfcf49a652aa4a/tiny_agent_os-1.2.28-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:4c91abe5bb09b2e1bfaba6fc5a7ecf68603ff2c5a1e8fb2acdb9147af0f7de83", size = 2441827, upload-time = "2026-06-22T00:04:16.976Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/8f/3b313f7541b3d8b0a9de657653c4f42517a874bb7c33f0a563a59a7a6bc1/tiny_agent_os-1.2.28-cp310-abi3-win_amd64.whl", hash = "sha256:4fb6fca16d52ac1385c62e92c636c6dd06c45106ab027f90a6b6c907cd2f714c", size = 1954607, upload-time = "2026-06-22T00:04:18.473Z" },
 ]
 
 [[package]]
@@ -2153,7 +2153,7 @@ requires-dist = [
     { name = "textual", specifier = ">=4.0.0,<5.0.0" },
     { name = "textual-autocomplete", specifier = ">=4.0.6" },
     { name = "textual-dev", marker = "extra == 'dev'" },
-    { name = "tiny-agent-os", specifier = ">=1.2.27" },
+    { name = "tiny-agent-os", specifier = ">=1.2.28" },
     { name = "twine", marker = "extra == 'dev'" },
     { name = "typer", specifier = ">=0.15.0" },
     { name = "unimport", marker = "extra == 'dev'", specifier = ">=1.0.0" },
