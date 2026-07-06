@@ -230,7 +230,7 @@ class AgentStreamMixin:
         self.tool_result_callback(
             tool_name,
             status,
-            {},
+            event_obj.args or {},
             event_obj.result,
             duration_ms,
         )
