@@ -4,7 +4,7 @@ summary: Release history for TunaCode versions and notable changes.
 when_to_read:
   - When preparing a release note
   - When reviewing past changes or version history
-last_updated: "2026-06-22"
+last_updated: "2026-07-09"
 ---
 
 # Changelog
@@ -15,6 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.3] - 2026-07-09
+
+### Changed
+- Raised the minimum `tiny-agent-os` version to `1.2.29`, which exposes tool arguments on `ToolExecutionEndEvent`.
+
+### Fixed
+- Retained tool arguments across tinyagent start and update events so completed tool panels continue to receive paths and other call details when execution ends.
 
 ## [0.2.2] - 2026-06-22
 

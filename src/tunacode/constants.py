@@ -18,7 +18,7 @@ KB = 1024
 MB = KB * 1024
 
 APP_NAME = "TunaCode"
-APP_VERSION = "0.2.2"
+APP_VERSION = "0.2.3"
 
 
 AGENTS_MD = "AGENTS.md"
