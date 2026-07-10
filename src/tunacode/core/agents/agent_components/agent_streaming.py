@@ -202,6 +202,9 @@ class AgentStreamMixin:
         tool_call_id = event_obj.tool_call_id
         tool_name = event_obj.tool_name
         state.tool_start_times[tool_call_id] = time.perf_counter()
+        state.tool_args_by_call_id[tool_call_id] = (
+            event_obj.args if event_obj.args is not None else {}
+        )
         self._mark_tool_start_batch_state(state, tool_call_id=tool_call_id)
         if self.tool_start_callback is not None:
             self.tool_start_callback(tool_name)
@@ -219,6 +222,7 @@ class AgentStreamMixin:
         tool_call_id = event_obj.tool_call_id
         tool_name = event_obj.tool_name
         duration_ms = self._resolve_tool_duration_ms(state, tool_call_id=tool_call_id)
+        tool_args = state.tool_args_by_call_id.pop(tool_call_id, {})
         status = "failed" if event_obj.is_error else "completed"
 
         state.active_tool_call_ids.discard(tool_call_id)
@@ -230,7 +234,7 @@ class AgentStreamMixin:
         self.tool_result_callback(
             tool_name,
             status,
-            {},
+            tool_args,
             event_obj.result,
             duration_ms,
         )
@@ -245,6 +249,8 @@ class AgentStreamMixin:
         baseline_message_count: int,
     ) -> bool:
         _ = (agent, baseline_message_count)
+        if event_obj.args is not None:
+            state.tool_args_by_call_id[event_obj.tool_call_id] = event_obj.args
         if self.tool_result_callback is None:
             return False
 
@@ -348,6 +354,7 @@ class AgentStreamMixin:
             runtime=runtime,
             baseline_message_count=baseline_message_count,
             tool_start_times={},
+            tool_args_by_call_id={},
             active_tool_call_ids=set(),
             batch_tool_call_ids=set(),
         )
