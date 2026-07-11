@@ -12,7 +12,7 @@ Callback contracts (preconditions/postconditions):
 """
 
 from collections.abc import Awaitable, Callable
-from typing import Any, Protocol, TypeAlias, runtime_checkable
+from typing import Protocol, TypeAlias, runtime_checkable
 
 from tunacode.types.base import ToolArgs, ToolName, ToolResult
 
@@ -35,7 +35,7 @@ class ToolCallPartProtocol(Protocol):
 
     tool_call_id: str
     tool_name: str
-    args: str | dict[str, Any] | None
+    args: str | ToolArgs | None
 
 
 @runtime_checkable

@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from rich.console import RenderableType
 from rich.text import Text
@@ -17,6 +17,7 @@ from tunacode.constants import (
     SYNTAX_LINE_NUMBER_PADDING,
     SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
 )
+from tunacode.types import ReadFileArgs, ToolArgs
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -124,7 +125,7 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
                 content_lines.append(parsed_line)
         return content_lines, end_message, total_lines, has_more
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> ReadFileData | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> ReadFileData | None:
         """Extract structured data from read_file output.
 
         Expected format:
@@ -158,9 +159,9 @@ class ReadFileRenderer(BaseToolRenderer[ReadFileData]):
         if not content_lines:
             return None
 
-        args = args or {}
-        filepath = args.get("filepath", "unknown")
-        offset = args.get("offset", 0)
+        read_args = cast(ReadFileArgs, args or {})
+        filepath = read_args.get("filepath", "unknown")
+        offset = read_args.get("offset", 0)
 
         if total_lines == 0:
             total_lines = content_lines[-1][0] if content_lines else 0
@@ -269,7 +270,7 @@ _renderer = ReadFileRenderer(RendererConfig(tool_name="read_file"))
 
 @tool_renderer("read_file")
 def render_read_file(
-    args: dict[str, Any] | None,
+    args: ToolArgs | None,
     result: str,
     duration_ms: float | None,
     max_line_width: int,

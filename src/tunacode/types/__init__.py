@@ -64,6 +64,15 @@ from tunacode.types.models_registry import (  # noqa: F401
     RegistryProviderOverride,
 )
 
+# Per-tool argument schemas
+from tunacode.types.tool_args import (  # noqa: F401
+    BashArgs,
+    HashlineEditArgs,
+    ReadFileArgs,
+    WebFetchArgs,
+    WriteFileArgs,
+)
+
 
 @dataclass(slots=True)
 class UsageCost:
