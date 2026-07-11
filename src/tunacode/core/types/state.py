@@ -78,23 +78,6 @@ class StateManagerProtocol(Protocol):
         """Access the usage sub-state."""
         ...
 
-    # Recursive execution methods
-    def push_recursive_context(self, context: dict[str, Any]) -> None:
-        """Push a context onto the recursive stack."""
-        ...
-
-    def pop_recursive_context(self) -> dict[str, Any] | None:
-        """Pop and return the top context."""
-        ...
-
-    def can_recurse_deeper(self) -> bool:
-        """Check if recursion limit allows deeper nesting."""
-        ...
-
-    def reset_recursive_state(self) -> None:
-        """Reset all recursive execution state."""
-        ...
-
     # Session persistence methods
     async def save_session(self) -> bool:
         """Save current session to disk."""

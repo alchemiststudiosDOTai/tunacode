@@ -68,10 +68,3 @@ NoticeCallback: TypeAlias = Callable[[str], None]
 
 # UI callbacks
 StreamingCallback: TypeAlias = Callable[[str], Awaitable[None]]
-UICallback: TypeAlias = Callable[[str], Awaitable[None]]
-UIInputCallback: TypeAlias = Callable[[str, str], Awaitable[str]]
-
-# Async function types
-AsyncFunc: TypeAlias = Callable[..., Awaitable[Any]]
-AsyncToolFunc: TypeAlias = Callable[..., Awaitable[ToolResult]]
-AsyncVoidFunc: TypeAlias = Callable[..., Awaitable[None]]

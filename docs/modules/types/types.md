@@ -8,7 +8,7 @@ when_to_read:
   - Adding a new callback signature
   - Creating a new tool
   - Modifying message structures
-last_updated: "2026-04-04"
+last_updated: "2026-07-11"
 ---
 
 # Types Layer
@@ -24,7 +24,7 @@ Single source of truth for every type alias, callback protocol, and data structu
 | File              | Purpose |
 |-------------------|---------|
 | `__init__.py`     | Re-exports everything from the sub-modules below. Import from `tunacode.types` directly. |
-| `base.py`         | Scalar aliases (`FilePath`, `ModelName`, `TokenCount`, `ToolCallId`, etc.), small compound types (`DiffHunk`, `DiffLine`, `FileDiff`), and the typed user-config schema (`UserConfig`, `UserSettings`, `EnvConfig`, `RipgrepSettings`, `LspSettings`). |
+| `base.py`         | Scalar aliases (`FilePath`, `ModelName`, `TokenCount`, `ToolCallId`, etc.), tool aliases (`ToolArgs`, `ToolResult` from tinyagent), and the typed user-config schema (`UserConfig`, `UserSettings`, `EnvConfig`, `RipgrepSettings`). |
 | `callbacks.py`    | Async callback signatures (`StreamingCallback`, `ToolCallback`, `ToolResultCallback`, `ToolStartCallback`, `NoticeCallback`) and protocols (`StreamResultProtocol`, `ToolCallPartProtocol`). |
 | `canonical.py`    | The canonical message model: `CanonicalMessage`, `CanonicalPart`, `CanonicalToolCall`, `CanonicalToolCallPart`, `CanonicalToolReturnPart`, `UsageMetrics`. Enums: `MessageRole`, `PartKind`, `ToolCallStatus`. |
 | `dataclasses.py`  | Value objects: `ModelPricing`, `TokenUsage`, `CostBreakdown`. |

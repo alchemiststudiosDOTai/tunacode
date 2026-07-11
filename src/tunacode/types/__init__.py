@@ -11,24 +11,16 @@ from typing import Any
 
 # Base types
 from tunacode.types.base import (  # noqa: F401
-    AgentConfig,
     AgentName,
-    CommandArgs,
-    CommandResult,
     ConfigFile,
     ConfigPath,
     CostAmount,
-    DiffHunk,
-    DiffLine,
     EnvConfig,
-    ErrorContext,
     ErrorMessage,
     FileContent,
-    FileDiff,
     FileEncoding,
     FilePath,
     FileSize,
-    InputSessions,
     LineNumber,
     ModelName,
     OriginalError,
@@ -39,18 +31,12 @@ from tunacode.types.base import (  # noqa: F401
     ToolCallId,
     ToolName,
     ToolResult,
-    UpdateOperation,
     UserConfig,
     UserSettings,
-    ValidationResult,
-    Validator,
 )
 
 # Callback types
 from tunacode.types.callbacks import (  # noqa: F401
-    AsyncFunc,
-    AsyncToolFunc,
-    AsyncVoidFunc,
     NoticeCallback,
     StreamingCallback,
     StreamResultProtocol,
@@ -58,8 +44,6 @@ from tunacode.types.callbacks import (  # noqa: F401
     ToolCallPartProtocol,
     ToolResultCallback,
     ToolStartCallback,
-    UICallback,
-    UIInputCallback,
 )
 from tunacode.types.dataclasses import (  # noqa: F401
     CostBreakdown,

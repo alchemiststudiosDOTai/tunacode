@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import ValidationError
 
 from tunacode.configuration.defaults import DEFAULT_USER_CONFIG
-from tunacode.types import InputSessions, ModelName, SessionId, UsageMetrics, UserConfig
+from tunacode.types import ModelName, SessionId, UsageMetrics, UserConfig
 from tunacode.utils.messaging import estimate_messages_tokens
 
 from tunacode.core.types import ConversationState, RuntimeState, TaskState, UsageState
@@ -42,9 +42,7 @@ class SessionState:
     agent_versions: dict[str, int] = field(default_factory=dict)
     # Keep session default in sync with configuration default
     current_model: ModelName = DEFAULT_USER_CONFIG["default_model"]
-    spinner: Any | None = None
     debug_mode: bool = False
-    undo_initialized: bool = False
     show_thoughts: bool = True
     conversation: ConversationState = field(default_factory=ConversationState)
     compaction: CompactionRecord | None = None
@@ -52,21 +50,12 @@ class SessionState:
     runtime: RuntimeState = field(default_factory=RuntimeState)
     usage: UsageState = field(default_factory=UsageState)
     session_id: SessionId = field(default_factory=lambda: str(uuid.uuid4()))
-    input_sessions: InputSessions = field(default_factory=dict)
-    current_task: Any | None = None
     # Persistence fields
     project_id: str = ""
     created_at: str = ""
     last_modified: str = ""
     working_directory: str = ""
     selected_skill_names: list[str] = field(default_factory=list)
-    # Recursive execution tracking
-    current_recursion_depth: int = 0
-    max_recursion_depth: int = 5
-    parent_task_id: str | None = None
-    task_hierarchy: dict[str, Any] = field(default_factory=dict)
-    iteration_budgets: dict[str, int] = field(default_factory=dict)
-    recursive_context_stack: list[dict[str, Any]] = field(default_factory=list)
     # Runtime-only service cache
     _compaction_controller: Any | None = None
     # Streaming debug instrumentation (see core/agents/agent_components/streaming.py)
@@ -118,40 +107,6 @@ class StateManager:
     @property
     def usage(self) -> UsageState:
         return self._session.usage
-
-    def push_recursive_context(self, context: dict[str, Any]) -> None:
-        """Push a new context onto the recursive execution stack."""
-        self._session.recursive_context_stack.append(context)
-        self._session.current_recursion_depth = (self._session.current_recursion_depth or 0) + 1
-
-    def pop_recursive_context(self) -> dict[str, Any] | None:
-        """Pop the current context from the recursive execution stack."""
-        if self._session.recursive_context_stack:
-            self._session.current_recursion_depth = max(
-                0, self._session.current_recursion_depth - 1
-            )
-            return self._session.recursive_context_stack.pop()
-        return None
-
-    def set_task_iteration_budget(self, task_id: str, budget: int) -> None:
-        """Set the iteration budget for a specific task."""
-        self._session.iteration_budgets[task_id] = budget
-
-    def get_task_iteration_budget(self, task_id: str) -> int:
-        """Get the iteration budget for a specific task."""
-        return self._session.iteration_budgets.get(task_id, 10)  # Default to 10
-
-    def can_recurse_deeper(self) -> bool:
-        """Check if we can recurse deeper without exceeding limits."""
-        return self._session.current_recursion_depth < self._session.max_recursion_depth
-
-    def reset_recursive_state(self) -> None:
-        """Reset all recursive execution state."""
-        self._session.current_recursion_depth = 0
-        self._session.parent_task_id = None
-        self._session.task_hierarchy.clear()
-        self._session.iteration_budgets.clear()
-        self._session.recursive_context_stack.clear()
 
     def reset_session(self) -> None:
         """Reset the session to a fresh state."""

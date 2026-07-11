@@ -1,8 +1,7 @@
 """Base type aliases for TunaCode CLI."""
 
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeAlias, TypedDict
+from typing import TypeAlias, TypedDict
 
 from tinyagent.agent_types import AgentToolResult, JsonObject
 
@@ -17,7 +16,6 @@ ToolCallId = str
 FilePath = str | Path
 FileContent = str
 FileEncoding = str
-FileDiff = tuple[str, str]
 FileSize = int
 LineNumber = int
 ConfigPath = Path
@@ -55,31 +53,14 @@ class UserConfig(TypedDict):
     settings: UserSettings
 
 
-InputSessions = dict[str, Any]
-AgentConfig = dict[str, Any]
-
 # Tool types
 ToolArgs: TypeAlias = JsonObject
 ToolResult: TypeAlias = AgentToolResult
 
 # Error handling types
-ErrorContext = dict[str, Any]
 OriginalError = Exception | None
 ErrorMessage = str
-
-# Diff types
-UpdateOperation = dict[str, Any]
-DiffLine = str
-DiffHunk = list[DiffLine]
-
-# Validation types
-ValidationResult = bool | str
-Validator = Callable[[Any], ValidationResult]
 
 # Token/Cost types
 TokenCount = int
 CostAmount = float
-
-# Command types
-CommandArgs = list[str]
-CommandResult = Any | None

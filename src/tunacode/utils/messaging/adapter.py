@@ -133,26 +133,6 @@ def to_canonical(message: MESSAGE_INPUT) -> dict[str, Any]:
     return msg
 
 
-def to_canonical_list(messages: Sequence[MESSAGE_INPUT]) -> list[dict[str, Any]]:
-    """Return normalized tinyagent JSON payloads for compatibility callers."""
-
-    return [to_canonical(msg) for msg in messages]
-
-
-def from_canonical(message: MESSAGE_PAYLOAD) -> dict[str, Any]:
-    """Return a tinyagent-style dict from a compatibility payload."""
-
-    msg = _coerce_agent_message_dict(message)
-    _validate_role(_coerce_role(msg))
-    return msg
-
-
-def from_canonical_list(messages: list[MESSAGE_PAYLOAD]) -> list[dict[str, Any]]:
-    """Return tinyagent-style dict messages from compatibility payloads."""
-
-    return [from_canonical(msg) for msg in messages]
-
-
 def get_content(message: MESSAGE_INPUT) -> str:
     """Extract normalized text content from any supported message representation."""
 
