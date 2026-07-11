@@ -1,0 +1,645 @@
+<title>TunaCode — Types &amp; I/O Interfaces Map</title>
+<style>
+  :root {
+    --bg: #F6F8F8;
+    --surface: #FFFFFF;
+    --surface-2: #EEF3F3;
+    --ink: #1A2226;
+    --muted: #5B6B70;
+    --line: #DCE4E5;
+    --accent: #0E7C86;
+    --accent-ink: #0B626A;
+    --accent-soft: #E1F0F1;
+    --ok: #2E7D4F;       --ok-soft: #E2F0E7;
+    --warn: #A16D12;     --warn-soft: #F6EDD8;
+    --dead: #B3413D;     --dead-soft: #F5E3E2;
+    --keep: #3D6DB3;     --keep-soft: #E4ECF7;
+    --ghost: #7A868A;    --ghost-soft: #ECEFF0;
+    --code-bg: #EFF3F4;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101619; --surface: #171F23; --surface-2: #1D272C;
+      --ink: #E4EBED; --muted: #93A3A8; --line: #263338;
+      --accent: #4FC9D4; --accent-ink: #7BD8E0; --accent-soft: #123339;
+      --ok: #5BBF83;   --ok-soft: #14291C;
+      --warn: #E3B341; --warn-soft: #2E2510;
+      --dead: #E07A76; --dead-soft: #331716;
+      --keep: #7FA9E8; --keep-soft: #16233A;
+      --ghost: #7E8C91; --ghost-soft: #1C2427;
+      --code-bg: #131B1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101619; --surface: #171F23; --surface-2: #1D272C;
+    --ink: #E4EBED; --muted: #93A3A8; --line: #263338;
+    --accent: #4FC9D4; --accent-ink: #7BD8E0; --accent-soft: #123339;
+    --ok: #5BBF83;   --ok-soft: #14291C;
+    --warn: #E3B341; --warn-soft: #2E2510;
+    --dead: #E07A76; --dead-soft: #331716;
+    --keep: #7FA9E8; --keep-soft: #16233A;
+    --ghost: #7E8C91; --ghost-soft: #1C2427;
+    --code-bg: #131B1F;
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F8F8; --surface: #FFFFFF; --surface-2: #EEF3F3;
+    --ink: #1A2226; --muted: #5B6B70; --line: #DCE4E5;
+    --accent: #0E7C86; --accent-ink: #0B626A; --accent-soft: #E1F0F1;
+    --ok: #2E7D4F;   --ok-soft: #E2F0E7;
+    --warn: #A16D12; --warn-soft: #F6EDD8;
+    --dead: #B3413D; --dead-soft: #F5E3E2;
+    --keep: #3D6DB3; --keep-soft: #E4ECF7;
+    --ghost: #7A868A; --ghost-soft: #ECEFF0;
+    --code-bg: #EFF3F4;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 40px 24px 96px; }
+
+  header.masthead { margin-bottom: 36px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent-ink); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--mono); font-size: clamp(24px, 4vw, 34px);
+    font-weight: 600; letter-spacing: -0.01em; margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .masthead p.lede { max-width: 68ch; color: var(--muted); margin: 0 0 18px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fact {
+    font-family: var(--mono); font-size: 12px; padding: 4px 10px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 4px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .fact b { color: var(--ink); font-weight: 600; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 40px; }
+  nav.toc a {
+    font-family: var(--mono); font-size: 12.5px; text-decoration: none;
+    color: var(--accent-ink); padding: 5px 11px; border: 1px solid var(--line);
+    border-radius: 999px; background: var(--surface);
+  }
+  nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--accent); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  section { margin-bottom: 56px; }
+  h2 {
+    font-family: var(--mono); font-size: 19px; font-weight: 600;
+    margin: 0 0 6px; letter-spacing: -0.005em;
+  }
+  h2 .bnum { color: var(--accent-ink); margin-right: 8px; }
+  .sub { color: var(--muted); max-width: 74ch; margin: 0 0 18px; }
+  .sub code, p code, li code, td code {
+    font-family: var(--mono); font-size: 0.88em; background: var(--code-bg);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* chips */
+  .chip {
+    display: inline-block; font-family: var(--mono); font-size: 10.5px;
+    font-weight: 600; letter-spacing: 0.06em; padding: 2px 8px;
+    border-radius: 3px; vertical-align: 1px; white-space: nowrap;
+  }
+  .chip.any  { color: var(--warn);  background: var(--warn-soft); }
+  .chip.typed{ color: var(--ok);    background: var(--ok-soft); }
+  .chip.dead { color: var(--dead);  background: var(--dead-soft); }
+  .chip.vest { color: var(--ghost); background: var(--ghost-soft); }
+  .chip.keep { color: var(--keep);  background: var(--keep-soft); }
+  .chip.plan { color: var(--accent-ink); background: var(--accent-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* cards + tables */
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 8px; padding: 20px 22px; margin-bottom: 18px;
+  }
+  .card h3 {
+    font-family: var(--mono); font-size: 15px; font-weight: 600; margin: 0 0 4px;
+  }
+  .card .path { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--muted); text-align: left;
+    padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td {
+    padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.mono, .mono { font-family: var(--mono); font-size: 12.5px; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  td .t { color: var(--accent-ink); }   /* type expression */
+  td .k { color: var(--muted); }        /* key / secondary */
+  .strike { text-decoration: line-through; text-decoration-color: var(--dead); color: var(--muted); }
+
+  /* flow svg */
+  .flow { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; overflow-x: auto; }
+  .flow svg { display: block; min-width: 720px; width: 100%; height: auto; }
+  .flow .node { fill: var(--surface-2); stroke: var(--line); rx: 6px; }
+  .flow .node-hi { fill: var(--accent-soft); stroke: var(--accent); }
+  .flow text { font-family: var(--mono); fill: var(--ink); }
+  .flow .nt { font-size: 13px; font-weight: 600; }
+  .flow .ns { font-size: 10.5px; fill: var(--muted); }
+  .flow .edge { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+  .flow .elabel { font-size: 11px; font-weight: 600; fill: var(--accent-ink); }
+  .flow .elabel-bg { fill: var(--surface); stroke: var(--line); }
+  .flow .esub { font-size: 10px; fill: var(--muted); }
+
+  /* accounting bar */
+  .bar { display: flex; width: 100%; height: 44px; border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--line); }
+  .bar > div { position: relative; min-width: 2px; }
+  .seg-alias { background: var(--accent); }
+  .seg-tdict { background: var(--keep); }
+  .seg-obj   { background: var(--warn); }
+  .seg-del   { background: var(--dead); }
+  .seg-conc  { background: var(--ok); }
+  .seg-keep  { background: var(--ghost); }
+  .barkey { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px 18px; margin-top: 14px; font-size: 13px; }
+  .barkey .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    margin-right: 7px; vertical-align: -1px; }
+  .barkey b { font-variant-numeric: tabular-nums; }
+  .barkey .r { color: var(--muted); font-size: 12px; display: block; margin-left: 17px; }
+
+  /* code blocks */
+  pre {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; overflow-x: auto; margin: 0;
+  }
+  pre .kw { color: var(--accent-ink); font-weight: 600; }
+  pre .cm { color: var(--muted); }
+  pre .cl { color: var(--keep); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+
+  footer { border-top: 1px solid var(--line); padding-top: 18px;
+    color: var(--muted); font-size: 13px; }
+  footer .mono { font-size: 12px; }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">tunacode · issue #441 · types are the design</p>
+  <h1>Types &amp; I/O Data Interfaces Map</h1>
+  <p class="lede">Every <code>Any</code> in the codebase sits on one of five data boundaries.
+  This map documents the concrete shape that actually flows through each one —
+  traced field-by-field from source — and the target type that replaces the
+  <code>Any</code>. Notable: a large share of the <code>Any</code> surface sits on
+  dead or vestigial code, and most of the "missing" types already exist.</p>
+  <div class="facts">
+    <span class="fact"><b>~111</b> real Any annotations</span>
+    <span class="fact"><b>27</b> files</span>
+    <span class="fact">verified <b>2026-07-11</b></span>
+    <span class="fact">master @ <b>0ae3c8c</b></span>
+    <span class="fact">doc: <b>docs/architecture/types-and-io-interfaces.md</b></span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#flow">flow map</a>
+  <a href="#accounting">accounting</a>
+  <a href="#b1">B1 tool args</a>
+  <a href="#b2">B2 session file</a>
+  <a href="#b3">B3 messages</a>
+  <a href="#b4">B4 runtime state</a>
+  <a href="#b5">B5 display shapes</a>
+  <a href="#callbacks">callbacks</a>
+  <a href="#dead">dead code</a>
+  <a href="#target">target design</a>
+</nav>
+
+<section id="flow">
+  <h2>The five boundaries</h2>
+  <p class="sub">Data enters from tinyagent (the LLM runtime), splits into the streaming
+  event path (right) and the session state path (left), and exits to disk and to
+  rendered panels. Each labeled edge is a boundary where types go untyped today.</p>
+  <div class="flow">
+    <svg viewBox="0 0 960 430" role="img" aria-label="Data flow diagram of the five type boundaries">
+      <defs>
+        <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--muted)"></path>
+        </marker>
+      </defs>
+
+      <!-- tinyagent -->
+      <rect class="node node-hi" x="250" y="18" width="460" height="72" rx="6"></rect>
+      <text class="nt" x="480" y="46" text-anchor="middle">tinyagent  (tiny-agent-os)</text>
+      <text class="ns" x="480" y="68" text-anchor="middle">AgentMessage · ToolCallContent · JsonObject · Agent — pydantic, already typed</text>
+
+      <!-- SessionState -->
+      <rect class="node" x="90" y="190" width="290" height="76" rx="6"></rect>
+      <text class="nt" x="235" y="218" text-anchor="middle">core/session · SessionState</text>
+      <text class="ns" x="235" y="240" text-anchor="middle">StateManager · conversation · usage</text>
+
+      <!-- agent_streaming -->
+      <rect class="node" x="580" y="190" width="290" height="76" rx="6"></rect>
+      <text class="nt" x="725" y="218" text-anchor="middle">agent_streaming events</text>
+      <text class="ns" x="725" y="240" text-anchor="middle">tool_result_callback · ToolResultDisplay</text>
+
+      <!-- disk -->
+      <rect class="node" x="90" y="340" width="290" height="72" rx="6"></rect>
+      <text class="nt" x="235" y="368" text-anchor="middle">disk · {project}_{session}.json</text>
+      <text class="ns" x="235" y="390" text-anchor="middle">save_session / load_session / list_sessions</text>
+
+      <!-- renderers -->
+      <rect class="node" x="580" y="340" width="290" height="72" rx="6"></rect>
+      <text class="nt" x="725" y="368" text-anchor="middle">ui/renderers · parse_result → T</text>
+      <text class="ns" x="725" y="390" text-anchor="middle">BashData · ReadFileData · … (typed dataclasses)</text>
+
+      <!-- edges -->
+      <path class="edge" d="M330,90 L245,190" marker-end="url(#arr)"></path>
+      <rect class="elabel-bg" x="216" y="122" width="150" height="34" rx="4"></rect>
+      <text class="elabel" x="228" y="136">B3 messages</text>
+      <text class="esub" x="228" y="150">state.messages → conversation</text>
+
+      <path class="edge" d="M630,90 L715,190" marker-end="url(#arr)"></path>
+      <rect class="elabel-bg" x="600" y="122" width="168" height="34" rx="4"></rect>
+      <text class="elabel" x="612" y="136">B1 tool-call args</text>
+      <text class="esub" x="612" y="150">ToolCallContent.arguments</text>
+
+      <path class="edge" d="M235,266 L235,340" marker-end="url(#arr)"></path>
+      <path class="edge" d="M265,340 L265,266" marker-end="url(#arr)"></path>
+      <rect class="elabel-bg" x="286" y="288" width="128" height="34" rx="4"></rect>
+      <text class="elabel" x="298" y="302">B2 session file</text>
+      <text class="esub" x="298" y="316">model_dump ⇄ validate</text>
+
+      <path class="edge" d="M725,266 L725,340" marker-end="url(#arr)"></path>
+      <rect class="elabel-bg" x="746" y="288" width="148" height="34" rx="4"></rect>
+      <text class="elabel" x="758" y="302">B5 display shapes</text>
+      <text class="esub" x="758" y="316">panels · search dicts</text>
+
+      <!-- B4 badge on SessionState -->
+      <rect class="elabel-bg" x="96" y="146" width="196" height="34" rx="4"></rect>
+      <text class="elabel" x="108" y="160">B4 runtime state fields</text>
+      <text class="esub" x="108" y="174">agents · _compaction_controller · 5 dead</text>
+      <path class="edge" d="M170,180 L180,190" marker-end="url(#arr)"></path>
+
+      <!-- streaming to state edge -->
+      <path class="edge" d="M580,228 L380,228" marker-end="url(#arr)"></path>
+      <text class="esub" x="480" y="220" text-anchor="middle">history sync</text>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><span class="chip any">ANY</span> untyped today</span>
+    <span><span class="chip typed">TYPED</span> concrete type exists</span>
+    <span><span class="chip dead">DEAD</span> no callers — delete</span>
+    <span><span class="chip vest">VESTIGIAL</span> declared, never wired</span>
+    <span><span class="chip keep">KEEP</span> legitimate <code>Any</code></span>
+    <span><span class="chip plan">PLAN</span> proposed type</span>
+  </div>
+</section>
+
+<section id="accounting">
+  <h2>Where the ~111 annotations go</h2>
+  <p class="sub">Proportional resolution plan. Only the green and blue slices involve
+  design decisions; teal is a find-and-replace against an alias that already exists,
+  and the red slice is deletion.</p>
+  <div class="bar" role="img" aria-label="Stacked bar: 35 alias replacement, 40 TypedDicts plus object, 13 object or delete kwargs, 12 delete dead symbols, 8 concrete runtime types, 5 whitelist">
+    <div class="seg-alias" style="width:31%"></div>
+    <div class="seg-tdict" style="width:35.4%"></div>
+    <div class="seg-obj"   style="width:11.5%"></div>
+    <div class="seg-del"   style="width:10.6%"></div>
+    <div class="seg-conc"  style="width:7.1%"></div>
+    <div class="seg-keep"  style="width:4.4%"></div>
+  </div>
+  <div class="barkey">
+    <div><span class="swatch seg-alias"></span><b>35</b> B1 tool-args dicts
+      <span class="r">→ existing <code>ToolArgs</code> alias</span></div>
+    <div><span class="swatch seg-tdict"></span><b>40</b> B2 serialization
+      <span class="r">→ TypedDicts + <code>object</code> inputs</span></div>
+    <div><span class="swatch seg-obj"></span><b>13</b> <code>**kwargs</code>
+      <span class="r">→ <code>object</code> (ripgrep's is dead)</span></div>
+    <div><span class="swatch seg-del"></span><b>12</b> dead symbols
+      <span class="r">→ delete</span></div>
+    <div><span class="swatch seg-conc"></span><b>8</b> runtime fields
+      <span class="r">→ 2 concrete types, 5 deleted</span></div>
+    <div><span class="swatch seg-keep"></span><b>5</b> legitimate
+      <span class="r">→ whitelist (PEP 562, TYPE_CHECKING)</span></div>
+  </div>
+</section>
+
+<section id="b1">
+  <h2><span class="bnum">B1</span>Tool-call args: LLM → renderer <span class="chip any">ANY ×35</span></h2>
+  <p class="sub">The <code>args</code> dict every renderer receives is the model's JSON-decoded
+  tool-call arguments, propagated unchanged through five hops. The alias for it —
+  <code>ToolArgs = JsonObject</code> (<code>types/base.py:62</code>) — already exists and
+  <code>ToolResultCallback</code> already uses it. The renderers hand-write
+  <code>dict[str, Any]</code> instead: that is the drift.</p>
+
+  <div class="card">
+    <h3>Pipeline (source of args)</h3>
+    <p class="path">tinyagent → agent_streaming.py → repl_support.py → app.py → panels.py → renderer</p>
+    <div class="tablewrap"><table>
+      <tr><th>Hop</th><th>Carrier</th><th>Type there</th></tr>
+      <tr><td>Model emits call</td><td class="mono">ToolCallContent.arguments</td><td class="mono"><span class="t">JsonObject</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td>Execution events</td><td class="mono">ToolExecution*Event.args</td><td class="mono"><span class="t">JsonObject | None</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td>Cached per call-id</td><td class="mono">tool_args_by_call_id  <span class="k">agent_streaming.py:205</span></td><td class="mono"><span class="t">JsonObject | None</span></td></tr>
+      <tr><td>Callback fires</td><td class="mono">tool_result_callback(name, status, args, result, ms)</td><td class="mono"><span class="t">ToolArgs</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td>Textual message</td><td class="mono">ToolResultDisplay.args  <span class="k">widgets/messages.py:31</span></td><td class="mono"><span class="t">ToolArgs</span></td></tr>
+      <tr><td>Renderer entry</td><td class="mono">RenderFunc(args, result, duration_ms, max_line_width)</td><td class="mono"><span class="t">dict[str, Any] | None</span> <span class="chip any">ANY</span></td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3>De-facto per-tool arg schemas (keys each parse_result reads)</h3>
+    <p class="path">ui/renderers/tools/*.py — today undeclared; the TypedDicts in the target design name them</p>
+    <div class="tablewrap"><table>
+      <tr><th>Renderer</th><th>args keys read</th><th>Type / default</th><th>Output dataclass</th></tr>
+      <tr><td class="mono">bash</td><td class="mono">timeout</td><td class="mono">int / 120</td><td class="mono"><span class="t">BashData</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td class="mono">read_file</td><td class="mono">filepath, offset</td><td class="mono">str / "unknown" · int / 0</td><td class="mono"><span class="t">ReadFileData</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td class="mono">write_file</td><td class="mono">filepath, content</td><td class="mono">str / "" · str / ""</td><td class="mono"><span class="t">WriteFileData</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td class="mono">web_fetch</td><td class="mono">url, timeout</td><td class="mono">str / "" · int / 60</td><td class="mono"><span class="t">WebFetchData</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td class="mono">hashline_edit</td><td class="mono">filepath <span class="k">(fallback only)</span></td><td class="mono">str / "unknown"</td><td class="mono"><span class="t">EditDiffData</span> <span class="chip typed">TYPED</span></td></tr>
+      <tr><td class="mono">discover</td><td class="k">none — parses result text only</td><td class="mono">—</td><td class="mono"><span class="t">DiscoverData</span> <span class="chip typed">TYPED</span></td></tr>
+    </table></div>
+    <p class="sub" style="margin:14px 0 0">Everything downstream of <code>parse_result</code> is already fully
+    typed (<code>Generic[T]</code> renderer protocol, frozen per-tool dataclasses). The untyped span is
+    exactly model-JSON → <code>parse_result</code>.</p>
+  </div>
+</section>
+
+<section id="b2">
+  <h2><span class="bnum">B2</span>Session persistence (disk JSON) <span class="chip any">ANY ×40</span></h2>
+  <p class="sub">Written by <code>save_session → _write_session_file</code>
+  (<code>core/session/state.py:318</code>), read by <code>load_session</code> (<code>:347</code>).
+  The schema is fixed and versioned — it just isn't declared anywhere.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Session file schema · version 1</h3>
+      <p class="path">{project_id}_{session_id}.json · dir mode 0o700</p>
+      <div class="tablewrap"><table>
+        <tr><th>Field</th><th>Type</th></tr>
+        <tr><td class="mono">version</td><td class="mono"><span class="t">int</span> <span class="k">literal 1, not read back</span></td></tr>
+        <tr><td class="mono">session_id</td><td class="mono"><span class="t">str</span> <span class="k">uuid4</span></td></tr>
+        <tr><td class="mono">project_id</td><td class="mono"><span class="t">str</span> <span class="k">save no-ops if ""</span></td></tr>
+        <tr><td class="mono">created_at</td><td class="mono"><span class="t">str</span> <span class="k">ISO</span></td></tr>
+        <tr><td class="mono">last_modified</td><td class="mono"><span class="t">str</span> <span class="k">stamped at save; sort key</span></td></tr>
+        <tr><td class="mono">working_directory</td><td class="mono"><span class="t">str</span></td></tr>
+        <tr><td class="mono">selected_skill_names</td><td class="mono"><span class="t">list[str]</span> <span class="k">strict, TypeError</span></td></tr>
+        <tr><td class="mono">current_model</td><td class="mono"><span class="t">str</span> <span class="k">drives max_tokens on load</span></td></tr>
+        <tr><td class="mono">session_total_usage</td><td class="mono"><span class="t">UsageMetrics dict</span></td></tr>
+        <tr><td class="mono">thoughts</td><td class="mono"><span class="t">list[str]</span></td></tr>
+        <tr><td class="mono">messages</td><td class="mono"><span class="t">list[dict]</span> <span class="k">model_dump(exclude_none)</span></td></tr>
+        <tr><td class="mono">compaction</td><td class="mono"><span class="t">CompactionPayload | null</span></td></tr>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h3>CompactionRecord dict</h3>
+      <p class="path">core/compaction/types.py:75 · to_dict / from_dict</p>
+      <div class="tablewrap"><table>
+        <tr><th>Key</th><th>Type</th></tr>
+        <tr><td class="mono">summary</td><td class="mono"><span class="t">str</span></td></tr>
+        <tr><td class="mono">compacted_message_count</td><td class="mono"><span class="t">int ≥ 0</span></td></tr>
+        <tr><td class="mono">tokens_before / tokens_after</td><td class="mono"><span class="t">int ≥ 0</span></td></tr>
+        <tr><td class="mono">compaction_count</td><td class="mono"><span class="t">int &gt; 0</span></td></tr>
+        <tr><td class="mono">previous_summary</td><td class="mono"><span class="t">str | null</span></td></tr>
+        <tr><td class="mono">last_compacted_at</td><td class="mono"><span class="t">str</span></td></tr>
+      </table></div>
+      <h3 style="margin-top:20px">list_sessions() summary entry</h3>
+      <p class="path">state.py:428 → ui/screens/session_picker.py</p>
+      <div class="tablewrap"><table>
+        <tr><td class="mono">session_id · created_at · last_modified · current_model · file_path</td><td class="mono"><span class="t">str</span></td></tr>
+        <tr><td class="mono">message_count</td><td class="mono"><span class="t">int</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+  <p class="sub">The <code>_coerce_*</code> / <code>_deserialize_*</code> helpers here (and in
+  <code>adapter.py</code>) take unknown JSON and validate-then-narrow. Their honest input type is
+  <code>object</code>, not <code>Any</code> — <code>object</code> forces the narrowing they already do.
+  Legacy quirk worth keeping documented: a message dict containing a <code>"thought"</code> key is
+  extracted into <code>thoughts</code> and dropped from <code>messages</code> on load.</p>
+</section>
+
+<section id="b3">
+  <h2><span class="bnum">B3</span>Agent messages (tinyagent boundary) <span class="chip typed">ALREADY TYPED</span></h2>
+  <p class="sub">The canonical message model <em>is</em> tinyagent's pydantic models — there is no
+  separate tunacode message type. Docs mentioning <code>CanonicalMessage</code> are stale;
+  the adapter is a pass-through role validator, not a conversion layer.</p>
+
+  <div class="card">
+    <h3>AgentMessage = UserMessage | AssistantMessage | ToolResultMessage | CustomAgentMessage</h3>
+    <p class="path">tinyagent/agent_types.py · pydantic, extra="allow" · serialized via model_dump(exclude_none=True)</p>
+    <div class="tablewrap"><table>
+      <tr><th>Model</th><th>Dumped keys</th></tr>
+      <tr><td class="mono">UserMessage</td><td class="mono">role:"user" · content: <span class="t">list[Text|Image]</span> · timestamp?</td></tr>
+      <tr><td class="mono">AssistantMessage</td><td class="mono">role:"assistant" · content: <span class="t">list[Text|Thinking|ToolCall]</span> · stop_reason? · api? · provider? · model? · usage? · error_message? · timestamp?</td></tr>
+      <tr><td class="mono">ToolResultMessage</td><td class="mono">role:"tool_result" · tool_call_id? · tool_name? · content: <span class="t">list[Text|Image]</span> · details: <span class="t">JsonObject</span> · is_error: <span class="t">bool</span> · timestamp? <span class="k">(terminate excluded)</span></td></tr>
+      <tr><td class="mono">CustomAgentMessage</td><td class="mono">role: <span class="t">str</span> · timestamp? · <span class="k">arbitrary extras</span></td></tr>
+    </table></div>
+    <div class="tablewrap" style="margin-top:16px"><table>
+      <tr><th>Content block</th><th>Keys</th></tr>
+      <tr><td class="mono">TextContent</td><td class="mono">type:"text" · text? · text_signature? · cache_control?</td></tr>
+      <tr><td class="mono">ImageContent</td><td class="mono">type:"image" · url? · mime_type?</td></tr>
+      <tr><td class="mono">ThinkingContent</td><td class="mono">type:"thinking" · thinking? · thinking_signature? · cache_control?</td></tr>
+      <tr><td class="mono">ToolCallContent</td><td class="mono">type:"tool_call" · id? · name? · arguments: <span class="t">JsonObject</span> · partial_json?</td></tr>
+    </table></div>
+    <p class="sub" style="margin:14px 0 0">Asymmetry worth knowing: a tool <b>call</b> id lives in a
+    content item under <code>id</code>; a tool <b>result</b> id lives at message top level under
+    <code>tool_call_id</code>.</p>
+  </div>
+
+  <div class="card">
+    <h3>Adapter status · utils/messaging/adapter.py</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Function</th><th>Status</th></tr>
+      <tr><td class="mono">get_content</td><td><span class="chip typed">LIVE</span> token counter · UI · session picker · compaction</td></tr>
+      <tr><td class="mono">to_canonical</td><td><span class="chip vest">VESTIGIAL</span> one call site, result discarded (validation side-effect, <span class="mono">resume/sanitize.py:184</span>)</td></tr>
+      <tr><td class="mono">to_canonical_list · from_canonical · from_canonical_list</td><td><span class="chip dead">DEAD</span> zero call sites, zero tests</td></tr>
+    </table></div>
+    <p class="sub" style="margin:14px 0 0">The resume module (<code>core/agents/resume/sanitize.py:31-58</code>)
+    already defines typed mirrors of the content blocks — the natural seed for a shared typed
+    message layer if one is ever promoted to <code>types/</code>.</p>
+  </div>
+</section>
+
+<section id="b4">
+  <h2><span class="bnum">B4</span>Runtime state fields <span class="chip any">ANY ×8</span></h2>
+  <p class="sub">Seven <code>Any</code> fields on <code>SessionState</code> / <code>RuntimeState</code>.
+  Only two are alive — both isinstance-validated to a single concrete class at their sole
+  access point. The other five have <b>no producers anywhere in src/</b>.</p>
+  <div class="card">
+    <div class="tablewrap"><table>
+      <tr><th>Field</th><th>Declared</th><th>Actual</th><th>Evidence</th></tr>
+      <tr><td class="mono">agents</td><td class="mono">dict[str, Any]</td>
+        <td class="mono"><span class="t">dict[ModelName, tinyagent.Agent]</span> <span class="chip typed">TYPED</span></td>
+        <td class="mono k">isinstance @ agent_config.py:479</td></tr>
+      <tr><td class="mono">_compaction_controller</td><td class="mono">Any | None</td>
+        <td class="mono"><span class="t">CompactionController | None</span> <span class="chip typed">TYPED</span></td>
+        <td class="mono k">isinstance @ controller.py:468</td></tr>
+      <tr><td class="mono strike">spinner</td><td class="mono">Any | None</td>
+        <td><span class="chip vest">VESTIGIAL</span></td><td class="mono k">declaration only</td></tr>
+      <tr><td class="mono strike">current_task</td><td class="mono">Any | None</td>
+        <td><span class="chip vest">VESTIGIAL</span></td><td class="mono k">declaration only</td></tr>
+      <tr><td class="mono strike">task_hierarchy</td><td class="mono">dict[str, Any]</td>
+        <td><span class="chip vest">VESTIGIAL</span></td><td class="mono k">only ever .clear()ed</td></tr>
+      <tr><td class="mono strike">recursive_context_stack</td><td class="mono">list[dict[str, Any]]</td>
+        <td><span class="chip vest">VESTIGIAL</span></td><td class="mono k">push_recursive_context has no callers</td></tr>
+      <tr><td class="mono strike">streaming_panel</td><td class="mono">Any | None</td>
+        <td><span class="chip vest">VESTIGIAL</span></td><td class="mono k">state_structures.py:59, declaration only</td></tr>
+    </table></div>
+    <p class="sub" style="margin:14px 0 0"><code>StateManagerProtocol</code> /
+    <code>SessionStateProtocol</code> (<code>core/types/state.py</code>) mirror these fields —
+    fixing the dataclass fixes the protocol.</p>
+  </div>
+</section>
+
+<section id="b5">
+  <h2><span class="bnum">B5</span>UI display shapes <span class="chip any">ANY ×10</span></h2>
+  <div class="card">
+    <div class="tablewrap"><table>
+      <tr><th>Shape</th><th>Field</th><th>Actual contents</th></tr>
+      <tr><td class="mono">ToolDisplayData</td><td class="mono">arguments: dict[str, Any]</td>
+        <td class="mono">the B1 <span class="t">ToolArgs</span> dict, rendered as a generic key→value grid</td></tr>
+      <tr><td class="mono">ErrorDisplayData</td><td class="mono">context: dict[str, Any] | None</td>
+        <td class="mono">arbitrary key→value; <span class="k">error_panel() never populates it</span></td></tr>
+      <tr><td class="mono">SearchResultData</td><td class="mono">results: list[dict[str, Any]]</td>
+        <td class="mono">fixed keys: title · snippet <span class="k">(fallback content)</span> · relevance <span class="k">(fallback score)</span> · file · name</td></tr>
+    </table></div>
+    <p class="sub" style="margin:14px 0 0">The search dicts are built from already-typed dataclasses
+    (<code>FileSearchResult</code>, <code>CodeSearchResult</code>) and immediately downcast to dicts —
+    the typed → untyped direction is backwards.</p>
+  </div>
+</section>
+
+<section id="callbacks">
+  <h2>Callback contracts · types/callbacks.py</h2>
+  <div class="card">
+    <div class="tablewrap"><table>
+      <tr><th>Alias</th><th>Signature</th><th>Status</th></tr>
+      <tr><td class="mono">ToolCallback</td><td class="mono">(ToolCallPartProtocol, StreamResultProtocol) → Awaitable[None]</td><td><span class="chip typed">LIVE</span></td></tr>
+      <tr><td class="mono">ToolResultCallback</td><td class="mono">(ToolName, str, <span class="t">ToolArgs</span>, ToolResult | None, float | None) → None</td><td><span class="chip typed">LIVE</span></td></tr>
+      <tr><td class="mono">ToolStartCallback · NoticeCallback</td><td class="mono">(str) → None</td><td><span class="chip typed">LIVE</span></td></tr>
+      <tr><td class="mono">StreamingCallback</td><td class="mono">(str) → Awaitable[None]</td><td><span class="chip typed">LIVE</span></td></tr>
+      <tr><td class="mono">ToolCallPartProtocol.args</td><td class="mono">str | dict[str, Any] | None <span class="k">— that dict is ToolArgs</span></td><td><span class="chip any">ANY</span></td></tr>
+      <tr><td class="mono strike">UICallback · UIInputCallback · AsyncFunc · AsyncToolFunc · AsyncVoidFunc</td><td class="mono">—</td><td><span class="chip dead">DEAD</span></td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section id="dead">
+  <h2>Dead code carrying Any — deletion, not typing</h2>
+  <p class="sub">Roughly a quarter of the cleanup is removing symbols nothing calls.</p>
+  <div class="card">
+    <div class="tablewrap"><table>
+      <tr><th>Location</th><th>Dead symbols</th></tr>
+      <tr><td class="mono">types/base.py</td><td class="mono strike">AgentConfig · ErrorContext · UpdateOperation · Validator (+ValidationResult) · CommandResult · CommandArgs · FileDiff · DiffHunk (+DiffLine)</td></tr>
+      <tr><td class="mono">types/callbacks.py</td><td class="mono strike">UICallback · UIInputCallback · AsyncFunc · AsyncToolFunc · AsyncVoidFunc</td></tr>
+      <tr><td class="mono">utils/messaging/adapter.py</td><td class="mono strike">to_canonical_list · from_canonical · from_canonical_list</td></tr>
+      <tr><td class="mono">tools/utils/ripgrep.py</td><td class="mono strike">RipgrepExecutor <span class="k">(entire class incl. **kwargs: Any — only get_ripgrep_binary_path() is live)</span></td></tr>
+      <tr><td class="mono">core/session/state.py</td><td class="mono strike">spinner · current_task · task_hierarchy · recursive_context_stack (+push/pop_recursive_context) · streaming_panel</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section id="target">
+  <h2>Target type design <span class="chip plan">PLAN</span></h2>
+  <p class="sub">The deliverable of #441: each block below names a real contract and kills a
+  bucket of <code>Any</code>.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>1 · Use the alias that already exists</h3>
+      <p class="sub">Replace <code>args: dict[str, Any] | None</code> with
+      <code>args: ToolArgs | None</code> across <code>ui/renderers/</code> and
+      <code>ToolCallPartProtocol</code>. ~35 sites, zero behavior change.</p>
+      <h3>2 · Per-tool arg TypedDicts</h3>
+<pre><span class="cm"># types/tool_args.py — total=False: model output is untrusted;</span>
+<span class="cm"># renderers keep their .get() defaults</span>
+<span class="kw">class</span> <span class="cl">BashArgs</span>(TypedDict, total=<span class="kw">False</span>):
+    command: str
+    timeout: int
+
+<span class="kw">class</span> <span class="cl">ReadFileArgs</span>(TypedDict, total=<span class="kw">False</span>):
+    filepath: str
+    offset: int
+
+<span class="kw">class</span> <span class="cl">WriteFileArgs</span>(TypedDict, total=<span class="kw">False</span>):
+    filepath: str
+    content: str
+
+<span class="kw">class</span> <span class="cl">WebFetchArgs</span>(TypedDict, total=<span class="kw">False</span>):
+    url: str
+    timeout: int
+
+<span class="kw">class</span> <span class="cl">HashlineEditArgs</span>(TypedDict, total=<span class="kw">False</span>):
+    filepath: str</pre>
+    </div>
+
+    <div class="card">
+      <h3>3 · Session persistence TypedDicts</h3>
+<pre><span class="kw">class</span> <span class="cl">SessionFileV1</span>(TypedDict):
+    version: int
+    session_id: str
+    project_id: str
+    created_at: str
+    last_modified: str
+    working_directory: str
+    selected_skill_names: list[str]
+    current_model: str
+    session_total_usage: dict[str, object]
+    thoughts: list[str]
+    messages: list[dict[str, object]]
+    compaction: CompactionPayload | <span class="kw">None</span>
+
+<span class="kw">class</span> <span class="cl">SessionSummary</span>(TypedDict):
+    session_id: str
+    created_at: str
+    last_modified: str
+    message_count: int
+    current_model: str
+    file_path: str</pre>
+      <p class="sub" style="margin:12px 0 0"><code>list_sessions() → list[SessionSummary]</code>
+      fixes <code>state.py</code>, the protocol, and <code>session_picker.py</code> in one stroke.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>4–7 · The rest</h3>
+    <div class="tablewrap"><table>
+      <tr><th>#</th><th>Change</th><th>Detail</th></tr>
+      <tr><td class="num mono">4</td><td>Coercion inputs → <code>object</code></td>
+        <td class="mono k">_coerce_* / _deserialize_* in state.py, compaction/types.py, adapter.py — they validate-then-narrow; object forces it</td></tr>
+      <tr><td class="num mono">5</td><td>Runtime fields → concrete types</td>
+        <td class="mono k">agents: dict[str, "Agent"] · _compaction_controller: "CompactionController | None" via TYPE_CHECKING; delete the 5 vestigial fields</td></tr>
+      <tr><td class="num mono">6</td><td>Point at existing types</td>
+        <td class="mono k">paths.py get_session_dir → StateManagerProtocol · logging **kwargs → object · LogRecord.extra → dict[str, object]</td></tr>
+      <tr><td class="num mono">7</td><td>Whitelist legitimate Any</td>
+        <td class="mono k">4× PEP 562 lazy __getattr__ · editor.py TYPE_CHECKING split</td></tr>
+    </table></div>
+    <p class="sub" style="margin:14px 0 0"><b>Enforcement:</b> extend the
+    <code>[[tool.mypy.overrides]]</code> strict-<code>Any</code> module list per cleaned package
+    (the <code>core.agents</code> override is the template), and align the pre-commit mypy
+    invocation with <code>pyproject.toml</code> — today it runs weaker flags than the config
+    declares.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Companion to <span class="mono">docs/architecture/types-and-io-interfaces.md</span> ·
+  traced from master @ <span class="mono">0ae3c8c</span> on 2026-07-11 ·
+  tunacode issue <span class="mono">#441</span></p>
+</footer>
+
+</div>
