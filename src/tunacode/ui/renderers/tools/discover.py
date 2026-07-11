@@ -8,12 +8,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
 from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.types import ToolArgs
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -161,7 +161,7 @@ class DiscoverRenderer(BaseToolRenderer[DiscoverData]):
                 return stripped
         return ""
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> DiscoverData | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> DiscoverData | None:
         """Parse discover output into structured data."""
         if not result:
             return None
@@ -345,7 +345,7 @@ _renderer = DiscoverRenderer(RendererConfig(tool_name="discover"))
 
 @tool_renderer("discover")
 def render_discover(
-    args: dict[str, Any] | None,
+    args: ToolArgs | None,
     result: str,
     duration_ms: float | None,
     max_line_width: int,

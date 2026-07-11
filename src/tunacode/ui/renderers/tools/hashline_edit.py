@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal, cast
 
 from rich.console import Group, RenderableType
 from rich.syntax import Syntax
@@ -14,6 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, TOOL_VIEWPORT_LINES
+from tunacode.types import HashlineEditArgs, ToolArgs
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -70,7 +71,7 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
         r"\+(?P<new_start>\d+)(?:,(?P<new_count>\d+))? @@"
     )
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> EditDiffData | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> EditDiffData | None:
         """Extract structured data from hashline_edit output."""
         if not result:
             return None
@@ -86,8 +87,8 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
         # Extract filepath from diff header
         filepath_match = re.search(r"--- a/(.+)", diff_content)
         if not filepath_match:
-            args = args or {}
-            filepath = args.get("filepath", "unknown")
+            edit_args = cast(HashlineEditArgs, args or {})
+            filepath = edit_args.get("filepath", "unknown")
         else:
             filepath = filepath_match.group(1).strip()
         root_path = Path.cwd()
@@ -351,7 +352,7 @@ class HashlineEditRenderer(BaseToolRenderer[EditDiffData]):
 
     def render(
         self,
-        args: dict[str, Any] | None,
+        args: ToolArgs | None,
         result: str,
         duration_ms: float | None,
         max_line_width: int,
@@ -408,7 +409,7 @@ _renderer = HashlineEditRenderer(RendererConfig(tool_name="hashline_edit"))
 
 @tool_renderer("hashline_edit")
 def render_hashline_edit(
-    args: dict[str, Any] | None,
+    args: ToolArgs | None,
     result: str,
     duration_ms: float | None,
     max_line_width: int,

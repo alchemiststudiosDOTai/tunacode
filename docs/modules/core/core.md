@@ -8,7 +8,7 @@ when_to_read:
   - Debugging agent behavior
   - Modifying the request lifecycle
   - Changing how session state is persisted
-last_updated: "2026-06-21"
+last_updated: "2026-07-11"
 ---
 
 # Core Layer
@@ -47,7 +47,7 @@ The engine. Takes a user message, routes it through a tinyagent `Agent`, handles
 
 | File | Purpose |
 |------|---------|
-| `state.py` | `SessionState` dataclass -- the single container for all mutable state (config, agents, conversation, runtime, usage, compaction, recursion tracking). `StateManager` -- singleton that owns a `SessionState`, loads user config, and provides `save_session()` / `load_session()` / `list_sessions()`. |
+| `state.py` | `SessionState` dataclass -- the single container for all mutable state (config, agents, conversation, runtime, usage, compaction). `StateManager` -- singleton that owns a `SessionState`, loads user config, and provides `save_session()` / `load_session()` / `list_sessions()`. |
 
 ### logging/ -- Structured Logging
 

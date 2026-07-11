@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tinyagent.agent_types import AgentMessage
@@ -56,7 +56,6 @@ class RuntimeState:
     batch_counter: int = DEFAULT_BATCH_COUNTER
     operation_cancelled: bool = False
     is_streaming_active: bool = False
-    streaming_panel: Any | None = None
 
 
 @dataclass(slots=True)

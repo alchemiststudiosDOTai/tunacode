@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from rich.console import RenderableType
 from rich.text import Text
@@ -18,6 +18,7 @@ from tunacode.constants import (
     SYNTAX_LINE_NUMBER_SEPARATOR_WIDTH,
     TOOL_VIEWPORT_LINES,
 )
+from tunacode.types import ToolArgs, WriteFileArgs
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -45,7 +46,7 @@ class WriteFileData:
 class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
     """Renderer for write_file tool output with syntax-highlighted preview."""
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> WriteFileData | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> WriteFileData | None:
         """Extract structured data from write_file output.
 
         Expected format:
@@ -54,9 +55,9 @@ class WriteFileRenderer(BaseToolRenderer[WriteFileData]):
         if not result:
             return None
 
-        args = args or {}
-        filepath = args.get("filepath", "")
-        content = args.get("content", "")
+        write_args = cast(WriteFileArgs, args or {})
+        filepath = write_args.get("filepath", "")
+        content = write_args.get("content", "")
 
         is_success = "Successfully wrote" in result
 
@@ -161,7 +162,7 @@ _renderer = WriteFileRenderer(RendererConfig(tool_name="write_file"))
 
 @tool_renderer("write_file")
 def render_write_file(
-    args: dict[str, Any] | None,
+    args: ToolArgs | None,
     result: str,
     duration_ms: float | None,
     max_line_width: int,

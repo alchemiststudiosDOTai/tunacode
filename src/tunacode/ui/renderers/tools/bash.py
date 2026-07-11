@@ -7,12 +7,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import cast
 
 from rich.console import Group, RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES
+from tunacode.types import BashArgs, ToolArgs
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -42,7 +43,7 @@ class BashData:
 class BashRenderer(BaseToolRenderer[BashData]):
     """Renderer for bash command output with exit code coloring."""
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> BashData | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> BashData | None:
         """Extract structured data from bash output.
 
         Expected format:
@@ -87,8 +88,8 @@ class BashRenderer(BaseToolRenderer[BashData]):
 
         is_truncated = "[truncated]" in result
 
-        args = args or {}
-        timeout = args.get("timeout", 120)
+        bash_args = cast(BashArgs, args or {})
+        timeout = bash_args.get("timeout", 120)
 
         return BashData(
             command=command,
@@ -247,7 +248,7 @@ _renderer = BashRenderer(RendererConfig(tool_name="bash"))
 
 @tool_renderer("bash")
 def render_bash(
-    args: dict[str, Any] | None,
+    args: ToolArgs | None,
     result: str,
     duration_ms: float | None,
     max_line_width: int,

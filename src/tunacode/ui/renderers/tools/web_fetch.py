@@ -6,13 +6,14 @@ Displays fetched web content with smart syntax highlighting based on URL or cont
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import cast
 from urllib.parse import urlparse
 
 from rich.console import RenderableType
 from rich.text import Text
 
 from tunacode.constants import MIN_VIEWPORT_LINES, URL_DISPLAY_MAX_LENGTH
+from tunacode.types import ToolArgs, WebFetchArgs
 
 from tunacode.ui.renderers.tools.base import (
     BaseToolRenderer,
@@ -40,7 +41,7 @@ class WebFetchData:
 class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
     """Renderer for web_fetch tool output."""
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> WebFetchData | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> WebFetchData | None:
         """Extract structured data from web_fetch output.
 
         The result is simply the text content from the fetched page.
@@ -48,9 +49,9 @@ class WebFetchRenderer(BaseToolRenderer[WebFetchData]):
         if not result:
             return None
 
-        args = args or {}
-        url = args.get("url", "")
-        timeout = args.get("timeout", 60)
+        fetch_args = cast(WebFetchArgs, args or {})
+        url = fetch_args.get("url", "")
+        timeout = fetch_args.get("timeout", 60)
 
         # Extract domain from URL
         domain = ""
@@ -184,7 +185,7 @@ _renderer = WebFetchRenderer(RendererConfig(tool_name="web_fetch"))
 
 @tool_renderer("web_fetch")
 def render_web_fetch(
-    args: dict[str, Any] | None,
+    args: ToolArgs | None,
     result: str,
     duration_ms: float | None,
     max_line_width: int,

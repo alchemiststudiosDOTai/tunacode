@@ -8,7 +8,7 @@ when_to_read:
   - Modifying message format handling
   - Changing token estimation heuristics
   - Adjusting file-listing behavior
-last_updated: "2026-04-04"
+last_updated: "2026-07-11"
 ---
 
 # Utilities Layer
@@ -26,8 +26,8 @@ Stateless helper functions used across multiple layers. Two sub-packages: messag
 | File | Purpose |
 |------|---------|
 | `__init__.py` | Re-exports all public functions from `adapter` and `token_counter`. Import from `tunacode.utils.messaging` directly. |
-| `adapter.py` | Bidirectional conversion between tinyagent dict messages and `CanonicalMessage`. `to_canonical()` / `from_canonical()` for single messages, `*_list()` variants for batches. Extraction helpers: `get_content()`, `get_tool_call_ids()`, `get_tool_return_ids()`, `find_dangling_tool_calls()`. |
-| `token_counter.py` | Lightweight heuristic token estimation (`CHARS_PER_TOKEN = 4`). `estimate_tokens(text)` for raw strings. `estimate_message_tokens(message)` for a single message (accepts both dict and `CanonicalMessage`). `estimate_messages_tokens(messages)` sums over a list. Used by compaction threshold checks and the resource bar. |
+| `adapter.py` | Helpers over tinyagent message models and their JSON dict form. `to_canonical()` validates a message's role and returns the tinyagent-shaped dict. Extraction helpers: `get_content()`, `get_tool_call_ids()`, `get_tool_return_ids()`, `find_dangling_tool_calls()`. |
+| `token_counter.py` | Lightweight heuristic token estimation (`CHARS_PER_TOKEN = 4`). `estimate_tokens(text)` for raw strings. `estimate_message_tokens(message)` for a single message (accepts both dict and tinyagent message models). `estimate_messages_tokens(messages)` sums over a list. Used by compaction threshold checks and the resource bar. |
 
 ### System (`system/`)
 
@@ -39,16 +39,16 @@ Stateless helper functions used across multiple layers. Two sub-packages: messag
 
 ### Message Conversion
 
-tinyagent stores messages as plain dicts with `role`, `content` (list of typed items), and optional metadata. The adapter normalizes these into `CanonicalMessage` / `CanonicalPart` dataclasses for type-safe processing:
+tinyagent messages exist in two forms: typed pydantic models in memory, and
+plain dicts (`model_dump(exclude_none=True)`) at persistence boundaries. There
+is no separate canonical model — the adapter accepts either form, validates the
+`role`, and extracts from the dict shape:
 
 ```
-tinyagent dict  -->  to_canonical()  -->  CanonicalMessage
-                                              |
-                                         .get_text_content()
-                                         .get_tool_call_ids()
-                                         .get_tool_return_ids()
-                                              |
-CanonicalMessage  -->  from_canonical()  -->  tinyagent dict
+tinyagent model | dict  -->  to_canonical()   -->  validated tinyagent dict
+tinyagent model | dict  -->  get_content()          -->  str
+tinyagent model | dict  -->  get_tool_call_ids()    -->  list[str]
+tinyagent model | dict  -->  get_tool_return_ids()  -->  list[str]
 ```
 
 Supported tinyagent roles: `user`, `assistant`, `system`, `tool_result`, `tool`.

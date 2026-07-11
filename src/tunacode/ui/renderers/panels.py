@@ -17,7 +17,7 @@ from tunacode.constants import (
     TOOL_PANEL_WIDTH_DEBUG,
     UI_COLORS,
 )
-from tunacode.types import ToolResult
+from tunacode.types import ToolArgs, ToolResult
 
 from tunacode.ui.widgets.chat import PanelMeta
 
@@ -85,7 +85,7 @@ STATUS_TO_TOOL_PANEL_CLASS: dict[str, str] = {
 class ToolDisplayData:
     tool_name: str
     status: str
-    arguments: dict[str, Any]
+    arguments: ToolArgs
     result: ToolResult | None = None
     result_text: str | None = None
     duration_ms: float | None = None
@@ -465,7 +465,7 @@ def _augment_tool_panel_meta(meta: PanelMeta, *, tool_name: str, status: str) ->
 def tool_panel(
     name: str,
     status: str,
-    args: dict[str, Any] | None = None,
+    args: ToolArgs | None = None,
     result: ToolResult | None = None,
     result_text: str | None = None,
     *,
@@ -521,7 +521,7 @@ def search_panel(
 def tool_panel_smart(
     name: str,
     status: str,
-    args: dict[str, Any] | None = None,
+    args: ToolArgs | None = None,
     result: ToolResult | None = None,
     result_text: str | None = None,
     *,

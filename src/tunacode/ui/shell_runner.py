@@ -141,6 +141,8 @@ class ShellRunner:
         max_line_width: int,
     ) -> RenderableType:
         """Format shell output as 4-zone NeXTSTEP panel via BashRenderer."""
+        from tunacode.types import ToolArgs
+
         from tunacode.ui.renderers.tools.bash import render_bash
 
         stdout_text = stdout if stdout else SHELL_OUTPUT_EMPTY
@@ -156,7 +158,7 @@ STDOUT:
 STDERR:
 {stderr_text}"""
 
-        args = {"timeout": int(SHELL_COMMAND_TIMEOUT_SECONDS)}
+        args: ToolArgs = {"timeout": int(SHELL_COMMAND_TIMEOUT_SECONDS)}
         rendered_panel = render_bash(args, result_text, duration_ms, max_line_width)
 
         if rendered_panel is None:

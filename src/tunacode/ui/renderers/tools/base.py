@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
+from typing import Generic, Protocol, TypeVar, runtime_checkable
 
 from rich.console import Group, RenderableType
 from rich.text import Text
@@ -29,6 +29,7 @@ from tunacode.constants import (
     TOOL_VIEWPORT_LINES,
     UI_COLORS,
 )
+from tunacode.types import ToolArgs
 
 from tunacode.ui.widgets.chat import PanelMeta
 
@@ -129,7 +130,7 @@ ToolRenderResult = tuple[RenderableType, PanelMeta] | None
 
 # Type alias for render functions
 RenderFunc = Callable[
-    [dict[str, Any] | None, str, float | None, int],
+    [ToolArgs | None, str, float | None, int],
     ToolRenderResult,
 ]
 
@@ -200,7 +201,7 @@ class ToolRendererProtocol(Protocol[T]):
     Type parameter T is the parsed data type (e.g., BashData, ListDirData).
     """
 
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> T | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> T | None:
         """Parse raw result string into structured data.
 
         Args:
@@ -304,7 +305,7 @@ class BaseToolRenderer(ABC, Generic[T]):
         self.config = config
 
     @abstractmethod
-    def parse_result(self, args: dict[str, Any] | None, result: str) -> T | None:
+    def parse_result(self, args: ToolArgs | None, result: str) -> T | None:
         """Parse raw result string into structured data.
 
         Args:
@@ -422,7 +423,7 @@ class BaseToolRenderer(ABC, Generic[T]):
 
     def render(
         self,
-        args: dict[str, Any] | None,
+        args: ToolArgs | None,
         result: str,
         duration_ms: float | None,
         max_line_width: int,
