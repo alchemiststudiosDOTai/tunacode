@@ -1,4 +1,4 @@
-"""Base class and protocol for tool renderers following NeXTSTEP UI principles.
+"""Base class for tool renderers following NeXTSTEP UI principles.
 
 All tool renderers implement a 4-zone layout pattern:
 - Zone 1: Header (tool name, status info)
@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from typing import Generic, TypeVar
 
 from rich.console import Group, RenderableType
 from rich.text import Text
@@ -73,22 +73,6 @@ def truncate_content(
 
     truncated = lines[:max_lines]
     return "\n".join(truncated), max_lines, total
-
-
-def pad_lines(lines: list[str], min_lines: int = MIN_VIEWPORT_LINES) -> list[str]:
-    """Pad a list of lines to minimum height.
-
-    Args:
-        lines: List of content lines
-        min_lines: Minimum number of lines required
-
-    Returns:
-        Padded list with at least min_lines entries
-    """
-    result = list(lines)
-    while len(result) < min_lines:
-        result.append("")
-    return result
 
 
 def clamp_content_width(max_line_width: int, reserved_width: int) -> int:
@@ -172,15 +156,6 @@ def get_renderer(tool_name: str) -> RenderFunc | None:
     return _renderer_registry.get(tool_name)
 
 
-def list_renderers() -> list[str]:
-    """Get list of all registered tool renderer names.
-
-    Returns:
-        Sorted list of registered tool names
-    """
-    return sorted(_renderer_registry.keys())
-
-
 @dataclass
 class RendererConfig:
     """Configuration for a tool renderer."""
@@ -192,98 +167,6 @@ class RendererConfig:
 
 
 T = TypeVar("T")
-
-
-@runtime_checkable
-class ToolRendererProtocol(Protocol[T]):
-    """Protocol defining the interface for tool renderers.
-
-    Type parameter T is the parsed data type (e.g., BashData, ListDirData).
-    """
-
-    def parse_result(self, args: ToolArgs | None, result: str) -> T | None:
-        """Parse raw result string into structured data.
-
-        Args:
-            args: Tool arguments passed to the tool
-            result: Raw result string from tool execution
-
-        Returns:
-            Parsed data object, or None if parsing fails
-        """
-        ...
-
-    def build_header(self, data: T, duration_ms: float | None, max_line_width: int) -> Text:
-        """Build Zone 1: header with tool name and status info.
-
-        Args:
-            data: Parsed tool result data
-            duration_ms: Execution duration in milliseconds
-            max_line_width: Maximum line width for truncation
-
-        Returns:
-            Rich Text object for the header zone
-        """
-        ...
-
-    def build_params(self, data: T, max_line_width: int) -> Text | None:
-        """Build Zone 2: parameter key-value display.
-
-        Args:
-            data: Parsed tool result data
-            max_line_width: Maximum line width for truncation
-
-        Returns:
-            Rich Text object for params zone, or None if no params
-        """
-        ...
-
-    def build_viewport(self, data: T, max_line_width: int) -> RenderableType:
-        """Build Zone 3: main content viewport.
-
-        Args:
-            data: Parsed tool result data
-            max_line_width: Maximum line width for truncation
-
-        Returns:
-            Rich renderable for the viewport zone
-        """
-        ...
-
-    def build_status(self, data: T, duration_ms: float | None, max_line_width: int) -> Text:
-        """Build Zone 4: status line with truncation info and timing.
-
-        Args:
-            data: Parsed tool result data
-            duration_ms: Execution duration in milliseconds
-            max_line_width: Maximum line width for truncation
-
-        Returns:
-            Rich Text object for the status zone
-        """
-        ...
-
-    def get_border_color(self, data: T) -> str:
-        """Determine panel border color based on result state.
-
-        Args:
-            data: Parsed tool result data
-
-        Returns:
-            Color string for the panel border
-        """
-        ...
-
-    def get_status_text(self, data: T) -> str:
-        """Get status text for panel title (e.g., 'done', 'exit 1').
-
-        Args:
-            data: Parsed tool result data
-
-        Returns:
-            Status text string
-        """
-        ...
 
 
 class BaseToolRenderer(ABC, Generic[T]):
